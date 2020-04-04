@@ -42,11 +42,13 @@ class Link:
 
     def create_outbound_table(self, table_cls):
         class OutboundTable(Lookup):
-            definition = f"""
+            source_table = self.source_table
+
+            definition = """
             host: varchar(64)
             schema_name: varchar(64)
+            -> self.source_table
             """
-            definition = "\n".join([definition, str(self.source_table.proj().heading)])
 
         OutboundTable.__name__ = table_cls.__name__ + "Outbound"
         with self.connection(self.source_conn):
