@@ -51,8 +51,8 @@ class Link:
             """
 
         OutboundTable.__name__ = table_cls.__name__ + "Outbound"
-        with self.connection(self.source_conn):
-            self.outbound_table = self.source_schema(OutboundTable)
+        outbound_schema = Schema("datajoint_outbound__" + self.source_schema.database, connection=self.source_conn)
+        self.outbound_table = outbound_schema(OutboundTable)
 
     def create_linked_table(self, table_cls):
         class ExternalTable(table_cls):
@@ -66,8 +66,9 @@ class Link:
         self.refresh()
         host = self.linked_schema.connection.conn_info["host"]
         schema_name = self.linked_schema.database
-        primary_keys = (self.source_table.proj() - self.outbound_table).fetch(as_dict=True)
-        entities = (self.source_table - self.outbound_table).fetch()
+        with self.connection(self.source_conn):
+            primary_keys = (self.source_table.proj() - self.outbound_table).fetch(as_dict=True)
+            entities = (self.source_table - self.outbound_table).fetch()
         try:
             with self.connection(self.source_conn) as source_conn:
                 source_conn.start_transaction()
@@ -92,19 +93,18 @@ class Link:
 
     def delete(self, restriction):
         self.refresh()
-        if len(self.outbound_table & restriction):
-            raise RuntimeError
-        with self.connection(self.source_conn) as source_conn:
-            with source_conn.transaction:
-                (self.source_table & restriction).delete_quick()
+        (self.source_table & restriction).delete_quick()
 
     @contextmanager
     def connection(self, connection):
+        old_table_conn = self.source_table.connection
         if hasattr(conn, "connection"):
             old_conn = conn.connection
         else:
             old_conn = None
         conn.connection = connection
+        if connection is self.source_conn:
+            self.source_table.connection = connection
         try:
             yield connection
         finally:
@@ -112,3 +112,4 @@ class Link:
                 conn.connection = old_conn
             else:
                 delattr(conn, "connection")
+            self.source_table.connection = old_table_conn
