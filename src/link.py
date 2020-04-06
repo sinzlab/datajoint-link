@@ -106,8 +106,7 @@ class Link:
             """
 
         LinkedTable.__name__ = table_cls.__name__
-        with self.connection(self.link_conn):
-            self._linked_table = self.linked_schema(LinkedTable)
+        self._linked_table = self.linked_schema(LinkedTable)
 
     def sync(self, restriction):
         self.refresh()
@@ -120,34 +119,30 @@ class Link:
             primary_keys = (query.proj() - self.outbound_table()).fetch(as_dict=True)
             entities = (query - self.outbound_table()).fetch(as_dict=True)
         try:
-            with self.connection(self.source_conn) as source_conn:
-                source_conn.start_transaction()
-                self.outbound_table().insert(
-                    [dict(link_host=link_host, link_schema=link_schema_name, **pk) for pk in primary_keys]
-                )
-            with self.connection(self.link_conn) as link_conn:
-                link_conn.start_transaction()
-                self.inbound_table().insert(
-                    [dict(source_host=source_host, source_schema=source_schema_name, **pk) for pk in primary_keys]
-                )
-                self.linked_table().insert(
-                    [dict(source_host=source_host, source_schema=source_schema_name, **e) for e in entities]
-                )
+            self.source_conn.start_transaction()
+            self.outbound_table().insert(
+                [dict(link_host=link_host, link_schema=link_schema_name, **pk) for pk in primary_keys]
+            )
+            self.link_conn.start_transaction()
+            self.inbound_table().insert(
+                [dict(source_host=source_host, source_schema=source_schema_name, **pk) for pk in primary_keys]
+            )
+            self.linked_table().insert(
+                [dict(source_host=source_host, source_schema=source_schema_name, **e) for e in entities]
+            )
         except Exception:
-            source_conn.cancel_transaction()
-            link_conn.cancel_transaction()
+            self.source_conn.cancel_transaction()
+            self.link_conn.cancel_transaction()
             raise
         finally:
-            source_conn.commit_transaction()
-            link_conn.commit_transaction()
+            self.source_conn.commit_transaction()
+            self.link_conn.commit_transaction()
 
     def refresh(self):
-        with self.connection(self.link_conn):
-            (self.inbound_table().Flagged() - self.linked_table()).delete_quick()
-            (self.inbound_table() - self.linked_table()).delete_quick()
-            primary_keys = self.inbound_table().proj().fetch()
-        with self.connection(self.source_conn):
-            (self.outbound_table() - primary_keys).delete_quick()
+        (self.inbound_table().Flagged() - self.linked_table()).delete_quick()
+        (self.inbound_table() - self.linked_table()).delete_quick()
+        primary_keys = self.inbound_table().proj().fetch()
+        (self.outbound_table() - primary_keys).delete_quick()
         if not len(self.outbound_table()):
             self.outbound_table().drop_quick()
 
