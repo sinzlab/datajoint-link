@@ -33,7 +33,7 @@ class Link:
             link = self
 
             def sync(self):
-                self.link.sync()
+                self.link.sync(self.restriction)
 
             def delete(self):
                 self.link.refresh()
@@ -75,20 +75,21 @@ class Link:
         with self.connection(self.link_conn):
             self._linked_table = self.linked_schema(ExternalTable)
 
-    def sync(self):
+    def sync(self, restriction):
         self.refresh()
         host = self.linked_schema.connection.conn_info["host"]
         schema_name = self.linked_schema.database
         with self.connection(self.source_conn):
-            primary_keys = (self.source_table.proj() - self.outbound_table).fetch(as_dict=True)
-            entities = (self.source_table - self.outbound_table).fetch()
+            query = self.source_table() & restriction
+            primary_keys = (query.proj() - self.outbound_table()).fetch(as_dict=True)
+            entities = (query - self.outbound_table()).fetch()
         try:
             with self.connection(self.source_conn) as source_conn:
                 source_conn.start_transaction()
-                self.outbound_table.insert([dict(host=host, schema_name=schema_name, **pk) for pk in primary_keys])
+                self.outbound_table().insert([dict(host=host, schema_name=schema_name, **pk) for pk in primary_keys])
             with self.connection(self.link_conn) as link_conn:
                 link_conn.start_transaction()
-                self.linked_table.insert(entities)
+                self.linked_table().insert(entities)
         except Exception:
             source_conn.cancel_transaction()
             link_conn.cancel_transaction()
