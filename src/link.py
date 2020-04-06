@@ -18,13 +18,16 @@ class Link:
         self.source_conn = Connection(source_schema.connection.conn_info["host"], "datajoint", "datajoint")
         self.link_conn = linked_schema.connection
         self.outbound_schema = Schema("datajoint_outbound__" + self.source_schema.database, connection=self.source_conn)
+        self.inbound_schema = Schema("datajoint_inbound__" + self.linked_schema.database, connection=self.link_conn)
         self.source_table = None
         self._outbound_table = None
+        self._inbound_table = None
         self._linked_table = None
 
     def __call__(self, table_cls):
         self.create_source_table(table_cls)
         self.create_outbound_table(table_cls)
+        self.create_inbound_table(table_cls)
         self.create_linked_table(table_cls)
         return self.source_table
 
@@ -62,6 +65,23 @@ class Link:
         self._outbound_table = self.outbound_schema(OutboundTable)
 
     @property
+    def inbound_table(self):
+        if not self._inbound_table().is_declared:
+            self.inbound_schema(self._inbound_table)
+        return self._inbound_table
+
+    def create_inbound_table(self, table_cls):
+        class InboundTable(Lookup):
+            definition = f"""
+            source_host: varchar(64)
+            source_schema: varchar(64)
+            {str(self.source_table().proj().heading)}
+            """
+
+        InboundTable.__name__ = table_cls.__name__ + "Inbound"
+        self._inbound_table = self.inbound_schema(InboundTable)
+
+    @property
     def linked_table(self):
         if not self._linked_table().is_declared:
             self.linked_schema(self._linked_table)
@@ -69,7 +89,13 @@ class Link:
 
     def create_linked_table(self, table_cls):
         class LinkedTable(table_cls):
-            pass
+            inbound_table = self.inbound_table
+
+            definition = f"""
+            -> self.inbound_table
+            ---
+            {str(self.source_table().heading).split('---')[-1]}
+            """
 
         LinkedTable.__name__ = table_cls.__name__
         with self.connection(self.link_conn):
@@ -77,21 +103,28 @@ class Link:
 
     def sync(self, restriction):
         self.refresh()
-        host = self.linked_schema.connection.conn_info["host"]
-        schema_name = self.linked_schema.database
+        link_host = self.linked_schema.connection.conn_info["host"]
+        link_schema_name = self.linked_schema.database
+        source_host = self.source_schema.connection.conn_info["host"]
+        source_schema_name = self.source_schema.database
         with self.connection(self.source_conn):
             query = self.source_table() & restriction
             primary_keys = (query.proj() - self.outbound_table()).fetch(as_dict=True)
-            entities = (query - self.outbound_table()).fetch()
+            entities = (query - self.outbound_table()).fetch(as_dict=True)
         try:
             with self.connection(self.source_conn) as source_conn:
                 source_conn.start_transaction()
                 self.outbound_table().insert(
-                    [dict(link_host=host, link_schema=schema_name, **pk) for pk in primary_keys]
+                    [dict(link_host=link_host, link_schema=link_schema_name, **pk) for pk in primary_keys]
                 )
             with self.connection(self.link_conn) as link_conn:
                 link_conn.start_transaction()
-                self.linked_table().insert(entities)
+                self.inbound_table().insert(
+                    [dict(source_host=source_host, source_schema=source_schema_name, **pk) for pk in primary_keys]
+                )
+                self.linked_table().insert(
+                    [dict(source_host=source_host, source_schema=source_schema_name, **e) for e in entities]
+                )
         except Exception:
             source_conn.cancel_transaction()
             link_conn.cancel_transaction()
@@ -102,7 +135,8 @@ class Link:
 
     def refresh(self):
         with self.connection(self.link_conn):
-            primary_keys = self.linked_table().proj().fetch()
+            (self.inbound_table() - self.linked_table()).delete_quick()
+            primary_keys = self.inbound_table().proj().fetch()
         with self.connection(self.source_conn):
             (self.outbound_table() - primary_keys).delete_quick()
         if not len(self.outbound_table()):
