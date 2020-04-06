@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from datajoint import Lookup
+from datajoint import Lookup, Part
 from datajoint.schemas import Schema
 from datajoint.connection import Connection, conn
 
@@ -42,6 +42,9 @@ class Link:
                 self.link.refresh()
                 super().delete()
 
+            def flag(self):
+                self.link.flag(self.restriction)
+
         SourceTable.__name__ = table_cls.__name__
         self.source_table = self.source_schema(SourceTable)
 
@@ -77,6 +80,11 @@ class Link:
             source_schema: varchar(64)
             {str(self.source_table().proj().heading)}
             """
+
+            class Flagged(Part):
+                definition = """
+                -> master
+                """
 
         InboundTable.__name__ = table_cls.__name__ + "Inbound"
         self._inbound_table = self.inbound_schema(InboundTable)
@@ -135,12 +143,17 @@ class Link:
 
     def refresh(self):
         with self.connection(self.link_conn):
+            (self.inbound_table().Flagged() - self.linked_table()).delete_quick()
             (self.inbound_table() - self.linked_table()).delete_quick()
             primary_keys = self.inbound_table().proj().fetch()
         with self.connection(self.source_conn):
             (self.outbound_table() - primary_keys).delete_quick()
         if not len(self.outbound_table()):
             self.outbound_table().drop_quick()
+
+    def flag(self, restriction):
+        primary_keys = (self.outbound_table() & restriction).fetch(as_dict=True)
+        self.inbound_table().Flagged().insert(self.inbound_table() & primary_keys, skip_duplicates=True)
 
     @contextmanager
     def connection(self, connection):
