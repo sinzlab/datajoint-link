@@ -93,9 +93,11 @@ class Link:
 
     def refresh(self):
         with self.connection(self.link_conn):
-            primary_keys = self.linked_table.proj().fetch()
+            primary_keys = self.linked_table().proj().fetch()
         with self.connection(self.source_conn):
-            (self.outbound_table - primary_keys).delete_quick()
+            (self.outbound_table() - primary_keys).delete_quick()
+        if not len(self.outbound_table()):
+            self.outbound_table().drop_quick()
 
     @contextmanager
     def connection(self, connection):
