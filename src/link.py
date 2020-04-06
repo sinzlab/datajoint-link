@@ -35,7 +35,8 @@ class Link:
                 self.link.sync()
 
             def delete(self):
-                self.link.delete(self.restriction)
+                self.link.refresh()
+                super().delete()
 
         SourceTable.__name__ = table_cls.__name__
         self.source_table = self.source_schema(SourceTable)
@@ -90,10 +91,6 @@ class Link:
         with self.connection(self.source_conn) as source_conn:
             with source_conn.transaction:
                 (self.outbound_table - primary_keys).delete_quick()
-
-    def delete(self, restriction):
-        self.refresh()
-        (self.source_table & restriction).delete_quick()
 
     @contextmanager
     def connection(self, connection):
