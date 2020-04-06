@@ -53,8 +53,8 @@ class Link:
             source_table = self.source_table
 
             definition = """
-            host: varchar(64)
-            schema_name: varchar(64)
+            link_host: varchar(64)
+            link_schema: varchar(64)
             -> self.source_table
             """
 
@@ -86,7 +86,9 @@ class Link:
         try:
             with self.connection(self.source_conn) as source_conn:
                 source_conn.start_transaction()
-                self.outbound_table().insert([dict(host=host, schema_name=schema_name, **pk) for pk in primary_keys])
+                self.outbound_table().insert(
+                    [dict(link_host=host, link_schema=schema_name, **pk) for pk in primary_keys]
+                )
             with self.connection(self.link_conn) as link_conn:
                 link_conn.start_transaction()
                 self.linked_table().insert(entities)
