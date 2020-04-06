@@ -68,12 +68,12 @@ class Link:
         return self._linked_table
 
     def create_linked_table(self, table_cls):
-        class ExternalTable(table_cls):
+        class LinkedTable(table_cls):
             pass
 
-        ExternalTable.__name__ = table_cls.__name__
+        LinkedTable.__name__ = table_cls.__name__
         with self.connection(self.link_conn):
-            self._linked_table = self.linked_schema(ExternalTable)
+            self._linked_table = self.linked_schema(LinkedTable)
 
     def sync(self, restriction):
         self.refresh()
