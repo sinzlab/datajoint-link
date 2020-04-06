@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 from datajoint import Lookup, Part
 from datajoint.schemas import Schema
-from datajoint.connection import Connection, conn
+from datajoint.connection import Connection
 
 
 class LinkedSchema(Schema):
@@ -114,7 +114,7 @@ class Link:
         link_schema_name = self.linked_schema.database
         source_host = self.source_schema.connection.conn_info["host"]
         source_schema_name = self.source_schema.database
-        with self.connection(self.source_conn):
+        with self.replace_source_table_conn():
             query = self.source_table() & restriction
             primary_keys = (query.proj() - self.outbound_table()).fetch(as_dict=True)
             entities = (query - self.outbound_table()).fetch(as_dict=True)
@@ -151,20 +151,10 @@ class Link:
         self.inbound_table().Flagged().insert(self.inbound_table() & primary_keys, skip_duplicates=True)
 
     @contextmanager
-    def connection(self, connection):
-        old_table_conn = self.source_table.connection
-        if hasattr(conn, "connection"):
-            old_conn = conn.connection
-        else:
-            old_conn = None
-        conn.connection = connection
-        if connection is self.source_conn:
-            self.source_table.connection = connection
+    def replace_source_table_conn(self):
+        old_conn = self.source_table.connection
+        self.source_table.connection = self.source_conn
         try:
-            yield connection
+            yield self.source_table
         finally:
-            if old_conn:
-                conn.connection = old_conn
-            else:
-                delattr(conn, "connection")
-            self.source_table.connection = old_table_conn
+            self.source_table.connection = old_conn
