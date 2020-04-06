@@ -17,8 +17,9 @@ class Link:
         self.linked_schema = linked_schema
         self.source_conn = Connection(source_schema.connection.conn_info["host"], "datajoint", "datajoint")
         self.link_conn = linked_schema.connection
+        self.outbound_schema = Schema("datajoint_outbound__" + self.source_schema.database, connection=self.source_conn)
         self.source_table = None
-        self.outbound_table = None
+        self._outbound_table = None
         self.linked_table = None
 
     def __call__(self, table_cls):
@@ -41,6 +42,12 @@ class Link:
         SourceTable.__name__ = table_cls.__name__
         self.source_table = self.source_schema(SourceTable)
 
+    @property
+    def outbound_table(self):
+        if not self._outbound_table().is_declared:
+            self.outbound_schema(self._outbound_table)
+        return self._outbound_table
+
     def create_outbound_table(self, table_cls):
         class OutboundTable(Lookup):
             source_table = self.source_table
@@ -52,8 +59,7 @@ class Link:
             """
 
         OutboundTable.__name__ = table_cls.__name__ + "Outbound"
-        outbound_schema = Schema("datajoint_outbound__" + self.source_schema.database, connection=self.source_conn)
-        self.outbound_table = outbound_schema(OutboundTable)
+        self._outbound_table = self.outbound_schema(OutboundTable)
 
     def create_linked_table(self, table_cls):
         class ExternalTable(table_cls):
@@ -88,9 +94,8 @@ class Link:
     def refresh(self):
         with self.connection(self.link_conn):
             primary_keys = self.linked_table.proj().fetch()
-        with self.connection(self.source_conn) as source_conn:
-            with source_conn.transaction:
-                (self.outbound_table - primary_keys).delete_quick()
+        with self.connection(self.source_conn):
+            (self.outbound_table - primary_keys).delete_quick()
 
     @contextmanager
     def connection(self, connection):
