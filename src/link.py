@@ -20,7 +20,7 @@ class Link:
         self.outbound_schema = Schema("datajoint_outbound__" + self.source_schema.database, connection=self.source_conn)
         self.source_table = None
         self._outbound_table = None
-        self.linked_table = None
+        self._linked_table = None
 
     def __call__(self, table_cls):
         self.create_source_table(table_cls)
@@ -61,13 +61,19 @@ class Link:
         OutboundTable.__name__ = table_cls.__name__ + "Outbound"
         self._outbound_table = self.outbound_schema(OutboundTable)
 
+    @property
+    def linked_table(self):
+        if not self._linked_table().is_declared:
+            self.linked_schema(self._linked_table)
+        return self._linked_table
+
     def create_linked_table(self, table_cls):
         class ExternalTable(table_cls):
             pass
 
         ExternalTable.__name__ = table_cls.__name__
         with self.connection(self.link_conn):
-            self.linked_table = self.linked_schema(ExternalTable)
+            self._linked_table = self.linked_schema(ExternalTable)
 
     def sync(self):
         self.refresh()
