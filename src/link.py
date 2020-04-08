@@ -36,6 +36,11 @@ class Link:
             -> self.remote_table
             """
 
+            class Flagged(dj.Part):
+                definition = """
+                -> master
+                """
+
         OutboundTable.__name__ = table_cls.__name__ + "Outbound"
         outbound_schema = dj.schema("datajoint_outbound__" + self.remote_schema.database, connection=self.remote_conn)
         self.outbound_table = outbound_schema(OutboundTable)
@@ -44,6 +49,11 @@ class Link:
         class InboundTable(dj.Lookup):
             definition = str(self.outbound_table().heading)
 
+            class Flagged(dj.Part):
+                definition = """
+                -> master
+                """
+
         InboundTable.__name__ = table_cls.__name__ + "Inbound"
         inbound_schema = dj.schema("datajoint_inbound__" + self.local_schema.database, connection=self.local_conn)
         self.inbound_table = inbound_schema(InboundTable)
@@ -51,10 +61,18 @@ class Link:
     def set_up_local_table(self, table_cls):
         class LocalTable(dj.Lookup):
             link = self
-            remote = self.remote_table()
             definition = """
             -> self.link.inbound_table
             """
+
+            @property
+            def remote(self):
+                return self.link.remote_table()
+
+            @property
+            def flagged(self):
+                self.link.refresh()
+                return self.link.inbound_table().Flagged()
 
             def pull(self, restriction=None):
                 self.link.pull(restriction=restriction)
@@ -75,9 +93,23 @@ class Link:
 
     def refresh(self):
         with self.transaction():
-            (self.inbound_table() - self.local_table()).delete_quick()
-            keys = self.inbound_table().fetch()
-            (self.outbound_table() - keys).delete_quick()
+            self.delete_obsolete_flags()
+            self.delete_obsolete_entities()
+            self.pull_new_flags()
+
+    def delete_obsolete_flags(self):
+        (self.inbound_table().Flagged() - self.local_table()).delete_quick()
+        not_obsolete_flags = self.inbound_table().Flagged().fetch()
+        (self.outbound_table() - not_obsolete_flags).delete_quick()
+
+    def delete_obsolete_entities(self):
+        (self.inbound_table() - self.local_table()).delete_quick()
+        not_obsolete_entities = self.inbound_table().fetch()
+        (self.outbound_table() - not_obsolete_entities).delete_quick()
+
+    def pull_new_flags(self):
+        outbound_flags = self.outbound_table().Flagged().fetch()
+        self.inbound_table().Flagged().insert(self.inbound_table() & outbound_flags, skip_duplicates=True)
 
     def pull(self, restriction=None):
         if restriction is None:
