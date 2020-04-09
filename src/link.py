@@ -1,5 +1,6 @@
 from itertools import product, chain
 from contextlib import contextmanager
+import warnings
 
 import datajoint as dj
 
@@ -128,6 +129,12 @@ class Link:
         self.local.main = self.local.schema(LocalTable)
 
     def refresh(self):
+        try:
+            self._refresh()
+        except RuntimeError:
+            warnings.warn("Couldn't refresh tables. Check connection to remote host")
+
+    def _refresh(self):
         with self.transaction():
             self.delete_obsolete_flags()
             self.delete_obsolete_entities()
