@@ -19,6 +19,10 @@ class Host:
         return self.schema.spawn_missing_classes(context=context)
 
     @property
+    def flagged(self):
+        return self.gate().Flagged()
+
+    @property
     def transaction(self):
         return self.conn.transaction
 
@@ -105,7 +109,7 @@ class Link:
             @property
             def flagged(self):
                 self.link.refresh()
-                return self.link.local.gate().Flagged()
+                return self.link.local.flagged
 
             def pull(self, restriction=None):
                 self.link.pull(restriction=restriction)
@@ -137,9 +141,9 @@ class Link:
             self.pull_new_flags()
 
     def delete_obsolete_flags(self):
-        (self.local.gate().Flagged() - self.local.main()).delete_quick()
-        not_obsolete_flags = self.local.gate().Flagged().fetch()
-        (self.remote.gate().Flagged() - not_obsolete_flags).delete_quick()
+        (self.local.flagged - self.local.main()).delete_quick()
+        not_obsolete_flags = self.local.flagged.fetch()
+        (self.remote.flagged - not_obsolete_flags).delete_quick()
 
     def delete_obsolete_entities(self):
         (self.local.gate() - self.local.main()).delete_quick()
@@ -147,8 +151,8 @@ class Link:
         (self.remote.gate() - not_obsolete_entities).delete_quick()
 
     def pull_new_flags(self):
-        outbound_flags = self.remote.gate().Flagged().fetch()
-        self.local.gate().Flagged().insert(self.local.gate() & outbound_flags, skip_duplicates=True)
+        outbound_flags = self.remote.flagged.fetch()
+        self.local.flagged.insert(self.local.gate() & outbound_flags, skip_duplicates=True)
 
     def pull(self, restriction=None):
         if restriction is None:
