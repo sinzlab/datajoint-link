@@ -1,20 +1,17 @@
-from abc import ABC, abstractmethod
 from itertools import product, chain
 from contextlib import contextmanager
 
 import datajoint as dj
 
 
-class Host(ABC):
-    def __init__(self, schema):
+class Host:
+    def __init__(self, schema, conn):
         self.schema = schema
+        self.conn = conn
         self.database = schema.database
         self.host = schema.connection.conn_info["host"]
-
-    @property
-    @abstractmethod
-    def conn(self):
-        pass
+        self.main = None
+        self.gate = None
 
     def start_transaction(self):
         self.conn.start_transaction()
@@ -25,6 +22,9 @@ class Host(ABC):
     def commit_transaction(self):
         self.conn.commit_transaction()
 
+    def spawn_missing_classes(self, context=None):
+        return self.schema.spawn_missing_classes(context=context)
+
     @property
     def is_connected(self):
         if self.conn.is_connected:
@@ -33,45 +33,19 @@ class Host(ABC):
             return False
 
 
-class Remote(Host):
-    def __init__(self, schema):
-        super().__init__(schema=schema)
-        self.table = None
-        self.outbound = None
-
-    @property
-    def conn(self):
-        return self.schema.connection
-
-    def spawn_missing_classes(self, context=None):
-        return self.schema.spawn_missing_classes(context=context)
-
-
-class Local(Host):
-    def __init__(self, schema):
-        super().__init__(schema=schema)
-        self._conn = None
-        self.table = None
-        self.inbound = None
-
-    @property
-    def conn(self):
-        if not self._conn:
-            self._conn = dj.Connection(self.schema.connection.conn_info["host"], "datajoint", "datajoint")
-        return self._conn
-
-
 class Link:
     def __init__(self, local_schema, remote_schema):
-        self._local = Local(local_schema)
-        self._remote = Remote(remote_schema)
+        self._local = Host(
+            local_schema, dj.Connection(local_schema.connection.conn_info["host"], "datajoint", "datajoint")
+        )
+        self._remote = Host(remote_schema, remote_schema.connection)
 
     def __call__(self, table_cls):
         self.set_up_remote_table(table_cls)
         self.set_up_outbound_table(table_cls)
         self.set_up_inbound_table(table_cls)
         self.set_up_local_table(table_cls)
-        return self.local.table
+        return self.local.main
 
     @property
     def local(self):
@@ -90,11 +64,11 @@ class Link:
     def set_up_remote_table(self, table_cls):
         remote_tables = dict()
         self.remote.schema.spawn_missing_classes(context=remote_tables)
-        self.remote.table = remote_tables[table_cls.__name__]
+        self.remote.main = remote_tables[table_cls.__name__]
 
     def set_up_outbound_table(self, table_cls):
         class OutboundTable(dj.Lookup):
-            remote_table = self.remote.table
+            remote_table = self.remote.main
             definition = """
             remote_host: varchar(64)
             remote_schema: varchar(64)
@@ -108,11 +82,11 @@ class Link:
 
         OutboundTable.__name__ = table_cls.__name__ + "Outbound"
         outbound_schema = dj.schema("datajoint_outbound__" + self.remote.database, connection=self.remote.conn)
-        self.remote.outbound = outbound_schema(OutboundTable)
+        self.remote.gate = outbound_schema(OutboundTable)
 
     def set_up_inbound_table(self, table_cls):
         class InboundTable(dj.Lookup):
-            definition = str(self.remote.outbound().heading)
+            definition = str(self.remote.gate().heading)
 
             class Flagged(dj.Part):
                 definition = """
@@ -121,7 +95,7 @@ class Link:
 
         InboundTable.__name__ = table_cls.__name__ + "Inbound"
         inbound_schema = dj.schema("datajoint_inbound__" + self.local.database, connection=self.local.conn)
-        self.local.inbound = inbound_schema(InboundTable)
+        self.local.gate = inbound_schema(InboundTable)
 
     def set_up_local_table(self, table_cls):
         class LocalTable(dj.Lookup):
@@ -132,12 +106,12 @@ class Link:
 
             @property
             def remote(self):
-                return self.link.remote.table()
+                return self.link.remote.main()
 
             @property
             def flagged(self):
                 self.link.refresh()
-                return self.link.local.inbound().Flagged()
+                return self.link.local.gate().Flagged()
 
             def pull(self, restriction=None):
                 self.link.pull(restriction=restriction)
@@ -151,10 +125,10 @@ class Link:
                 self.link.refresh()
 
         LocalTable.__name__ = table_cls.__name__
-        heading = self.remote.table().heading
+        heading = self.remote.main().heading
         secondary = (a for a, n in product(str(heading).split("\n"), heading.secondary_attributes) if a.startswith(n))
         LocalTable.definition = "\n".join(chain([LocalTable.definition], secondary))
-        self.local.table = self.local.schema(LocalTable)
+        self.local.main = self.local.schema(LocalTable)
 
     def refresh(self):
         with self.transaction():
@@ -163,46 +137,46 @@ class Link:
             self.pull_new_flags()
 
     def delete_obsolete_flags(self):
-        (self.local.inbound().Flagged() - self.local.table()).delete_quick()
-        not_obsolete_flags = self.local.inbound().Flagged().fetch()
-        (self.remote.outbound().Flagged() - not_obsolete_flags).delete_quick()
+        (self.local.gate().Flagged() - self.local.main()).delete_quick()
+        not_obsolete_flags = self.local.gate().Flagged().fetch()
+        (self.remote.gate().Flagged() - not_obsolete_flags).delete_quick()
 
     def delete_obsolete_entities(self):
-        (self.local.inbound() - self.local.table()).delete_quick()
-        not_obsolete_entities = self.local.inbound().fetch()
-        (self.remote.outbound() - not_obsolete_entities).delete_quick()
+        (self.local.gate() - self.local.main()).delete_quick()
+        not_obsolete_entities = self.local.gate().fetch()
+        (self.remote.gate() - not_obsolete_entities).delete_quick()
 
     def pull_new_flags(self):
-        outbound_flags = self.remote.outbound().Flagged().fetch()
-        self.local.inbound().Flagged().insert(self.local.inbound() & outbound_flags, skip_duplicates=True)
+        outbound_flags = self.remote.gate().Flagged().fetch()
+        self.local.gate().Flagged().insert(self.local.gate() & outbound_flags, skip_duplicates=True)
 
     def pull(self, restriction=None):
         if restriction is None:
             restriction = dj.AndList()
         self.refresh()
-        primary_keys = (self.remote.table().proj() & restriction).fetch(as_dict=True)
-        entities = (self.remote.table() & restriction).fetch(as_dict=True)
+        primary_keys = (self.remote.main().proj() & restriction).fetch(as_dict=True)
+        entities = (self.remote.main() & restriction).fetch(as_dict=True)
         with self.transaction():
-            self.remote.outbound().insert(
+            self.remote.gate().insert(
                 [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
                 skip_duplicates=True,
             )
-            self.local.inbound().insert(
+            self.local.gate().insert(
                 [dict(pk, remote_host=self.remote.host, remote_schema=self.remote.database) for pk in primary_keys],
                 skip_duplicates=True,
             )
-            self.local.table().insert(
+            self.local.main().insert(
                 [dict(e, remote_host=self.remote.host, remote_schema=self.remote.database) for e in entities],
                 skip_duplicates=True,
             )
 
     @contextmanager
     def transaction(self):
-        old_local_table_conn = self.local.table.connection
+        old_local_table_conn = self.local.main.connection
         try:
             self.remote.start_transaction()
             self.local.start_transaction()
-            self.local.table.connection = self.local.conn
+            self.local.main.connection = self.local.conn
             yield
         except Exception:
             self.remote.cancel_transaction()
@@ -212,7 +186,7 @@ class Link:
             self.remote.commit_transaction()
             self.local.commit_transaction()
         finally:
-            self.local.table.connection = old_local_table_conn
+            self.local.main.connection = old_local_table_conn
 
 
 link = Link
