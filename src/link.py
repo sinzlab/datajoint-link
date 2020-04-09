@@ -160,9 +160,9 @@ class Link:
 
     def _refresh(self):
         with self.transaction():
+            self.pull_new_flags()
             self.delete_obsolete_flags()
             self.delete_obsolete_entities()
-            self.pull_new_flags()
 
     def delete_obsolete_flags(self):
         (self.local.flagged - self.local.main()).delete_quick()
@@ -181,8 +181,14 @@ class Link:
         (self.remote.gate() - relevant_entities).delete_quick()
 
     def pull_new_flags(self):
-        outbound_flags = self.remote.flagged.fetch()
-        self.local.flagged.insert(self.local.gate() & outbound_flags, skip_duplicates=True)
+        outbound_flags = self.remote.flagged.fetch(as_dict=True)
+        inbound_flags = [
+            {k: v for k, v in f.items() if k not in ("remote_host", "remote_schema")} for f in outbound_flags
+        ]
+        inbound_flags = [
+            {"remote_host": self.remote.host, "remote_schema": self.remote.database, **f} for f in inbound_flags
+        ]
+        self.local.flagged.insert(inbound_flags, skip_duplicates=True)
 
     def pull(self, restriction=None):
         if restriction is None:
