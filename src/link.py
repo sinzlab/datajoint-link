@@ -14,6 +14,7 @@ class Host:
         self.database = schema.database
         self.host = schema.connection.conn_info["host"]
         self.main = None
+        self.parts = None
         self.gate = None
 
     def spawn_missing_classes(self, context=None):
@@ -63,7 +64,15 @@ class Link:
     def set_up_remote_table(self, table_cls):
         remote_tables = dict()
         self.remote.schema.spawn_missing_classes(context=remote_tables)
-        self.remote.main = remote_tables[table_cls.__name__]
+        remote_table = remote_tables[table_cls.__name__]
+        parts = []
+        for name in dir(remote_table):
+            if name[0].isupper():
+                attr = getattr(remote_table, name)
+                if isclass(attr) and issubclass(attr, dj.Part):
+                    parts.append(attr)
+        self.remote.parts = parts
+        self.remote.main = remote_table
 
     def set_up_outbound_table(self, table_cls):
         class OutboundTable(dj.Lookup):
@@ -131,21 +140,19 @@ class Link:
         secondary_definition = "\n".join(secondary_attributes(self.remote.main().heading))
         main_definition = "\n---\n".join((primary_definition, secondary_definition))
 
-        # Find all definitions of remote part tables
-        part_headings = dict()
-        for name in dir(self.remote.main):
-            if name[0].isupper():
-                attr = getattr(self.remote.main, name)
-                if isclass(attr) and issubclass(attr, dj.Part):
-                    part_headings[name] = str(attr().heading)
+        local_parts = []
+        for remote_part in self.remote.parts:
+            local_part = type(
+                remote_part.__name__, (dj.Part,), dict(definition="-> master\n" + str(remote_part().heading))
+            )
+            local_parts.append(local_part)
 
-        # Create local copies of the part tables and attach them to the local table
-        for name, heading in part_headings.items():
-            local_part = type(name, (dj.Part,), dict(definition="-> master\n" + heading))
-            setattr(LocalTable, name, local_part)
+        for local_part in local_parts:
+            setattr(LocalTable, local_part.__name__, local_part)
 
         LocalTable.__name__ = table_cls.__name__
         LocalTable.definition = main_definition
+        self.local.parts = local_parts
         self.local.main = self.local.schema(LocalTable)
 
     def refresh(self):
