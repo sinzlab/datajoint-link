@@ -27,10 +27,7 @@ class Host:
 
     @property
     def is_connected(self):
-        if self.conn.is_connected:
-            return True
-        else:
-            return False
+        return self.conn.is_connected
 
 
 class Link:
