@@ -15,17 +15,12 @@ class Host:
         self.main = None
         self.gate = None
 
-    def start_transaction(self):
-        self.conn.start_transaction()
-
-    def cancel_transaction(self):
-        self.conn.cancel_transaction()
-
-    def commit_transaction(self):
-        self.conn.commit_transaction()
-
     def spawn_missing_classes(self, context=None):
         return self.schema.spawn_missing_classes(context=context)
+
+    @property
+    def transaction(self):
+        return self.conn.transaction
 
     @property
     def is_connected(self):
@@ -100,7 +95,7 @@ class Link:
         class LocalTable(dj.Lookup):
             link = self
             definition = """
-            -> self.link.inbound_table
+            -> self.link.local.gate
             """
 
             @property
@@ -179,17 +174,9 @@ class Link:
     def transaction(self):
         old_local_table_conn = self.local.main.connection
         try:
-            self.remote.start_transaction()
-            self.local.start_transaction()
             self.local.main.connection = self.local.conn
-            yield
-        except Exception:
-            self.remote.cancel_transaction()
-            self.local.cancel_transaction()
-            raise
-        else:
-            self.remote.commit_transaction()
-            self.local.commit_transaction()
+            with self.local.transaction, self.remote.transaction:
+                yield
         finally:
             self.local.main.connection = old_local_table_conn
 
