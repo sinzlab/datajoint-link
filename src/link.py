@@ -183,7 +183,8 @@ class Link:
             restriction = dj.AndList()
         self.refresh()
         primary_keys = (self.remote.main().proj() & restriction).fetch(as_dict=True)
-        entities = (self.remote.main() & restriction).fetch(as_dict=True)
+        main_entities = (self.remote.main() & restriction).fetch(as_dict=True)
+        part_entities = {n: (p() & restriction).fetch(as_dict=True) for n, p in self.remote.parts.items()}
         with self.transaction():
             self.remote.gate().insert(
                 [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
@@ -194,19 +195,32 @@ class Link:
                 skip_duplicates=True,
             )
             self.local.main().insert(
-                [dict(e, remote_host=self.remote.host, remote_schema=self.remote.database) for e in entities],
+                [dict(e, remote_host=self.remote.host, remote_schema=self.remote.database) for e in main_entities],
                 skip_duplicates=True,
             )
+            for name, part in self.local.parts.items():
+                part().insert(
+                    [
+                        dict(e, remote_host=self.remote.host, remote_schema=self.remote.database)
+                        for e in part_entities[name]
+                    ],
+                    skip_duplicates=True,
+                )
 
     @contextmanager
     def transaction(self):
-        old_local_table_conn = self.local.main.connection
+        old_local_main_conn = self.local.main.connection
+        old_local_parts_conns = {n: p.connection for n, p in self.local.parts.items()}
         try:
             self.local.main.connection = self.local.conn
+            for part in self.local.parts.values():
+                part.connection = self.local.conn
             with self.local.transaction, self.remote.transaction:
                 yield
         finally:
-            self.local.main.connection = old_local_table_conn
+            self.local.main.connection = old_local_main_conn
+            for name, part in self.local.parts.items():
+                part.connection = old_local_parts_conns[name]
 
 
 link = Link
