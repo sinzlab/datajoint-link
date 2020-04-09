@@ -146,28 +146,22 @@ class Link:
     def delete_obsolete_flags(self):
         (self.local.flagged - self.local.main()).delete_quick()
         relevant_flags = self.local.flagged.fetch(as_dict=True)
-        relevant_flags = [
-            {k: v for k, v in pk.items() if k not in ("remote_host", "remote_schema")} for pk in relevant_flags
-        ]
-        (self.remote.flagged - relevant_flags).delete_quick()
+        (self.remote.flagged - self.translate(relevant_flags, self.local)).delete_quick()
 
     def delete_obsolete_entities(self):
         (self.local.gate() - self.local.main()).delete_quick()
         relevant_entities = self.local.gate().fetch(as_dict=True)
-        relevant_entities = [
-            {k: v for k, v in pk.items() if k not in ("remote_host", "remote_schema")} for pk in relevant_entities
-        ]
-        (self.remote.gate() - relevant_entities).delete_quick()
+        (self.remote.gate() - self.translate(relevant_entities, self.local)).delete_quick()
 
     def pull_new_flags(self):
         outbound_flags = self.remote.flagged.fetch(as_dict=True)
-        inbound_flags = [
-            {k: v for k, v in f.items() if k not in ("remote_host", "remote_schema")} for f in outbound_flags
-        ]
-        inbound_flags = [
-            {"remote_host": self.remote.host, "remote_schema": self.remote.database, **f} for f in inbound_flags
-        ]
-        self.local.flagged.insert(inbound_flags, skip_duplicates=True)
+        self.local.flagged.insert(self.translate(outbound_flags, self.remote), skip_duplicates=True)
+
+    @staticmethod
+    def translate(keys, host):
+        translated = [{k: v for k, v in x.items() if k not in ("remote_host", "remote_schema")} for x in keys]
+        translated = [{"remote_host": host.host, "remote_schema": host.database, **x} for x in translated]
+        return translated
 
     def pull(self, restriction=None):
         if restriction is None:
