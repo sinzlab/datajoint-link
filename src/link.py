@@ -1,4 +1,4 @@
-from itertools import product, chain
+from itertools import product
 from contextlib import contextmanager
 import warnings
 
@@ -98,9 +98,7 @@ class Link:
     def set_up_local_table(self, table_cls):
         class LocalTable(dj.Lookup):
             link = self
-            definition = """
-            -> self.link.local.gate
-            """
+            definition = None
 
             @property
             def remote(self):
@@ -122,10 +120,15 @@ class Link:
                 super().delete_quick(get_count=get_count)
                 self.link.refresh()
 
+        def secondary_attributes(heading):
+            for attr_line, attr_name in product(str(heading).split("\n"), heading.secondary_attributes):
+                if attr_line.startswith(attr_name):
+                    yield attr_line
+
         LocalTable.__name__ = table_cls.__name__
-        heading = self.remote.main().heading
-        secondary = (a for a, n in product(str(heading).split("\n"), heading.secondary_attributes) if a.startswith(n))
-        LocalTable.definition = "\n".join(chain([LocalTable.definition], secondary))
+        definition = "-> self.link.local.gate"
+        definition = "\n---\n".join((definition, "\n".join(secondary_attributes(self.remote.main().heading))))
+        LocalTable.definition = definition
         self.local.main = self.local.schema(LocalTable)
 
     def refresh(self):
