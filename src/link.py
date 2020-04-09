@@ -1,5 +1,6 @@
 from itertools import product
 from contextlib import contextmanager
+from inspect import isclass
 import warnings
 
 import datajoint as dj
@@ -125,10 +126,26 @@ class Link:
                 if attr_line.startswith(attr_name):
                     yield attr_line
 
+        # Generate definition of local table
+        primary_definition = "-> self.link.local.gate"
+        secondary_definition = "\n".join(secondary_attributes(self.remote.main().heading))
+        main_definition = "\n---\n".join((primary_definition, secondary_definition))
+
+        # Find all definitions of remote part tables
+        part_headings = dict()
+        for name in dir(self.remote.main):
+            if name[0].isupper():
+                attr = getattr(self.remote.main, name)
+                if isclass(attr) and issubclass(attr, dj.Part):
+                    part_headings[name] = str(attr().heading)
+
+        # Create local copies of the part tables and attach them to the local table
+        for name, heading in part_headings.items():
+            local_part = type(name, (dj.Part,), dict(definition="-> master\n" + heading))
+            setattr(LocalTable, name, local_part)
+
         LocalTable.__name__ = table_cls.__name__
-        definition = "-> self.link.local.gate"
-        definition = "\n---\n".join((definition, "\n".join(secondary_attributes(self.remote.main().heading))))
-        LocalTable.definition = definition
+        LocalTable.definition = main_definition
         self.local.main = self.local.schema(LocalTable)
 
     def refresh(self):
