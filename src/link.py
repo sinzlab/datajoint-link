@@ -65,12 +65,12 @@ class Link:
         remote_tables = dict()
         self.remote.schema.spawn_missing_classes(context=remote_tables)
         remote_table = remote_tables[table_cls.__name__]
-        parts = []
+        parts = dict()
         for name in dir(remote_table):
             if name[0].isupper():
                 attr = getattr(remote_table, name)
                 if isclass(attr) and issubclass(attr, dj.Part):
-                    parts.append(attr)
+                    parts[name] = attr
         self.remote.parts = parts
         self.remote.main = remote_table
 
@@ -135,20 +135,17 @@ class Link:
                 if attr_line.startswith(attr_name):
                     yield attr_line
 
-        # Generate definition of local table
         primary_definition = "-> self.link.local.gate"
         secondary_definition = "\n".join(secondary_attributes(self.remote.main().heading))
         main_definition = "\n---\n".join((primary_definition, secondary_definition))
 
-        local_parts = []
-        for remote_part in self.remote.parts:
-            local_part = type(
-                remote_part.__name__, (dj.Part,), dict(definition="-> master\n" + str(remote_part().heading))
-            )
-            local_parts.append(local_part)
+        local_parts = dict()
+        for name, remote_part in self.remote.parts.items():
+            local_part = type(name, (dj.Part,), dict(definition="-> master\n" + str(remote_part().heading)))
+            local_parts[name] = local_part
 
-        for local_part in local_parts:
-            setattr(LocalTable, local_part.__name__, local_part)
+        for name, local_part in local_parts.items():
+            setattr(LocalTable, name, local_part)
 
         LocalTable.__name__ = table_cls.__name__
         LocalTable.definition = main_definition
