@@ -145,13 +145,19 @@ class Link:
 
     def delete_obsolete_flags(self):
         (self.local.flagged - self.local.main()).delete_quick()
-        not_obsolete_flags = self.local.flagged.fetch()
-        (self.remote.flagged - not_obsolete_flags).delete_quick()
+        relevant_flags = self.local.flagged.fetch(as_dict=True)
+        relevant_flags = [
+            {k: v for k, v in pk.items() if k not in ("remote_host", "remote_schema")} for pk in relevant_flags
+        ]
+        (self.remote.flagged - relevant_flags).delete_quick()
 
     def delete_obsolete_entities(self):
         (self.local.gate() - self.local.main()).delete_quick()
-        not_obsolete_entities = self.local.gate().fetch()
-        (self.remote.gate() - not_obsolete_entities).delete_quick()
+        relevant_entities = self.local.gate().fetch(as_dict=True)
+        relevant_entities = [
+            {k: v for k, v in pk.items() if k not in ("remote_host", "remote_schema")} for pk in relevant_entities
+        ]
+        (self.remote.gate() - relevant_entities).delete_quick()
 
     def pull_new_flags(self):
         outbound_flags = self.remote.flagged.fetch()
