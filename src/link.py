@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import warnings
 
 import datajoint as dj
+from datajoint.errors import LostConnectionError
 
 
 class Host:
@@ -48,14 +49,14 @@ class Link:
     @property
     def local(self):
         if not self._local.is_connected:
-            raise RuntimeError("Missing connection to local host")
+            raise LostConnectionError("Missing connection to local host")
         else:
             return self._local
 
     @property
     def remote(self):
         if not self._remote.is_connected:
-            raise RuntimeError("Missing connection to remote host")
+            raise LostConnectionError("Missing connection to remote host")
         else:
             return self._remote
 
@@ -131,7 +132,7 @@ class Link:
     def refresh(self):
         try:
             self._refresh()
-        except RuntimeError:
+        except LostConnectionError:
             warnings.warn("Couldn't refresh tables. Check connection to remote host")
 
     def _refresh(self):
