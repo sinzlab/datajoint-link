@@ -1,17 +1,20 @@
+from abc import ABC, abstractmethod
 from itertools import product, chain
 from contextlib import contextmanager
 
 import datajoint as dj
 
 
-class Remote:
+class Host(ABC):
     def __init__(self, schema):
         self.schema = schema
-        self.conn = schema.connection
         self.database = schema.database
         self.host = schema.connection.conn_info["host"]
-        self.table = None
-        self.outbound = None
+
+    @property
+    @abstractmethod
+    def conn(self):
+        pass
 
     def start_transaction(self):
         self.conn.start_transaction()
@@ -21,42 +24,41 @@ class Remote:
 
     def commit_transaction(self):
         self.conn.commit_transaction()
+
+    @property
+    def is_connected(self):
+        if self.conn.is_connected:
+            return True
+        else:
+            return False
+
+
+class Remote(Host):
+    def __init__(self, schema):
+        super().__init__(schema=schema)
+        self.table = None
+        self.outbound = None
+
+    @property
+    def conn(self):
+        return self.schema.connection
 
     def spawn_missing_classes(self, context=None):
         return self.schema.spawn_missing_classes(context=context)
 
-    @property
-    def is_connected(self):
-        if self.conn.is_connected:
-            return True
-        else:
-            return False
 
-
-class Local:
+class Local(Host):
     def __init__(self, schema):
-        self.schema = schema
-        self.conn = dj.Connection(schema.connection.conn_info["host"], "datajoint", "datajoint")
-        self.database = schema.database
-        self.host = schema.connection.conn_info["host"]
+        super().__init__(schema=schema)
+        self._conn = None
         self.table = None
         self.inbound = None
 
-    def start_transaction(self):
-        self.conn.start_transaction()
-
-    def cancel_transaction(self):
-        self.conn.cancel_transaction()
-
-    def commit_transaction(self):
-        self.conn.commit_transaction()
-
     @property
-    def is_connected(self):
-        if self.conn.is_connected:
-            return True
-        else:
-            return False
+    def conn(self):
+        if not self._conn:
+            self._conn = dj.Connection(self.schema.connection.conn_info["host"], "datajoint", "datajoint")
+        return self._conn
 
 
 class Link:
