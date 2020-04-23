@@ -119,8 +119,8 @@ class Link:
                 self.link.refresh()
                 return self.link.local.flagged
 
-            def pull(self, restriction=None):
-                self.link.pull(restriction=restriction)
+            def pull(self, *restrictions):
+                self.link.pull(restrictions=restrictions)
 
             def delete(self, verbose=True):
                 super().delete(verbose=verbose)
@@ -184,13 +184,12 @@ class Link:
         translated = [{"remote_host": host.host, "remote_schema": host.database, **x} for x in translated]
         return translated
 
-    def pull(self, restriction=None):
-        if restriction is None:
-            restriction = dj.AndList()
+    def pull(self, restrictions):
+        restrictions = dj.AndList(restrictions)
         self.refresh()
-        primary_keys = (self.remote.main().proj() & restriction).fetch(as_dict=True)
-        main_entities = (self.remote.main() & restriction).fetch(as_dict=True)
-        part_entities = {n: (p() & restriction).fetch(as_dict=True) for n, p in self.remote.parts.items()}
+        primary_keys = (self.remote.main().proj() & restrictions).fetch(as_dict=True)
+        main_entities = (self.remote.main() & restrictions).fetch(as_dict=True)
+        part_entities = {n: (p() & restrictions).fetch(as_dict=True) for n, p in self.remote.parts.items()}
         with self.transaction():
             self.remote.gate().insert(
                 [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
