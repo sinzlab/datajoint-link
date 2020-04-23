@@ -1,4 +1,3 @@
-from itertools import product
 from contextlib import contextmanager
 from inspect import isclass
 import warnings
@@ -43,7 +42,6 @@ class Link:
     def __call__(self, table_cls):
         self.set_up_remote_table(table_cls)
         self.set_up_outbound_table(table_cls)
-        self.set_up_inbound_table(table_cls)
         self.set_up_local_table(table_cls)
         return self.local.main
 
@@ -92,23 +90,22 @@ class Link:
         outbound_schema = dj.schema("datajoint_outbound__" + self.remote.database, connection=self.remote.conn)
         self.remote.gate = outbound_schema(OutboundTable)
 
-    def set_up_inbound_table(self, table_cls):
-        class InboundTable(dj.Lookup):
-            definition = str(self.remote.gate().heading)
+    def set_up_local_table(self, table_cls):
+        class LocalTable(dj.Lookup):
+            link = self
 
             class FlaggedForDeletion(dj.Part):
                 definition = """
                 -> master
                 """
 
-        InboundTable.__name__ = table_cls.__name__ + "Inbound"
-        inbound_schema = dj.schema("datajoint_inbound__" + self.local.database, connection=self.local.conn)
-        self.local.gate = inbound_schema(InboundTable)
-
-    def set_up_local_table(self, table_cls):
-        class LocalTable(dj.Lookup):
-            link = self
-            definition = None
+            @property
+            def definition(self):
+                return f"""
+                remote_host: varchar(64)
+                remote_schema: varchar(64)
+                {self.link.remote.main().heading}
+                """
 
             @property
             def remote(self):
@@ -117,7 +114,7 @@ class Link:
             @property
             def flagged_for_deletion(self):
                 self.link.refresh()
-                return self.link.local.flagged_for_deletion
+                return self.FlaggedForDeletion()
 
             def pull(self, *restrictions):
                 self.link.pull(restrictions=restrictions)
@@ -130,15 +127,6 @@ class Link:
                 super().delete_quick(get_count=get_count)
                 self.link.refresh()
 
-        def secondary_attributes(heading):
-            for attr_line, attr_name in product(str(heading).split("\n"), heading.secondary_attributes):
-                if attr_line.startswith(attr_name):
-                    yield attr_line
-
-        primary_definition = "-> self.link.local.gate"
-        secondary_definition = "\n".join(secondary_attributes(self.remote.main().heading))
-        main_definition = "\n---\n".join((primary_definition, secondary_definition))
-
         local_parts = dict()
         for name, remote_part in self.remote.parts.items():
             local_part = type(name, (dj.Part,), dict(definition="-> master\n" + str(remote_part().heading)))
@@ -148,7 +136,6 @@ class Link:
             setattr(LocalTable, name, local_part)
 
         LocalTable.__name__ = table_cls.__name__
-        LocalTable.definition = main_definition
         self.local.parts = local_parts
         self.local.main = self.local.schema(LocalTable)
 
@@ -165,18 +152,16 @@ class Link:
             self.delete_obsolete_entities()
 
     def delete_obsolete_flags(self):
-        (self.local.flagged_for_deletion - self.local.main()).delete_quick()
-        relevant_flags = self.local.flagged_for_deletion.fetch(as_dict=True)
+        relevant_flags = self.local.main().FlaggedForDeletion().fetch(as_dict=True)
         (self.remote.flagged_for_deletion - self.translate(relevant_flags, self.local)).delete_quick()
 
     def delete_obsolete_entities(self):
-        (self.local.gate() - self.local.main()).delete_quick()
-        relevant_entities = self.local.gate().fetch(as_dict=True)
+        relevant_entities = self.local.main().proj().fetch(as_dict=True)
         (self.remote.gate() - self.translate(relevant_entities, self.local)).delete_quick()
 
     def pull_new_flags(self):
         outbound_flags = self.remote.flagged_for_deletion.fetch(as_dict=True)
-        self.local.flagged_for_deletion.insert(self.translate(outbound_flags, self.remote), skip_duplicates=True)
+        self.local.main().FlaggedForDeletion().insert(self.translate(outbound_flags, self.remote), skip_duplicates=True)
 
     @staticmethod
     def translate(keys, host):
@@ -193,10 +178,6 @@ class Link:
         with self.transaction():
             self.remote.gate().insert(
                 [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
-                skip_duplicates=True,
-            )
-            self.local.gate().insert(
-                [dict(pk, remote_host=self.remote.host, remote_schema=self.remote.database) for pk in primary_keys],
                 skip_duplicates=True,
             )
             self.local.main().insert(
