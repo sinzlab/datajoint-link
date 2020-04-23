@@ -86,6 +86,11 @@ class Link:
                 -> master
                 """
 
+            class ReadyForDeletion(dj.Part):
+                definition = """
+                -> master
+                """
+
         OutboundTable.__name__ = table_cls.__name__ + "Outbound"
         outbound_schema = dj.schema("datajoint_outbound__" + self.remote.database, connection=self.remote.conn)
         self.remote.gate = outbound_schema(OutboundTable)
@@ -148,20 +153,17 @@ class Link:
     def _refresh(self):
         with self.transaction():
             self.pull_new_flags()
-            self.delete_obsolete_flags()
-            self.delete_obsolete_entities()
-
-    def delete_obsolete_flags(self):
-        relevant_flags = self.local.main().FlaggedForDeletion().fetch(as_dict=True)
-        (self.remote.flagged_for_deletion - self.translate(relevant_flags, self.local)).delete_quick()
-
-    def delete_obsolete_entities(self):
-        relevant_entities = self.local.main().proj().fetch(as_dict=True)
-        (self.remote.gate() - self.translate(relevant_entities, self.local)).delete_quick()
+            self.refresh_ready_for_deletion()
 
     def pull_new_flags(self):
         outbound_flags = self.remote.flagged_for_deletion.fetch(as_dict=True)
-        self.local.main().FlaggedForDeletion().insert(self.translate(outbound_flags, self.remote), skip_duplicates=True)
+        outbound_flags = self.translate(outbound_flags, self.remote)
+        self.local.main().FlaggedForDeletion().insert(self.local.main().proj() & outbound_flags, skip_duplicates=True)
+
+    def refresh_ready_for_deletion(self):
+        primary_keys = self.local.main().proj().fetch(as_dict=True)
+        primary_keys = self.translate(primary_keys, self.local)
+        self.remote.gate().ReadyForDeletion().insert(self.remote.gate() - primary_keys, skip_duplicates=True)
 
     @staticmethod
     def translate(keys, host):
