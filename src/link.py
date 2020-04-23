@@ -21,8 +21,8 @@ class Host:
         return self.schema.spawn_missing_classes(context=context)
 
     @property
-    def flagged(self):
-        return self.gate().Flagged()
+    def flagged_for_deletion(self):
+        return self.gate().FlaggedForDeletion()
 
     @property
     def transaction(self):
@@ -83,7 +83,7 @@ class Link:
             -> self.remote_table
             """
 
-            class Flagged(dj.Part):
+            class FlaggedForDeletion(dj.Part):
                 definition = """
                 -> master
                 """
@@ -96,7 +96,7 @@ class Link:
         class InboundTable(dj.Lookup):
             definition = str(self.remote.gate().heading)
 
-            class Flagged(dj.Part):
+            class FlaggedForDeletion(dj.Part):
                 definition = """
                 -> master
                 """
@@ -115,9 +115,9 @@ class Link:
                 return self.link.remote.main()
 
             @property
-            def flagged(self):
+            def flagged_for_deletion(self):
                 self.link.refresh()
-                return self.link.local.flagged
+                return self.link.local.flagged_for_deletion
 
             def pull(self, *restrictions):
                 self.link.pull(restrictions=restrictions)
@@ -165,9 +165,9 @@ class Link:
             self.delete_obsolete_entities()
 
     def delete_obsolete_flags(self):
-        (self.local.flagged - self.local.main()).delete_quick()
-        relevant_flags = self.local.flagged.fetch(as_dict=True)
-        (self.remote.flagged - self.translate(relevant_flags, self.local)).delete_quick()
+        (self.local.flagged_for_deletion - self.local.main()).delete_quick()
+        relevant_flags = self.local.flagged_for_deletion.fetch(as_dict=True)
+        (self.remote.flagged_for_deletion - self.translate(relevant_flags, self.local)).delete_quick()
 
     def delete_obsolete_entities(self):
         (self.local.gate() - self.local.main()).delete_quick()
@@ -175,8 +175,8 @@ class Link:
         (self.remote.gate() - self.translate(relevant_entities, self.local)).delete_quick()
 
     def pull_new_flags(self):
-        outbound_flags = self.remote.flagged.fetch(as_dict=True)
-        self.local.flagged.insert(self.translate(outbound_flags, self.remote), skip_duplicates=True)
+        outbound_flags = self.remote.flagged_for_deletion.fetch(as_dict=True)
+        self.local.flagged_for_deletion.insert(self.translate(outbound_flags, self.remote), skip_duplicates=True)
 
     @staticmethod
     def translate(keys, host):
