@@ -175,10 +175,16 @@ class Link:
 
     def pull(self, restrictions):
         restrictions = dj.AndList(restrictions)
+        flagged = self.remote.gate().FlaggedForDeletion() + self.remote.gate().ReadyForDeletion()
+        if n_flagged := len(flagged & (self.remote.main() & restrictions)):
+            warnings.warn(
+                f"Some of the requested entities were not "
+                f"pulled because they are flagged and/or ready for deletion (n = {n_flagged})"
+            )
         self.refresh()
-        primary_keys = (self.remote.main().proj() & restrictions).fetch(as_dict=True)
-        main_entities = (self.remote.main() & restrictions).fetch(as_dict=True)
-        part_entities = {n: (p() & restrictions).fetch(as_dict=True) for n, p in self.remote.parts.items()}
+        primary_keys = (self.remote.main().proj() - flagged & restrictions).fetch(as_dict=True)
+        main_entities = (self.remote.main() & primary_keys).fetch(as_dict=True)
+        part_entities = {n: (p() & primary_keys).fetch(as_dict=True) for n, p in self.remote.parts.items()}
         with self.transaction():
             self.remote.gate().insert(
                 [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
