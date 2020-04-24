@@ -163,7 +163,9 @@ class Link:
     def refresh_ready_for_deletion(self):
         primary_keys = self.local.main().proj().fetch(as_dict=True)
         primary_keys = self.translate(primary_keys, self.local)
-        self.remote.gate().ReadyForDeletion().insert(self.remote.gate() - primary_keys, skip_duplicates=True)
+        self.remote.gate().ReadyForDeletion().insert(
+            self.remote.gate().FlaggedForDeletion() - primary_keys, skip_duplicates=True
+        )
 
     @staticmethod
     def translate(keys, host):
