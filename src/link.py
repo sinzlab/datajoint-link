@@ -179,18 +179,14 @@ class Host:
 
 
 class Link:
-    def __init__(self, local_schema, remote_schema, lazy_remote=False):
+    def __init__(self, local_schema, remote_schema):
         self.remote_schema = remote_schema
-        self.lazy_remote = lazy_remote
         self.table_cls = None
         self._local = Host(local_schema)
         self._remote = Host(remote_schema)
 
     def __call__(self, table_cls):
         self.table_cls = table_cls
-        if not self.lazy_remote:
-            self.set_up_remote_table()
-            self.set_up_outbound_table()
         self.initialize_local_table()
         return self.local.main
 
