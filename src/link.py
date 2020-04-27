@@ -183,15 +183,20 @@ class Link:
 
     def __call__(self, table_cls):
         self.table_cls = table_cls
-        self.initialize_local_table()
         return self.local.main
 
     @property
     def local(self):
-        if not self._local.is_connected:
+        if not self._local.is_initialized:
+            try:
+                self._local.initialize()
+            except OperationalError:
+                raise LostConnectionError("Missing connection to local host")
+            else:
+                self._initialize_local()
+        elif not self._local.is_connected:
             raise LostConnectionError("Missing connection to local host")
-        else:
-            return self._local
+        return self._local
 
     @property
     def remote(self):
@@ -200,21 +205,25 @@ class Link:
                 self._remote.initialize()
             except OperationalError:
                 raise LostConnectionError("Missing connection to remote host")
-            self._set_up_remote_table()
-            self._set_up_outbound_table()
+            else:
+                self._initialize_remote()
         elif not self._remote.is_connected:
             raise LostConnectionError("Missing connection to remote host")
         return self._remote
+
+    def _initialize_remote(self):
+        self._set_up_remote_table()
+        self._set_up_outbound_table()
 
     def _set_up_remote_table(self):
         remote_tables = dict()
         self.remote.schema.spawn_missing_classes(context=remote_tables)
         remote_table = remote_tables[self.table_cls.__name__]
-        self.remote.parts = self.get_part_tables(remote_table)
+        self.remote.parts = self._get_part_tables(remote_table)
         self.remote.main = remote_table
 
     @staticmethod
-    def get_part_tables(table):
+    def _get_part_tables(table):
         parts = dict()
         for name in dir(table):
             if name[0].isupper() and not name == "FlaggedForDeletion":
@@ -246,8 +255,7 @@ class Link:
         outbound_schema = dj.schema("datajoint_outbound__" + self.remote.database, connection=self.remote.conn)
         self.remote.gate = outbound_schema(OutboundTable)
 
-    def initialize_local_table(self):
-        self._local.initialize()
+    def _initialize_local(self):
         try:
             self._spawn_local_table()
             print("Spawned existing local table")
@@ -287,7 +295,7 @@ class Link:
                 self.link.refresh()
 
         LocalTable.__name__ = local_table.__name__
-        self.local.parts = self.get_part_tables(LocalTable)
+        self.local.parts = self._get_part_tables(LocalTable)
         self.local.main = LocalTable
 
     def _set_up_local_table(self):
