@@ -53,6 +53,31 @@ class ConnectionProxy:
     def is_connected(self):
         return self.connection.is_connected
 
+    @property
+    def transaction(self):
+        return self.connection.transaction
+
+    @property
+    def conn_info(self):
+        return self.connection.conn_info
+
+    @property
+    def in_transaction(self):
+        return self.connection.in_transaction
+
+    @property
+    def dependencies(self):
+        return self.connection.dependencies
+
+    def start_transaction(self):
+        self.connection.start_transaction()
+
+    def cancel_transaction(self):
+        self.connection.cancel_transaction()
+
+    def commit_transaction(self):
+        self.connection.commit_transaction()
+
 
 class SchemaProxy:
     def __init__(self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True):
@@ -153,7 +178,7 @@ class Link:
     def __call__(self, table_cls):
         self.set_up_remote_table(table_cls)
         self.set_up_outbound_table(table_cls)
-        self.set_up_local_table(table_cls)
+        self.initialize_local_table(table_cls)
         return self.local.main
 
     @property
@@ -181,14 +206,18 @@ class Link:
         remote_tables = dict()
         self.remote.schema.spawn_missing_classes(context=remote_tables)
         remote_table = remote_tables[table_cls.__name__]
+        self.remote.parts = self.get_part_tables(remote_table)
+        self.remote.main = remote_table
+
+    @staticmethod
+    def get_part_tables(table):
         parts = dict()
-        for name in dir(remote_table):
-            if name[0].isupper():
-                attr = getattr(remote_table, name)
+        for name in dir(table):
+            if name[0].isupper() and not name == "FlaggedForDeletion":
+                attr = getattr(table, name)
                 if isclass(attr) and issubclass(attr, dj.Part):
                     parts[name] = attr
-        self.remote.parts = parts
-        self.remote.main = remote_table
+        return parts
 
     def set_up_outbound_table(self, table_cls):
         try:
@@ -220,12 +249,49 @@ class Link:
         outbound_schema = dj.schema("datajoint_outbound__" + self.remote.database, connection=self.remote.conn)
         self.remote.gate = outbound_schema(OutboundTable)
 
-    def set_up_local_table(self, table_cls):
+    def initialize_local_table(self, table_cls):
         try:
             self._local.initialize()
         except RuntimeError:
             pass
-        return self._set_up_local_table(table_cls)
+        try:
+            self._spawn_local_table(table_cls)
+            print("Spawned existing local table")
+        except KeyError:
+            self._set_up_local_table(table_cls)
+            print("Set up local table")
+
+    def _spawn_local_table(self, table_cls):
+        local_tables = dict()
+        self.local.spawn_missing_classes(context=local_tables)
+        local_table = local_tables[table_cls.__name__]
+
+        class LocalTable(local_table):
+            link = self
+
+            @property
+            def remote(self):
+                return self.link.remote.main()
+
+            @property
+            def flagged_for_deletion(self):
+                self.link.refresh()
+                return self.FlaggedForDeletion()
+
+            def pull(self, *restrictions):
+                self.link.pull(restrictions=restrictions)
+
+            def delete(self, verbose=True):
+                super().delete(verbose=verbose)
+                self.link.refresh()
+
+            def delete_quick(self, get_count=False):
+                super().delete_quick(get_count=get_count)
+                self.link.refresh()
+
+        LocalTable.__name__ = local_table.__name__
+        self.local.parts = self.get_part_tables(LocalTable)
+        self.local.main = LocalTable
 
     def _set_up_local_table(self, table_cls):
         class LocalTable(dj.Lookup):
