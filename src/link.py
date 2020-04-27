@@ -3,21 +3,90 @@ from inspect import isclass
 import warnings
 
 import datajoint as dj
+from datajoint.schemas import Schema
 from datajoint.errors import LostConnectionError
+
+
+class SchemaProxy:
+    def __init__(self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True):
+        self.database = schema_name
+        self.context = context
+        self._connection = connection
+        self.create_schema = create_schema
+        self.create_tables = create_tables
+
+        self.is_initialized = False
+        self._schema = None
+
+    @property
+    def schema(self):
+        if not self.is_initialized:
+            raise RuntimeError("Not initialized!")
+        else:
+            return self._schema
+
+    def initialize(self):
+        if self.is_initialized:
+            raise RuntimeError("Already initialized!")
+        else:
+            self._initialize()
+
+    def _initialize(self):
+        self._schema = Schema(
+            self.database,
+            context=self.context,
+            connection=self._connection,
+            create_schema=self.create_schema,
+            create_tables=self.create_tables,
+        )
+        self.is_initialized = True
+
+    @property
+    def connection(self):
+        return self.schema.connection
+
+    @property
+    def log(self):
+        return self.schema.log
+
+    @property
+    def jobs(self):
+        return self.schema.jobs
+
+    def spawn_missing_classes(self, context=None):
+        self.schema.spawn_missing_classes(context=context)
+
+    def drop(self, force=False):
+        self.schema.drop(force=force)
+
+    def __call__(self, cls, *, context=None):
+        return self.schema(cls, context=None)
+
+    def __repr__(self):
+        return f"Schema `{self.database}`"
 
 
 class Host:
     def __init__(self, schema):
         self.schema = schema
-        self.conn = schema.connection
         self.database = schema.database
-        self.host = schema.connection.conn_info["host"]
         self.main = None
         self.parts = None
         self.gate = None
 
     def spawn_missing_classes(self, context=None):
         return self.schema.spawn_missing_classes(context=context)
+
+    def initialize(self):
+        self.schema.initialize()
+
+    @property
+    def conn(self):
+        return self.schema.connection
+
+    @property
+    def host(self):
+        return self.schema.connection.conn_info["host"]
 
     @property
     def flagged_for_deletion(self):
@@ -58,6 +127,13 @@ class Link:
             return self._remote
 
     def set_up_remote_table(self, table_cls):
+        try:
+            self._remote.initialize()
+        except RuntimeError:
+            pass
+        return self._set_up_remote_table(table_cls)
+
+    def _set_up_remote_table(self, table_cls):
         remote_tables = dict()
         self.remote.schema.spawn_missing_classes(context=remote_tables)
         remote_table = remote_tables[table_cls.__name__]
@@ -71,6 +147,13 @@ class Link:
         self.remote.main = remote_table
 
     def set_up_outbound_table(self, table_cls):
+        try:
+            self._remote.initialize()
+        except RuntimeError:
+            pass
+        return self._set_up_outbound_table(table_cls)
+
+    def _set_up_outbound_table(self, table_cls):
         class OutboundTable(dj.Lookup):
             remote_table = self.remote.main
             definition = """
@@ -94,6 +177,13 @@ class Link:
         self.remote.gate = outbound_schema(OutboundTable)
 
     def set_up_local_table(self, table_cls):
+        try:
+            self._local.initialize()
+        except RuntimeError:
+            pass
+        return self._set_up_local_table(table_cls)
+
+    def _set_up_local_table(self, table_cls):
         class LocalTable(dj.Lookup):
             link = self
 
@@ -212,6 +302,3 @@ class Link:
         finally:
             for name, part in self.local.parts.items():
                 part.connection = old_local_parts_conns[name]
-
-
-link = Link
