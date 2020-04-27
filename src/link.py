@@ -354,24 +354,24 @@ class Link:
             warnings.warn("Couldn't refresh tables. Check connection to remote host")
 
     def _refresh(self):
-        with self.transaction():
-            self.pull_new_flags()
-            self.refresh_ready_for_deletion()
+        with self._transaction():
+            self._pull_new_flags()
+            self._refresh_ready_for_deletion()
 
-    def pull_new_flags(self):
+    def _pull_new_flags(self):
         outbound_flags = self.remote.flagged_for_deletion.fetch(as_dict=True)
-        outbound_flags = self.translate(outbound_flags, self.remote)
+        outbound_flags = self._translate(outbound_flags, self.remote)
         self.local.main().FlaggedForDeletion().insert(self.local.main().proj() & outbound_flags, skip_duplicates=True)
 
-    def refresh_ready_for_deletion(self):
+    def _refresh_ready_for_deletion(self):
         primary_keys = self.local.main().proj().fetch(as_dict=True)
-        primary_keys = self.translate(primary_keys, self.local)
+        primary_keys = self._translate(primary_keys, self.local)
         self.remote.gate().ReadyForDeletion().insert(
             self.remote.gate().FlaggedForDeletion() - primary_keys, skip_duplicates=True
         )
 
     @staticmethod
-    def translate(keys, host):
+    def _translate(keys, host):
         translated = [{k: v for k, v in x.items() if k not in ("remote_host", "remote_schema")} for x in keys]
         translated = [{"remote_host": host.host, "remote_schema": host.database, **x} for x in translated]
         return translated
@@ -388,7 +388,7 @@ class Link:
         primary_keys = (self.remote.main().proj() - flagged & restrictions).fetch(as_dict=True)
         main_entities = (self.remote.main() & primary_keys).fetch(as_dict=True)
         part_entities = {n: (p() & primary_keys).fetch(as_dict=True) for n, p in self.remote.parts.items()}
-        with self.transaction():
+        with self._transaction():
             self.remote.gate().insert(
                 [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
                 skip_duplicates=True,
@@ -407,7 +407,7 @@ class Link:
                 )
 
     @contextmanager
-    def transaction(self):
+    def _transaction(self):
         old_local_parts_conns = {n: p.connection for n, p in self.local.parts.items()}
         try:
             for part in self.local.parts.values():
