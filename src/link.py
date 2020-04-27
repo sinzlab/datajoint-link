@@ -258,11 +258,9 @@ class Link:
     def _initialize_local(self):
         try:
             self._spawn_local_table()
-            print("Spawned existing local table")
         except KeyError:
             try:
                 self._set_up_local_table()
-                print("Set up local table")
             except LostConnectionError:
                 raise LostConnectionError("Initial setup of local table requires connection to remote host")
 
