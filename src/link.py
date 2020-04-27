@@ -7,9 +7,9 @@ from datajoint.errors import LostConnectionError
 
 
 class Host:
-    def __init__(self, schema, conn):
+    def __init__(self, schema):
         self.schema = schema
-        self.conn = conn
+        self.conn = schema.connection
         self.database = schema.database
         self.host = schema.connection.conn_info["host"]
         self.main = None
@@ -34,10 +34,8 @@ class Host:
 
 class Link:
     def __init__(self, local_schema, remote_schema):
-        self._local = Host(
-            local_schema, dj.Connection(local_schema.connection.conn_info["host"], "datajoint", "datajoint")
-        )
-        self._remote = Host(remote_schema, remote_schema.connection)
+        self._local = Host(local_schema)
+        self._remote = Host(remote_schema)
 
     def __call__(self, table_cls):
         self.set_up_remote_table(table_cls)
@@ -205,16 +203,13 @@ class Link:
 
     @contextmanager
     def transaction(self):
-        old_local_main_conn = self.local.main.connection
         old_local_parts_conns = {n: p.connection for n, p in self.local.parts.items()}
         try:
-            self.local.main.connection = self.local.conn
             for part in self.local.parts.values():
                 part.connection = self.local.conn
             with self.local.transaction, self.remote.transaction:
                 yield
         finally:
-            self.local.main.connection = old_local_main_conn
             for name, part in self.local.parts.items():
                 part.connection = old_local_parts_conns[name]
 
