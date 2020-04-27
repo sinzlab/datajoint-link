@@ -28,9 +28,7 @@ class ConnectionProxy:
         return self._connection
 
     def initialize(self):
-        if self.is_initialized:
-            raise RuntimeError("Already initialized!")
-        else:
+        if not self.is_initialized:
             self._initialize()
 
     def _initialize(self):
@@ -99,9 +97,7 @@ class SchemaProxy:
             return self._schema
 
     def initialize(self):
-        if self.is_initialized:
-            raise RuntimeError("Already initialized!")
-        else:
+        if not self.is_initialized:
             self._initialize()
 
     def _initialize(self):
@@ -202,22 +198,13 @@ class Link:
         if not self._remote.is_initialized:
             try:
                 self._remote.initialize()
-            except RuntimeError:
-                pass
             except OperationalError:
                 raise LostConnectionError("Missing connection to remote host")
-            self.set_up_remote_table()
-            self.set_up_outbound_table()
+            self._set_up_remote_table()
+            self._set_up_outbound_table()
         elif not self._remote.is_connected:
             raise LostConnectionError("Missing connection to remote host")
         return self._remote
-
-    def set_up_remote_table(self):
-        try:
-            self._remote.initialize()
-        except RuntimeError:
-            pass
-        return self._set_up_remote_table()
 
     def _set_up_remote_table(self):
         remote_tables = dict()
@@ -235,13 +222,6 @@ class Link:
                 if isclass(attr) and issubclass(attr, dj.Part):
                     parts[name] = attr
         return parts
-
-    def set_up_outbound_table(self):
-        try:
-            self._remote.initialize()
-        except RuntimeError:
-            pass
-        return self._set_up_outbound_table()
 
     def _set_up_outbound_table(self):
         class OutboundTable(dj.Lookup):
@@ -267,10 +247,7 @@ class Link:
         self.remote.gate = outbound_schema(OutboundTable)
 
     def initialize_local_table(self):
-        try:
-            self._local.initialize()
-        except RuntimeError:
-            pass
+        self._local.initialize()
         try:
             self._spawn_local_table()
             print("Spawned existing local table")
