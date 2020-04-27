@@ -6,6 +6,7 @@ import datajoint as dj
 from datajoint.connection import Connection
 from datajoint.schemas import Schema
 from datajoint.errors import LostConnectionError
+from pymysql.err import OperationalError
 
 
 class ConnectionProxy:
@@ -167,18 +168,30 @@ class Host:
 
     @property
     def is_connected(self):
-        return self.conn.is_connected
+        if not self.is_initialized:
+            return False
+        else:
+            return self.conn.is_connected
+
+    @property
+    def is_initialized(self):
+        return self.schema.is_initialized
 
 
 class Link:
-    def __init__(self, local_schema, remote_schema):
+    def __init__(self, local_schema, remote_schema, lazy_remote=False):
+        self.remote_schema = remote_schema
+        self.lazy_remote = lazy_remote
+        self.table_cls = None
         self._local = Host(local_schema)
         self._remote = Host(remote_schema)
 
     def __call__(self, table_cls):
-        self.set_up_remote_table(table_cls)
-        self.set_up_outbound_table(table_cls)
-        self.initialize_local_table(table_cls)
+        self.table_cls = table_cls
+        if not self.lazy_remote:
+            self.set_up_remote_table()
+            self.set_up_outbound_table()
+        self.initialize_local_table()
         return self.local.main
 
     @property
@@ -190,22 +203,30 @@ class Link:
 
     @property
     def remote(self):
-        if not self._remote.is_connected:
+        if not self._remote.is_initialized:
+            try:
+                self._remote.initialize()
+            except RuntimeError:
+                pass
+            except OperationalError:
+                raise LostConnectionError("Missing connection to remote host")
+            self.set_up_remote_table()
+            self.set_up_outbound_table()
+        elif not self._remote.is_connected:
             raise LostConnectionError("Missing connection to remote host")
-        else:
-            return self._remote
+        return self._remote
 
-    def set_up_remote_table(self, table_cls):
+    def set_up_remote_table(self):
         try:
             self._remote.initialize()
         except RuntimeError:
             pass
-        return self._set_up_remote_table(table_cls)
+        return self._set_up_remote_table()
 
-    def _set_up_remote_table(self, table_cls):
+    def _set_up_remote_table(self):
         remote_tables = dict()
         self.remote.schema.spawn_missing_classes(context=remote_tables)
-        remote_table = remote_tables[table_cls.__name__]
+        remote_table = remote_tables[self.table_cls.__name__]
         self.remote.parts = self.get_part_tables(remote_table)
         self.remote.main = remote_table
 
@@ -219,14 +240,14 @@ class Link:
                     parts[name] = attr
         return parts
 
-    def set_up_outbound_table(self, table_cls):
+    def set_up_outbound_table(self):
         try:
             self._remote.initialize()
         except RuntimeError:
             pass
-        return self._set_up_outbound_table(table_cls)
+        return self._set_up_outbound_table()
 
-    def _set_up_outbound_table(self, table_cls):
+    def _set_up_outbound_table(self):
         class OutboundTable(dj.Lookup):
             remote_table = self.remote.main
             definition = """
@@ -245,26 +266,29 @@ class Link:
                 -> master
                 """
 
-        OutboundTable.__name__ = table_cls.__name__ + "Outbound"
+        OutboundTable.__name__ = self.table_cls.__name__ + "Outbound"
         outbound_schema = dj.schema("datajoint_outbound__" + self.remote.database, connection=self.remote.conn)
         self.remote.gate = outbound_schema(OutboundTable)
 
-    def initialize_local_table(self, table_cls):
+    def initialize_local_table(self):
         try:
             self._local.initialize()
         except RuntimeError:
             pass
         try:
-            self._spawn_local_table(table_cls)
+            self._spawn_local_table()
             print("Spawned existing local table")
         except KeyError:
-            self._set_up_local_table(table_cls)
-            print("Set up local table")
+            try:
+                self._set_up_local_table()
+                print("Set up local table")
+            except LostConnectionError:
+                raise LostConnectionError("Initial setup of local table requires connection to remote host")
 
-    def _spawn_local_table(self, table_cls):
+    def _spawn_local_table(self):
         local_tables = dict()
         self.local.spawn_missing_classes(context=local_tables)
-        local_table = local_tables[table_cls.__name__]
+        local_table = local_tables[self.table_cls.__name__]
 
         class LocalTable(local_table):
             link = self
@@ -293,7 +317,7 @@ class Link:
         self.local.parts = self.get_part_tables(LocalTable)
         self.local.main = LocalTable
 
-    def _set_up_local_table(self, table_cls):
+    def _set_up_local_table(self):
         class LocalTable(dj.Lookup):
             link = self
 
@@ -338,7 +362,7 @@ class Link:
         for name, local_part in local_parts.items():
             setattr(LocalTable, name, local_part)
 
-        LocalTable.__name__ = table_cls.__name__
+        LocalTable.__name__ = self.table_cls.__name__
         self.local.parts = local_parts
         self.local.main = self.local.schema(LocalTable)
 
