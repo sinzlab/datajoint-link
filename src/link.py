@@ -3,15 +3,62 @@ from inspect import isclass
 import warnings
 
 import datajoint as dj
+from datajoint.connection import Connection
 from datajoint.schemas import Schema
 from datajoint.errors import LostConnectionError
+
+
+class ConnectionProxy:
+    def __init__(self, host, user, password, port=None, init_fun=None, use_tls=None):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.port = port
+        self.init_fun = init_fun
+        self.use_tls = use_tls
+
+        self.is_initialized = False
+        self._connection = None
+
+    @property
+    def connection(self):
+        if not self.is_initialized:
+            raise RuntimeError("Not initialized!")
+        return self._connection
+
+    def initialize(self):
+        if self.is_initialized:
+            raise RuntimeError("Already initialized!")
+        else:
+            self._initialize()
+
+    def _initialize(self):
+        self._connection = Connection(
+            self.host, self.user, self.password, port=self.port, init_fun=self.init_fun, use_tls=self.use_tls
+        )
+        self.is_initialized = True
+
+    def query(self, query, args=(), *, as_dict=False, suppress_warnings=True, reconnect=None):
+        return self.connection.query(
+            query, args=args, as_dict=as_dict, suppress_warnings=suppress_warnings, reconnect=reconnect
+        )
+
+    def get_user(self):
+        return self.connection.get_user()
+
+    def register(self, schema):
+        self.connection.register(schema=schema)
+
+    @property
+    def is_connected(self):
+        return self.connection.is_connected
 
 
 class SchemaProxy:
     def __init__(self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True):
         self.database = schema_name
         self.context = context
-        self._connection = connection
+        self.connection = connection
         self.create_schema = create_schema
         self.create_tables = create_tables
 
@@ -32,18 +79,15 @@ class SchemaProxy:
             self._initialize()
 
     def _initialize(self):
+        self.connection.initialize()
         self._schema = Schema(
             self.database,
             context=self.context,
-            connection=self._connection,
+            connection=self.connection,
             create_schema=self.create_schema,
             create_tables=self.create_tables,
         )
         self.is_initialized = True
-
-    @property
-    def connection(self):
-        return self.schema.connection
 
     @property
     def log(self):
