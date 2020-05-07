@@ -68,6 +68,10 @@ class ConnectionProxy:
     def dependencies(self):
         return self.connection.dependencies
 
+    @property
+    def schemas(self):
+        return self.connection.schemas
+
     def start_transaction(self):
         self.connection.start_transaction()
 
