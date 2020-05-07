@@ -1,0 +1,81 @@
+version: '3.7'
+services:
+    dps:
+        image: defreitas/dns-proxy-server
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - /etc/resolv.conf:/etc/resolv.conf
+        hostname: dns.mageddo
+        networks:
+            dps:
+                ipv4_address: 172.0.0.10
+    pycharm:
+        build: .
+        volumes:
+            - ./src:/src
+        entrypoint: ""
+        hostname: pycharm.docker
+        dns:
+            - 172.0.0.10
+        networks:
+            - dps
+    jupyter:
+        build: .
+        env_file: .env
+        volumes:
+            - ./src:/src
+        hostname: jupyter.docker
+        dns:
+            - 172.0.0.10
+        networks:
+            - dps
+    experimental_db:
+        image: datajoint/mysql:5.7
+        environment:
+            - MYSQL_ROOT_PASSWORD=simple
+        volumes:
+            - ./data/db_data/pulled_db_data:/var/lib/mysql
+        hostname: experimental.db
+        dns:
+            - 172.0.0.10
+        networks:
+            - dps
+    experimental_minio:
+        image: minio/minio
+        volumes:
+            - ./data/minio_data/pulled_minio_data:/data
+        hostname: experimental.minio
+        dns:
+            - 172.0.0.10
+        networks:
+            - dps
+        env_file: experimental.env
+        command: ["server", "/data"]
+    computational_db:
+        image: datajoint/mysql:5.7
+        environment:
+            - MYSQL_ROOT_PASSWORD=simple
+        volumes:
+            - ./data/db_data/pulling_db_data:/var/lib/mysql
+        hostname: computational.db
+        dns:
+            - 172.0.0.10
+        networks:
+            - dps
+    computational_minio:
+        image: minio/minio
+        volumes:
+            - ./data/minio_data/pulling_minio_data:/data
+        hostname: computational.minio
+        dns:
+            - 172.0.0.10
+        networks:
+            - dps
+        env_file: computational.env
+        command: ["server", "/data"]
+
+networks:
+    dps:
+        ipam:
+          config:
+              - subnet: 172.0.0.0/24
