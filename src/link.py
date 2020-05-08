@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from inspect import isclass
+from tempfile import TemporaryDirectory
 import warnings
 
 import datajoint as dj
@@ -179,8 +180,9 @@ class Host:
 
 
 class Link:
-    def __init__(self, local_schema, remote_schema):
+    def __init__(self, local_schema, remote_schema, stores=None):
         self.remote_schema = remote_schema
+        self.stores = stores if stores else dict()
         self.table_cls = None
         self._local = Host(local_schema)
         self._remote = Host(remote_schema)
@@ -303,6 +305,7 @@ class Link:
     def _set_up_local_table(self):
         class LocalTable(dj.Lookup):
             link = self
+            _definition = None
 
             class FlaggedForDeletion(dj.Part):
                 definition = """
@@ -311,11 +314,7 @@ class Link:
 
             @property
             def definition(self):
-                return f"""
-                remote_host: varchar(64)
-                remote_schema: varchar(64)
-                {self.link.remote.main().heading}
-                """
+                return self._definition
 
             @property
             def remote(self):
@@ -339,15 +338,27 @@ class Link:
 
         local_parts = dict()
         for name, remote_part in self.remote.parts.items():
-            local_part = type(name, (dj.Part,), dict(definition="-> master\n" + str(remote_part().heading)))
+            local_part = type(
+                name, (dj.Part,), dict(definition="-> master\n" + self._replace_stores(str(remote_part().heading)))
+            )
             local_parts[name] = local_part
 
         for name, local_part in local_parts.items():
             setattr(LocalTable, name, local_part)
 
         LocalTable.__name__ = self.table_cls.__name__
+        LocalTable._definition = f"""
+            remote_host: varchar(64)
+            remote_schema: varchar(64)
+            {self._replace_stores(str(self.remote.main().heading))}
+        """
         self.local.parts = local_parts
         self.local.main = self.local.schema(LocalTable)
+
+    def _replace_stores(self, definition):
+        for local_store, remote_store in self.stores.items():
+            definition = definition.replace(remote_store, local_store)
+        return definition
 
     def refresh(self):
         try:
@@ -388,25 +399,29 @@ class Link:
             )
         self.refresh()
         primary_keys = (self.remote.main().proj() - flagged & restrictions).fetch(as_dict=True)
-        main_entities = (self.remote.main() & primary_keys).fetch(as_dict=True)
-        part_entities = {n: (p() & primary_keys).fetch(as_dict=True) for n, p in self.remote.parts.items()}
-        with self._transaction():
-            self.remote.gate().insert(
-                [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
-                skip_duplicates=True,
-            )
-            self.local.main().insert(
-                [dict(e, remote_host=self.remote.host, remote_schema=self.remote.database) for e in main_entities],
-                skip_duplicates=True,
-            )
-            for name, part in self.local.parts.items():
-                part().insert(
-                    [
-                        dict(e, remote_host=self.remote.host, remote_schema=self.remote.database)
-                        for e in part_entities[name]
-                    ],
+        with TemporaryDirectory() as temp_dir:
+            main_entities = (self.remote.main() & primary_keys).fetch(as_dict=True, download_path=temp_dir)
+            part_entities = {
+                n: (p() & primary_keys).fetch(as_dict=True, download_path=temp_dir)
+                for n, p in self.remote.parts.items()
+            }
+            with self._transaction():
+                self.remote.gate().insert(
+                    [dict(pk, remote_host=self.local.host, remote_schema=self.local.database) for pk in primary_keys],
                     skip_duplicates=True,
                 )
+                self.local.main().insert(
+                    [dict(e, remote_host=self.remote.host, remote_schema=self.remote.database) for e in main_entities],
+                    skip_duplicates=True,
+                )
+                for name, part in self.local.parts.items():
+                    part().insert(
+                        [
+                            dict(e, remote_host=self.remote.host, remote_schema=self.remote.database)
+                            for e in part_entities[name]
+                        ],
+                        skip_duplicates=True,
+                    )
 
     @contextmanager
     def _transaction(self):
