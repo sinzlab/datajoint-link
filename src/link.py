@@ -104,14 +104,17 @@ class SchemaProxy:
             self._initialize()
 
     def _initialize(self):
-        self.connection.initialize()
-        self._schema = Schema(
+        if self.connection is not None:
+            self.connection.initialize()
+        schema = Schema(
             self.database,
             context=self.context,
             connection=self.connection,
             create_schema=self.create_schema,
             create_tables=self.create_tables,
         )
+        self.connection = schema.connection
+        self._schema = schema
         self.is_initialized = True
 
     @property
