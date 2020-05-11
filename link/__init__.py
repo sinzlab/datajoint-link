@@ -1,4 +1,4 @@
-from .link import SchemaProxy, Link
+from .main import SchemaProxy, Link
 
 schema = SchemaProxy
 link = Link
