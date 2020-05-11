@@ -13,7 +13,8 @@ RUN python3.8 -m pip install \
     datajoint==0.12.5 \
     blackcellmagic
 COPY ./jupyter_notebook_config.py /root/.jupyter/
-WORKDIR /src
-COPY ./src .
+WORKDIR /src/link
+COPY . .
+RUN python3.8 -m pip install -e .
 ENTRYPOINT ["jupyter", "lab", "--allow-root"]
 

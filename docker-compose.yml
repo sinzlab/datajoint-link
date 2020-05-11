@@ -12,7 +12,7 @@ services:
     pycharm:
         build: .
         volumes:
-            - ./src:/src
+            - ./link:/link
         entrypoint: ""
         hostname: pycharm.docker
         dns:
@@ -23,7 +23,7 @@ services:
         build: .
         env_file: .env
         volumes:
-            - ./src:/src
+            - ./link:/link
         hostname: jupyter.docker
         dns:
             - 172.0.0.10
