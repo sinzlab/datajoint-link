@@ -21,7 +21,7 @@ services:
             - dps
     jupyter:
         build: .
-        env_file: .env
+        env_file: env/.env
         volumes:
             - ./link:/link
         hostname: jupyter.docker
@@ -49,7 +49,7 @@ services:
             - 172.0.0.10
         networks:
             - dps
-        env_file: experimental.env
+        env_file: env/experimental.env
         command: ["server", "/data"]
     computational_db:
         image: datajoint/mysql:5.7
@@ -71,7 +71,7 @@ services:
             - 172.0.0.10
         networks:
             - dps
-        env_file: computational.env
+        env_file: env/computational.env
         command: ["server", "/data"]
 
 networks:
