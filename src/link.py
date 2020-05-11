@@ -11,79 +11,6 @@ from datajoint.errors import LostConnectionError
 from pymysql.err import OperationalError
 
 
-class ConnectionProxy:
-    def __init__(self, host, user, password, port=None, init_fun=None, use_tls=None):
-        self.host = host
-        self.user = user
-        self.password = password
-        self.port = port
-        self.init_fun = init_fun
-        self.use_tls = use_tls
-
-        self.is_initialized = False
-        self._connection = None
-
-    @property
-    def connection(self):
-        if not self.is_initialized:
-            raise RuntimeError("Not initialized!")
-        return self._connection
-
-    def initialize(self):
-        if not self.is_initialized:
-            self._initialize()
-
-    def _initialize(self):
-        self._connection = Connection(
-            self.host, self.user, self.password, port=self.port, init_fun=self.init_fun, use_tls=self.use_tls
-        )
-        self.is_initialized = True
-
-    def query(self, query, args=(), *, as_dict=False, suppress_warnings=True, reconnect=None):
-        return self.connection.query(
-            query, args=args, as_dict=as_dict, suppress_warnings=suppress_warnings, reconnect=reconnect
-        )
-
-    def get_user(self):
-        return self.connection.get_user()
-
-    def register(self, schema):
-        self.connection.register(schema=schema)
-
-    @property
-    def is_connected(self):
-        return self.connection.is_connected
-
-    @property
-    def transaction(self):
-        return self.connection.transaction
-
-    @property
-    def conn_info(self):
-        return self.connection.conn_info
-
-    @property
-    def in_transaction(self):
-        return self.connection.in_transaction
-
-    @property
-    def dependencies(self):
-        return self.connection.dependencies
-
-    @property
-    def schemas(self):
-        return self.connection.schemas
-
-    def start_transaction(self):
-        self.connection.start_transaction()
-
-    def cancel_transaction(self):
-        self.connection.cancel_transaction()
-
-    def commit_transaction(self):
-        self.connection.commit_transaction()
-
-
 class SchemaProxy:
     def __init__(
         self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True, host=None
@@ -114,7 +41,7 @@ class SchemaProxy:
 
     def _initialize(self):
         if self._connection is None and self.host is not None:
-            connection = dj.Connection(self.host, os.environ["INTERNAL_DJ_USER"], os.environ["INTERNAL_DJ_PASS"])
+            connection = Connection(self.host, os.environ["INTERNAL_DJ_USER"], os.environ["INTERNAL_DJ_PASS"])
         else:
             connection = self._connection
         schema = Schema(
