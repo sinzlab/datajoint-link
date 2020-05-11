@@ -41,7 +41,7 @@ class SchemaProxy:
 
     def _initialize(self):
         if self._connection is None and self.host is not None:
-            connection = Connection(self.host, os.environ["INTERNAL_DJ_USER"], os.environ["INTERNAL_DJ_PASS"])
+            connection = Connection(self.host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
         else:
             connection = self._connection
         schema = Schema(
