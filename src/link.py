@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from inspect import isclass
 from tempfile import TemporaryDirectory
 import warnings
+import os
 
 import datajoint as dj
 from datajoint.connection import Connection
@@ -84,7 +85,12 @@ class ConnectionProxy:
 
 
 class SchemaProxy:
-    def __init__(self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True):
+    def __init__(
+        self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True, host=None
+    ):
+        if host is not None and connection is None:
+            connection = ConnectionProxy(host, os.environ["INTERNAL_DJ_USER"], os.environ["INTERNAL_DJ_PASS"])
+
         self.database = schema_name
         self.context = context
         self.connection = connection
