@@ -96,10 +96,8 @@ class SchemaProxy:
 
     @property
     def schema(self):
-        if not self.is_initialized:
-            raise RuntimeError("Not initialized!")
-        else:
-            return self._schema
+        self.initialize()
+        return self._schema
 
     def initialize(self):
         if not self.is_initialized:
