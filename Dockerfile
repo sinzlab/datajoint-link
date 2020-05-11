@@ -11,7 +11,9 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py &&\
 RUN python3.8 -m pip install \
     jupyterlab \
     datajoint==0.12.5 \
-    blackcellmagic
+    blackcellmagic \
+    pytest \
+    pytest-cov
 COPY ./jupyter_notebook_config.py /root/.jupyter/
 WORKDIR /src/link
 COPY . .
