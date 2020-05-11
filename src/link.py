@@ -88,14 +88,12 @@ class SchemaProxy:
     def __init__(
         self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True, host=None
     ):
-        if host is not None and connection is None:
-            connection = ConnectionProxy(host, os.environ["INTERNAL_DJ_USER"], os.environ["INTERNAL_DJ_PASS"])
-
         self.database = schema_name
         self.context = context
-        self.connection = connection
+        self._connection = connection
         self.create_schema = create_schema
         self.create_tables = create_tables
+        self.host = host
 
         self.is_initialized = False
         self._schema = None
@@ -105,21 +103,28 @@ class SchemaProxy:
         self.initialize()
         return self._schema
 
+    @property
+    def connection(self):
+        self._initialize()
+        return self._connection
+
     def initialize(self):
         if not self.is_initialized:
             self._initialize()
 
     def _initialize(self):
-        if self.connection is not None:
-            self.connection.initialize()
+        if self._connection is None and self.host is not None:
+            connection = dj.Connection(self.host, os.environ["INTERNAL_DJ_USER"], os.environ["INTERNAL_DJ_PASS"])
+        else:
+            connection = self._connection
         schema = Schema(
             self.database,
             context=self.context,
-            connection=self.connection,
+            connection=connection,
             create_schema=self.create_schema,
             create_tables=self.create_tables,
         )
-        self.connection = schema.connection
+        self._connection = schema.connection
         self._schema = schema
         self.is_initialized = True
 
