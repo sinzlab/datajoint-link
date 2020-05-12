@@ -30,6 +30,18 @@ services:
             - 172.0.0.10
         networks:
             - dps
+    test:
+        build: .
+        env_file: env/test.env
+        volumes:
+            - .:/src/link
+            - /var/run/docker.sock:/var/run/docker.sock
+        entrypoint: "pytest"
+        hostname: test.docker
+        dns:
+            - 172.0.0.10
+        networks:
+            - test_network
     experimental_db:
         image: datajoint/mysql:5.7
         environment:
@@ -80,3 +92,5 @@ networks:
         ipam:
           config:
               - subnet: 172.0.0.0/24
+    test_network:
+        name: test_network
