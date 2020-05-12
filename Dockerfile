@@ -13,7 +13,8 @@ RUN python3.8 -m pip install \
     datajoint==0.12.5 \
     blackcellmagic \
     pytest \
-    pytest-cov
+    pytest-cov \
+    docker
 COPY ./jupyter_notebook_config.py /root/.jupyter/
 WORKDIR /src/link
 COPY . .
