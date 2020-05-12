@@ -13,7 +13,7 @@ RUN python3.8 -m pip install \
     datajoint==0.12.5 \
     blackcellmagic \
     pytest \
-    pytest-cov \
+    coverage \
     docker \
     pymysql
 COPY ./jupyter_notebook_config.py /root/.jupyter/
