@@ -14,7 +14,8 @@ RUN python3.8 -m pip install \
     blackcellmagic \
     pytest \
     pytest-cov \
-    docker
+    docker \
+    pymysql
 COPY ./jupyter_notebook_config.py /root/.jupyter/
 WORKDIR /src/link
 COPY . .
