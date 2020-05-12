@@ -9,13 +9,13 @@ services:
         networks:
             dps:
                 ipv4_address: 172.0.0.10
-    pycharm:
+    development:
         build: .
         volumes:
             - .:/src/link
             - /var/run/docker.sock:/var/run/docker.sock
         entrypoint: ""
-        hostname: pycharm.docker
+        hostname: development.docker
         dns:
             - 172.0.0.10
         networks:
