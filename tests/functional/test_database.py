@@ -12,10 +12,10 @@ def docker_client():
 
 
 @pytest.fixture
-def source_database(docker_client):
+def source_database_container_name(docker_client):
     name = os.environ.get("SOURCE_DATABASE_NAME", "test_source_database")
     password = os.environ.get("SOURCE_MYSQL_ROOT_PASSWORD", "password")
-    container = connection = None
+    container = None
     try:
         container = docker_client.containers.run(
             "datajoint/mysql:5.7",
@@ -34,16 +34,27 @@ def source_database(docker_client):
                 raise RuntimeError(f"Trying to bring up container '{name}' exceeded max number of retries")
             time.sleep(float(os.environ.get("HEALTH_CHECK_INTERVAL", 1)))
             n_tries += 1
-        connection = pymysql.connect(host=name, user="root", password=password, cursorclass=pymysql.cursors.DictCursor)
-        yield connection
+        yield container.name
     finally:
-        if connection is not None:
-            connection.close()
         if container is not None:
             container.stop()
             if os.environ.get("DOCKER_REMOVE_CONTAINERS", True):
                 container.remove()
 
 
-def test_dummy(source_database):
+@pytest.fixture
+def source_database_connection(source_database_container_name):
+    password = os.environ.get("SOURCE_MYSQL_ROOT_PASSWORD", "password")
+    connection = None
+    try:
+        connection = pymysql.connect(
+            host=source_database_container_name, user="root", password=password, cursorclass=pymysql.cursors.DictCursor
+        )
+        yield connection
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def test_dummy(source_database_connection):
     assert True
