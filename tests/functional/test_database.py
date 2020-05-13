@@ -39,31 +39,38 @@ def config():
 def source_database_container_name(docker_client, config):
     container = None
     try:
-        container = docker_client.containers.run(
-            "datajoint/mysql:5.7",
-            detach=True,
-            name=config.src_db_name,
-            environment=dict(MYSQL_ROOT_PASSWORD=config.src_db_root_pass),
-            network=config.network,
-        )
-        time.sleep(config.health_check_start_period)
-        n_tries = 0
-        while True:
-            container.reload()
-            if container.attrs["State"]["Health"]["Status"] == "healthy":
-                break
-            if n_tries >= config.health_check_max_retries:
-                raise RuntimeError(
-                    f"Trying to bring up container '{config.src_db_name}' exceeded max number of retries"
-                )
-            time.sleep(config.health_check_interval)
-            n_tries += 1
+        container = run_container(config, docker_client)
+        wait_until_healthy(config, container)
         yield container.name
     finally:
         if container is not None:
             container.stop()
             if config.remove_containers:
                 container.remove()
+
+
+def run_container(config, client):
+    container = client.containers.run(
+        "datajoint/mysql:5.7",
+        detach=True,
+        name=config.src_db_name,
+        environment=dict(MYSQL_ROOT_PASSWORD=config.src_db_root_pass),
+        network=config.network,
+    )
+    return container
+
+
+def wait_until_healthy(config, container):
+    time.sleep(config.health_check_start_period)
+    n_tries = 0
+    while True:
+        container.reload()
+        if container.attrs["State"]["Health"]["Status"] == "healthy":
+            break
+        if n_tries >= config.health_check_max_retries:
+            raise RuntimeError(f"Trying to bring up container '{config.src_db_name}' exceeded max number of retries")
+        time.sleep(config.health_check_interval)
+        n_tries += 1
 
 
 @pytest.fixture
