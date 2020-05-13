@@ -2,6 +2,7 @@ import os
 import time
 from dataclasses import dataclass
 from contextlib import contextmanager
+from typing import List
 
 import pytest
 import docker
@@ -16,6 +17,11 @@ def docker_client():
 @pytest.fixture
 def config():
     @dataclass
+    class User:
+        name: str
+        password: str
+
+    @dataclass
     class Config:
         network: str
         health_check_start_period: float
@@ -23,8 +29,19 @@ def config():
         health_check_interval: float
         remove_containers: bool
         src_db_name: str
-        src_db_root_pass: str
+        src_db_root_user_password: str
+        src_db_users: List[User]
 
+    source_db_users = [
+        User(
+            os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
+            os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
+        ),
+        User(
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
+        ),
+    ]
     return Config(
         os.environ.get("DOCKER_NETWORK", "test_network"),
         float(os.environ.get("HEALTH_CHECK_START_PERIOD", 0)),
@@ -32,15 +49,21 @@ def config():
         float(os.environ.get("HEALTH_CHECK_INTERVAL", 1)),
         bool(int(os.environ.get("DOCKER_REMOVE_CONTAINERS", True))),
         os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
-        os.environ.get("SOURCE_MYSQL_ROOT_PASSWORD", "password"),
+        os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
+        source_db_users,
     )
 
 
 @pytest.fixture
 def source_database(docker_client, config):
     with source_database_container(docker_client, config):
-        with source_database_root_connection(config):
-            yield
+        with source_database_root_connection(config) as connection:
+            with connection.cursor() as cursor:
+                for user in config.src_db_users:
+                    sql = f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';"
+                    cursor.execute(sql)
+            connection.commit()
+            yield connection
 
 
 @contextmanager
@@ -62,7 +85,7 @@ def run_container(config, client):
         "datajoint/mysql:5.7",
         detach=True,
         name=config.src_db_name,
-        environment=dict(MYSQL_ROOT_PASSWORD=config.src_db_root_pass),
+        environment=dict(MYSQL_ROOT_PASSWORD=config.src_db_root_user_password),
         network=config.network,
     )
     return container
@@ -88,7 +111,7 @@ def source_database_root_connection(config):
         connection = pymysql.connect(
             host=config.src_db_name,
             user="root",
-            password=config.src_db_root_pass,
+            password=config.src_db_root_user_password,
             cursorclass=pymysql.cursors.DictCursor,
         )
         yield connection
@@ -98,4 +121,8 @@ def source_database_root_connection(config):
 
 
 def test_dummy(source_database):
-    assert True
+    with source_database.cursor() as cursor:
+        sql = "SELECT `user`, `host` FROM mysql.user;"
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        print(result)
