@@ -1,6 +1,7 @@
 import os
 import time
 from dataclasses import dataclass
+from contextlib import contextmanager
 
 import pytest
 import docker
@@ -36,12 +37,19 @@ def config():
 
 
 @pytest.fixture
-def source_database_container_name(docker_client, config):
+def source_database(docker_client, config):
+    with source_database_container(docker_client, config):
+        with source_database_root_connection(config):
+            yield
+
+
+@contextmanager
+def source_database_container(client, config):
     container = None
     try:
-        container = run_container(config, docker_client)
+        container = run_container(config, client)
         wait_until_healthy(config, container)
-        yield container.name
+        yield container
     finally:
         if container is not None:
             container.stop()
@@ -73,12 +81,12 @@ def wait_until_healthy(config, container):
         n_tries += 1
 
 
-@pytest.fixture
-def source_database_connection(config, source_database_container_name):
+@contextmanager
+def source_database_root_connection(config):
     connection = None
     try:
         connection = pymysql.connect(
-            host=source_database_container_name,
+            host=config.src_db_name,
             user="root",
             password=config.src_db_root_pass,
             cursorclass=pymysql.cursors.DictCursor,
@@ -89,5 +97,5 @@ def source_database_connection(config, source_database_container_name):
             connection.close()
 
 
-def test_dummy(source_database_connection):
+def test_dummy(source_database):
     assert True
