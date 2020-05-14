@@ -2,7 +2,6 @@ import os
 import time
 from dataclasses import dataclass
 from contextlib import contextmanager
-from typing import List
 
 import pytest
 import docker
@@ -30,18 +29,11 @@ def config():
         remove_containers: bool
         src_db_name: str
         src_db_root_user_password: str
-        src_db_users: List[User]
+        src_db_dj_user: User
+        src_db_end_user: User
+        src_db_end_user_schema: str
 
-    source_db_users = [
-        User(
-            os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
-            os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
-        ),
-        User(
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
-        ),
-    ]
+    src_db_end_user_name = os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user")
     return Config(
         os.environ.get("DOCKER_NETWORK", "test_network"),
         float(os.environ.get("HEALTH_CHECK_START_PERIOD", 0)),
@@ -50,20 +42,39 @@ def config():
         bool(int(os.environ.get("DOCKER_REMOVE_CONTAINERS", True))),
         os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
         os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
-        source_db_users,
+        User(
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
+        ),
+        User(src_db_end_user_name, os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password")),
+        src_db_end_user_name + "_" + os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "schema"),
     )
 
 
 @pytest.fixture
 def source_database(docker_client, config):
-    with source_database_container(docker_client, config):
-        with source_database_root_connection(config) as connection:
-            with connection.cursor() as cursor:
-                for user in config.src_db_users:
-                    sql = f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';"
-                    cursor.execute(sql)
-            connection.commit()
-            yield connection
+    with source_database_container(docker_client, config), source_database_root_connection(config) as connection:
+        with connection.cursor() as cursor:
+            for user in (config.src_db_dj_user, config.src_db_end_user):
+                cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
+            sql_statements = (
+                (
+                    fr"GRANT ALL PRIVILEGES ON `{config.src_db_end_user.name}\_%`.* "
+                    f"TO '{config.src_db_end_user.name}'@'%';"
+                ),
+                (
+                    f"GRANT SELECT, REFERENCES ON `{config.src_db_end_user_schema}`.* "
+                    f"TO '{config.src_db_dj_user.name}'@'%';"
+                ),
+                (
+                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + config.src_db_end_user_schema}`.* "
+                    f"TO '{config.src_db_dj_user.name}'@'%';"
+                ),
+            )
+            for sql_statement in sql_statements:
+                cursor.execute(sql_statement)
+        connection.commit()
+        yield connection
 
 
 @contextmanager
@@ -77,7 +88,7 @@ def source_database_container(client, config):
         if container is not None:
             container.stop()
             if config.remove_containers:
-                container.remove()
+                container.remove(v=True)
 
 
 def run_container(config, client):
