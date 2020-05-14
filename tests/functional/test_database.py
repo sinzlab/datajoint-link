@@ -26,6 +26,7 @@ class HealthCheck:
 
 @dataclass
 class Container:
+    image_tag: str
     name: str
     network: str
     health_check: HealthCheck
@@ -63,6 +64,7 @@ def config():
         int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
     )
     src_db = SourceDatabase(
+        os.environ.get("SOURCE_DATABASE_TAG", "latest"),
         os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
         network,
         database_health_check,
@@ -85,6 +87,7 @@ def config():
         int(os.environ.get("MINIO_HEALTH_CHECK_TIMEOUT", 5)),
     )
     src_minio = MinIO(
+        os.environ.get("SOURCE_MINIO_TAG", "latest"),
         os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
         network,
         minio_health_check,
@@ -141,14 +144,14 @@ def run_container(container_config, client):
     common = dict(detach=True, network=container_config.network)
     if isinstance(container_config, SourceDatabase):
         container = client.containers.run(
-            "datajoint/mysql:5.7",
+            "datajoint/mysql:" + container_config.image_tag,
             name=container_config.name,
             environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
             **common,
         )
     elif isinstance(container_config, MinIO):
         container = client.containers.run(
-            "minio/minio",
+            "minio/minio:" + container_config.image_tag,
             name=container_config.name,
             environment=dict(
                 MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key,
