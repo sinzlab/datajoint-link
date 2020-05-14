@@ -14,22 +14,22 @@ import pymysql
 class Container:
     image_tag: str
     name: str
-    network: str
+    network: str  # docker network to use for testing
     health_check: HealthCheck
-    remove: bool
+    remove: bool  # container and associated volume will be removed if true
 
 
 @dataclass
 class HealthCheck:
-    start_period: int
-    max_retries: int
-    interval: int
-    timeout: int
+    start_period: int  # period after which health is first checked in seconds
+    max_retries: int  # max number of retries before raising an error
+    interval: int  # interval between health checks in seconds
+    timeout: int  # max time a health check test has to finish
 
 
 @dataclass
 class Database(Container):
-    password: str
+    password: str  # MYSQL root user password
     end_user: User
     schema: str
 
