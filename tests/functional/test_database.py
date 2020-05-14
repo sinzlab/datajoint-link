@@ -130,7 +130,7 @@ def source_database(config, docker_client):
 def create_container(client, container_config):
     container = None
     try:
-        container = run_container(container_config, client)
+        container = run_container(client, container_config)
         wait_until_healthy(container_config, container)
         yield container
     finally:
@@ -140,7 +140,7 @@ def create_container(client, container_config):
                 container.remove(v=True)
 
 
-def run_container(container_config, client):
+def run_container(client, container_config):
     common = dict(detach=True, network=container_config.network)
     if isinstance(container_config, SourceDatabase):
         container = client.containers.run(
@@ -201,7 +201,7 @@ def source_database_root_connection(config):
 
 
 @pytest.fixture
-def source_minio(docker_client, config):
+def source_minio(config, docker_client):
     with create_container(docker_client, config.src_minio) as container:
         yield container
 
