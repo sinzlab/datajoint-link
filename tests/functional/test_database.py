@@ -133,6 +133,19 @@ def src_minio_config(network_config, health_check_config):
 
 
 @pytest.fixture
+def local_minio_config(network_config, health_check_config):
+    return MinIO(
+        os.environ.get("LOCAL_MINIO_TAG", "latest"),
+        os.environ.get("LOCAL_MINIO_NAME", "test_local_minio"),
+        network_config,
+        health_check_config,
+        remove,
+        os.environ.get("LOCAL_MINIO_ACCESS_KEY", "local_minio_access_key"),
+        os.environ.get("LOCAL_MINIO_SECRET_KEY", "local_minio_secret_key"),
+    )
+
+
+@pytest.fixture
 def src_db(src_db_config, docker_client):
     with create_container(docker_client, src_db_config) as _, db_root_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
@@ -250,6 +263,12 @@ def src_minio(src_minio_config, docker_client):
         yield
 
 
+@pytest.fixture
+def local_minio(local_minio_config, docker_client):
+    with create_container(docker_client, local_minio_config):
+        yield
+
+
 def test_source_database(src_db):
     pass
 
@@ -258,5 +277,9 @@ def test_local_database(local_db):
     pass
 
 
-def test_minio(src_minio):
+def test_source_minio(src_minio):
+    pass
+
+
+def test_local_minio(local_minio):
     pass
