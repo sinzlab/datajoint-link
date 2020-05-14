@@ -147,7 +147,7 @@ def local_minio_config(network_config, health_check_config):
 
 @pytest.fixture
 def src_db(src_db_config, docker_client):
-    with create_container(docker_client, src_db_config) as _, db_root_conn(src_db_config) as connection:
+    with create_container(docker_client, src_db_config), db_root_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
             for user in (src_db_config.dj_user, src_db_config.end_user):
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
