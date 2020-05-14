@@ -13,6 +13,7 @@ import pymysql
 @dataclass
 class Config:
     src_db: SourceDatabase
+    local_db: LocalDatabase
     src_minio: MinIO
 
 
@@ -37,6 +38,13 @@ class Container:
 class SourceDatabase(Container):
     password: str
     dj_user: User
+    end_user: User
+    schema: str
+
+
+@dataclass
+class LocalDatabase(Container):
+    password: str
     end_user: User
     schema: str
 
@@ -80,6 +88,19 @@ def config():
         ),
         os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
     )
+    local_db = LocalDatabase(
+        os.environ.get("LOCAL_DATABASE_TAG", "latest"),
+        os.environ.get("LOCAL_DATABASE_NAME", "test_local_database"),
+        network,
+        database_health_check,
+        remove,
+        os.environ.get("LOCAL_DATABASE_ROOT_PASS", "root"),
+        User(
+            os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
+            os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
+        ),
+        os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
+    )
     minio_health_check = HealthCheck(
         int(os.environ.get("MINIO_HEALTH_CHECK_START_PERIOD", 0)),
         int(os.environ.get("MINIO_HEALTH_CHECK_MAX_RETRIES", 60)),
@@ -95,7 +116,7 @@ def config():
         os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
         os.environ.get("SOURCE_MINIO_SECRET_KEY", "source_minio_secret_key"),
     )
-    return Config(src_db, src_minio)
+    return Config(src_db, local_db, src_minio)
 
 
 @pytest.fixture
@@ -126,6 +147,26 @@ def source_database(config, docker_client):
         yield connection
 
 
+@pytest.fixture
+def local_database(config, docker_client):
+    with create_container(docker_client, config.local_db), database_root_connection(config.local_db) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                (
+                    f"CREATE USER '{config.local_db.end_user.name}'@'%' "
+                    f"IDENTIFIED BY '{config.local_db.end_user.name}';"
+                )
+            )
+            cursor.execute(
+                (
+                    f"GRANT ALL PRIVILEGES ON `{config.local_db.end_user.name}`.* "
+                    f"TO '{config.local_db.end_user.name}'"
+                )
+            )
+        connection.commit()
+        yield connection
+
+
 @contextmanager
 def create_container(client, container_config):
     container = None
@@ -142,7 +183,7 @@ def create_container(client, container_config):
 
 def run_container(client, container_config):
     common = dict(detach=True, network=container_config.network)
-    if isinstance(container_config, SourceDatabase):
+    if isinstance(container_config, (SourceDatabase, LocalDatabase)):
         container = client.containers.run(
             "datajoint/mysql:" + container_config.image_tag,
             name=container_config.name,
@@ -203,7 +244,11 @@ def source_minio(config, docker_client):
         yield container
 
 
-def test_database(source_database):
+def test_source_database(source_database):
+    pass
+
+
+def test_local_database(local_database):
     pass
 
 
