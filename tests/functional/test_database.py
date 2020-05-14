@@ -35,18 +35,20 @@ class Container:
 
 
 @dataclass
-class SourceDatabase(Container):
+class Database(Container):
     password: str
-    dj_user: User
     end_user: User
     schema: str
 
 
 @dataclass
-class LocalDatabase(Container):
-    password: str
-    end_user: User
-    schema: str
+class SourceDatabase(Database):
+    dj_user: User
+
+
+@dataclass
+class LocalDatabase(Database):
+    pass
 
 
 @dataclass
@@ -79,14 +81,14 @@ def config():
         remove,
         os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
         User(
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
-        ),
-        User(
             os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
             os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
         ),
         os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
+        User(
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
+        ),
     )
     local_db = LocalDatabase(
         os.environ.get("LOCAL_DATABASE_TAG", "latest"),
@@ -183,7 +185,7 @@ def create_container(client, container_config):
 
 def run_container(client, container_config):
     common = dict(detach=True, network=container_config.network)
-    if isinstance(container_config, (SourceDatabase, LocalDatabase)):
+    if isinstance(container_config, Database):
         container = client.containers.run(
             "datajoint/mysql:" + container_config.image_tag,
             name=container_config.name,
