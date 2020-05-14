@@ -12,9 +12,6 @@ import pymysql
 
 @dataclass
 class Config:
-    network: str
-    remove: bool
-    health_check: HealthCheck
     src_db: SourceDatabase
     src_minio: MinIO
 
@@ -30,6 +27,9 @@ class HealthCheck:
 @dataclass
 class SourceDatabase:
     name: str
+    network: str
+    health_check: HealthCheck
+    remove: bool
     password: str
     dj_user: User
     end_user: User
@@ -45,20 +45,28 @@ class User:
 @dataclass
 class MinIO:
     name: str
+    network: str
+    health_check: HealthCheck
+    remove: bool
     access_key: str
     secret_key: str
 
 
 @pytest.fixture
 def config():
-    health_check = HealthCheck(
-        int(os.environ.get("HEALTH_CHECK_START_PERIOD", 0)),
-        int(os.environ.get("HEALTH_CHECK_MAX_RETRIES", 60)),
-        int(os.environ.get("HEALTH_CHECK_INTERVAL", 1)),
-        int(os.environ.get("HEALTH_CHECK_TIMEOUT", 5)),
+    network = os.environ.get("DOCKER_NETWORK", "test_network")
+    remove = bool(int(os.environ.get("REMOVE", True)))
+    database_health_check = HealthCheck(
+        int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
+        int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
+        int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
+        int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
     )
     src_db = SourceDatabase(
         os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
+        network,
+        database_health_check,
+        remove,
         os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
         User(
             os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
@@ -70,18 +78,21 @@ def config():
         ),
         os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
     )
+    minio_health_check = HealthCheck(
+        int(os.environ.get("MINIO_HEALTH_CHECK_START_PERIOD", 0)),
+        int(os.environ.get("MINIO_HEALTH_CHECK_MAX_RETRIES", 60)),
+        int(os.environ.get("MINIO_HEALTH_CHECK_INTERVAL", 1)),
+        int(os.environ.get("MINIO_HEALTH_CHECK_TIMEOUT", 5)),
+    )
     src_minio = MinIO(
         os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
+        network,
+        minio_health_check,
+        remove,
         os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
         os.environ.get("SOURCE_MINIO_SECRET_KEY", "source_minio_secret_key"),
     )
-    return Config(
-        os.environ.get("DOCKER_NETWORK", "test_network"),
-        bool(int(os.environ.get("REMOVE", True))),
-        health_check,
-        src_db,
-        src_minio,
-    )
+    return Config(src_db, src_minio)
 
 
 @pytest.fixture
@@ -91,7 +102,7 @@ def docker_client():
 
 @pytest.fixture
 def source_database(config, docker_client):
-    with create_container("database", docker_client, config), source_database_root_connection(config) as connection:
+    with create_container(docker_client, config.src_db), source_database_root_connection(config) as connection:
         with connection.cursor() as cursor:
             for user in (config.src_db.dj_user, config.src_db.end_user):
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
@@ -113,42 +124,42 @@ def source_database(config, docker_client):
 
 
 @contextmanager
-def create_container(kind, client, config):
+def create_container(client, container_config):
     container = None
     try:
-        container = run_container(kind, config, client)
-        wait_until_healthy(config, container)
+        container = run_container(container_config, client)
+        wait_until_healthy(container_config, container)
         yield container
     finally:
         if container is not None:
             container.stop()
-            if config.remove:
+            if container_config.remove:
                 container.remove(v=True)
 
 
-def run_container(kind, config, client):
-    common = dict(detach=True, network=config.network)
-    if kind == "database":
+def run_container(container_config, client):
+    common = dict(detach=True, network=container_config.network)
+    if isinstance(container_config, SourceDatabase):
         container = client.containers.run(
             "datajoint/mysql:5.7",
-            name=config.src_db.name,
-            environment=dict(MYSQL_ROOT_PASSWORD=config.src_db.password),
+            name=container_config.name,
+            environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
             **common,
         )
-    elif kind == "minio":
+    elif isinstance(container_config, MinIO):
         container = client.containers.run(
             "minio/minio",
-            name=config.src_minio.name,
+            name=container_config.name,
             environment=dict(
-                MINIO_ACCESS_KEY=config.src_minio.access_key, MINIO_SECRET_KEY=config.src_minio.secret_key
+                MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key,
             ),
             command=["server", "/data"],
             healthcheck=dict(
-                test=["CMD", "curl", "-f", config.src_minio.name + ":9000/minio/health/ready"],
-                start_period=int(config.health_check.start_period * 1e9),  # nanoseconds
-                interval=int(config.health_check.interval * 1e9),  # nanoseconds
-                retries=config.health_check.max_retries,
-                timeout=int(config.health_check.timeout * 1e9),  # nanoseconds
+                test=["CMD", "curl", "-f", container_config.name + ":9000/minio/health/ready"],
+                start_period=int(container_config.health_check.start_period * 1e9),  # nanoseconds
+                interval=int(container_config.health_check.interval * 1e9),  # nanoseconds
+                retries=container_config.health_check.max_retries,
+                timeout=int(container_config.health_check.timeout * 1e9),  # nanoseconds
             ),
             **common,
         )
@@ -157,16 +168,16 @@ def run_container(kind, config, client):
     return container
 
 
-def wait_until_healthy(config, container):
-    time.sleep(config.health_check.start_period)
+def wait_until_healthy(container_config, container):
+    time.sleep(container_config.health_check.start_period)
     n_tries = 0
     while True:
         container.reload()
         if container.attrs["State"]["Health"]["Status"] == "healthy":
             break
-        if n_tries >= config.health_check.max_retries:
-            raise RuntimeError(f"Trying to bring up container '{config.src_db_name}' exceeded max number of retries")
-        time.sleep(config.health_check.interval)
+        if n_tries >= container_config.health_check.max_retries:
+            raise RuntimeError(f"Trying to bring up container '{container_config.name}' exceeded max number of retries")
+        time.sleep(container_config.health_check.interval)
         n_tries += 1
 
 
@@ -188,7 +199,7 @@ def source_database_root_connection(config):
 
 @pytest.fixture
 def source_minio(docker_client, config):
-    with create_container("minio", docker_client, config) as container:
+    with create_container(docker_client, config.src_minio) as container:
         yield container
 
 
