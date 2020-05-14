@@ -25,11 +25,15 @@ class HealthCheck:
 
 
 @dataclass
-class SourceDatabase:
+class Container:
     name: str
     network: str
     health_check: HealthCheck
     remove: bool
+
+
+@dataclass
+class SourceDatabase(Container):
     password: str
     dj_user: User
     end_user: User
@@ -43,11 +47,7 @@ class User:
 
 
 @dataclass
-class MinIO:
-    name: str
-    network: str
-    health_check: HealthCheck
-    remove: bool
+class MinIO(Container):
     access_key: str
     secret_key: str
 
