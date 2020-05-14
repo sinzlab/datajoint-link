@@ -20,12 +20,17 @@ def config():
     @dataclass
     class Config:
         network: str
-        health_check_start_period: float
-        health_check_max_retries: int
-        health_check_interval: float
+        health_check: HealthCheck
         remove_containers: bool
         src_db: SourceDatabase
         src_minio: MinIO
+
+    @dataclass
+    class HealthCheck:
+        start_period: int
+        max_retries: int
+        interval: int
+        timeout: int
 
     @dataclass
     class SourceDatabase:
@@ -46,6 +51,12 @@ def config():
         access_key: str
         secret_key: str
 
+    health_check = HealthCheck(
+        int(os.environ.get("HEALTH_CHECK_START_PERIOD", 0)),
+        int(os.environ.get("HEALTH_CHECK_MAX_RETRIES", 60)),
+        int(os.environ.get("HEALTH_CHECK_INTERVAL", 1)),
+        int(os.environ.get("HEALTH_CHECK_TIMEOUT", 5)),
+    )
     src_db = SourceDatabase(
         os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
         os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
@@ -66,9 +77,7 @@ def config():
     )
     return Config(
         os.environ.get("DOCKER_NETWORK", "test_network"),
-        float(os.environ.get("HEALTH_CHECK_START_PERIOD", 0)),
-        int(os.environ.get("HEALTH_CHECK_MAX_RETRIES", 60)),
-        float(os.environ.get("HEALTH_CHECK_INTERVAL", 1)),
+        health_check,
         bool(int(os.environ.get("DOCKER_REMOVE_CONTAINERS", True))),
         src_db,
         src_minio,
@@ -124,15 +133,15 @@ def run_container(config, client):
 
 
 def wait_until_healthy(config, container):
-    time.sleep(config.health_check_start_period)
+    time.sleep(config.health_check.start_period)
     n_tries = 0
     while True:
         container.reload()
         if container.attrs["State"]["Health"]["Status"] == "healthy":
             break
-        if n_tries >= config.health_check_max_retries:
+        if n_tries >= config.health_check.max_retries:
             raise RuntimeError(f"Trying to bring up container '{config.src_db_name}' exceeded max number of retries")
-        time.sleep(config.health_check_interval)
+        time.sleep(config.health_check.interval)
         n_tries += 1
 
 
@@ -173,9 +182,10 @@ def source_minio_container(client, config):
             command=["server", "/data"],
             healthcheck=dict(
                 test=["CMD", "curl", "-f", config.src_minio.name + ":9000/minio/health/ready"],
-                interval=int(1e9),  # nanoseconds
-                retries=60,
-                timeout=int(5e9),  # nanoseconds
+                start_period=int(config.health_check.start_period * 1e9),  # nanoseconds
+                interval=int(config.health_check.interval * 1e9),  # nanoseconds
+                retries=config.health_check.max_retries,
+                timeout=int(config.health_check.timeout * 1e9),  # nanoseconds
             ),
         )
         wait_until_healthy(config, container)
