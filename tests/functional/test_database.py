@@ -105,7 +105,7 @@ def docker_client():
 
 @pytest.fixture
 def source_database(config, docker_client):
-    with create_container(docker_client, config.src_db), source_database_root_connection(config.src_db) as connection:
+    with create_container(docker_client, config.src_db), database_root_connection(config.src_db) as connection:
         with connection.cursor() as cursor:
             for user in (config.src_db.dj_user, config.src_db.end_user):
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
@@ -185,14 +185,11 @@ def wait_until_healthy(container_config, container):
 
 
 @contextmanager
-def source_database_root_connection(source_db_config):
+def database_root_connection(db_config):
     connection = None
     try:
         connection = pymysql.connect(
-            host=source_db_config.name,
-            user="root",
-            password=source_db_config.password,
-            cursorclass=pymysql.cursors.DictCursor,
+            host=db_config.name, user="root", password=db_config.password, cursorclass=pymysql.cursors.DictCursor,
         )
         yield connection
     finally:
