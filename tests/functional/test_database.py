@@ -20,8 +20,8 @@ def config():
     @dataclass
     class Config:
         network: str
+        remove: bool
         health_check: HealthCheck
-        remove_containers: bool
         src_db: SourceDatabase
         src_minio: MinIO
 
@@ -77,8 +77,8 @@ def config():
     )
     return Config(
         os.environ.get("DOCKER_NETWORK", "test_network"),
+        bool(int(os.environ.get("REMOVE", True))),
         health_check,
-        bool(int(os.environ.get("DOCKER_REMOVE_CONTAINERS", True))),
         src_db,
         src_minio,
     )
@@ -117,7 +117,7 @@ def source_database_container(client, config):
     finally:
         if container is not None:
             container.stop()
-            if config.remove_containers:
+            if config.remove:
                 container.remove(v=True)
 
 
@@ -193,7 +193,7 @@ def source_minio_container(client, config):
     finally:
         if container is not None:
             container.stop()
-            if config.remove_containers:
+            if config.remove:
                 container.remove(v=True)
 
 
