@@ -86,7 +86,7 @@ def config():
 
 @pytest.fixture
 def source_database(docker_client, config):
-    with source_database_container(docker_client, config), source_database_root_connection(config) as connection:
+    with create_container("database", docker_client, config), source_database_root_connection(config) as connection:
         with connection.cursor() as cursor:
             for user in (config.src_db.dj_user, config.src_db.end_user):
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
@@ -108,10 +108,10 @@ def source_database(docker_client, config):
 
 
 @contextmanager
-def source_database_container(client, config):
+def create_container(kind, client, config):
     container = None
     try:
-        container = run_container(config, client)
+        container = run_container(kind, config, client)
         wait_until_healthy(config, container)
         yield container
     finally:
@@ -121,14 +121,34 @@ def source_database_container(client, config):
                 container.remove(v=True)
 
 
-def run_container(config, client):
-    container = client.containers.run(
-        "datajoint/mysql:5.7",
-        detach=True,
-        name=config.src_db.name,
-        environment=dict(MYSQL_ROOT_PASSWORD=config.src_db.password),
-        network=config.network,
-    )
+def run_container(kind, config, client):
+    common = dict(detach=True, network=config.network)
+    if kind == "database":
+        container = client.containers.run(
+            "datajoint/mysql:5.7",
+            name=config.src_db.name,
+            environment=dict(MYSQL_ROOT_PASSWORD=config.src_db.password),
+            **common,
+        )
+    elif kind == "minio":
+        container = client.containers.run(
+            "minio/minio",
+            name=config.src_minio.name,
+            environment=dict(
+                MINIO_ACCESS_KEY=config.src_minio.access_key, MINIO_SECRET_KEY=config.src_minio.secret_key
+            ),
+            command=["server", "/data"],
+            healthcheck=dict(
+                test=["CMD", "curl", "-f", config.src_minio.name + ":9000/minio/health/ready"],
+                start_period=int(config.health_check.start_period * 1e9),  # nanoseconds
+                interval=int(config.health_check.interval * 1e9),  # nanoseconds
+                retries=config.health_check.max_retries,
+                timeout=int(config.health_check.timeout * 1e9),  # nanoseconds
+            ),
+            **common,
+        )
+    else:
+        raise ValueError
     return container
 
 
@@ -163,38 +183,8 @@ def source_database_root_connection(config):
 
 @pytest.fixture
 def source_minio(docker_client, config):
-    with source_minio_container(docker_client, config) as container:
+    with create_container("minio", docker_client, config) as container:
         yield container
-
-
-@contextmanager
-def source_minio_container(client, config):
-    container = None
-    try:
-        container = client.containers.run(
-            "minio/minio",
-            detach=True,
-            name=config.src_minio.name,
-            environment=dict(
-                MINIO_ACCESS_KEY=config.src_minio.access_key, MINIO_SECRET_KEY=config.src_minio.secret_key
-            ),
-            network=config.network,
-            command=["server", "/data"],
-            healthcheck=dict(
-                test=["CMD", "curl", "-f", config.src_minio.name + ":9000/minio/health/ready"],
-                start_period=int(config.health_check.start_period * 1e9),  # nanoseconds
-                interval=int(config.health_check.interval * 1e9),  # nanoseconds
-                retries=config.health_check.max_retries,
-                timeout=int(config.health_check.timeout * 1e9),  # nanoseconds
-            ),
-        )
-        wait_until_healthy(config, container)
-        yield container
-    finally:
-        if container is not None:
-            container.stop()
-            if config.remove:
-                container.remove(v=True)
 
 
 def test_database(source_database):
