@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import time
 from dataclasses import dataclass
@@ -16,6 +18,24 @@ def docker_client():
 @pytest.fixture
 def config():
     @dataclass
+    class Config:
+        network: str
+        health_check_start_period: float
+        health_check_max_retries: int
+        health_check_interval: float
+        remove_containers: bool
+        src_db: SourceDatabase
+        src_minio: MinIO
+
+    @dataclass
+    class SourceDatabase:
+        name: str
+        password: str
+        dj_user: User
+        end_user: User
+        schema: str
+
+    @dataclass
     class User:
         name: str
         password: str
@@ -26,21 +46,19 @@ def config():
         access_key: str
         secret_key: str
 
-    @dataclass
-    class Config:
-        network: str
-        health_check_start_period: float
-        health_check_max_retries: int
-        health_check_interval: float
-        remove_containers: bool
-        src_db_name: str
-        src_db_root_user_password: str
-        src_db_dj_user: User
-        src_db_end_user: User
-        src_db_end_user_schema: str
-        src_minio: MinIO
-
-    src_db_end_user_name = os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user")
+    src_db = SourceDatabase(
+        os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
+        os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
+        User(
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
+        ),
+        User(
+            os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
+            os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
+        ),
+        os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
+    )
     src_minio = MinIO(
         os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
         os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
@@ -52,14 +70,7 @@ def config():
         int(os.environ.get("HEALTH_CHECK_MAX_RETRIES", 60)),
         float(os.environ.get("HEALTH_CHECK_INTERVAL", 1)),
         bool(int(os.environ.get("DOCKER_REMOVE_CONTAINERS", True))),
-        os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
-        os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
-        User(
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
-        ),
-        User(src_db_end_user_name, os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password")),
-        src_db_end_user_name + "_" + os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "schema"),
+        src_db,
         src_minio,
     )
 
@@ -68,20 +79,17 @@ def config():
 def source_database(docker_client, config):
     with source_database_container(docker_client, config), source_database_root_connection(config) as connection:
         with connection.cursor() as cursor:
-            for user in (config.src_db_dj_user, config.src_db_end_user):
+            for user in (config.src_db.dj_user, config.src_db.end_user):
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
             sql_statements = (
                 (
-                    fr"GRANT ALL PRIVILEGES ON `{config.src_db_end_user.name}\_%`.* "
-                    f"TO '{config.src_db_end_user.name}'@'%';"
+                    fr"GRANT ALL PRIVILEGES ON `{config.src_db.end_user.name}\_%`.* "
+                    f"TO '{config.src_db.end_user.name}'@'%';"
                 ),
+                f"GRANT SELECT, REFERENCES ON `{config.src_db.schema}`.* " f"TO '{config.src_db.dj_user.name}'@'%';",
                 (
-                    f"GRANT SELECT, REFERENCES ON `{config.src_db_end_user_schema}`.* "
-                    f"TO '{config.src_db_dj_user.name}'@'%';"
-                ),
-                (
-                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + config.src_db_end_user_schema}`.* "
-                    f"TO '{config.src_db_dj_user.name}'@'%';"
+                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + config.src_db.schema}`.* "
+                    f"TO '{config.src_db.dj_user.name}'@'%';"
                 ),
             )
             for sql_statement in sql_statements:
@@ -108,8 +116,8 @@ def run_container(config, client):
     container = client.containers.run(
         "datajoint/mysql:5.7",
         detach=True,
-        name=config.src_db_name,
-        environment=dict(MYSQL_ROOT_PASSWORD=config.src_db_root_user_password),
+        name=config.src_db.name,
+        environment=dict(MYSQL_ROOT_PASSWORD=config.src_db.password),
         network=config.network,
     )
     return container
@@ -133,9 +141,9 @@ def source_database_root_connection(config):
     connection = None
     try:
         connection = pymysql.connect(
-            host=config.src_db_name,
+            host=config.src_db.name,
             user="root",
-            password=config.src_db_root_user_password,
+            password=config.src_db.password,
             cursorclass=pymysql.cursors.DictCursor,
         )
         yield connection
@@ -179,5 +187,9 @@ def source_minio_container(client, config):
                 container.remove(v=True)
 
 
-def test_dummy(source_minio):
+def test_database(source_database):
+    pass
+
+
+def test_minio(source_minio):
     pass
