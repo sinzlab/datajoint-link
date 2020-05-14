@@ -21,6 +21,12 @@ def config():
         password: str
 
     @dataclass
+    class MinIO:
+        name: str
+        access_key: str
+        secret_key: str
+
+    @dataclass
     class Config:
         network: str
         health_check_start_period: float
@@ -32,11 +38,14 @@ def config():
         src_db_dj_user: User
         src_db_end_user: User
         src_db_end_user_schema: str
-        src_minio_name: str
-        src_minio_access_key: str
-        src_minio_secret_key: str
+        src_minio: MinIO
 
     src_db_end_user_name = os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user")
+    src_minio = MinIO(
+        os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
+        os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
+        os.environ.get("SOURCE_MINIO_SECRET_KEY", "source_minio_secret_key"),
+    )
     return Config(
         os.environ.get("DOCKER_NETWORK", "test_network"),
         float(os.environ.get("HEALTH_CHECK_START_PERIOD", 0)),
@@ -51,9 +60,7 @@ def config():
         ),
         User(src_db_end_user_name, os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password")),
         src_db_end_user_name + "_" + os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "schema"),
-        os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
-        os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
-        os.environ.get("SOURCE_MINIO_SECRET_KEY", "source_minio_secret_key"),
+        src_minio,
     )
 
 
@@ -150,14 +157,14 @@ def source_minio_container(client, config):
         container = client.containers.run(
             "minio/minio",
             detach=True,
-            name=config.src_minio_name,
+            name=config.src_minio.name,
             environment=dict(
-                MINIO_ACCESS_KEY=config.src_minio_access_key, MINIO_SECRET_KEY=config.src_minio_secret_key
+                MINIO_ACCESS_KEY=config.src_minio.access_key, MINIO_SECRET_KEY=config.src_minio.secret_key
             ),
             network=config.network,
             command=["server", "/data"],
             healthcheck=dict(
-                test=["CMD", "curl", "-f", config.src_minio_name + ":9000/minio/health/ready"],
+                test=["CMD", "curl", "-f", config.src_minio.name + ":9000/minio/health/ready"],
                 interval=int(1e9),  # nanoseconds
                 retries=60,
                 timeout=int(5e9),  # nanoseconds
