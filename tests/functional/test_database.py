@@ -150,7 +150,7 @@ def src_db(src_db_config, docker_client):
             for sql_statement in sql_statements:
                 cursor.execute(sql_statement)
         connection.commit()
-        yield connection
+        yield
 
 
 @pytest.fixture
@@ -170,7 +170,7 @@ def local_db(local_db_config, docker_client):
                 )
             )
         connection.commit()
-        yield connection
+        yield
 
 
 @contextmanager
@@ -246,8 +246,8 @@ def db_root_conn(db_config):
 
 @pytest.fixture
 def src_minio(src_minio_config, docker_client):
-    with create_container(docker_client, src_minio_config) as container:
-        yield container
+    with create_container(docker_client, src_minio_config):
+        yield
 
 
 def test_source_database(src_db):
