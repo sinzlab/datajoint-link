@@ -32,6 +32,9 @@ def config():
         src_db_dj_user: User
         src_db_end_user: User
         src_db_end_user_schema: str
+        src_minio_name: str
+        src_minio_access_key: str
+        src_minio_secret_key: str
 
     src_db_end_user_name = os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user")
     return Config(
@@ -48,6 +51,9 @@ def config():
         ),
         User(src_db_end_user_name, os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password")),
         src_db_end_user_name + "_" + os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "schema"),
+        os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
+        os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
+        os.environ.get("SOURCE_MINIO_SECRET_KEY", "source_minio_secret_key"),
     )
 
 
@@ -131,9 +137,40 @@ def source_database_root_connection(config):
             connection.close()
 
 
-def test_dummy(source_database):
-    with source_database.cursor() as cursor:
-        sql = "SELECT `user`, `host` FROM mysql.user;"
-        cursor.execute(sql)
-        result = cursor.fetchall()
-        print(result)
+@pytest.fixture
+def source_minio(docker_client, config):
+    with source_minio_container(docker_client, config) as container:
+        yield container
+
+
+@contextmanager
+def source_minio_container(client, config):
+    container = None
+    try:
+        container = client.containers.run(
+            "minio/minio",
+            detach=True,
+            name=config.src_minio_name,
+            environment=dict(
+                MINIO_ACCESS_KEY=config.src_minio_access_key, MINIO_SECRET_KEY=config.src_minio_secret_key
+            ),
+            network=config.network,
+            command=["server", "/data"],
+            healthcheck=dict(
+                test=["CMD", "curl", "-f", config.src_minio_name + ":9000/minio/health/ready"],
+                interval=int(1e9),  # nanoseconds
+                retries=60,
+                timeout=int(5e9),  # nanoseconds
+            ),
+        )
+        wait_until_healthy(config, container)
+        yield container
+    finally:
+        if container is not None:
+            container.stop()
+            if config.remove_containers:
+                container.remove(v=True)
+
+
+def test_dummy(source_minio):
+    pass
