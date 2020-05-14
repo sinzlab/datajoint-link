@@ -11,10 +11,12 @@ import pymysql
 
 
 @dataclass
-class Config:
-    src_db: SourceDatabase
-    local_db: LocalDatabase
-    src_minio: MinIO
+class Container:
+    image_tag: str
+    name: str
+    network: str
+    health_check: HealthCheck
+    remove: bool
 
 
 @dataclass
@@ -26,19 +28,16 @@ class HealthCheck:
 
 
 @dataclass
-class Container:
-    image_tag: str
-    name: str
-    network: str
-    health_check: HealthCheck
-    remove: bool
-
-
-@dataclass
 class Database(Container):
     password: str
     end_user: User
     schema: str
+
+
+@dataclass
+class User:
+    name: str
+    password: str
 
 
 @dataclass
@@ -52,32 +51,43 @@ class LocalDatabase(Database):
 
 
 @dataclass
-class User:
-    name: str
-    password: str
-
-
-@dataclass
 class MinIO(Container):
     access_key: str
     secret_key: str
 
 
 @pytest.fixture
-def config():
-    network = os.environ.get("DOCKER_NETWORK", "test_network")
-    remove = bool(int(os.environ.get("REMOVE", True)))
-    database_health_check = HealthCheck(
+def docker_client():
+    return docker.client.from_env()
+
+
+@pytest.fixture
+def network_config():
+    return os.environ.get("DOCKER_NETWORK", "test_network")
+
+
+@pytest.fixture
+def health_check_config():
+    return HealthCheck(
         int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
         int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
         int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
         int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
     )
-    src_db = SourceDatabase(
+
+
+@pytest.fixture
+def remove():
+    return bool(int(os.environ.get("REMOVE", True)))
+
+
+@pytest.fixture
+def source_database_config(network_config, health_check_config, remove):
+    return SourceDatabase(
         os.environ.get("SOURCE_DATABASE_TAG", "latest"),
         os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
-        network,
-        database_health_check,
+        network_config,
+        health_check_config,
         remove,
         os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
         User(
@@ -90,11 +100,15 @@ def config():
             os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
         ),
     )
-    local_db = LocalDatabase(
+
+
+@pytest.fixture
+def local_database_config(network_config, health_check_config, remove):
+    return LocalDatabase(
         os.environ.get("LOCAL_DATABASE_TAG", "latest"),
         os.environ.get("LOCAL_DATABASE_NAME", "test_local_database"),
-        network,
-        database_health_check,
+        network_config,
+        health_check_config,
         remove,
         os.environ.get("LOCAL_DATABASE_ROOT_PASS", "root"),
         User(
@@ -103,44 +117,37 @@ def config():
         ),
         os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
     )
-    minio_health_check = HealthCheck(
-        int(os.environ.get("MINIO_HEALTH_CHECK_START_PERIOD", 0)),
-        int(os.environ.get("MINIO_HEALTH_CHECK_MAX_RETRIES", 60)),
-        int(os.environ.get("MINIO_HEALTH_CHECK_INTERVAL", 1)),
-        int(os.environ.get("MINIO_HEALTH_CHECK_TIMEOUT", 5)),
-    )
-    src_minio = MinIO(
+
+
+@pytest.fixture
+def source_minio_config(network_config, health_check_config):
+    return MinIO(
         os.environ.get("SOURCE_MINIO_TAG", "latest"),
         os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
-        network,
-        minio_health_check,
+        network_config,
+        health_check_config,
         remove,
         os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
         os.environ.get("SOURCE_MINIO_SECRET_KEY", "source_minio_secret_key"),
     )
-    return Config(src_db, local_db, src_minio)
 
 
 @pytest.fixture
-def docker_client():
-    return docker.client.from_env()
-
-
-@pytest.fixture
-def source_database(config, docker_client):
-    with create_container(docker_client, config.src_db), database_root_connection(config.src_db) as connection:
+def source_database(source_database_config, docker_client):
+    with create_container(docker_client, source_database_config) as _, database_root_connection(
+        source_database_config
+    ) as connection:
         with connection.cursor() as cursor:
-            for user in (config.src_db.dj_user, config.src_db.end_user):
+            for user in (source_database_config.dj_user, source_database_config.end_user):
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
             sql_statements = (
+                fr"GRANT ALL PRIVILEGES ON `{source_database_config.end_user.name}\_%`.* "
+                f"TO '{source_database_config.end_user.name}'@'%';",
+                f"GRANT SELECT, REFERENCES ON `{source_database_config.schema}`.* "
+                f"TO '{source_database_config.dj_user.name}'@'%';",
                 (
-                    fr"GRANT ALL PRIVILEGES ON `{config.src_db.end_user.name}\_%`.* "
-                    f"TO '{config.src_db.end_user.name}'@'%';"
-                ),
-                f"GRANT SELECT, REFERENCES ON `{config.src_db.schema}`.* " f"TO '{config.src_db.dj_user.name}'@'%';",
-                (
-                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + config.src_db.schema}`.* "
-                    f"TO '{config.src_db.dj_user.name}'@'%';"
+                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + source_database_config.schema}`.* "
+                    f"TO '{source_database_config.dj_user.name}'@'%';"
                 ),
             )
             for sql_statement in sql_statements:
@@ -150,19 +157,21 @@ def source_database(config, docker_client):
 
 
 @pytest.fixture
-def local_database(config, docker_client):
-    with create_container(docker_client, config.local_db), database_root_connection(config.local_db) as connection:
+def local_database(local_database_config, docker_client):
+    with create_container(docker_client, local_database_config), database_root_connection(
+        local_database_config
+    ) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
                 (
-                    f"CREATE USER '{config.local_db.end_user.name}'@'%' "
-                    f"IDENTIFIED BY '{config.local_db.end_user.name}';"
+                    f"CREATE USER '{local_database_config.end_user.name}'@'%' "
+                    f"IDENTIFIED BY '{local_database_config.end_user.name}';"
                 )
             )
             cursor.execute(
                 (
-                    f"GRANT ALL PRIVILEGES ON `{config.local_db.end_user.name}`.* "
-                    f"TO '{config.local_db.end_user.name}'"
+                    f"GRANT ALL PRIVILEGES ON `{local_database_config.end_user.name}`.* "
+                    f"TO '{local_database_config.end_user.name}'"
                 )
             )
         connection.commit()
@@ -241,8 +250,8 @@ def database_root_connection(db_config):
 
 
 @pytest.fixture
-def source_minio(config, docker_client):
-    with create_container(docker_client, config.src_minio) as container:
+def source_minio(source_minio_config, docker_client):
+    with create_container(docker_client, source_minio_config) as container:
         yield container
 
 
