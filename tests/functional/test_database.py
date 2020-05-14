@@ -10,47 +10,47 @@ import docker
 import pymysql
 
 
-@pytest.fixture
-def docker_client():
-    return docker.client.from_env()
+@dataclass
+class Config:
+    network: str
+    remove: bool
+    health_check: HealthCheck
+    src_db: SourceDatabase
+    src_minio: MinIO
+
+
+@dataclass
+class HealthCheck:
+    start_period: int
+    max_retries: int
+    interval: int
+    timeout: int
+
+
+@dataclass
+class SourceDatabase:
+    name: str
+    password: str
+    dj_user: User
+    end_user: User
+    schema: str
+
+
+@dataclass
+class User:
+    name: str
+    password: str
+
+
+@dataclass
+class MinIO:
+    name: str
+    access_key: str
+    secret_key: str
 
 
 @pytest.fixture
 def config():
-    @dataclass
-    class Config:
-        network: str
-        remove: bool
-        health_check: HealthCheck
-        src_db: SourceDatabase
-        src_minio: MinIO
-
-    @dataclass
-    class HealthCheck:
-        start_period: int
-        max_retries: int
-        interval: int
-        timeout: int
-
-    @dataclass
-    class SourceDatabase:
-        name: str
-        password: str
-        dj_user: User
-        end_user: User
-        schema: str
-
-    @dataclass
-    class User:
-        name: str
-        password: str
-
-    @dataclass
-    class MinIO:
-        name: str
-        access_key: str
-        secret_key: str
-
     health_check = HealthCheck(
         int(os.environ.get("HEALTH_CHECK_START_PERIOD", 0)),
         int(os.environ.get("HEALTH_CHECK_MAX_RETRIES", 60)),
@@ -85,7 +85,12 @@ def config():
 
 
 @pytest.fixture
-def source_database(docker_client, config):
+def docker_client():
+    return docker.client.from_env()
+
+
+@pytest.fixture
+def source_database(config, docker_client):
     with create_container("database", docker_client, config), source_database_root_connection(config) as connection:
         with connection.cursor() as cursor:
             for user in (config.src_db.dj_user, config.src_db.end_user):
