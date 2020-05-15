@@ -10,6 +10,8 @@ import docker
 import pymysql
 import datajoint as dj
 
+from link import main
+
 
 @dataclass
 class Container:
@@ -304,33 +306,41 @@ def local_dj_store(local_minio_config):
 
 
 @pytest.fixture
-def src_dj_config(src_db_config, src_dj_store):
-    dj_config(src_db_config, [src_dj_store])
+def src_schema(src_db_config, src_dj_store):
+    return schema(src_db_config, [src_dj_store])
 
 
-def dj_config(db_config, stores):
-    dj.config["database.host"] = db_config.name
-    dj.config["database.user"] = db_config.end_user.name
-    dj.config["database.password"] = db_config.end_user.password
-    dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
+def schema(db_config, stores):
+    @contextmanager
+    def _schema():
+        try:
+            dj.config["database.host"] = db_config.name
+            dj.config["database.user"] = db_config.end_user.name
+            dj.config["database.password"] = db_config.end_user.password
+            dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
+            dj.conn()
+            yield dj.schema(db_config.schema)
+        finally:
+            dj.conn().close()
+
+    return _schema
 
 
 @pytest.fixture
-def local_dj_config(local_db_config, local_dj_store, src_dj_store):
-    dj_config(local_db_config, [local_dj_store, src_dj_store])
+def local_schema(local_db_config, local_dj_store, src_dj_store):
+    return schema(local_db_config, [local_dj_store, src_dj_store])
 
 
-def test_source_database(src_db, src_dj_config):
-    dj.conn()
+def test_pull(src_schema, local_schema, src_db, local_db):
+    data = [dict(primary_key=i, secondary_key=-i) for i in range(10)]
+    with src_schema() as src_schema:
 
+        @src_schema
+        class Experiment(dj.Manual):
+            definition = """
+            primary_key: int
+            ---
+            secondary_key: int
+            """
 
-def test_local_database(local_db, local_dj_config):
-    dj.conn()
-
-
-def test_source_minio(src_minio):
-    pass
-
-
-def test_local_minio(local_minio):
-    pass
+        Experiment().insert(data)
