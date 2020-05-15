@@ -34,7 +34,7 @@ class HealthCheck:
 class Database(Container):
     password: str  # MYSQL root user password
     end_user: User
-    schema: str
+    schema_name: str
 
 
 @dataclass
@@ -108,7 +108,7 @@ def src_db_config(network_config, health_check_config, remove):
             os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
             os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
         ),
-        schema=os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
+        schema_name=os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
         dj_user=User(
             os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
             os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
@@ -129,7 +129,7 @@ def local_db_config(network_config, health_check_config, remove):
             os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
             os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
         ),
-        schema=os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
+        schema_name=os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
     )
 
 
@@ -164,9 +164,12 @@ def src_db(src_db_config, docker_client):
             sql_statements = (
                 fr"GRANT ALL PRIVILEGES ON `{src_db_config.end_user.name}\_%`.* "
                 f"TO '{src_db_config.end_user.name}'@'%';",
-                f"GRANT SELECT, REFERENCES ON `{src_db_config.schema}`.* " f"TO '{src_db_config.dj_user.name}'@'%';",
                 (
-                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema}`.* "
+                    f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
+                    f"TO '{src_db_config.dj_user.name}'@'%';"
+                ),
+                (
+                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema_name}`.* "
                     f"TO '{src_db_config.dj_user.name}'@'%';"
                 ),
             )
@@ -187,7 +190,7 @@ def local_db(local_db_config, docker_client):
                 )
             )
             cursor.execute(
-                f"GRANT ALL PRIVILEGES ON `{local_db_config.schema}`.* " f"TO '{local_db_config.end_user.name}'"
+                f"GRANT ALL PRIVILEGES ON `{local_db_config.schema_name}`.* " f"TO '{local_db_config.end_user.name}'"
             )
         connection.commit()
         yield
@@ -312,7 +315,7 @@ def schema(db_config, stores):
             dj.config["database.password"] = db_config.end_user.password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
             dj.conn(reset=True)
-            yield db_config.schema
+            yield db_config.schema_name
         finally:
             dj.conn().close()
 
@@ -327,7 +330,7 @@ def local_schema(local_db_config, local_dj_store, src_dj_store):
 def test_pull(src_schema, local_schema, src_db_config, src_db, local_db):
     src_data = [dict(primary_key=i, secondary_key=-i) for i in range(10)]
     expected_local_data = [
-        dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema) for e in src_data
+        dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data
     ]
     with src_schema() as src_schema_name:
         src_schema = dj.schema(src_schema_name)
@@ -347,7 +350,7 @@ def test_pull(src_schema, local_schema, src_db_config, src_db, local_db):
         os.environ["REMOTE_DJ_PASS"] = src_db_config.dj_user.password
 
         local_schema = main.SchemaProxy(local_schema_name)
-        remote_schema = main.SchemaProxy(src_db_config.schema, host=src_db_config.name)
+        remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
 
         @main.Link(local_schema, remote_schema)
         class Experiment:
