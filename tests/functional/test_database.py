@@ -135,10 +135,10 @@ def local_db_config(network_config, health_check_config, remove):
 
 @pytest.fixture
 def src_minio_config(network_config, health_check_config):
-    return minio_config(network_config, health_check_config, "source")
+    return get_minio_config(network_config, health_check_config, "source")
 
 
-def minio_config(network_config, health_check_config, kind):
+def get_minio_config(network_config, health_check_config, kind):
     return MinIO(
         image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
         name=os.environ.get(kind.upper() + "_MINIO_NAME", "test_" + kind + "_minio"),
@@ -152,12 +152,12 @@ def minio_config(network_config, health_check_config, kind):
 
 @pytest.fixture
 def local_minio_config(network_config, health_check_config):
-    return minio_config(network_config, health_check_config, "local")
+    return get_minio_config(network_config, health_check_config, "local")
 
 
 @pytest.fixture
 def src_db(src_db_config, docker_client):
-    with create_container(docker_client, src_db_config), db_root_conn(src_db_config) as connection:
+    with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
             for user in (src_db_config.dj_user, src_db_config.end_user):
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
@@ -181,7 +181,7 @@ def src_db(src_db_config, docker_client):
 
 @pytest.fixture
 def local_db(local_db_config, docker_client):
-    with create_container(docker_client, local_db_config), db_root_conn(local_db_config) as connection:
+    with create_container(docker_client, local_db_config), mysql_conn(local_db_config) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
                 (
@@ -255,7 +255,7 @@ def wait_until_healthy(container_config, container):
 
 
 @contextmanager
-def db_root_conn(db_config):
+def mysql_conn(db_config):
     connection = None
     try:
         connection = pymysql.connect(
@@ -280,11 +280,11 @@ def local_minio(local_minio_config, docker_client):
 
 
 @pytest.fixture
-def src_dj_store(src_minio_config):
-    return dj_store(src_minio_config, "source")
+def src_store_config(src_minio_config):
+    return get_store_config(src_minio_config, "source")
 
 
-def dj_store(minio_config, kind):
+def get_store_config(minio_config, kind):
     return Store(
         name=os.environ.get(kind.upper() + "_STORE_NAME", kind + "_store"),
         protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
@@ -297,43 +297,43 @@ def dj_store(minio_config, kind):
 
 
 @pytest.fixture
-def local_dj_store(local_minio_config):
-    return dj_store(local_minio_config, "local")
+def local_store_config(local_minio_config):
+    return get_store_config(local_minio_config, "local")
 
 
 @pytest.fixture
-def src_schema(src_db_config, src_dj_store):
-    return schema(src_db_config, [src_dj_store])
+def src_conn(src_db_config, src_store_config, src_db):
+    return get_conn_ctx_manager(src_db_config, [src_store_config])
 
 
-def schema(db_config, stores):
+def get_conn_ctx_manager(db_config, stores):
     @contextmanager
-    def _schema():
+    def conn_ctx_manager():
         try:
             dj.config["database.host"] = db_config.name
             dj.config["database.user"] = db_config.end_user.name
             dj.config["database.password"] = db_config.end_user.password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
             dj.conn(reset=True)
-            yield db_config.schema_name
+            yield
         finally:
             dj.conn().close()
 
-    return _schema
+    return conn_ctx_manager
 
 
 @pytest.fixture
-def local_schema(local_db_config, local_dj_store, src_dj_store):
-    return schema(local_db_config, [local_dj_store, src_dj_store])
+def local_conn(local_db_config, local_store_config, src_store_config, local_db):
+    return get_conn_ctx_manager(local_db_config, [local_store_config, src_store_config])
 
 
-def test_pull(src_schema, local_schema, src_db_config, src_db, local_db):
+def test_pull(src_conn, local_conn, src_db_config, local_db_config):
     src_data = [dict(primary_key=i, secondary_key=-i) for i in range(10)]
     expected_local_data = [
         dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data
     ]
-    with src_schema() as src_schema_name:
-        src_schema = dj.schema(src_schema_name)
+    with src_conn():
+        src_schema = dj.schema(src_db_config.schema_name)
 
         @src_schema
         class Experiment(dj.Manual):
@@ -345,11 +345,11 @@ def test_pull(src_schema, local_schema, src_db_config, src_db, local_db):
 
         Experiment().insert(src_data)
 
-    with local_schema() as local_schema_name:
+    with local_conn():
         os.environ["REMOTE_DJ_USER"] = src_db_config.dj_user.name
         os.environ["REMOTE_DJ_PASS"] = src_db_config.dj_user.password
 
-        local_schema = main.SchemaProxy(local_schema_name)
+        local_schema = main.SchemaProxy(local_db_config.schema_name)
         remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
 
         @main.Link(local_schema, remote_schema)
