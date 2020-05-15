@@ -83,10 +83,10 @@ def network_config():
 @pytest.fixture
 def health_check_config():
     return HealthCheck(
-        int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
-        int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
-        int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
-        int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
+        start_period=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
+        max_retries=int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
+        interval=int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
+        timeout=int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
     )
 
 
@@ -98,18 +98,18 @@ def remove():
 @pytest.fixture
 def src_db_config(network_config, health_check_config, remove):
     return SourceDatabase(
-        os.environ.get("SOURCE_DATABASE_TAG", "latest"),
-        os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
-        network_config,
-        health_check_config,
-        remove,
-        os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
-        User(
+        image_tag=os.environ.get("SOURCE_DATABASE_TAG", "latest"),
+        name=os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
+        network=network_config,
+        health_check=health_check_config,
+        remove=remove,
+        password=os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
+        end_user=User(
             os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
             os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
         ),
-        os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
-        User(
+        schema=os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
+        dj_user=User(
             os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
             os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
         ),
@@ -119,17 +119,17 @@ def src_db_config(network_config, health_check_config, remove):
 @pytest.fixture
 def local_db_config(network_config, health_check_config, remove):
     return LocalDatabase(
-        os.environ.get("LOCAL_DATABASE_TAG", "latest"),
-        os.environ.get("LOCAL_DATABASE_NAME", "test_local_database"),
-        network_config,
-        health_check_config,
-        remove,
-        os.environ.get("LOCAL_DATABASE_ROOT_PASS", "root"),
-        User(
+        image_tag=os.environ.get("LOCAL_DATABASE_TAG", "latest"),
+        name=os.environ.get("LOCAL_DATABASE_NAME", "test_local_database"),
+        network=network_config,
+        health_check=health_check_config,
+        remove=remove,
+        password=os.environ.get("LOCAL_DATABASE_ROOT_PASS", "root"),
+        end_user=User(
             os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
             os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
         ),
-        os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
+        schema=os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
     )
 
 
