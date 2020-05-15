@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 
 import pytest
 import docker
 import pymysql
+import datajoint as dj
 
 
 @dataclass
@@ -52,6 +53,17 @@ class LocalDatabase(Database):
 
 @dataclass
 class MinIO(Container):
+    access_key: str
+    secret_key: str
+
+
+@dataclass
+class Store:
+    name: str
+    protocol: str
+    endpoint: str
+    bucket: str
+    location: str
     access_key: str
     secret_key: str
 
@@ -269,12 +281,51 @@ def local_minio(local_minio_config, docker_client):
         yield
 
 
-def test_source_database(src_db):
-    pass
+@pytest.fixture
+def src_dj_store(src_minio_config):
+    return dj_store(src_minio_config, "source")
 
 
-def test_local_database(local_db):
-    pass
+def dj_store(minio_config, kind):
+    return Store(
+        name=os.environ.get(kind.upper() + "_STORE_NAME", kind + "_store"),
+        protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
+        endpoint=minio_config.name + ":9000",
+        bucket=os.environ.get(kind.upper() + "_STORE_BUCKET", kind + "_store_bucket"),
+        location=os.environ.get(kind.upper() + "_STORE_LOCATION", kind + "_store_location"),
+        access_key=minio_config.access_key,
+        secret_key=minio_config.secret_key,
+    )
+
+
+@pytest.fixture
+def local_dj_store(local_minio_config):
+    return dj_store(local_minio_config, "local")
+
+
+@pytest.fixture
+def src_dj_config(src_db_config, src_dj_store):
+    dj_config(src_db_config, [src_dj_store])
+
+
+def dj_config(db_config, stores):
+    dj.config["database.host"] = db_config.name
+    dj.config["database.user"] = db_config.end_user.name
+    dj.config["database.password"] = db_config.end_user.password
+    dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
+
+
+@pytest.fixture
+def local_dj_config(local_db_config, local_dj_store, src_dj_store):
+    dj_config(local_db_config, [local_dj_store, src_dj_store])
+
+
+def test_source_database(src_db, src_dj_config):
+    dj.conn()
+
+
+def test_local_database(local_db, local_dj_config):
+    dj.conn()
 
 
 def test_source_minio(src_minio):
