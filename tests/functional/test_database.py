@@ -135,28 +135,24 @@ def local_db_config(network_config, health_check_config, remove):
 
 @pytest.fixture
 def src_minio_config(network_config, health_check_config):
+    return minio_config(network_config, health_check_config, "source")
+
+
+def minio_config(network_config, health_check_config, kind):
     return MinIO(
-        os.environ.get("SOURCE_MINIO_TAG", "latest"),
-        os.environ.get("SOURCE_MINIO_NAME", "test_source_minio"),
-        network_config,
-        health_check_config,
-        remove,
-        os.environ.get("SOURCE_MINIO_ACCESS_KEY", "source_minio_access_key"),
-        os.environ.get("SOURCE_MINIO_SECRET_KEY", "source_minio_secret_key"),
+        image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
+        name=os.environ.get(kind.upper() + "_MINIO_NAME", "test_" + kind + "_minio"),
+        network=network_config,
+        health_check=health_check_config,
+        remove=remove,
+        access_key=os.environ.get(kind.upper() + "_MINIO_ACCESS_KEY", kind + "_minio_access_key"),
+        secret_key=os.environ.get(kind.upper() + "_MINIO_SECRET_KEY", kind + "_minio_secret_key"),
     )
 
 
 @pytest.fixture
 def local_minio_config(network_config, health_check_config):
-    return MinIO(
-        os.environ.get("LOCAL_MINIO_TAG", "latest"),
-        os.environ.get("LOCAL_MINIO_NAME", "test_local_minio"),
-        network_config,
-        health_check_config,
-        remove,
-        os.environ.get("LOCAL_MINIO_ACCESS_KEY", "local_minio_access_key"),
-        os.environ.get("LOCAL_MINIO_SECRET_KEY", "local_minio_secret_key"),
-    )
+    return minio_config(network_config, health_check_config, "local")
 
 
 @pytest.fixture
