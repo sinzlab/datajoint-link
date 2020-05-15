@@ -187,14 +187,11 @@ def local_db(local_db_config, docker_client):
             cursor.execute(
                 (
                     f"CREATE USER '{local_db_config.end_user.name}'@'%' "
-                    f"IDENTIFIED BY '{local_db_config.end_user.name}';"
+                    f"IDENTIFIED BY '{local_db_config.end_user.password}';"
                 )
             )
             cursor.execute(
-                (
-                    f"GRANT ALL PRIVILEGES ON `{local_db_config.end_user.name}`.* "
-                    f"TO '{local_db_config.end_user.name}'"
-                )
+                f"GRANT ALL PRIVILEGES ON `{local_db_config.schema}`.* " f"TO '{local_db_config.end_user.name}'"
             )
         connection.commit()
         yield
@@ -318,8 +315,8 @@ def schema(db_config, stores):
             dj.config["database.user"] = db_config.end_user.name
             dj.config["database.password"] = db_config.end_user.password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
-            dj.conn()
-            yield dj.schema(db_config.schema)
+            dj.conn(reset=True)
+            yield db_config.schema
         finally:
             dj.conn().close()
 
@@ -331,9 +328,13 @@ def local_schema(local_db_config, local_dj_store, src_dj_store):
     return schema(local_db_config, [local_dj_store, src_dj_store])
 
 
-def test_pull(src_schema, local_schema, src_db, local_db):
-    data = [dict(primary_key=i, secondary_key=-i) for i in range(10)]
-    with src_schema() as src_schema:
+def test_pull(src_schema, local_schema, src_db_config, src_db, local_db):
+    src_data = [dict(primary_key=i, secondary_key=-i) for i in range(10)]
+    expected_local_data = [
+        dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema) for e in src_data
+    ]
+    with src_schema() as src_schema_name:
+        src_schema = dj.schema(src_schema_name)
 
         @src_schema
         class Experiment(dj.Manual):
@@ -343,4 +344,19 @@ def test_pull(src_schema, local_schema, src_db, local_db):
             secondary_key: int
             """
 
-        Experiment().insert(data)
+        Experiment().insert(src_data)
+
+    with local_schema() as local_schema_name:
+        os.environ["REMOTE_DJ_USER"] = src_db_config.dj_user.name
+        os.environ["REMOTE_DJ_PASS"] = src_db_config.dj_user.password
+
+        local_schema = main.SchemaProxy(local_schema_name)
+        remote_schema = main.SchemaProxy(src_db_config.schema, host=src_db_config.name)
+
+        @main.Link(local_schema, remote_schema)
+        class Experiment:
+            pass
+
+        Experiment().pull()
+        local_data = Experiment().fetch(as_dict=True)
+    assert local_data == expected_local_data
