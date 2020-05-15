@@ -4,6 +4,7 @@ import os
 import time
 from dataclasses import dataclass, asdict
 from contextlib import contextmanager
+from typing import Dict
 
 import pytest
 import docker
@@ -33,7 +34,7 @@ class HealthCheckConfig:
 @dataclass
 class DatabaseConfig(ContainerConfig):
     password: str  # MYSQL root user password
-    end_user: UserConfig
+    users: Dict[str, UserConfig]
     schema_name: str
 
 
@@ -41,16 +42,6 @@ class DatabaseConfig(ContainerConfig):
 class UserConfig:
     name: str
     password: str
-
-
-@dataclass
-class SourceDatabaseConfig(DatabaseConfig):
-    dj_user: UserConfig
-
-
-@dataclass
-class LocalDatabaseConfig(DatabaseConfig):
-    pass
 
 
 @dataclass
@@ -97,38 +88,44 @@ def remove():
 
 @pytest.fixture
 def src_db_config(network_config, health_check_config, remove):
-    return SourceDatabaseConfig(
+    users = dict(
+        end_user=UserConfig(
+            os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
+            os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
+        ),
+        dj_user=UserConfig(
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
+            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
+        ),
+    )
+    return DatabaseConfig(
         image_tag=os.environ.get("SOURCE_DATABASE_TAG", "latest"),
         name=os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
         network=network_config,
         health_check=health_check_config,
         remove=remove,
         password=os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
-        end_user=UserConfig(
-            os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
-            os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
-        ),
+        users=users,
         schema_name=os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
-        dj_user=UserConfig(
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
-        ),
     )
 
 
 @pytest.fixture
 def local_db_config(network_config, health_check_config, remove):
-    return LocalDatabaseConfig(
+    users = dict(
+        end_user=UserConfig(
+            os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
+            os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
+        ),
+    )
+    return DatabaseConfig(
         image_tag=os.environ.get("LOCAL_DATABASE_TAG", "latest"),
         name=os.environ.get("LOCAL_DATABASE_NAME", "test_local_database"),
         network=network_config,
         health_check=health_check_config,
         remove=remove,
         password=os.environ.get("LOCAL_DATABASE_ROOT_PASS", "root"),
-        end_user=UserConfig(
-            os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
-            os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
-        ),
+        users=users,
         schema_name=os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
     )
 
@@ -159,18 +156,18 @@ def local_minio_config(network_config, health_check_config):
 def src_db(src_db_config, docker_client):
     with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
-            for user in (src_db_config.dj_user, src_db_config.end_user):
+            for user in src_db_config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
             sql_statements = (
-                fr"GRANT ALL PRIVILEGES ON `{src_db_config.end_user.name}\_%`.* "
-                f"TO '{src_db_config.end_user.name}'@'%';",
+                fr"GRANT ALL PRIVILEGES ON `{src_db_config.users['end_user'].name}\_%`.* "
+                f"TO '{src_db_config.users['end_user'].name}'@'%';",
                 (
                     f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
-                    f"TO '{src_db_config.dj_user.name}'@'%';"
+                    f"TO '{src_db_config.users['dj_user'].name}'@'%';"
                 ),
                 (
                     f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema_name}`.* "
-                    f"TO '{src_db_config.dj_user.name}'@'%';"
+                    f"TO '{src_db_config.users['dj_user'].name}'@'%';"
                 ),
             )
             for sql_statement in sql_statements:
@@ -183,14 +180,13 @@ def src_db(src_db_config, docker_client):
 def local_db(local_db_config, docker_client):
     with create_container(docker_client, local_db_config), mysql_conn(local_db_config) as connection:
         with connection.cursor() as cursor:
+            for user in local_db_config.users.values():
+                cursor.execute(f"CREATE USER '{user.name}'@'%' " f"IDENTIFIED BY '{user.password}';")
             cursor.execute(
                 (
-                    f"CREATE USER '{local_db_config.end_user.name}'@'%' "
-                    f"IDENTIFIED BY '{local_db_config.end_user.password}';"
+                    f"GRANT ALL PRIVILEGES ON `{local_db_config.schema_name}`.* "
+                    f"TO '{local_db_config.users['end_user'].name}'"
                 )
-            )
-            cursor.execute(
-                f"GRANT ALL PRIVILEGES ON `{local_db_config.schema_name}`.* " f"TO '{local_db_config.end_user.name}'"
             )
         connection.commit()
         yield
@@ -311,8 +307,8 @@ def get_conn_ctx_manager(db_config, stores):
     def conn_ctx_manager():
         try:
             dj.config["database.host"] = db_config.name
-            dj.config["database.user"] = db_config.end_user.name
-            dj.config["database.password"] = db_config.end_user.password
+            dj.config["database.user"] = db_config.users["end_user"].name
+            dj.config["database.password"] = db_config.users["end_user"].password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
             dj.conn(reset=True)
             yield
@@ -346,8 +342,8 @@ def test_pull(src_conn, local_conn, src_db_config, local_db_config):
         Experiment().insert(src_data)
 
     with local_conn():
-        os.environ["REMOTE_DJ_USER"] = src_db_config.dj_user.name
-        os.environ["REMOTE_DJ_PASS"] = src_db_config.dj_user.password
+        os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
+        os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
 
         local_schema = main.SchemaProxy(local_db_config.schema_name)
         remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
