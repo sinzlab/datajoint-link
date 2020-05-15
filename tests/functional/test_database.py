@@ -87,8 +87,8 @@ def remove():
 
 
 @pytest.fixture
-def src_db_config(network_config, health_check_config, remove):
-    users = dict(
+def src_user_configs():
+    return dict(
         end_user=UserConfig(
             os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
             os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
@@ -98,36 +98,39 @@ def src_db_config(network_config, health_check_config, remove):
             os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
         ),
     )
-    return DatabaseConfig(
-        image_tag=os.environ.get("SOURCE_DATABASE_TAG", "latest"),
-        name=os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
-        network=network_config,
-        health_check=health_check_config,
-        remove=remove,
-        password=os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
-        users=users,
-        schema_name=os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
-    )
 
 
 @pytest.fixture
-def local_db_config(network_config, health_check_config, remove):
-    users = dict(
+def local_user_configs():
+    return dict(
         end_user=UserConfig(
             os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
             os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
         ),
     )
+
+
+@pytest.fixture
+def src_db_config(network_config, health_check_config, remove, src_user_configs):
+    return get_db_config("source", network_config, health_check_config, remove, src_user_configs)
+
+
+def get_db_config(kind, network_config, health_check_config, remove, user_configs):
     return DatabaseConfig(
-        image_tag=os.environ.get("LOCAL_DATABASE_TAG", "latest"),
-        name=os.environ.get("LOCAL_DATABASE_NAME", "test_local_database"),
+        image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
+        name=os.environ.get(kind.upper() + "_DATABASE_NAME", "test_" + kind + "_database"),
         network=network_config,
         health_check=health_check_config,
         remove=remove,
-        password=os.environ.get("LOCAL_DATABASE_ROOT_PASS", "root"),
-        users=users,
-        schema_name=os.environ.get("LOCAL_DATABASE_END_USER_SCHEMA", "local_end_user_schema"),
+        password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
+        users=user_configs,
+        schema_name=os.environ.get(kind.upper() + "_DATABASE_END_USER_SCHEMA", kind + "_end_user_schema"),
     )
+
+
+@pytest.fixture
+def local_db_config(network_config, health_check_config, remove, local_user_configs):
+    return get_db_config("local", network_config, health_check_config, remove, local_user_configs)
 
 
 @pytest.fixture
