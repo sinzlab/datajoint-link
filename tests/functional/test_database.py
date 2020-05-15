@@ -14,16 +14,16 @@ from link import main
 
 
 @dataclass
-class Container:
+class ContainerConfig:
     image_tag: str
     name: str
     network: str  # docker network to use for testing
-    health_check: HealthCheck
+    health_check: HealthCheckConfig
     remove: bool  # container and associated volume will be removed if true
 
 
 @dataclass
-class HealthCheck:
+class HealthCheckConfig:
     start_period: int  # period after which health is first checked in seconds
     max_retries: int  # max number of retries before raising an error
     interval: int  # interval between health checks in seconds
@@ -31,36 +31,36 @@ class HealthCheck:
 
 
 @dataclass
-class Database(Container):
+class DatabaseConfig(ContainerConfig):
     password: str  # MYSQL root user password
-    end_user: User
+    end_user: UserConfig
     schema_name: str
 
 
 @dataclass
-class User:
+class UserConfig:
     name: str
     password: str
 
 
 @dataclass
-class SourceDatabase(Database):
-    dj_user: User
+class SourceDatabaseConfig(DatabaseConfig):
+    dj_user: UserConfig
 
 
 @dataclass
-class LocalDatabase(Database):
+class LocalDatabaseConfig(DatabaseConfig):
     pass
 
 
 @dataclass
-class MinIO(Container):
+class MinIOConfig(ContainerConfig):
     access_key: str
     secret_key: str
 
 
 @dataclass
-class Store:
+class StoreConfig:
     name: str
     protocol: str
     endpoint: str
@@ -82,7 +82,7 @@ def network_config():
 
 @pytest.fixture
 def health_check_config():
-    return HealthCheck(
+    return HealthCheckConfig(
         start_period=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
         max_retries=int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
         interval=int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
@@ -97,19 +97,19 @@ def remove():
 
 @pytest.fixture
 def src_db_config(network_config, health_check_config, remove):
-    return SourceDatabase(
+    return SourceDatabaseConfig(
         image_tag=os.environ.get("SOURCE_DATABASE_TAG", "latest"),
         name=os.environ.get("SOURCE_DATABASE_NAME", "test_source_database"),
         network=network_config,
         health_check=health_check_config,
         remove=remove,
         password=os.environ.get("SOURCE_DATABASE_ROOT_PASS", "root"),
-        end_user=User(
+        end_user=UserConfig(
             os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
             os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
         ),
         schema_name=os.environ.get("SOURCE_DATABASE_END_USER_SCHEMA", "source_end_user_schema"),
-        dj_user=User(
+        dj_user=UserConfig(
             os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
             os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
         ),
@@ -118,14 +118,14 @@ def src_db_config(network_config, health_check_config, remove):
 
 @pytest.fixture
 def local_db_config(network_config, health_check_config, remove):
-    return LocalDatabase(
+    return LocalDatabaseConfig(
         image_tag=os.environ.get("LOCAL_DATABASE_TAG", "latest"),
         name=os.environ.get("LOCAL_DATABASE_NAME", "test_local_database"),
         network=network_config,
         health_check=health_check_config,
         remove=remove,
         password=os.environ.get("LOCAL_DATABASE_ROOT_PASS", "root"),
-        end_user=User(
+        end_user=UserConfig(
             os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
             os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
         ),
@@ -139,7 +139,7 @@ def src_minio_config(network_config, health_check_config):
 
 
 def get_minio_config(network_config, health_check_config, kind):
-    return MinIO(
+    return MinIOConfig(
         image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
         name=os.environ.get(kind.upper() + "_MINIO_NAME", "test_" + kind + "_minio"),
         network=network_config,
@@ -212,14 +212,14 @@ def create_container(client, container_config):
 
 def run_container(client, container_config):
     common = dict(detach=True, network=container_config.network)
-    if isinstance(container_config, Database):
+    if isinstance(container_config, DatabaseConfig):
         container = client.containers.run(
             "datajoint/mysql:" + container_config.image_tag,
             name=container_config.name,
             environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
             **common,
         )
-    elif isinstance(container_config, MinIO):
+    elif isinstance(container_config, MinIOConfig):
         container = client.containers.run(
             "minio/minio:" + container_config.image_tag,
             name=container_config.name,
@@ -285,7 +285,7 @@ def src_store_config(src_minio_config):
 
 
 def get_store_config(minio_config, kind):
-    return Store(
+    return StoreConfig(
         name=os.environ.get(kind.upper() + "_STORE_NAME", kind + "_store"),
         protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
         endpoint=minio_config.name + ":9000",
