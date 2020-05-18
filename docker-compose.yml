@@ -20,16 +20,6 @@ services:
             - 172.0.0.10
         networks:
             - dps
-    jupyter:
-        build: .
-        env_file: env/.env
-        volumes:
-            - .:/src/link
-        hostname: jupyter.docker
-        dns:
-            - 172.0.0.10
-        networks:
-            - dps
     test:
         build: .
         env_file: env/test.env
