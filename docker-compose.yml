@@ -9,26 +9,29 @@ services:
         networks:
             dps:
                 ipv4_address: 172.0.0.10
-    pycharm:
+    development:
         build: .
         volumes:
             - .:/src/link
+            - /var/run/docker.sock:/var/run/docker.sock
         entrypoint: ""
-        hostname: pycharm.docker
+        hostname: development.docker
         dns:
             - 172.0.0.10
         networks:
             - dps
-    jupyter:
+    test_runner:
         build: .
-        env_file: env/.env
+        env_file: env/test_runner.env
         volumes:
             - .:/src/link
-        hostname: jupyter.docker
+            - /var/run/docker.sock:/var/run/docker.sock
+        entrypoint: "pytest"
+        hostname: test_runner.docker
         dns:
             - 172.0.0.10
         networks:
-            - dps
+            - test_runner_network
     experimental_db:
         image: datajoint/mysql:5.7
         environment:
@@ -79,3 +82,5 @@ networks:
         ipam:
           config:
               - subnet: 172.0.0.0/24
+    test_runner_network:
+        name: test_runner_network
