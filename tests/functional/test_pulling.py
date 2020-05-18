@@ -302,44 +302,42 @@ def local_store_config(local_minio_config):
 
 @pytest.fixture
 def src_conn(src_db_config, src_store_config, src_db):
-    return get_conn_ctx_manager(src_db_config, [src_store_config])
+    with get_conn(src_db_config, [src_store_config]) as conn:
+        yield conn
 
 
-def get_conn_ctx_manager(db_config, stores):
-    @contextmanager
-    def conn_ctx_manager():
-        conn = None
-        try:
-            dj.config["database.host"] = db_config.name
-            dj.config["database.user"] = db_config.users["end_user"].name
-            dj.config["database.password"] = db_config.users["end_user"].password
-            dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
-            conn = dj.conn(reset=True)
-            yield conn
-        finally:
-            if conn:
-                conn.close()
-
-    return conn_ctx_manager
+@contextmanager
+def get_conn(db_config, stores):
+    conn = None
+    try:
+        dj.config["database.host"] = db_config.name
+        dj.config["database.user"] = db_config.users["end_user"].name
+        dj.config["database.password"] = db_config.users["end_user"].password
+        dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
+        conn = dj.conn(reset=True)
+        yield conn
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @pytest.fixture
 def local_conn(local_db_config, local_store_config, src_store_config, local_db):
-    return get_conn_ctx_manager(local_db_config, [local_store_config, src_store_config])
+    with get_conn(local_db_config, [local_store_config, src_store_config]) as conn:
+        yield conn
 
 
 @pytest.fixture
 def schemas(src_db_config, local_db_config, src_conn, local_conn):
-    with src_conn() as src_conn, local_conn() as local_conn:
-        src_schema = main.SchemaProxy(src_db_config.schema_name, connection=src_conn)
-        local_schema = main.SchemaProxy(local_db_config.schema_name, connection=local_conn)
-        yield dict(src=src_schema, local=local_schema)
-        local_schema.drop(force=True)
-        with mysql_conn(src_db_config) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(f"DROP DATABASE {'datajoint_outbound__' + src_db_config.schema_name};")
-            conn.commit()
-        src_schema.drop(force=True)
+    src_schema = main.SchemaProxy(src_db_config.schema_name, connection=src_conn)
+    local_schema = main.SchemaProxy(local_db_config.schema_name, connection=local_conn)
+    yield dict(src=src_schema, local=local_schema)
+    local_schema.drop(force=True)
+    with mysql_conn(src_db_config) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(f"DROP DATABASE {'datajoint_outbound__' + src_db_config.schema_name};")
+        conn.commit()
+    src_schema.drop(force=True)
 
 
 @pytest.fixture
