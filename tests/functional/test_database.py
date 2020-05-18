@@ -61,17 +61,17 @@ class StoreConfig:
     secret_key: str
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def docker_client():
     return docker.client.from_env()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def network_config():
     return os.environ.get("DOCKER_NETWORK", "test_network")
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def health_check_config():
     return HealthCheckConfig(
         start_period=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
@@ -81,12 +81,12 @@ def health_check_config():
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def remove():
     return bool(int(os.environ.get("REMOVE", True)))
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def src_user_configs():
     return dict(
         end_user=UserConfig(
@@ -100,7 +100,7 @@ def src_user_configs():
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def local_user_configs():
     return dict(
         end_user=UserConfig(
@@ -110,7 +110,7 @@ def local_user_configs():
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def src_db_config(network_config, health_check_config, remove, src_user_configs):
     return get_db_config("source", network_config, health_check_config, remove, src_user_configs)
 
@@ -128,7 +128,7 @@ def get_db_config(kind, network_config, health_check_config, remove, user_config
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def local_db_config(network_config, health_check_config, remove, local_user_configs):
     return get_db_config("local", network_config, health_check_config, remove, local_user_configs)
 
@@ -155,7 +155,7 @@ def local_minio_config(network_config, health_check_config):
     return get_minio_config(network_config, health_check_config, "local")
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def src_db(src_db_config, docker_client):
     with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
@@ -179,7 +179,7 @@ def src_db(src_db_config, docker_client):
         yield
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def local_db(local_db_config, docker_client):
     with create_container(docker_client, local_db_config), mysql_conn(local_db_config) as connection:
         with connection.cursor() as cursor:
@@ -409,6 +409,16 @@ def get_local_data(src_conn, local_conn, src_db_config, local_db_config, get_src
             local_data = dict(master=Table().fetch(as_dict=True))
             if part_table:
                 local_data["part"] = Table.Part().fetch(as_dict=True)
+
+        with mysql_conn(local_db_config) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"DROP DATABASE {local_db_config.schema_name}")
+            connection.commit()
+        with mysql_conn(src_db_config) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"DROP DATABASE datajoint_outbound__{src_db_config.schema_name}")
+                cursor.execute(f"DROP DATABASE {src_db_config.schema_name}")
+            connection.commit()
         return local_data
 
     return _get_local_data
