@@ -335,14 +335,14 @@ def test_pull(src_conn, local_conn, src_db_config, local_db_config):
         src_schema = dj.schema(src_db_config.schema_name)
 
         @src_schema
-        class Experiment(dj.Manual):
+        class Table(dj.Manual):
             definition = """
             primary_key: int
             ---
             secondary_key: int
             """
 
-        Experiment().insert(src_data)
+        Table().insert(src_data)
 
     with local_conn():
         os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
@@ -352,9 +352,9 @@ def test_pull(src_conn, local_conn, src_db_config, local_db_config):
         remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
 
         @main.Link(local_schema, remote_schema)
-        class Experiment:
+        class Table:
             pass
 
-        Experiment().pull()
-        local_data = Experiment().fetch(as_dict=True)
+        Table().pull()
+        local_data = Table().fetch(as_dict=True)
     assert local_data == expected_local_data
