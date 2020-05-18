@@ -4,4 +4,4 @@ services:
     - docker
 
 script:
-    - docker-compose run test_runner -s -v
+    - docker-compose -f test-runner-compose.yml run test_runner -s -v
