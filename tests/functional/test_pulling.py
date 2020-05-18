@@ -398,7 +398,7 @@ def cleanup_schemas(src_db_config, local_db_config):
                 connection.commit()
             with mysql_conn(src_db_config) as connection:
                 with connection.cursor() as cursor:
-                    cursor.execute(f"DROP DATABASE datajoint_outbound__{src_db_config.schema_name}")
+                    cursor.execute(f"DROP DATABASE {'datajoint_outbound__' + src_db_config.schema_name}")
                     cursor.execute(f"DROP DATABASE {src_db_config.schema_name}")
                 connection.commit()
             return returned
