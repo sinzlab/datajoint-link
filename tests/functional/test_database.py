@@ -326,11 +326,40 @@ def local_conn(local_db_config, local_store_config, src_store_config, local_db):
     return get_conn_ctx_manager(local_db_config, [local_store_config, src_store_config])
 
 
-def test_pull(src_conn, local_conn, src_db_config, local_db_config):
-    src_data = [dict(primary_key=i, secondary_key=-i) for i in range(10)]
-    expected_local_data = [
-        dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data
-    ]
+@pytest.fixture
+def src_data():
+    def _src_data(part_table=False):
+        src_data = dict(master=[dict(primary_key=i, secondary_key=-i) for i in range(10)])
+        if part_table:
+            src_data["part"] = [
+                dict(primary_key=e["primary_key"], secondary_key=i) for i, e in enumerate(src_data["master"])
+            ]
+        return src_data
+
+    return _src_data
+
+
+@pytest.fixture
+def expected_local_data(src_data, src_db_config):
+    def _expected_local_data(part_table=False):
+        data = src_data(part_table=part_table)
+        local_data = dict(
+            master=[
+                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in data["master"]
+            ]
+        )
+        if part_table:
+            local_data["part"] = [
+                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in data["part"]
+            ]
+        return local_data
+
+    return _expected_local_data
+
+
+def test_pull(src_conn, local_conn, src_db_config, local_db_config, src_data, expected_local_data):
+    src_data = src_data()["master"]
+    expected_local_data = expected_local_data()["master"]
     with src_conn():
         src_schema = dj.schema(src_db_config.schema_name)
 
@@ -358,3 +387,44 @@ def test_pull(src_conn, local_conn, src_db_config, local_db_config):
         Table().pull()
         local_data = Table().fetch(as_dict=True)
     assert local_data == expected_local_data
+
+
+def test_pull_with_part_table(src_conn, local_conn, src_db_config, local_db_config, src_data, expected_local_data):
+    src_data = src_data(part_table=True)
+    expected_local_data = expected_local_data(part_table=True)
+    with src_conn():
+        src_schema = dj.schema(src_db_config.schema_name)
+
+        @src_schema
+        class Table(dj.Manual):
+            definition = """
+            primary_key: int
+            ---
+            secondary_key: int
+            """
+
+            class Part(dj.Part):
+                definition = """
+                -> master
+                ---
+                secondary_key: int
+                """
+
+        Table().insert(src_data["master"])
+        Table.Part().insert(src_data["part"])
+
+    with local_conn():
+        os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
+        os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
+
+        local_schema = main.SchemaProxy(local_db_config.schema_name)
+        remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
+
+        @main.Link(local_schema, remote_schema)
+        class Table:
+            pass
+
+        Table().pull()
+        local_master_data = Table().fetch(as_dict=True)
+        local_part_data = Table.Part().fetch(as_dict=True)
+    assert local_master_data == expected_local_data["master"] and local_part_data == expected_local_data["part"]
