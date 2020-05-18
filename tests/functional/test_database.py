@@ -343,18 +343,18 @@ def get_src_data():
 def get_expected_local_data(get_src_data, src_db_config):
     def get_expected_local_data(part_table=False):
         src_data = get_src_data(part_table=part_table)
-        local_data = dict(
+        expected_local_data = dict(
             master=[
                 dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
                 for e in src_data["master"]
             ]
         )
         if part_table:
-            local_data["part"] = [
+            expected_local_data["part"] = [
                 dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
                 for e in src_data["part"]
             ]
-        return local_data
+        return expected_local_data
 
     return get_expected_local_data
 
