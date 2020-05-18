@@ -327,8 +327,8 @@ def local_conn(local_db_config, local_store_config, src_store_config, local_db):
 
 
 @pytest.fixture
-def src_data():
-    def _src_data(part_table=False):
+def get_src_data():
+    def _get_src_data(part_table=False):
         src_data = dict(master=[dict(primary_key=i, secondary_key=-i) for i in range(10)])
         if part_table:
             src_data["part"] = [
@@ -336,30 +336,32 @@ def src_data():
             ]
         return src_data
 
-    return _src_data
+    return _get_src_data
 
 
 @pytest.fixture
-def expected_local_data(src_data, src_db_config):
-    def _expected_local_data(part_table=False):
-        data = src_data(part_table=part_table)
+def get_expected_local_data(get_src_data, src_db_config):
+    def get_expected_local_data(part_table=False):
+        src_data = get_src_data(part_table=part_table)
         local_data = dict(
             master=[
-                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in data["master"]
+                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
+                for e in src_data["master"]
             ]
         )
         if part_table:
             local_data["part"] = [
-                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in data["part"]
+                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
+                for e in src_data["part"]
             ]
         return local_data
 
-    return _expected_local_data
+    return get_expected_local_data
 
 
-def test_pull(src_conn, local_conn, src_db_config, local_db_config, src_data, expected_local_data):
-    src_data = src_data()["master"]
-    expected_local_data = expected_local_data()["master"]
+def test_pull(src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data):
+    src_data = get_src_data()["master"]
+    expected_local_data = get_expected_local_data()["master"]
     with src_conn():
         src_schema = dj.schema(src_db_config.schema_name)
 
@@ -389,9 +391,11 @@ def test_pull(src_conn, local_conn, src_db_config, local_db_config, src_data, ex
     assert local_data == expected_local_data
 
 
-def test_pull_with_part_table(src_conn, local_conn, src_db_config, local_db_config, src_data, expected_local_data):
-    src_data = src_data(part_table=True)
-    expected_local_data = expected_local_data(part_table=True)
+def test_pull_with_part_table(
+    src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data
+):
+    src_data = get_src_data(part_table=True)
+    expected_local_data = get_expected_local_data(part_table=True)
     with src_conn():
         src_schema = dj.schema(src_db_config.schema_name)
 
