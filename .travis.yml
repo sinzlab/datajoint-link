@@ -5,3 +5,7 @@ services:
 
 script:
     - docker-compose -f test-runner-compose.yml run test_runner -s -v
+
+notifications:
+    slack:
+        secure: V9zo2et9WXFX4FVg59c6LOPdIGs1o/K5mGy3WGaCbQ+joQZuH/fLfyIkjKunKYILuJ4PBZZQLQsm5ajfRXsGrCo6wyncFeF69uE709I3hFPAuilHsFrkWcHWpLrXHYkYGlLBHLR6Or7/j+E0uUqSQ5OHCJiYOg2JxHY1M5+MTJBOVa7dK9pCjNco75TOHcDygpNOaV+oMAJ5s+2M7isDiWWnHZL9qDKPuNAbt28CNwgByVZuFdOPgKJyIjxovXGSxI7ADwvSrVXS+AQhOj/64Ew+iyrMYnMHgB+luaRtUPW7x0lVCP3DU2GKW4OToHzY8RehWDNO3BiB5QcKhmhAyCR2G3AshZxp4Voaz5fDjtqrl7xB6EucB0UCi276+duJI5xxUJbNtVro2OeL26N/TwzOY840CpgSOLMezcU7hMSuQIA3wm45jgt38zo24S8n8RUci6VqD8AsnpS36lzBpUB/C7/nLqh69AI5lGKZUao10ePgr5VxnPj+nOoBulPFBLSsu73KnDP3PmvWRLcYFBtTWnNdcqFysrG9EbLmkY8b7iRbncTPyUF5RI9gkZTXuGM/XSjTVmQKy1ngSqhwPY+e/ZKMqC+MmtpevuN7a+V1yRGP2KlMGzeht+Bbx9XyFgGkFAFTlqnQzVoZrbLD+QgHb6aIAWkhpDioWpybSmY=
