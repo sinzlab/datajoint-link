@@ -329,9 +329,9 @@ def local_conn(local_db_config, local_store_config, src_store_config, local_db):
 
 @pytest.fixture
 def get_src_data():
-    def _get_src_data(part_table=False):
+    def _get_src_data(use_part_table):
         src_data = dict(master=[dict(primary_key=i, secondary_key=-i) for i in range(10)])
-        if part_table:
+        if use_part_table:
             src_data["part"] = [
                 dict(primary_key=e["primary_key"], secondary_key=i) for i, e in enumerate(src_data["master"])
             ]
@@ -342,15 +342,15 @@ def get_src_data():
 
 @pytest.fixture
 def get_expected_local_data(get_src_data, src_db_config):
-    def get_expected_local_data(part_table=False):
-        src_data = get_src_data(part_table=part_table)
+    def get_expected_local_data(use_part_table):
+        src_data = get_src_data(use_part_table=use_part_table)
         expected_local_data = dict(
             master=[
                 dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
                 for e in src_data["master"]
             ]
         )
-        if part_table:
+        if use_part_table:
             expected_local_data["part"] = [
                 dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
                 for e in src_data["part"]
@@ -362,7 +362,7 @@ def get_expected_local_data(get_src_data, src_db_config):
 
 @pytest.fixture
 def get_src_table():
-    def _get_src_table(part_table=False):
+    def _get_src_table(use_part_table):
         class Table(dj.Manual):
             definition = """
             primary_key: int
@@ -370,7 +370,7 @@ def get_src_table():
             secondary_key: int
             """
 
-        if part_table:
+        if use_part_table:
 
             class Part(dj.Part):
                 definition = """
@@ -411,13 +411,13 @@ def cleanup_schemas(src_db_config, local_db_config):
 @pytest.fixture
 def get_local_data(cleanup_schemas, src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_src_table):
     @cleanup_schemas
-    def _get_local_data(part_table):
-        src_data = get_src_data(part_table=part_table)
+    def _get_local_data(use_part_table):
+        src_data = get_src_data(use_part_table=use_part_table)
         with src_conn():
             src_schema = dj.schema(src_db_config.schema_name)
-            src_table = src_schema(get_src_table(part_table=part_table))
+            src_table = src_schema(get_src_table(use_part_table=use_part_table))
             src_table().insert(src_data["master"])
-            if part_table:
+            if use_part_table:
                 src_table.Part().insert(src_data["part"])
         with local_conn():
             os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
@@ -431,7 +431,7 @@ def get_local_data(cleanup_schemas, src_conn, local_conn, src_db_config, local_d
 
             Table().pull()
             local_data = dict(master=Table().fetch(as_dict=True))
-            if part_table:
+            if use_part_table:
                 local_data["part"] = Table.Part().fetch(as_dict=True)
         return local_data
 
@@ -439,8 +439,8 @@ def get_local_data(cleanup_schemas, src_conn, local_conn, src_db_config, local_d
 
 
 def test_pull(get_local_data, get_expected_local_data):
-    assert get_local_data(part_table=False) == get_expected_local_data(part_table=False)
+    assert get_local_data(use_part_table=False) == get_expected_local_data(use_part_table=False)
 
 
 def test_pull_with_part_table(get_local_data, get_expected_local_data):
-    assert get_local_data(part_table=True) == get_expected_local_data(part_table=True)
+    assert get_local_data(use_part_table=True) == get_expected_local_data(use_part_table=True)
