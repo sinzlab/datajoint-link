@@ -69,7 +69,7 @@ def docker_client():
 
 @pytest.fixture(scope="module")
 def network_config():
-    return os.environ.get("DOCKER_NETWORK", "test_network")
+    return os.environ.get("DOCKER_NETWORK", "test_runner_network")
 
 
 @pytest.fixture(scope="module")
