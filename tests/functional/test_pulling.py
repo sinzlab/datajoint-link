@@ -5,7 +5,6 @@ import time
 from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 from typing import Dict
-from functools import wraps
 
 import pytest
 import docker
@@ -309,15 +308,17 @@ def src_conn(src_db_config, src_store_config, src_db):
 def get_conn_ctx_manager(db_config, stores):
     @contextmanager
     def conn_ctx_manager():
+        conn = None
         try:
             dj.config["database.host"] = db_config.name
             dj.config["database.user"] = db_config.users["end_user"].name
             dj.config["database.password"] = db_config.users["end_user"].password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
-            dj.conn(reset=True)
-            yield
+            conn = dj.conn(reset=True)
+            yield conn
         finally:
-            dj.conn().close()
+            if conn:
+                conn.close()
 
     return conn_ctx_manager
 
@@ -325,6 +326,20 @@ def get_conn_ctx_manager(db_config, stores):
 @pytest.fixture
 def local_conn(local_db_config, local_store_config, src_store_config, local_db):
     return get_conn_ctx_manager(local_db_config, [local_store_config, src_store_config])
+
+
+@pytest.fixture
+def schemas(src_db_config, local_db_config, src_conn, local_conn):
+    with src_conn() as src_conn, local_conn() as local_conn:
+        src_schema = main.SchemaProxy(src_db_config.schema_name, connection=src_conn)
+        local_schema = main.SchemaProxy(local_db_config.schema_name, connection=local_conn)
+        yield dict(src=src_schema, local=local_schema)
+        local_schema.drop(force=True)
+        with mysql_conn(src_db_config) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(f"DROP DATABASE {'datajoint_outbound__' + src_db_config.schema_name};")
+            conn.commit()
+        src_schema.drop(force=True)
 
 
 @pytest.fixture
@@ -387,52 +402,25 @@ def get_src_table():
 
 
 @pytest.fixture
-def cleanup_schemas(src_db_config, local_db_config):
-    def _cleanup_schemas(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            returned = func(*args, **kwargs)
-            with mysql_conn(local_db_config) as connection:
-                with connection.cursor() as cursor:
-                    cursor.execute(f"DROP DATABASE {local_db_config.schema_name}")
-                connection.commit()
-            with mysql_conn(src_db_config) as connection:
-                with connection.cursor() as cursor:
-                    cursor.execute(f"DROP DATABASE {'datajoint_outbound__' + src_db_config.schema_name}")
-                    cursor.execute(f"DROP DATABASE {src_db_config.schema_name}")
-                connection.commit()
-            return returned
-
-        return wrapper
-
-    return _cleanup_schemas
-
-
-@pytest.fixture
-def get_local_data(cleanup_schemas, src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_src_table):
-    @cleanup_schemas
+def get_local_data(schemas, src_db_config, get_src_data, get_src_table):
     def _get_local_data(use_part_table):
         src_data = get_src_data(use_part_table=use_part_table)
-        with src_conn():
-            src_schema = dj.schema(src_db_config.schema_name)
-            src_table = src_schema(get_src_table(use_part_table=use_part_table))
-            src_table().insert(src_data["master"])
-            if use_part_table:
-                src_table.Part().insert(src_data["part"])
-        with local_conn():
-            os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
-            os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
-            local_schema = main.SchemaProxy(local_db_config.schema_name)
-            remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
+        src_table = schemas["src"](get_src_table(use_part_table=use_part_table))
+        src_table().insert(src_data["master"])
+        if use_part_table:
+            src_table.Part().insert(src_data["part"])
+        os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
+        os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
+        remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
 
-            @main.Link(local_schema, remote_schema)
-            class Table:
-                pass
+        @main.Link(schemas["local"], remote_schema)
+        class Table:
+            pass
 
-            Table().pull()
-            local_data = dict(master=Table().fetch(as_dict=True))
-            if use_part_table:
-                local_data["part"] = Table.Part().fetch(as_dict=True)
+        Table().pull()
+        local_data = dict(master=Table().fetch(as_dict=True))
+        if use_part_table:
+            local_data["part"] = Table.Part().fetch(as_dict=True)
         return local_data
 
     return _get_local_data
