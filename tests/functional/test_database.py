@@ -385,55 +385,38 @@ def get_src_table():
     return _get_src_table
 
 
-def test_pull(
-    src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data, get_src_table
-):
-    src_data = get_src_data()["master"]
-    expected_local_data = get_expected_local_data()["master"]
-    with src_conn():
-        src_schema = dj.schema(src_db_config.schema_name)
-        src_table = src_schema(get_src_table())
-        src_table().insert(src_data)
+@pytest.fixture
+def get_local_data(src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_src_table):
+    def _get_local_data(part_table):
+        src_data = get_src_data(part_table=part_table)
+        with src_conn():
+            src_schema = dj.schema(src_db_config.schema_name)
+            src_table = src_schema(get_src_table(part_table=part_table))
+            src_table().insert(src_data["master"])
+            if part_table:
+                src_table.Part().insert(src_data["part"])
+        with local_conn():
+            os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
+            os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
+            local_schema = main.SchemaProxy(local_db_config.schema_name)
+            remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
 
-    with local_conn():
-        os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
-        os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
+            @main.Link(local_schema, remote_schema)
+            class Table:
+                pass
 
-        local_schema = main.SchemaProxy(local_db_config.schema_name)
-        remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
+            Table().pull()
+            local_data = dict(master=Table().fetch(as_dict=True))
+            if part_table:
+                local_data["part"] = Table.Part().fetch(as_dict=True)
+        return local_data
 
-        @main.Link(local_schema, remote_schema)
-        class Table:
-            pass
-
-        Table().pull()
-        local_data = Table().fetch(as_dict=True)
-    assert local_data == expected_local_data
+    return _get_local_data
 
 
-def test_pull_with_part_table(
-    src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data, get_src_table
-):
-    src_data = get_src_data(part_table=True)
-    expected_local_data = get_expected_local_data(part_table=True)
-    with src_conn():
-        src_schema = dj.schema(src_db_config.schema_name)
-        src_table = src_schema(get_src_table(part_table=True))
-        src_table().insert(src_data["master"])
-        src_table.Part().insert(src_data["part"])
+def test_pull(get_local_data, get_expected_local_data):
+    assert get_local_data(part_table=False) == get_expected_local_data(part_table=False)
 
-    with local_conn():
-        os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
-        os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
 
-        local_schema = main.SchemaProxy(local_db_config.schema_name)
-        remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
-
-        @main.Link(local_schema, remote_schema)
-        class Table:
-            pass
-
-        Table().pull()
-        local_master_data = Table().fetch(as_dict=True)
-        local_part_data = Table.Part().fetch(as_dict=True)
-    assert local_master_data == expected_local_data["master"] and local_part_data == expected_local_data["part"]
+def test_pull_with_part_table(get_local_data, get_expected_local_data):
+    assert get_local_data(part_table=True) == get_expected_local_data(part_table=True)
