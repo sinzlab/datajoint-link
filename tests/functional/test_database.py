@@ -359,13 +359,9 @@ def get_expected_local_data(get_src_data, src_db_config):
     return get_expected_local_data
 
 
-def test_pull(src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data):
-    src_data = get_src_data()["master"]
-    expected_local_data = get_expected_local_data()["master"]
-    with src_conn():
-        src_schema = dj.schema(src_db_config.schema_name)
-
-        @src_schema
+@pytest.fixture
+def get_src_table():
+    def _get_src_table(part_table=False):
         class Table(dj.Manual):
             definition = """
             primary_key: int
@@ -373,7 +369,31 @@ def test_pull(src_conn, local_conn, src_db_config, local_db_config, get_src_data
             secondary_key: int
             """
 
-        Table().insert(src_data)
+        if part_table:
+
+            class Part(dj.Part):
+                definition = """
+                -> master
+                ---
+                secondary_key: int
+                """
+
+            Table.Part = Part
+
+        return Table
+
+    return _get_src_table
+
+
+def test_pull(
+    src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data, get_src_table
+):
+    src_data = get_src_data()["master"]
+    expected_local_data = get_expected_local_data()["master"]
+    with src_conn():
+        src_schema = dj.schema(src_db_config.schema_name)
+        src_table = src_schema(get_src_table())
+        src_table().insert(src_data)
 
     with local_conn():
         os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
@@ -392,30 +412,15 @@ def test_pull(src_conn, local_conn, src_db_config, local_db_config, get_src_data
 
 
 def test_pull_with_part_table(
-    src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data
+    src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_expected_local_data, get_src_table
 ):
     src_data = get_src_data(part_table=True)
     expected_local_data = get_expected_local_data(part_table=True)
     with src_conn():
         src_schema = dj.schema(src_db_config.schema_name)
-
-        @src_schema
-        class Table(dj.Manual):
-            definition = """
-            primary_key: int
-            ---
-            secondary_key: int
-            """
-
-            class Part(dj.Part):
-                definition = """
-                -> master
-                ---
-                secondary_key: int
-                """
-
-        Table().insert(src_data["master"])
-        Table.Part().insert(src_data["part"])
+        src_table = src_schema(get_src_table(part_table=True))
+        src_table().insert(src_data["master"])
+        src_table.Part().insert(src_data["part"])
 
     with local_conn():
         os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
