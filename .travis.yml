@@ -3,9 +3,5 @@ language: python
 services:
     - docker
 
-before_install:
-    - mkdir env
-    - touch env/test_runner.env
-
 script:
     - docker-compose run test_runner -s -v

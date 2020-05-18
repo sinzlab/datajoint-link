@@ -22,7 +22,6 @@ services:
             - dps
     test_runner:
         build: .
-        env_file: env/test_runner.env
         volumes:
             - .:/src/link
             - /var/run/docker.sock:/var/run/docker.sock
