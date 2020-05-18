@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 from typing import Dict
+from functools import wraps
 
 import pytest
 import docker
@@ -386,7 +387,30 @@ def get_src_table():
 
 
 @pytest.fixture
-def get_local_data(src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_src_table):
+def cleanup_schemas(src_db_config, local_db_config):
+    def _cleanup_schemas(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            returned = func(*args, **kwargs)
+            with mysql_conn(local_db_config) as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(f"DROP DATABASE {local_db_config.schema_name}")
+                connection.commit()
+            with mysql_conn(src_db_config) as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(f"DROP DATABASE datajoint_outbound__{src_db_config.schema_name}")
+                    cursor.execute(f"DROP DATABASE {src_db_config.schema_name}")
+                connection.commit()
+            return returned
+
+        return wrapper
+
+    return _cleanup_schemas
+
+
+@pytest.fixture
+def get_local_data(cleanup_schemas, src_conn, local_conn, src_db_config, local_db_config, get_src_data, get_src_table):
+    @cleanup_schemas
     def _get_local_data(part_table):
         src_data = get_src_data(part_table=part_table)
         with src_conn():
@@ -409,16 +433,6 @@ def get_local_data(src_conn, local_conn, src_db_config, local_db_config, get_src
             local_data = dict(master=Table().fetch(as_dict=True))
             if part_table:
                 local_data["part"] = Table.Part().fetch(as_dict=True)
-
-        with mysql_conn(local_db_config) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(f"DROP DATABASE {local_db_config.schema_name}")
-            connection.commit()
-        with mysql_conn(src_db_config) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(f"DROP DATABASE datajoint_outbound__{src_db_config.schema_name}")
-                cursor.execute(f"DROP DATABASE {src_db_config.schema_name}")
-            connection.commit()
         return local_data
 
     return _get_local_data
