@@ -381,11 +381,9 @@ def get_src_data(ext_files, create_ext_files):
             create_ext_files(kind)
             src_data[kind] = [dict(e, ext_attr=f) for e, f in zip(src_data[kind], ext_files[kind])]
 
-        src_data = dict(master=[dict(primary_key=i, secondary_key=-i) for i in range(10)])
+        src_data = dict(master=[dict(prim_attr=i, sec_attr=-i) for i in range(10)])
         if use_part_table:
-            src_data["part"] = [
-                dict(primary_key=e["primary_key"], secondary_key=i) for i, e in enumerate(src_data["master"])
-            ]
+            src_data["part"] = [dict(prim_attr=e["prim_attr"], sec_attr=i) for i, e in enumerate(src_data["master"])]
         if use_external:
             add_ext_files("master")
             if use_part_table:
@@ -429,9 +427,9 @@ def get_src_table(src_store_config):
             return definition
 
         master_definition = """
-        primary_key: int
+        prim_attr: int
         ---
-        secondary_key: int
+        sec_attr: int
         """
         if use_external:
             master_definition = add_ext_attr(master_definition)
@@ -443,7 +441,7 @@ def get_src_table(src_store_config):
             part_definition = """
             -> master
             ---
-            secondary_key: int
+            sec_attr: int
             """
             if use_external:
                 part_definition = add_ext_attr(part_definition)
