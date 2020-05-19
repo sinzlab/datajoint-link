@@ -6,10 +6,12 @@ from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 from typing import Dict
 from tempfile import TemporaryDirectory
+import warnings
 
 import pytest
 import docker
 import pymysql
+import minio
 import datajoint as dj
 
 from link import main
@@ -280,6 +282,25 @@ def local_minio(local_minio_config, docker_client):
 
 
 @pytest.fixture
+def src_minio_client(src_minio_config):
+    return get_minio_client(src_minio_config)
+
+
+def get_minio_client(minio_config):
+    return minio.Minio(
+        minio_config.name + ":9000",
+        access_key=minio_config.access_key,
+        secret_key=minio_config.secret_key,
+        secure=False,
+    )
+
+
+@pytest.fixture
+def local_minio_client(local_minio_config):
+    return get_minio_client(local_minio_config)
+
+
+@pytest.fixture
 def src_store_config(src_minio_config):
     return get_store_config(src_minio_config, "source")
 
@@ -329,16 +350,33 @@ def local_conn(local_db_config, local_store_config, src_store_config):
 
 
 @pytest.fixture
-def schemas(src_db_config, local_db_config, src_conn, local_conn):
+def schemas(
+    src_db_config,
+    local_db_config,
+    src_conn,
+    local_conn,
+    src_minio_client,
+    local_minio_client,
+    src_store_config,
+    local_store_config,
+):
+    def remove_bucket(store_config):
+        try:
+            local_minio_client.remove_bucket(store_config.bucket)
+        except minio.error.NoSuchBucket:
+            warnings.warn(f"Tried to remove bucket '{store_config.bucket}' but it does not exist")
+
     src_schema = main.SchemaProxy(src_db_config.schema_name, connection=src_conn)
     local_schema = main.SchemaProxy(local_db_config.schema_name, connection=local_conn)
     yield dict(src=src_schema, local=local_schema)
     local_schema.drop(force=True)
+    remove_bucket(local_store_config)
     with mysql_conn(src_db_config) as conn:
         with conn.cursor() as cursor:
             cursor.execute(f"DROP DATABASE IF EXISTS {'datajoint_outbound__' + src_db_config.schema_name};")
         conn.commit()
     src_schema.drop(force=True)
+    remove_bucket(src_store_config)
 
 
 @pytest.fixture
