@@ -350,7 +350,7 @@ def local_conn(local_db_config, local_store_config, src_store_config):
 
 
 @pytest.fixture
-def schemas(
+def test_session(
     src_db_config,
     local_db_config,
     src_conn,
@@ -495,10 +495,10 @@ def get_src_table(src_store_config):
 
 
 @pytest.fixture
-def get_local_data(schemas, src_db_config, get_src_data, get_src_table, local_temp_dir):
+def get_local_data(test_session, src_db_config, get_src_data, get_src_table, local_temp_dir):
     def _get_local_data(use_part_table, use_external):
         src_data = get_src_data(use_part_table=use_part_table, use_external=use_external)
-        src_table = schemas["src"](get_src_table(use_part_table=use_part_table, use_external=use_external))
+        src_table = test_session["src"](get_src_table(use_part_table=use_part_table, use_external=use_external))
         src_table().insert(src_data["master"])
         if use_part_table:
             src_table.Part().insert(src_data["part"])
@@ -506,7 +506,7 @@ def get_local_data(schemas, src_db_config, get_src_data, get_src_table, local_te
         os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
         remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
 
-        @main.Link(schemas["local"], remote_schema)
+        @main.Link(test_session["local"], remote_schema)
         class Table:
             pass
 
