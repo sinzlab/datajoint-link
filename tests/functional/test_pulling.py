@@ -493,3 +493,9 @@ def test_pull_with_external_files(get_local_data, get_expected_local_data):
     assert get_local_data(use_part_table=False, use_external=True) == get_expected_local_data(
         use_part_table=False, use_external=True
     )
+
+
+def test_pull_with_external_files_and_part_table(get_local_data, get_expected_local_data):
+    assert get_local_data(use_part_table=True, use_external=True) == get_expected_local_data(
+        use_part_table=True, use_external=True
+    )
