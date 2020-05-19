@@ -377,17 +377,19 @@ def create_ext_files(src_temp_dir, ext_files):
 @pytest.fixture
 def get_src_data(ext_files, create_ext_files):
     def _get_src_data(use_part_table, use_external):
+        def add_ext_files(kind):
+            create_ext_files(kind)
+            src_data[kind] = [dict(e, ext_attr=f) for e, f in zip(src_data[kind], ext_files[kind])]
+
         src_data = dict(master=[dict(primary_key=i, secondary_key=-i) for i in range(10)])
         if use_part_table:
             src_data["part"] = [
                 dict(primary_key=e["primary_key"], secondary_key=i) for i, e in enumerate(src_data["master"])
             ]
         if use_external:
-            create_ext_files("master")
-            src_data["master"] = [dict(e, ext_attr=f) for e, f in zip(src_data["master"], ext_files["master"])]
+            add_ext_files("master")
             if use_part_table:
-                create_ext_files("part")
-                src_data["part"] = [dict(e, ext_attr=f) for e, f in zip(src_data["part"], ext_files["part"])]
+                add_ext_files("part")
         return src_data
 
     return _get_src_data
