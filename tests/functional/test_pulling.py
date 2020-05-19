@@ -424,13 +424,17 @@ def get_exp_local_data(get_src_data, src_db_config, local_temp_dir):
 @pytest.fixture
 def get_src_table(src_store_config):
     def _get_src_table(use_part_table, use_external):
+        def add_ext_attr(definition):
+            definition += "ext_attr: attach@" + src_store_config.name
+            return definition
+
         master_definition = """
         primary_key: int
         ---
         secondary_key: int
         """
         if use_external:
-            master_definition += "ext_attr: attach@" + src_store_config.name
+            master_definition = add_ext_attr(master_definition)
 
         class Table(dj.Manual):
             definition = master_definition
@@ -442,7 +446,7 @@ def get_src_table(src_store_config):
             secondary_key: int
             """
             if use_external:
-                part_definition += "ext_attr: attach@" + src_store_config.name
+                part_definition = add_ext_attr(part_definition)
 
             class Part(dj.Part):
                 definition = part_definition
