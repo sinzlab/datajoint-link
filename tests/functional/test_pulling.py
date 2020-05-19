@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 from typing import Dict
+from tempfile import TemporaryDirectory
 
 import pytest
 import docker
@@ -133,7 +134,7 @@ def local_db_config(network_config, health_check_config, remove, local_user_conf
     return get_db_config("local", network_config, health_check_config, remove, local_user_configs)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def src_minio_config(network_config, health_check_config):
     return get_minio_config(network_config, health_check_config, "source")
 
@@ -150,12 +151,12 @@ def get_minio_config(network_config, health_check_config, kind):
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def local_minio_config(network_config, health_check_config):
     return get_minio_config(network_config, health_check_config, "local")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def src_db(src_db_config, docker_client):
     with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
@@ -179,7 +180,7 @@ def src_db(src_db_config, docker_client):
         yield
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def local_db(local_db_config, docker_client):
     with create_container(docker_client, local_db_config), mysql_conn(local_db_config) as connection:
         with connection.cursor() as cursor:
@@ -266,13 +267,13 @@ def mysql_conn(db_config):
             connection.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module", autouse=True)
 def src_minio(src_minio_config, docker_client):
     with create_container(docker_client, src_minio_config):
         yield
 
 
-@pytest.fixture
+@pytest.fixture(scope="module", autouse=True)
 def local_minio(local_minio_config, docker_client):
     with create_container(docker_client, local_minio_config):
         yield
@@ -288,7 +289,7 @@ def get_store_config(minio_config, kind):
         name=os.environ.get(kind.upper() + "_STORE_NAME", kind + "_store"),
         protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
         endpoint=minio_config.name + ":9000",
-        bucket=os.environ.get(kind.upper() + "_STORE_BUCKET", kind + "_store_bucket"),
+        bucket=os.environ.get(kind.upper() + "_STORE_BUCKET", kind + "-store-bucket"),
         location=os.environ.get(kind.upper() + "_STORE_LOCATION", kind + "_store_location"),
         access_key=minio_config.access_key,
         secret_key=minio_config.secret_key,
@@ -301,7 +302,7 @@ def local_store_config(local_minio_config):
 
 
 @pytest.fixture
-def src_conn(src_db_config, src_store_config, src_db):
+def src_conn(src_db_config, src_store_config):
     with get_conn(src_db_config, [src_store_config]) as conn:
         yield conn
 
@@ -322,7 +323,7 @@ def get_conn(db_config, stores):
 
 
 @pytest.fixture
-def local_conn(local_db_config, local_store_config, src_store_config, local_db):
+def local_conn(local_db_config, local_store_config, src_store_config):
     with get_conn(local_db_config, [local_store_config, src_store_config]) as conn:
         yield conn
 
@@ -335,62 +336,114 @@ def schemas(src_db_config, local_db_config, src_conn, local_conn):
     local_schema.drop(force=True)
     with mysql_conn(src_db_config) as conn:
         with conn.cursor() as cursor:
-            cursor.execute(f"DROP DATABASE {'datajoint_outbound__' + src_db_config.schema_name};")
+            cursor.execute(f"DROP DATABASE IF EXISTS {'datajoint_outbound__' + src_db_config.schema_name};")
         conn.commit()
     src_schema.drop(force=True)
 
 
 @pytest.fixture
-def get_src_data():
-    def _get_src_data(use_part_table):
+def src_temp_dir():
+    with TemporaryDirectory() as temp_dir:
+        yield temp_dir
+
+
+@pytest.fixture
+def local_temp_dir():
+    with TemporaryDirectory() as temp_dir:
+        yield temp_dir
+
+
+@pytest.fixture
+def ext_files():
+    return dict()
+
+
+@pytest.fixture
+def create_ext_files(src_temp_dir, ext_files):
+    def _create_ext_files(kind, n=10, size=1024):
+        if kind in ext_files:
+            return
+        files = []
+        for i in range(n):
+            filename = os.path.join(src_temp_dir, f"src_external{i}.rand")
+            with open(filename, "wb") as file:
+                file.write(os.urandom(size))
+            files.append(filename)
+        ext_files[kind] = files
+
+    return _create_ext_files
+
+
+@pytest.fixture
+def get_src_data(ext_files, create_ext_files):
+    def _get_src_data(use_part_table, use_external):
         src_data = dict(master=[dict(primary_key=i, secondary_key=-i) for i in range(10)])
         if use_part_table:
             src_data["part"] = [
                 dict(primary_key=e["primary_key"], secondary_key=i) for i, e in enumerate(src_data["master"])
             ]
+        if use_external:
+            create_ext_files("master")
+            src_data["master"] = [dict(e, ext_attr=f) for e, f in zip(src_data["master"], ext_files["master"])]
+            if use_part_table:
+                create_ext_files("part")
+                src_data["part"] = [dict(e, ext_attr=f) for e, f in zip(src_data["part"], ext_files["part"])]
         return src_data
 
     return _get_src_data
 
 
 @pytest.fixture
-def get_expected_local_data(get_src_data, src_db_config):
-    def get_expected_local_data(use_part_table):
-        src_data = get_src_data(use_part_table=use_part_table)
+def get_expected_local_data(get_src_data, src_db_config, local_temp_dir):
+    def get_expected_local_data(use_part_table, use_external):
+        src_data = get_src_data(use_part_table=use_part_table, use_external=use_external)
         expected_local_data = dict(
             master=[
                 dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
                 for e in src_data["master"]
             ]
         )
+        if use_external:
+            for entity in expected_local_data["master"]:
+                entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
         if use_part_table:
             expected_local_data["part"] = [
                 dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
                 for e in src_data["part"]
             ]
+            if use_external:
+                for entity in expected_local_data["part"]:
+                    entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
         return expected_local_data
 
     return get_expected_local_data
 
 
 @pytest.fixture
-def get_src_table():
-    def _get_src_table(use_part_table):
+def get_src_table(src_store_config):
+    def _get_src_table(use_part_table, use_external):
+        master_definition = """
+        primary_key: int
+        ---
+        secondary_key: int
+        """
+        if use_external:
+            master_definition += "ext_attr: attach@" + src_store_config.name
+
         class Table(dj.Manual):
-            definition = """
-            primary_key: int
+            definition = master_definition
+
+        if use_part_table:
+            part_definition = """
+            -> master
             ---
             secondary_key: int
             """
-
-        if use_part_table:
+            if use_external:
+                part_definition += "ext_attr: attach@" + src_store_config.name
 
             class Part(dj.Part):
-                definition = """
-                -> master
-                ---
-                secondary_key: int
-                """
+                definition = part_definition
 
             Table.Part = Part
 
@@ -400,10 +453,10 @@ def get_src_table():
 
 
 @pytest.fixture
-def get_local_data(schemas, src_db_config, get_src_data, get_src_table):
-    def _get_local_data(use_part_table):
-        src_data = get_src_data(use_part_table=use_part_table)
-        src_table = schemas["src"](get_src_table(use_part_table=use_part_table))
+def get_local_data(schemas, src_db_config, get_src_data, get_src_table, local_temp_dir):
+    def _get_local_data(use_part_table, use_external):
+        src_data = get_src_data(use_part_table=use_part_table, use_external=use_external)
+        src_table = schemas["src"](get_src_table(use_part_table=use_part_table, use_external=use_external))
         src_table().insert(src_data["master"])
         if use_part_table:
             src_table.Part().insert(src_data["part"])
@@ -416,17 +469,27 @@ def get_local_data(schemas, src_db_config, get_src_data, get_src_table):
             pass
 
         Table().pull()
-        local_data = dict(master=Table().fetch(as_dict=True))
+        local_data = dict(master=Table().fetch(as_dict=True, download_path=local_temp_dir))
         if use_part_table:
-            local_data["part"] = Table.Part().fetch(as_dict=True)
+            local_data["part"] = Table.Part().fetch(as_dict=True, download_path=local_temp_dir)
         return local_data
 
     return _get_local_data
 
 
 def test_pull(get_local_data, get_expected_local_data):
-    assert get_local_data(use_part_table=False) == get_expected_local_data(use_part_table=False)
+    assert get_local_data(use_part_table=False, use_external=False) == get_expected_local_data(
+        use_part_table=False, use_external=False
+    )
 
 
 def test_pull_with_part_table(get_local_data, get_expected_local_data):
-    assert get_local_data(use_part_table=True) == get_expected_local_data(use_part_table=True)
+    assert get_local_data(use_part_table=True, use_external=False) == get_expected_local_data(
+        use_part_table=True, use_external=False
+    )
+
+
+def test_pull_with_external_files(get_local_data, get_expected_local_data):
+    assert get_local_data(use_part_table=False, use_external=True) == get_expected_local_data(
+        use_part_table=False, use_external=True
+    )
