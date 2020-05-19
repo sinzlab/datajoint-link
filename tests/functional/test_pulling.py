@@ -396,29 +396,29 @@ def get_src_data(ext_files, create_ext_files):
 
 
 @pytest.fixture
-def get_expected_local_data(get_src_data, src_db_config, local_temp_dir):
-    def get_expected_local_data(use_part_table, use_external):
-        src_data = get_src_data(use_part_table=use_part_table, use_external=use_external)
-        expected_local_data = dict(
-            master=[
-                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
-                for e in src_data["master"]
+def get_exp_local_data(get_src_data, src_db_config, local_temp_dir):
+    def _get_exp_local_data(use_part_table, use_external):
+        def create_exp_local_data(kind):
+            exp_local_data[kind] = [
+                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data[kind]
             ]
-        )
-        if use_external:
-            for entity in expected_local_data["master"]:
-                entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
-        if use_part_table:
-            expected_local_data["part"] = [
-                dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
-                for e in src_data["part"]
-            ]
-            if use_external:
-                for entity in expected_local_data["part"]:
-                    entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
-        return expected_local_data
 
-    return get_expected_local_data
+        def convert_ext_paths(kind):
+            for entity in exp_local_data[kind]:
+                entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
+
+        src_data = get_src_data(use_part_table=use_part_table, use_external=use_external)
+        exp_local_data = dict()
+        create_exp_local_data("master")
+        if use_part_table:
+            create_exp_local_data("part")
+        if use_external:
+            convert_ext_paths("master")
+            if use_part_table:
+                convert_ext_paths("part")
+        return exp_local_data
+
+    return _get_exp_local_data
 
 
 @pytest.fixture
@@ -479,25 +479,25 @@ def get_local_data(schemas, src_db_config, get_src_data, get_src_table, local_te
     return _get_local_data
 
 
-def test_pull(get_local_data, get_expected_local_data):
-    assert get_local_data(use_part_table=False, use_external=False) == get_expected_local_data(
+def test_pull(get_local_data, get_exp_local_data):
+    assert get_local_data(use_part_table=False, use_external=False) == get_exp_local_data(
         use_part_table=False, use_external=False
     )
 
 
-def test_pull_with_part_table(get_local_data, get_expected_local_data):
-    assert get_local_data(use_part_table=True, use_external=False) == get_expected_local_data(
+def test_pull_with_part_table(get_local_data, get_exp_local_data):
+    assert get_local_data(use_part_table=True, use_external=False) == get_exp_local_data(
         use_part_table=True, use_external=False
     )
 
 
-def test_pull_with_external_files(get_local_data, get_expected_local_data):
-    assert get_local_data(use_part_table=False, use_external=True) == get_expected_local_data(
+def test_pull_with_external_files(get_local_data, get_exp_local_data):
+    assert get_local_data(use_part_table=False, use_external=True) == get_exp_local_data(
         use_part_table=False, use_external=True
     )
 
 
-def test_pull_with_external_files_and_part_table(get_local_data, get_expected_local_data):
-    assert get_local_data(use_part_table=True, use_external=True) == get_expected_local_data(
+def test_pull_with_external_files_and_part_table(get_local_data, get_exp_local_data):
+    assert get_local_data(use_part_table=True, use_external=True) == get_exp_local_data(
         use_part_table=True, use_external=True
     )
