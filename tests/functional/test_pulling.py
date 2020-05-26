@@ -112,7 +112,7 @@ def src_table_cls(use_part_table, use_external, src_store_config):
     return Table
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def src_table_with_data(use_part_table, src_schema, src_table_cls, src_data):
     src_table = src_schema(src_table_cls)
     src_table.insert(src_data["master"])
@@ -122,19 +122,27 @@ def src_table_with_data(use_part_table, src_schema, src_table_cls, src_data):
 
 
 @pytest.fixture
-def local_data(use_part_table, local_schema, src_db_config, src_table_with_data, local_temp_dir):
+def remote_schema(src_db_config):
     os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
     os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
-    remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
+    return main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
 
+
+@pytest.fixture
+def local_table_cls(local_schema, remote_schema):
     @main.Link(local_schema, remote_schema)
     class Table:
-        pass
+        """Local table."""
 
-    Table().pull()
-    local_data = dict(master=Table().fetch(as_dict=True, download_path=local_temp_dir))
+    return Table
+
+
+@pytest.fixture
+def local_data(use_part_table, local_table_cls, local_temp_dir):
+    local_table_cls().pull()
+    local_data = dict(master=local_table_cls().fetch(as_dict=True, download_path=local_temp_dir))
     if use_part_table:
-        local_data["part"] = Table.Part().fetch(as_dict=True, download_path=local_temp_dir)
+        local_data["part"] = local_table_cls.Part().fetch(as_dict=True, download_path=local_temp_dir)
     return local_data
 
 
