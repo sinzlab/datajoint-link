@@ -123,13 +123,24 @@ def get_src_table(src_store_config):
 
 
 @pytest.fixture
-def get_local_data(test_session, src_db_config, get_src_data, get_src_table, local_temp_dir):
-    def _get_local_data(use_part_table, use_external):
+def get_src_table_with_data(test_session, get_src_table, get_src_data):
+    def _get_src_table_with_data(use_part_table, use_external):
+        src_table = get_src_table(use_part_table=use_part_table, use_external=use_external)
+        src_table = test_session["src"](src_table)
         src_data = get_src_data(use_part_table=use_part_table, use_external=use_external)
-        src_table = test_session["src"](get_src_table(use_part_table=use_part_table, use_external=use_external))
-        src_table().insert(src_data["master"])
+        src_table.insert(src_data["master"])
         if use_part_table:
             src_table.Part().insert(src_data["part"])
+        return src_table
+
+    return _get_src_table_with_data
+
+
+@pytest.fixture
+def get_local_data(test_session, src_db_config, get_src_table_with_data, local_temp_dir):
+    def _get_local_data(use_part_table, use_external):
+        get_src_table_with_data(use_part_table=use_part_table, use_external=use_external)
+
         os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
         os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
         remote_schema = main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
