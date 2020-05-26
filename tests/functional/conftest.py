@@ -424,3 +424,13 @@ def test_session(
         conn.commit()
     src_schema.drop(force=True)
     remove_bucket(src_store_config)
+
+
+@pytest.fixture
+def src_schema(test_session):
+    return test_session["src"]
+
+
+@pytest.fixture
+def local_schema(test_session):
+    return test_session["local"]
