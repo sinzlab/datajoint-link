@@ -46,7 +46,6 @@ def src_data(use_part_table, use_external, src_data, ext_files, create_ext_files
         create_ext_files(kind)
         src_data[kind] = [dict(e, ext_attr=f) for e, f in zip(src_data[kind], ext_files[kind])]
 
-    src_data = dict(master=src_data)
     if use_part_table:
         src_data["part"] = [dict(prim_attr=e["prim_attr"], sec_attr=i) for i, e in enumerate(src_data["master"])]
     if use_external:
@@ -104,12 +103,10 @@ def src_table_cls(src_table_cls, use_part_table, use_external, src_store_config)
 
 
 @pytest.fixture(autouse=True)
-def src_table_with_data(use_part_table, src_schema, src_table_cls, src_data):
-    src_table = src_schema(src_table_cls)
-    src_table.insert(src_data["master"])
+def src_table_with_data(src_table_with_data, use_part_table, src_schema, src_table_cls, src_data):
     if use_part_table:
-        src_table.Part().insert(src_data["part"])
-    return src_table
+        src_table_with_data.Part().insert(src_data["part"])
+    return src_table_with_data
 
 
 @pytest.fixture

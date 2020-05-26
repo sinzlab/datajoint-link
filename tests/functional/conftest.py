@@ -450,4 +450,11 @@ def src_table_cls(src_store_config):
 
 @pytest.fixture
 def src_data():
-    return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]
+    return dict(master=[dict(prim_attr=i, sec_attr=-i) for i in range(10)])
+
+
+@pytest.fixture
+def src_table_with_data(src_schema, src_table_cls, src_data):
+    src_table = src_schema(src_table_cls)
+    src_table.insert(src_data["master"])
+    return src_table
