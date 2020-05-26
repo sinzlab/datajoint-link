@@ -434,3 +434,8 @@ def src_schema(test_session):
 @pytest.fixture
 def local_schema(test_session):
     return test_session["local"]
+
+
+@pytest.fixture
+def src_data():
+    return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]

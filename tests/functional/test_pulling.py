@@ -41,11 +41,6 @@ def create_ext_files(src_temp_dir, ext_files):
 
 
 @pytest.fixture
-def src_data():
-    return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]
-
-
-@pytest.fixture
 def extended_src_data(use_part_table, use_external, src_data, ext_files, create_ext_files):
     def add_ext_files(kind):
         create_ext_files(kind)
