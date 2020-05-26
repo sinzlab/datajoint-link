@@ -79,22 +79,13 @@ def exp_local_data(use_part_table, use_external, src_data, src_db_config, local_
 
 
 @pytest.fixture
-def src_table_cls(use_part_table, use_external, src_store_config):
+def src_table_cls(src_table_cls, use_part_table, use_external, src_store_config):
     def add_ext_attr(definition):
         definition += "ext_attr: attach@" + src_store_config.name
         return definition
 
-    master_definition = """
-    prim_attr: int
-    ---
-    sec_attr: int
-    """
     if use_external:
-        master_definition = add_ext_attr(master_definition)
-
-    class Table(dj.Manual):
-        definition = master_definition
-
+        src_table_cls.definition = add_ext_attr(src_table_cls.definition)
     if use_part_table:
         part_definition = """
         -> master
@@ -107,9 +98,9 @@ def src_table_cls(use_part_table, use_external, src_store_config):
         class Part(dj.Part):
             definition = part_definition
 
-        Table.Part = Part
+        src_table_cls.Part = Part
 
-    return Table
+    return src_table_cls
 
 
 @pytest.fixture(autouse=True)

@@ -437,5 +437,17 @@ def local_schema(test_session):
 
 
 @pytest.fixture
+def src_table_cls(src_store_config):
+    class Table(dj.Manual):
+        definition = """
+        prim_attr: int
+        ---
+        sec_attr: int
+        """
+
+    return Table
+
+
+@pytest.fixture
 def src_data():
     return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]
