@@ -41,29 +41,26 @@ def create_ext_files(src_temp_dir, ext_files):
 
 
 @pytest.fixture
-def extended_src_data(use_part_table, use_external, src_data, ext_files, create_ext_files):
+def src_data(use_part_table, use_external, src_data, ext_files, create_ext_files):
     def add_ext_files(kind):
         create_ext_files(kind)
-        extended_src_data[kind] = [dict(e, ext_attr=f) for e, f in zip(extended_src_data[kind], ext_files[kind])]
+        src_data[kind] = [dict(e, ext_attr=f) for e, f in zip(src_data[kind], ext_files[kind])]
 
-    extended_src_data = dict(master=src_data)
+    src_data = dict(master=src_data)
     if use_part_table:
-        extended_src_data["part"] = [
-            dict(prim_attr=e["prim_attr"], sec_attr=i) for i, e in enumerate(extended_src_data["master"])
-        ]
+        src_data["part"] = [dict(prim_attr=e["prim_attr"], sec_attr=i) for i, e in enumerate(src_data["master"])]
     if use_external:
         add_ext_files("master")
         if use_part_table:
             add_ext_files("part")
-    return extended_src_data
+    return src_data
 
 
 @pytest.fixture
-def exp_local_data(use_part_table, use_external, extended_src_data, src_db_config, local_temp_dir):
+def exp_local_data(use_part_table, use_external, src_data, src_db_config, local_temp_dir):
     def create_exp_local_data(kind):
         exp_local_data[kind] = [
-            dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
-            for e in extended_src_data[kind]
+            dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data[kind]
         ]
 
     def convert_ext_paths(kind):
@@ -116,11 +113,11 @@ def src_table_cls(use_part_table, use_external, src_store_config):
 
 
 @pytest.fixture(autouse=True)
-def src_table_with_data(use_part_table, src_schema, src_table_cls, extended_src_data):
+def src_table_with_data(use_part_table, src_schema, src_table_cls, src_data):
     src_table = src_schema(src_table_cls)
-    src_table.insert(extended_src_data["master"])
+    src_table.insert(src_data["master"])
     if use_part_table:
-        src_table.Part().insert(extended_src_data["part"])
+        src_table.Part().insert(src_data["part"])
     return src_table
 
 
