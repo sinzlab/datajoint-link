@@ -59,25 +59,17 @@ def src_part_data(use_part_table, use_external, src_master_data, ext_files, crea
 
 
 @pytest.fixture
-def src_data(src_master_data, src_part_data):
-    return dict(master=src_master_data, part=src_part_data)
-
-
-@pytest.fixture
-def exp_local_data(use_part_table, use_external, src_data, src_db_config, local_temp_dir):
-    def create_exp_local_data(kind):
-        exp_local_data[kind] = [
-            dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data[kind]
-        ]
+def exp_local_data(use_part_table, use_external, src_master_data, src_part_data, src_db_config, local_temp_dir):
+    def create_exp_local_data(data):
+        return [dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in data]
 
     def convert_ext_paths(kind):
         for entity in exp_local_data[kind]:
             entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
 
-    exp_local_data = dict()
-    create_exp_local_data("master")
+    exp_local_data = dict(master=create_exp_local_data(src_master_data))
     if use_part_table:
-        create_exp_local_data("part")
+        exp_local_data["part"] = create_exp_local_data(src_part_data)
     if use_external:
         convert_ext_paths("master")
         if use_part_table:
@@ -111,9 +103,9 @@ def src_table_cls(src_table_cls, use_part_table, use_external, src_store_config)
 
 
 @pytest.fixture(autouse=True)
-def src_table_with_data(src_table_with_data, use_part_table, src_schema, src_table_cls, src_data):
+def src_table_with_data(src_table_with_data, use_part_table, src_schema, src_table_cls, src_part_data):
     if use_part_table:
-        src_table_with_data.Part().insert(src_data["part"])
+        src_table_with_data.Part().insert(src_part_data)
     return src_table_with_data
 
 
