@@ -31,7 +31,7 @@ def create_ext_files(src_temp_dir, ext_files):
             return
         files = []
         for i in range(n):
-            filename = os.path.join(src_temp_dir, f"src_external{i}.rand")
+            filename = os.path.join(src_temp_dir, f"src_{kind}_external{i}.rand")
             with open(filename, "wb") as file:
                 file.write(os.urandom(size))
             files.append(filename)
@@ -41,18 +41,26 @@ def create_ext_files(src_temp_dir, ext_files):
 
 
 @pytest.fixture
-def src_data(use_part_table, use_external, src_data, ext_files, create_ext_files):
-    def add_ext_files(kind):
-        create_ext_files(kind)
-        src_data[kind] = [dict(e, ext_attr=f) for e, f in zip(src_data[kind], ext_files[kind])]
-
-    if use_part_table:
-        src_data["part"] = [dict(prim_attr=e["prim_attr"], sec_attr=i) for i, e in enumerate(src_data["master"])]
+def src_master_data(src_master_data, use_external, ext_files, create_ext_files):
     if use_external:
-        add_ext_files("master")
-        if use_part_table:
-            add_ext_files("part")
-    return src_data
+        create_ext_files("master")
+        src_master_data = [dict(e, ext_attr=f) for e, f in zip(src_master_data, ext_files["master"])]
+    return src_master_data
+
+
+@pytest.fixture
+def src_part_data(use_part_table, use_external, src_master_data, ext_files, create_ext_files):
+    if use_part_table:
+        part_data = [dict(prim_attr=e["prim_attr"], sec_attr=i) for i, e in enumerate(src_master_data)]
+        if use_external:
+            create_ext_files("part")
+            part_data = [dict(e, ext_attr=f) for e, f in zip(part_data, ext_files["part"])]
+        return part_data
+
+
+@pytest.fixture
+def src_data(src_master_data, src_part_data):
+    return dict(master=src_master_data, part=src_part_data)
 
 
 @pytest.fixture
