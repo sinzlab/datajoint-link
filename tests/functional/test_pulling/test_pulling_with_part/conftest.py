@@ -42,7 +42,7 @@ def pulled_data(pulled_data):
 
 
 @pytest.fixture
-def expected_data(expected_data, src_data, src_part_data, src_db_config):
+def expected_data(expected_data, src_part_data, src_db_config):
     return dict(
         master=expected_data,
         part=[dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_part_data],
