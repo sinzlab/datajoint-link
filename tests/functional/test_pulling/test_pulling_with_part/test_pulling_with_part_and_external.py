@@ -15,15 +15,15 @@ def src_part_data(src_part_data, file_paths):
 
 
 @pytest.fixture
-def pulled_data(pulled_data, local_table_cls, local_temp_dir):
-    pulled_data["part"] = local_table_cls.Part().fetch(as_dict=True, download_path=local_temp_dir)
+def pulled_data(pulled_data, local_table_cls, local_dir):
+    pulled_data["part"] = local_table_cls.Part().fetch(as_dict=True, download_path=local_dir)
     return pulled_data
 
 
 @pytest.fixture
-def expected_data(expected_data, local_temp_dir):
+def expected_data(expected_data, local_dir):
     for entity in expected_data["part"]:
-        entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
+        entity["ext_attr"] = os.path.join(local_dir, os.path.basename(entity["ext_attr"]))
     return expected_data
 
 

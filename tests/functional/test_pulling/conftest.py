@@ -30,7 +30,7 @@ def n_entities():
 
 
 @pytest.fixture
-def src_temp_dir():
+def src_dir():
     with TemporaryDirectory() as temp_dir:
         yield temp_dir
 
@@ -41,10 +41,10 @@ def file_size():
 
 
 @pytest.fixture
-def file_paths(n_entities, file_size, src_temp_dir):
+def file_paths(n_entities, file_size, src_dir):
     file_paths = []
     for i in range(n_entities):
-        filename = os.path.join(src_temp_dir, f"src_external{i}.rand")
+        filename = os.path.join(src_dir, f"src_external{i}.rand")
         with open(filename, "wb") as file:
             file.write(os.urandom(file_size))
         file_paths.append(filename)
@@ -80,7 +80,7 @@ def local_table_cls(local_schema, remote_schema):
 
 
 @pytest.fixture
-def local_temp_dir():
+def local_dir():
     with TemporaryDirectory() as temp_dir:
         yield temp_dir
 
