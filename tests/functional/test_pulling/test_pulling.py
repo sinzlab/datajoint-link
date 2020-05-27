@@ -7,7 +7,7 @@ from link import main
 
 
 @pytest.fixture
-def src_table_cls(src_store_config):
+def src_table_cls():
     class Table(dj.Manual):
         definition = """
         prim_attr: int
