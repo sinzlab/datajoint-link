@@ -49,3 +49,14 @@ def local_table_cls(local_schema, remote_schema):
         """Local table."""
 
     return Table
+
+
+@pytest.fixture
+def pulled_data(local_table_cls):
+    local_table_cls().pull()
+    return local_table_cls().fetch(as_dict=True)
+
+
+@pytest.fixture
+def expected_data(src_data, src_db_config):
+    return [dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data]
