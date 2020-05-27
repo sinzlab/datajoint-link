@@ -17,12 +17,17 @@ def src_temp_dir():
 
 
 @pytest.fixture
-def file_paths(src_temp_dir):
+def file_size():
+    return os.environ.get("FILE_SIZE", 1024)
+
+
+@pytest.fixture
+def file_paths(n_entities, file_size, src_temp_dir):
     file_paths = []
-    for i in range(10):
+    for i in range(n_entities):
         filename = os.path.join(src_temp_dir, f"src_external{i}.rand")
         with open(filename, "wb") as file:
-            file.write(os.urandom(1024))
+            file.write(os.urandom(file_size))
         file_paths.append(filename)
     return file_paths
 

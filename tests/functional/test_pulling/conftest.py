@@ -24,8 +24,13 @@ def src_table_cls(src_table_definition):
 
 
 @pytest.fixture
-def src_data():
-    return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]
+def n_entities():
+    return os.environ.get("N_ENTITIES", 10)
+
+
+@pytest.fixture
+def src_data(n_entities):
+    return [dict(prim_attr=i, sec_attr=-i) for i in range(n_entities)]
 
 
 @pytest.fixture
