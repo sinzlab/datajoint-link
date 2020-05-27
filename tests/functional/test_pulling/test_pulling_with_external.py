@@ -45,11 +45,10 @@ def pulled_data(local_table_cls, local_temp_dir):
 
 
 @pytest.fixture
-def expected_data(src_data, src_db_config, local_temp_dir):
-    data = [dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data]
-    for entity in data:
+def expected_data(expected_data, src_db_config, local_temp_dir):
+    for entity in expected_data:
         entity["ext_attr"] = os.path.join(local_temp_dir, os.path.basename(entity["ext_attr"]))
-    return data
+    return expected_data
 
 
 @pytest.mark.usefixtures("src_table_with_data")
