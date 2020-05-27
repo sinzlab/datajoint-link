@@ -1,8 +1,26 @@
 import os
 
 import pytest
+import datajoint as dj
 
 from link import main
+
+
+@pytest.fixture
+def src_table_definition():
+    return """
+    prim_attr: int
+    ---
+    sec_attr: int
+    """
+
+
+@pytest.fixture
+def src_table_cls(src_table_definition):
+    class Table(dj.Manual):
+        definition = src_table_definition
+
+    return Table
 
 
 @pytest.fixture

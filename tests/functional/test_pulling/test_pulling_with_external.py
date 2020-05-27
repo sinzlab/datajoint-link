@@ -2,20 +2,12 @@ import os
 from tempfile import TemporaryDirectory
 
 import pytest
-import datajoint as dj
 
 
 @pytest.fixture
-def src_table_cls(src_store_config):
-    class Table(dj.Manual):
-        definition = f"""
-        prim_attr: int
-        ---
-        sec_attr: int
-        ext_attr: attach@{src_store_config.name}
-        """
-
-    return Table
+def src_table_definition(src_table_definition, src_store_config):
+    src_table_definition += "ext_attr: attach@" + src_store_config.name
+    return src_table_definition
 
 
 @pytest.fixture

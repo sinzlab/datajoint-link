@@ -3,22 +3,26 @@ import datajoint as dj
 
 
 @pytest.fixture
-def src_table_cls():
-    class Table(dj.Manual):
-        definition = """
-        prim_attr: int
-        ---
-        sec_attr: int
-        """
+def src_part_definition():
+    return """
+    -> master
+    ---
+    sec_attr: int
+    """
 
-        class Part(dj.Part):
-            definition = """
-            -> master
-            ---
-            sec_attr: int
-            """
 
-    return Table
+@pytest.fixture
+def src_part_cls(src_part_definition):
+    class Part(dj.Part):
+        definition = src_part_definition
+
+    return Part
+
+
+@pytest.fixture
+def src_table_cls(src_table_cls, src_part_cls):
+    src_table_cls.Part = src_part_cls
+    return src_table_cls
 
 
 @pytest.fixture
