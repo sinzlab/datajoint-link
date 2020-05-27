@@ -36,8 +36,8 @@ def file_paths(src_temp_dir):
 
 
 @pytest.fixture
-def src_data(file_paths):
-    return [dict(prim_attr=i, sec_attr=-i, ext_attr=f) for i, f in enumerate(file_paths)]
+def src_data(src_data, file_paths):
+    return [dict(e, ext_attr=f) for e, f in zip(src_data, file_paths)]
 
 
 @pytest.fixture

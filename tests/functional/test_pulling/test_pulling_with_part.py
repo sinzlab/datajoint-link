@@ -22,11 +22,6 @@ def src_table_cls():
 
 
 @pytest.fixture
-def src_data():
-    return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]
-
-
-@pytest.fixture
 def src_part_data(src_data):
     return [dict(prim_attr=e["prim_attr"], sec_attr=e["sec_attr"] * 2) for e in src_data]
 

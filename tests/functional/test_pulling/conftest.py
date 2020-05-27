@@ -6,6 +6,11 @@ from link import main
 
 
 @pytest.fixture
+def src_data():
+    return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]
+
+
+@pytest.fixture
 def src_table_with_data(src_schema, src_table_cls, src_data):
     src_table = src_schema(src_table_cls)
     src_table.insert(src_data)

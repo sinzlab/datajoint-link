@@ -15,11 +15,6 @@ def src_table_cls():
 
 
 @pytest.fixture
-def src_data():
-    return [dict(prim_attr=i, sec_attr=-i) for i in range(10)]
-
-
-@pytest.fixture
 def pulled_data(local_table_cls):
     local_table_cls().pull()
     return local_table_cls().fetch(as_dict=True)
