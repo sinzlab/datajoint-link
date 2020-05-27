@@ -1,4 +1,5 @@
 import os
+from tempfile import TemporaryDirectory
 
 import pytest
 import datajoint as dj
@@ -25,7 +26,29 @@ def src_table_cls(src_table_definition):
 
 @pytest.fixture
 def n_entities():
-    return os.environ.get("N_ENTITIES", 10)
+    return int(os.environ.get("N_ENTITIES", 10))
+
+
+@pytest.fixture
+def src_temp_dir():
+    with TemporaryDirectory() as temp_dir:
+        yield temp_dir
+
+
+@pytest.fixture
+def file_size():
+    return int(os.environ.get("FILE_SIZE", 1024))
+
+
+@pytest.fixture
+def file_paths(n_entities, file_size, src_temp_dir):
+    file_paths = []
+    for i in range(n_entities):
+        filename = os.path.join(src_temp_dir, f"src_external{i}.rand")
+        with open(filename, "wb") as file:
+            file.write(os.urandom(file_size))
+        file_paths.append(filename)
+    return file_paths
 
 
 @pytest.fixture
@@ -54,6 +77,12 @@ def local_table_cls(local_schema, remote_schema):
         """Local table."""
 
     return Table
+
+
+@pytest.fixture
+def local_temp_dir():
+    with TemporaryDirectory() as temp_dir:
+        yield temp_dir
 
 
 @pytest.fixture

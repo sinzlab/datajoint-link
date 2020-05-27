@@ -37,8 +37,8 @@ def src_table_with_data(src_table_with_data, src_part_data):
 
 
 @pytest.fixture
-def pulled_data(pulled_data, local_table_cls):
-    return dict(master=pulled_data, part=local_table_cls.Part().fetch(as_dict=True))
+def pulled_data(pulled_data):
+    return dict(master=pulled_data)
 
 
 @pytest.fixture
@@ -47,8 +47,3 @@ def expected_data(expected_data, src_data, src_part_data, src_db_config):
         master=expected_data,
         part=[dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_part_data],
     )
-
-
-@pytest.mark.usefixtures("src_table_with_data")
-def test_pulling(pulled_data, expected_data):
-    assert pulled_data == expected_data
