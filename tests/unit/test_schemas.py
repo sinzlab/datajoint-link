@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 from typing import Type
+import os
 
 import pytest
 from datajoint.connection import Connection
@@ -17,14 +18,19 @@ def schema_name():
     return "schema_name"
 
 
+@pytest.fixture
+def connection():
+    return MagicMock(name="connection", spec=Connection)
+
+
 class TestInit:
     @pytest.fixture
     def context(self):
         return dict()
 
-    @pytest.fixture
-    def connection(self):
-        return MagicMock(name="connection", spec=Connection)
+    def test_if_value_error_is_raised_if_connection_and_host_are_passed(self, connection):
+        with pytest.raises(ValueError):
+            schemas.LazySchema(schema_name, connection=connection, host="host")
 
     def test_if_schema_name_is_stored(self, schema_name):
         lazy_schema = schemas.LazySchema(schema_name)
@@ -62,6 +68,14 @@ class TestInit:
         lazy_schema = schemas.LazySchema(schema_name)
         assert lazy_schema.schema_kwargs["create_tables"] is True
 
+    def test_if_host_is_stored_if_passed(self, schema_name):
+        lazy_schema = schemas.LazySchema(schema_name, host="host")
+        assert lazy_schema.host == "host"
+
+    def test_if_host_is_none_if_not_passed(self, schema_name):
+        lazy_schema = schemas.LazySchema(schema_name)
+        assert lazy_schema.host is None
+
 
 @pytest.fixture
 def schema_cls():
@@ -75,6 +89,35 @@ def lazy_schema_cls(schema_cls):
 
 
 class TestInitialize:
+    @pytest.fixture
+    def setup_env(self):
+        os.environ.update(REMOTE_DJ_USER="user", REMOTE_DJ_PASS="pass")
+
+    @pytest.fixture
+    def conn_cls(self, connection):
+        return MagicMock(name="conn_cls", spec=Type[Connection], return_value=connection)
+
+    @pytest.fixture
+    def lazy_schema_cls(self, lazy_schema_cls, conn_cls):
+        lazy_schema_cls._conn_cls = conn_cls
+        return lazy_schema_cls
+
+    @pytest.mark.usefixtures("setup_env")
+    def test_if_connection_cls_is_correctly_initialized_if_host_is_provided(
+        self, lazy_schema_cls, schema_name, conn_cls
+    ):
+        lazy_schema_cls(schema_name, host="host").initialize()
+        conn_cls.assert_called_once_with("host", "user", "pass")
+
+    @pytest.mark.usefixtures("setup_env")
+    def test_if_connection_is_passed_to_schema_if_host_is_provided(
+        self, lazy_schema_cls, schema_name, connection, schema_cls
+    ):
+        lazy_schema_cls(schema_name, host="host").initialize()
+        schema_cls.assert_called_once_with(
+            schema_name=schema_name, context=None, connection=connection, create_schema=True, create_tables=True
+        )
+
     def test_if_schema_is_correctly_initialized(self, lazy_schema_cls, schema_name, schema_cls):
         lazy_schema_cls(schema_name).initialize()
         schema_cls.assert_called_once_with(

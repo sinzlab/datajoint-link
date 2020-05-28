@@ -1,4 +1,5 @@
 """This module contains custom classes based on the schema class from DataJoint"""
+import os
 from typing import Optional, Dict, Any
 
 from datajoint.connection import Connection
@@ -17,6 +18,7 @@ class LazySchema:
     """
 
     _schema_cls = Schema
+    _conn_cls = Connection
 
     def __init__(
         self,
@@ -25,8 +27,11 @@ class LazySchema:
         *,
         connection: Optional[Connection] = None,
         create_schema: Optional[bool] = True,
-        create_tables: Optional[bool] = True
+        create_tables: Optional[bool] = True,
+        host: Optional[str] = None
     ) -> None:
+        if connection is not None and host is not None:
+            raise ValueError("Expected either 'connection' or 'host', got both")
         self.schema_kwargs = dict(
             schema_name=schema_name,
             context=context,
@@ -34,6 +39,7 @@ class LazySchema:
             create_schema=create_schema,
             create_tables=create_tables,
         )
+        self.host = host
         self._is_initialized = False
         self._schema: Optional[Schema] = None
 
@@ -43,6 +49,10 @@ class LazySchema:
             self._initialize()
 
     def _initialize(self) -> None:
+        if self.host is not None:
+            self.schema_kwargs["connection"] = self._conn_cls(
+                self.host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"]
+            )
         self._schema = self._schema_cls(**self.schema_kwargs)
         self._is_initialized = True
 
