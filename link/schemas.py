@@ -32,7 +32,7 @@ class LazySchema:
     ) -> None:
         if connection is not None and host is not None:
             raise ValueError("Expected either 'connection' or 'host', got both")
-        self.schema_kwargs = dict(
+        self.schema_kwargs: Dict[str, Any] = dict(
             schema_name=schema_name,
             context=context,
             connection=connection,
