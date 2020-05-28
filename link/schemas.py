@@ -39,7 +39,7 @@ class LazySchema:
             create_schema=create_schema,
             create_tables=create_tables,
         )
-        self.host = host
+        self._host = host
         self._is_initialized = False
         self._schema: Optional[Schema] = None
 
@@ -49,9 +49,9 @@ class LazySchema:
             self._initialize()
 
     def _initialize(self) -> None:
-        if self.host is not None:
+        if self._host is not None:
             self.schema_kwargs["connection"] = self._conn_cls(
-                self.host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"]
+                self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"]
             )
         self._schema = self._schema_cls(**self.schema_kwargs)
         self._is_initialized = True

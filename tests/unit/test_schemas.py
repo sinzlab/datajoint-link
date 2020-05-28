@@ -68,14 +68,6 @@ class TestInit:
         lazy_schema = schemas.LazySchema(schema_name)
         assert lazy_schema.schema_kwargs["create_tables"] is True
 
-    def test_if_host_is_stored_if_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name, host="host")
-        assert lazy_schema.host == "host"
-
-    def test_if_host_is_none_if_not_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name)
-        assert lazy_schema.host is None
-
 
 @pytest.fixture
 def schema_cls():
