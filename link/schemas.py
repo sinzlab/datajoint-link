@@ -1,4 +1,4 @@
-"""This module contains custom classes based on the schema class from DataJoint"""
+"""This module contains custom classes based on the "Schema" class from DataJoint"""
 import os
 from typing import Optional, Dict, Any
 
@@ -7,10 +7,10 @@ from datajoint.schemas import Schema
 
 
 class LazySchema:
-    """A proxy around an instance of the DataJoint schema class that creates said instance in a lazy way.
+    """A proxy for a "Schema" instance which creates said instance in a lazy way.
 
-    This class creates an instance of the DataJoint schema class if the "initialize" method is called or a non-existing
-    attribute is accessed. After creation all non-existing attributes will be looked up on the created instance.
+    This class creates a "Schema" instance if the "initialize" method is called or a non-existing attribute is accessed.
+    After creation all non-existing attributes are looked up on the created instance.
 
     Attributes:
         schema_kwargs: A dictionary containing keyword arguments and their values. It is used to create an instance
@@ -30,6 +30,19 @@ class LazySchema:
         create_tables: Optional[bool] = True,
         host: Optional[str] = None
     ) -> None:
+        """Initializes an instance of "LazySchema".
+
+        Args:
+            schema_name: The name of the database schema to associate.
+            context: An optional dictionary for looking up foreign key references.
+            connection: An optional connection object. Can not be passed together with a host address.
+            create_schema: When "False", do not create the schema on the database if missing and raise an error.
+            create_tables: When "False", do not create missing tables in the schema and raise an error.
+            host: An optional address to a database server. If provided the "Schema" instance will be created with a
+                connection to said database server. The user and password used to establish the connection must be
+                present in the form of the environment variables "REMOTE_DJ_USER" and "REMOTE_DJ_PASS", respectively.
+                Can not be passed together with a connection object.
+        """
         if connection is not None and host is not None:
             raise ValueError("Expected either 'connection' or 'host', got both")
         self.schema_kwargs: Dict[str, Any] = dict(
@@ -44,7 +57,7 @@ class LazySchema:
         self._schema: Optional[Schema] = None
 
     def initialize(self) -> None:
-        """Fully initializes the lazy schema."""
+        """Creates a "Schema" instance if it was not already created."""
         if not self._is_initialized:
             self._initialize()
 
