@@ -119,9 +119,13 @@ class TestInitialize:
         assert schema_cls.call_count == 1
 
 
+@pytest.fixture
+def lazy_schema(lazy_schema_cls, schema_name):
+    return lazy_schema_cls(schema_name)
+
+
 class TestGetAttr:
-    def test_if_getattr_calls_initialize_correctly(self, lazy_schema_cls, schema_name):
-        lazy_schema = lazy_schema_cls(schema_name)
+    def test_if_getattr_calls_initialize_correctly(self, lazy_schema):
         initialize_mock = MagicMock(name="initialize", wraps=lazy_schema.initialize)
         lazy_schema.initialize = initialize_mock
         _ = lazy_schema.some_attribute
@@ -146,8 +150,7 @@ class TestCall:
         schema.return_value = processed_table_class
         return schema
 
-    def test_if_initialize_is_correctly_called(self, lazy_schema_cls, schema_name, table_cls):
-        lazy_schema = lazy_schema_cls(schema_name)
+    def test_if_initialize_is_correctly_called(self, lazy_schema, table_cls):
         initialize_mock = MagicMock(name="initialize", wraps=lazy_schema.initialize)
         lazy_schema.initialize = initialize_mock
         lazy_schema(table_cls)
