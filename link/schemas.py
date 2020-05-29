@@ -11,10 +11,6 @@ class LazySchema:
 
     This class creates a "Schema" instance if the "initialize" method is called or a non-existing attribute is accessed.
     After creation all non-existing attributes are looked up on the created instance.
-
-    Attributes:
-        schema_kwargs: A dictionary containing keyword arguments and their values. It is used to create an instance
-            of the DataJoint schema class when needed.
     """
 
     _schema_cls = Schema
@@ -45,7 +41,7 @@ class LazySchema:
         """
         if connection is not None and host is not None:
             raise ValueError("Expected either 'connection' or 'host', got both")
-        self.schema_kwargs: Dict[str, Any] = dict(
+        self._schema_kwargs: Dict[str, Any] = dict(
             schema_name=schema_name,
             context=context,
             connection=connection,
@@ -63,10 +59,10 @@ class LazySchema:
 
     def _initialize(self) -> None:
         if self._host is not None:
-            self.schema_kwargs["connection"] = self._conn_cls(
+            self._schema_kwargs["connection"] = self._conn_cls(
                 self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"]
             )
-        self._schema = self._schema_cls(**self.schema_kwargs)
+        self._schema = self._schema_cls(**self._schema_kwargs)
         self._is_initialized = True
 
     def __getattr__(self, item: str) -> Any:

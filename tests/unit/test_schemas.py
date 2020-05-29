@@ -23,50 +23,9 @@ def connection():
     return MagicMock(name="connection", spec=Connection)
 
 
-class TestInit:
-    @pytest.fixture
-    def context(self):
-        return dict()
-
-    def test_if_value_error_is_raised_if_connection_and_host_are_passed(self, connection):
-        with pytest.raises(ValueError):
-            schemas.LazySchema(schema_name, connection=connection, host="host")
-
-    def test_if_schema_name_is_stored(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name)
-        assert lazy_schema.schema_kwargs["schema_name"] == schema_name
-
-    def test_if_context_is_stored_if_passed(self, schema_name, context):
-        lazy_schema = schemas.LazySchema(schema_name, context=context)
-        assert lazy_schema.schema_kwargs["context"] == context
-
-    def test_if_context_is_none_if_not_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name)
-        assert lazy_schema.schema_kwargs["context"] is None
-
-    def test_if_connection_is_stored_if_passed(self, schema_name, connection):
-        lazy_schema = schemas.LazySchema(schema_name, connection=connection)
-        assert lazy_schema.schema_kwargs["connection"] == connection
-
-    def test_if_connection_is_none_if_not_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name)
-        assert lazy_schema.schema_kwargs["connection"] is None
-
-    def test_if_create_schema_is_stored_if_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name, create_schema=False)
-        assert lazy_schema.schema_kwargs["create_schema"] is False
-
-    def test_if_create_schema_is_true_if_not_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name)
-        assert lazy_schema.schema_kwargs["create_schema"] is True
-
-    def test_if_create_tables_is_stored_if_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name, create_tables=False)
-        assert lazy_schema.schema_kwargs["create_tables"] is False
-
-    def test_if_create_tables_is_true_if_not_passed(self, schema_name):
-        lazy_schema = schemas.LazySchema(schema_name)
-        assert lazy_schema.schema_kwargs["create_tables"] is True
+def test_if_value_error_is_raised_if_initialized_with_connection_and_host(connection):
+    with pytest.raises(ValueError):
+        schemas.LazySchema(schema_name, connection=connection, host="host")
 
 
 @pytest.fixture
@@ -81,6 +40,10 @@ def lazy_schema_cls(schema_cls):
 
 
 class TestInitialize:
+    @pytest.fixture
+    def context(self):
+        return dict()
+
     @pytest.fixture
     def setup_env(self):
         os.environ.update(REMOTE_DJ_USER="user", REMOTE_DJ_PASS="pass")
@@ -110,10 +73,34 @@ class TestInitialize:
             schema_name=schema_name, context=None, connection=connection, create_schema=True, create_tables=True
         )
 
-    def test_if_schema_is_correctly_initialized(self, lazy_schema_cls, schema_name, schema_cls):
+    def test_if_schema_name_is_passed(self, lazy_schema_cls, schema_name, schema_cls):
         lazy_schema_cls(schema_name).initialize()
         schema_cls.assert_called_once_with(
             schema_name=schema_name, context=None, connection=None, create_schema=True, create_tables=True
+        )
+
+    def test_if_context_is_passed_if_provided(self, lazy_schema_cls, schema_name, context, schema_cls):
+        lazy_schema_cls(schema_name, context=context).initialize()
+        schema_cls.assert_called_once_with(
+            schema_name=schema_name, context=context, connection=None, create_schema=True, create_tables=True
+        )
+
+    def test_if_connection_is_passed_if_provided(self, lazy_schema_cls, schema_name, connection, schema_cls):
+        lazy_schema_cls(schema_name, connection=connection).initialize()
+        schema_cls.assert_called_once_with(
+            schema_name=schema_name, context=None, connection=connection, create_schema=True, create_tables=True
+        )
+
+    def test_if_create_schema_is_passed_if_provided(self, lazy_schema_cls, schema_name, schema_cls):
+        lazy_schema_cls(schema_name, create_schema=False).initialize()
+        schema_cls.assert_called_once_with(
+            schema_name=schema_name, context=None, connection=None, create_schema=False, create_tables=True
+        )
+
+    def test_if_create_tables_is_passed_if_provided(self, lazy_schema_cls, schema_name, schema_cls):
+        lazy_schema_cls(schema_name, create_tables=False).initialize()
+        schema_cls.assert_called_once_with(
+            schema_name=schema_name, context=None, connection=None, create_schema=True, create_tables=False
         )
 
     def test_if_schema_is_not_initialized_again_if_initialize_is_called_twice(
