@@ -140,8 +140,7 @@ class TestGetAttr:
         _ = lazy_schema_with_initialize_mock.some_attribute
         initialize_mock.assert_called_once_with()
 
-    def test_if_getattr_returns_correct_value(self, lazy_schema_cls, schema_name):
-        lazy_schema = lazy_schema_cls(schema_name)
+    def test_if_getattr_returns_correct_value(self, lazy_schema):
         assert lazy_schema.some_attribute == "some_value"
 
 
@@ -163,16 +162,13 @@ class TestCall:
         lazy_schema_with_initialize_mock(table_cls)
         initialize_mock.assert_called_once_with()
 
-    def test_if_call_calls_schema_correctly(self, lazy_schema_cls, schema_name, table_cls, schema):
-        lazy_schema = lazy_schema_cls(schema_name)
+    def test_if_call_calls_schema_correctly(self, lazy_schema, table_cls, schema):
         lazy_schema(table_cls)
         schema.assert_called_once_with(table_cls, context=None)
 
-    def test_if_context_is_passed_if_provided(self, lazy_schema_cls, schema_name, context, table_cls, schema):
-        lazy_schema = lazy_schema_cls(schema_name)
+    def test_if_context_is_passed_if_provided(self, lazy_schema, context, table_cls, schema):
         lazy_schema(table_cls, context=context)
         schema.assert_called_once_with(table_cls, context=context)
 
-    def test_if_call_returns_correct_value(self, lazy_schema_cls, schema_name, table_cls, processed_table_class):
-        lazy_schema = lazy_schema_cls(schema_name)
+    def test_if_call_returns_correct_value(self, lazy_schema, table_cls, processed_table_class):
         assert lazy_schema(table_cls) is processed_table_class
