@@ -66,6 +66,10 @@ class LazySchema:
         self._schema = self._schema_cls(**self._schema_kwargs)
         self._is_initialized = True
 
+    @property
+    def is_initialized(self) -> bool:
+        return self._is_initialized
+
     def __getattr__(self, item: str) -> Any:
         self.initialize()
         return getattr(self._schema, item)
