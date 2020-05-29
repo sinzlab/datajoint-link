@@ -169,3 +169,12 @@ class TestRepr:
 
     def test_if_repr_returns_correct_value(self, lazy_schema):
         assert repr(lazy_schema) == "LazySchema(schema)"
+
+
+class TestIsInitialized:
+    def test_if_is_initialized_is_false_before_initializing(self, lazy_schema):
+        assert lazy_schema.is_initialized is False
+
+    def test_if_is_initialized_is_true_after_initializing(self, lazy_schema):
+        lazy_schema.initialize()
+        assert lazy_schema.is_initialized is True
