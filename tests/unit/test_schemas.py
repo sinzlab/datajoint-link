@@ -86,29 +86,15 @@ class TestInitialize:
             schema_name=schema_name, context=None, connection=None, create_schema=True, create_tables=True
         )
 
-    def test_if_context_is_passed_if_provided(self, lazy_schema_cls, schema_name, context, schema_cls):
-        lazy_schema_cls(schema_name, context=context).initialize()
-        schema_cls.assert_called_once_with(
-            schema_name=schema_name, context=context, connection=None, create_schema=True, create_tables=True
-        )
-
-    def test_if_connection_is_passed_if_provided(self, lazy_schema_cls, schema_name, connection, schema_cls):
-        lazy_schema_cls(schema_name, connection=connection).initialize()
-        schema_cls.assert_called_once_with(
-            schema_name=schema_name, context=None, connection=connection, create_schema=True, create_tables=True
-        )
-
-    def test_if_create_schema_is_passed_if_provided(self, lazy_schema_cls, schema_name, schema_cls):
-        lazy_schema_cls(schema_name, create_schema=False).initialize()
-        schema_cls.assert_called_once_with(
-            schema_name=schema_name, context=None, connection=None, create_schema=False, create_tables=True
-        )
-
-    def test_if_create_tables_is_passed_if_provided(self, lazy_schema_cls, schema_name, schema_cls):
-        lazy_schema_cls(schema_name, create_tables=False).initialize()
-        schema_cls.assert_called_once_with(
-            schema_name=schema_name, context=None, connection=None, create_schema=True, create_tables=False
-        )
+    @pytest.mark.parametrize(
+        "name,value",
+        [("context", context), ("connection", connection), ("create_schema", False), ("create_tables", False)],
+    )
+    def test_if_keyword_arguments_are_passed_if_provided(self, lazy_schema_cls, schema_name, schema_cls, name, value):
+        lazy_schema_cls(schema_name, **{name: value}).initialize()
+        defaults = dict(context=None, connection=None, create_schema=True, create_tables=True)
+        defaults[name] = value
+        schema_cls.assert_called_once_with(schema_name=schema_name, **defaults)
 
     def test_if_schema_is_not_initialized_again_if_initialize_is_called_twice(
         self, lazy_schema_cls, schema_name, schema_cls
