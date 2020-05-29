@@ -36,7 +36,9 @@ def test_if_value_error_is_raised_if_initialized_with_connection_and_host(connec
 
 @pytest.fixture
 def schema():
-    return MagicMock(name="schema", spec=Schema, some_attribute="some_value")
+    schema = MagicMock(name="schema", spec=Schema, some_attribute="some_value")
+    schema.__repr__ = MagicMock(name="schema.__repr__", return_value="schema")
+    return schema
 
 
 @pytest.fixture
@@ -158,3 +160,12 @@ class TestCall:
 
     def test_if_call_returns_correct_value(self, lazy_schema, table_cls, processed_table_class):
         assert lazy_schema(table_cls) is processed_table_class
+
+
+class TestRepr:
+    def test_if_initialize_is_correctly_called(self, lazy_schema_with_initialize_mock, initialize_mock):
+        repr(lazy_schema_with_initialize_mock)
+        initialize_mock.assert_called_once_with()
+
+    def test_if_repr_returns_correct_value(self, lazy_schema):
+        assert repr(lazy_schema) == "LazySchema(schema)"

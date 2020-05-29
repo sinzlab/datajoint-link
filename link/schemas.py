@@ -1,9 +1,10 @@
 """This module contains custom classes based on the "Schema" class from DataJoint"""
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Type
 
 from datajoint.connection import Connection
 from datajoint.schemas import Schema
+from datajoint.table import Table
 
 
 class LazySchema:
@@ -24,7 +25,7 @@ class LazySchema:
         connection: Optional[Connection] = None,
         create_schema: Optional[bool] = True,
         create_tables: Optional[bool] = True,
-        host: Optional[str] = None
+        host: Optional[str] = None,
     ) -> None:
         """Initializes an instance of "LazySchema".
 
@@ -69,6 +70,10 @@ class LazySchema:
         self.initialize()
         return getattr(self._schema, item)
 
-    def __call__(self, cls, *, context=None):
+    def __call__(self, cls: Type[Table], *, context: Dict[str, Any] = None) -> Type[Table]:
         self.initialize()
         return self._schema(cls, context=context)
+
+    def __repr__(self) -> str:
+        self.initialize()
+        return f"{self.__class__.__qualname__}({repr(self._schema)})"
