@@ -68,3 +68,7 @@ class LazySchema:
     def __getattr__(self, item: str) -> Any:
         self.initialize()
         return getattr(self._schema, item)
+
+    def __call__(self, cls, *, context=None):
+        self.initialize()
+        return self._schema(cls, context=context)
