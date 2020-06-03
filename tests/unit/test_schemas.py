@@ -81,6 +81,20 @@ class TestInit:
         assert lazy_schema_cls(schema_name).create_tables is True
 
 
+class TestConnectionProperty:
+    def test_if_trying_to_set_connection_raises_runtime_error_if_host_is_set(
+        self, lazy_schema_cls, schema_name, connection
+    ):
+        lazy_schema = lazy_schema_cls(schema_name, host="host")
+        with pytest.raises(RuntimeError):
+            lazy_schema.connection = connection
+
+    def test_if_setter_sets_property(self, lazy_schema_cls, schema_name, connection):
+        lazy_schema = lazy_schema_cls(schema_name)
+        lazy_schema.connection = connection
+        assert lazy_schema.connection is connection
+
+
 class TestInitialize:
     @pytest.fixture
     def setup_env(self):

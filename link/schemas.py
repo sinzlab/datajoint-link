@@ -55,6 +55,12 @@ class LazySchema:
     def connection(self) -> Optional[Connection]:
         return self._connection
 
+    @connection.setter
+    def connection(self, connection: Connection) -> None:
+        if self._host is not None:
+            raise RuntimeError("Can't set 'connection' while 'host' is set")
+        self._connection = connection
+
     @property
     def schema(self) -> Schema:
         self.initialize()
