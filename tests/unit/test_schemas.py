@@ -234,13 +234,10 @@ class TestCall:
         assert lazy_schema(table_cls) is processed_table_class
 
 
-class TestRepr:
-    def test_if_initialize_is_correctly_called(self, lazy_schema_with_initialize_mock, initialize_mock):
-        repr(lazy_schema_with_initialize_mock)
-        initialize_mock.assert_called_once_with()
-
-    def test_if_repr_returns_correct_value(self, lazy_schema):
-        assert repr(lazy_schema) == "LazySchema(schema)"
+def test_if_repr_returns_correct_value(lazy_schema):
+    assert repr(lazy_schema) == (
+        "LazySchema(schema_name, context=None, connection=None, create_schema=True, create_tables=True, host=None)"
+    )
 
 
 class TestIsInitialized:

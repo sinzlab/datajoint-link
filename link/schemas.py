@@ -120,5 +120,8 @@ class LazySchema:
         return self._schema(cls, context=context)
 
     def __repr__(self) -> str:
-        self.initialize()
-        return f"{self.__class__.__qualname__}({repr(self._schema)})"
+        return (
+            f"{self.__class__.__qualname__}"
+            f"({self.database}, context={self.context}, connection={self.connection}, "
+            f"create_schema={self.create_schema}, create_tables={self.create_tables}, host={self.host})"
+        )
