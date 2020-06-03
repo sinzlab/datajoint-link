@@ -52,6 +52,35 @@ def lazy_schema_cls(schema_cls):
     return schemas.LazySchema
 
 
+class TestInit:
+    def test_if_schema_name_is_stored_as_instance_attribute(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name).database == schema_name
+
+    def test_if_context_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name, context):
+        assert lazy_schema_cls(schema_name, context=context).context is context
+
+    def test_if_context_is_none_if_not_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name).context is None
+
+    def test_if_connection_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name, connection):
+        assert lazy_schema_cls(schema_name, connection=connection).connection is connection
+
+    def test_if_connection_is_none_if_not_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name).connection is None
+
+    def test_if_create_schema_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name, create_schema=False).create_schema is False
+
+    def test_if_create_schema_is_true_if_not_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name).create_schema is True
+
+    def test_if_create_tables_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name, create_tables=False).create_tables is False
+
+    def test_if_create_tables_is_true_if_not_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name).create_tables is True
+
+
 class TestInitialize:
     @pytest.fixture
     def setup_env(self):

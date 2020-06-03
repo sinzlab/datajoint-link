@@ -42,6 +42,11 @@ class LazySchema:
         """
         if connection is not None and host is not None:
             raise ValueError("Expected either 'connection' or 'host', got both")
+        self.database = schema_name
+        self.context = context
+        self.connection = connection
+        self.create_schema = create_schema
+        self.create_tables = create_tables
         self._schema_kwargs: Dict[str, Any] = dict(
             schema_name=schema_name,
             context=context,
