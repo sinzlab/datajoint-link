@@ -53,6 +53,11 @@ class LazySchema:
         self._is_initialized = False
         self._schema: Optional[Schema] = None
 
+    @property
+    def schema(self) -> Schema:
+        self.initialize()
+        return self._schema
+
     def initialize(self) -> None:
         """Creates a "Schema" instance if it was not already created."""
         if not self._is_initialized:

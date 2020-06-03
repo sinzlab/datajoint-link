@@ -123,6 +123,15 @@ def lazy_schema_with_initialize_mock(lazy_schema, initialize_mock):
     return lazy_schema
 
 
+class TestSchemaProperty:
+    def test_if_initialize_is_called_correctly(self, lazy_schema_with_initialize_mock, initialize_mock):
+        _ = lazy_schema_with_initialize_mock.schema
+        initialize_mock.assert_called_once_with()
+
+    def test_if_schema_is_returned(self, lazy_schema, schema):
+        assert lazy_schema.schema is schema
+
+
 class TestGetAttr:
     def test_if_getattr_calls_initialize_correctly(self, lazy_schema_with_initialize_mock, initialize_mock):
         _ = lazy_schema_with_initialize_mock.some_attribute
