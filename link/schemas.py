@@ -44,12 +44,16 @@ class LazySchema:
             raise ValueError("Expected either 'connection' or 'host', got both")
         self.database = schema_name
         self.context = context
-        self.connection = connection
+        self._connection = connection
         self.create_schema = create_schema
         self.create_tables = create_tables
         self._host = host
         self._is_initialized = False
         self._schema: Optional[Schema] = None
+
+    @property
+    def connection(self) -> Optional[Connection]:
+        return self._connection
 
     @property
     def schema(self) -> Schema:
@@ -63,7 +67,7 @@ class LazySchema:
 
     def _initialize(self) -> None:
         if self._host is not None:
-            self.connection = self._conn_cls(self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
+            self._connection = self._conn_cls(self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
         self._schema = self._schema_cls(
             schema_name=self.database,
             context=self.context,
