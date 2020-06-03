@@ -47,13 +47,6 @@ class LazySchema:
         self.connection = connection
         self.create_schema = create_schema
         self.create_tables = create_tables
-        self._schema_kwargs: Dict[str, Any] = dict(
-            schema_name=schema_name,
-            context=context,
-            connection=connection,
-            create_schema=create_schema,
-            create_tables=create_tables,
-        )
         self._host = host
         self._is_initialized = False
         self._schema: Optional[Schema] = None
@@ -70,10 +63,14 @@ class LazySchema:
 
     def _initialize(self) -> None:
         if self._host is not None:
-            self._schema_kwargs["connection"] = self._conn_cls(
-                self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"]
-            )
-        self._schema = self._schema_cls(**self._schema_kwargs)
+            self.connection = self._conn_cls(self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
+        self._schema = self._schema_cls(
+            schema_name=self.database,
+            context=self.context,
+            connection=self.connection,
+            create_schema=self.create_schema,
+            create_tables=self.create_tables,
+        )
         self._is_initialized = True
 
     @property
