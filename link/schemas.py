@@ -8,10 +8,27 @@ from datajoint.table import Table
 
 
 class LazySchema:
-    """A proxy for a "Schema" instance which creates said instance in a lazy way.
+    """A proxy for a "Schema" instance which initializes said instance in a lazy way.
 
-    This class creates a "Schema" instance if the "initialize" method is called or a non-existing attribute is accessed.
-    After creation all non-existing attributes are looked up on the created instance.
+    This class initializes the underlying schema if the "initialize" or "__call__" method is called or the "schema"
+    attribute is accessed. Trying to access attributes that do not exist on this class will lead to initialization of
+    the underlying schema and subsequent lookup of the requested attribute on the now initialized schema.
+
+    Attributes:
+        database: The name of the associated database schema.
+        context: None or a dictionary used to look up foreign key references.
+        connection: None or a connection object. This attribute can not be set while the "host" attribute is set.
+        create_schema: When "False", do not create the schema in the database if missing on initialization and raise an
+            error.
+        create_tables: When "False", do not create missing tables in the schema and raise an error.
+        host: None or an address to a database server. The underlying schema instance will be initialized with a
+            connection to the database server found at the address if this attribute is set during initialization.
+            In this case the username and password used to establish the connection are taken from the environment
+            variables called "REMOTE_DJ_USER" and "REMOTE_DJ_PASS", respectively. This attribute can not be set while
+            the "connection" attribute is set.
+        is_initialized: "True" if the underlying schema is initialized, "False" otherwise.
+        schema: The underlying schema object. Accessing this attribute will initialize said schema object if it is not
+            already initialized.
     """
 
     _schema_cls = Schema
@@ -35,10 +52,7 @@ class LazySchema:
             connection: An optional connection object. Can not be passed together with a host address.
             create_schema: When "False", do not create the schema on the database if missing and raise an error.
             create_tables: When "False", do not create missing tables in the schema and raise an error.
-            host: An optional address to a database server. If provided the "Schema" instance will be created with a
-                connection to said database server. The user and password used to establish the connection must be
-                present in the form of the environment variables "REMOTE_DJ_USER" and "REMOTE_DJ_PASS", respectively.
-                Can not be passed together with a connection object.
+            host: An optional address to a database server.
         """
         if connection is not None and host is not None:
             raise ValueError("Expected either 'connection' or 'host', got both")
@@ -77,7 +91,7 @@ class LazySchema:
         return self._schema
 
     def initialize(self) -> None:
-        """Creates a "Schema" instance if it was not already created."""
+        """Initializes the underlying schema if it is not already initialized."""
         if not self._is_initialized:
             self._initialize()
 
