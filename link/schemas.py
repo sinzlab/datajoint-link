@@ -47,7 +47,7 @@ class LazySchema:
         self._connection = connection
         self.create_schema = create_schema
         self.create_tables = create_tables
-        self._host = host
+        self.host = host
         self._is_initialized = False
         self._schema: Optional[Schema] = None
 
@@ -57,7 +57,7 @@ class LazySchema:
 
     @connection.setter
     def connection(self, connection: Connection) -> None:
-        if self._host is not None:
+        if self.host is not None:
             raise RuntimeError("Can't set 'connection' while 'host' is set")
         self._connection = connection
 
@@ -72,8 +72,8 @@ class LazySchema:
             self._initialize()
 
     def _initialize(self) -> None:
-        if self._host is not None:
-            self._connection = self._conn_cls(self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
+        if self.host is not None:
+            self._connection = self._conn_cls(self.host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
         self._schema = self._schema_cls(
             schema_name=self.database,
             context=self.context,

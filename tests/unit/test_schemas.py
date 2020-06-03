@@ -80,6 +80,12 @@ class TestInit:
     def test_if_create_tables_is_true_if_not_provided(self, lazy_schema_cls, schema_name):
         assert lazy_schema_cls(schema_name).create_tables is True
 
+    def test_if_host_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name, host="host").host == "host"
+
+    def test_if_host_is_none_if_not_provided(self, lazy_schema_cls, schema_name):
+        assert lazy_schema_cls(schema_name).host is None
+
 
 class TestConnectionProperty:
     def test_if_trying_to_set_connection_raises_runtime_error_if_host_is_set(
