@@ -13,7 +13,7 @@ import pymysql
 import minio
 import datajoint as dj
 
-from link import main
+from link import schemas
 
 
 @pytest.fixture(scope="module")
@@ -413,8 +413,8 @@ def test_session(
         except minio.error.NoSuchBucket:
             warnings.warn(f"Tried to remove bucket '{store_config.bucket}' but it does not exist")
 
-    src_schema = main.SchemaProxy(src_db_config.schema_name, connection=src_conn)
-    local_schema = main.SchemaProxy(local_db_config.schema_name, connection=local_conn)
+    src_schema = schemas.LazySchema(src_db_config.schema_name, connection=src_conn)
+    local_schema = schemas.LazySchema(local_db_config.schema_name, connection=local_conn)
     yield dict(src=src_schema, local=local_schema)
     local_schema.drop(force=True)
     remove_bucket(local_store_config)

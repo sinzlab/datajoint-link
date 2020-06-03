@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import pytest
 import datajoint as dj
 
-from link import main
+from link import main, schemas
 
 
 @pytest.fixture
@@ -67,7 +67,7 @@ def src_table_with_data(src_schema, src_table_cls, src_data):
 def remote_schema(src_db_config):
     os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
     os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
-    return main.SchemaProxy(src_db_config.schema_name, host=src_db_config.name)
+    return schemas.LazySchema(src_db_config.schema_name, host=src_db_config.name)
 
 
 @pytest.fixture
