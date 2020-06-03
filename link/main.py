@@ -2,78 +2,10 @@ from contextlib import contextmanager
 from inspect import isclass
 from tempfile import TemporaryDirectory
 import warnings
-import os
 
 import datajoint as dj
-from datajoint.connection import Connection
-from datajoint.schemas import Schema
 from datajoint.errors import LostConnectionError
 from pymysql.err import OperationalError
-
-
-class SchemaProxy:
-    def __init__(
-        self, schema_name, context=None, *, connection=None, create_schema=True, create_tables=True, host=None
-    ):
-        self.database = schema_name
-        self.context = context
-        self._connection = connection
-        self.create_schema = create_schema
-        self.create_tables = create_tables
-        self.host = host
-
-        self.is_initialized = False
-        self._schema = None
-
-    @property
-    def schema(self):
-        self.initialize()
-        return self._schema
-
-    @property
-    def connection(self):
-        self._initialize()
-        return self._connection
-
-    def initialize(self):
-        if not self.is_initialized:
-            self._initialize()
-
-    def _initialize(self):
-        if self._connection is None and self.host is not None:
-            connection = Connection(self.host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
-        else:
-            connection = self._connection
-        schema = Schema(
-            self.database,
-            context=self.context,
-            connection=connection,
-            create_schema=self.create_schema,
-            create_tables=self.create_tables,
-        )
-        self._connection = schema.connection
-        self._schema = schema
-        self.is_initialized = True
-
-    @property
-    def log(self):
-        return self.schema.log
-
-    @property
-    def jobs(self):
-        return self.schema.jobs
-
-    def spawn_missing_classes(self, context=None):
-        self.schema.spawn_missing_classes(context=context)
-
-    def drop(self, force=False):
-        self.schema.drop(force=force)
-
-    def __call__(self, cls, *, context=None):
-        return self.schema(cls, context=None)
-
-    def __repr__(self):
-        return f"Schema `{self.database}`"
 
 
 class Host:

@@ -1,4 +1,6 @@
-from .main import SchemaProxy, Link
+from .schemas import LazySchema
+from .main import Link
 
-schema = SchemaProxy
+
+schema = LazySchema
 link = Link
