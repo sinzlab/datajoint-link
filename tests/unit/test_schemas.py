@@ -29,16 +29,9 @@ def connection():
     return MagicMock(name="connection", spec=Connection)
 
 
-def test_if_value_error_is_raised_if_initialized_with_connection_and_host(connection):
-    with pytest.raises(ValueError):
-        schemas.LazySchema(schema_name, connection=connection, host="host")
-
-
 @pytest.fixture
 def schema():
-    schema = MagicMock(name="schema", spec=Schema, some_attribute="some_value")
-    schema.__repr__ = MagicMock(name="schema.__repr__", return_value="schema")
-    return schema
+    return MagicMock(name="schema", spec=Schema, some_attribute="some_value")
 
 
 @pytest.fixture
@@ -53,6 +46,10 @@ def lazy_schema_cls(schema_cls):
 
 
 class TestInit:
+    def test_if_value_error_is_raised_if_initialized_with_connection_and_host(self, connection):
+        with pytest.raises(ValueError):
+            schemas.LazySchema(schema_name, connection=connection, host="host")
+
     def test_if_schema_name_is_stored_as_instance_attribute(self, lazy_schema_cls, schema_name):
         assert lazy_schema_cls(schema_name).database == schema_name
 
@@ -130,36 +127,24 @@ class TestInitialize:
         return lazy_schema_cls
 
     @pytest.mark.usefixtures("setup_env")
-    def test_if_connection_cls_is_correctly_initialized_if_host_is_provided(
-        self, lazy_schema_cls, schema_name, conn_cls
-    ):
+    def test_if_connection_is_correctly_initialized_if_host_is_provided(self, lazy_schema_cls, schema_name, conn_cls):
         lazy_schema_cls(schema_name, host="host").initialize()
         conn_cls.assert_called_once_with("host", "user", "pass")
 
     @pytest.mark.usefixtures("setup_env")
-    def test_if_connection_is_passed_to_schema_if_host_is_provided(
-        self, lazy_schema_cls, schema_name, connection, schema_cls
+    def test_if_initialized_connection_is_stored_as_instance_attribute_if_host_is_provided(
+        self, lazy_schema_cls, schema_name, connection
     ):
-        lazy_schema_cls(schema_name, host="host").initialize()
-        schema_cls.assert_called_once_with(
-            schema_name=schema_name, context=None, connection=connection, create_schema=True, create_tables=True
-        )
+        lazy_schema = lazy_schema_cls(schema_name, host="host")
+        lazy_schema.initialize()
+        assert lazy_schema.connection is connection
 
-    def test_if_schema_name_is_passed(self, lazy_schema_cls, schema_name, schema_cls):
+    @pytest.mark.usefixtures("setup_env")
+    def test_if_schema_is_correctly_initialized(self, lazy_schema_cls, schema_name, schema_cls):
         lazy_schema_cls(schema_name).initialize()
         schema_cls.assert_called_once_with(
             schema_name=schema_name, context=None, connection=None, create_schema=True, create_tables=True
         )
-
-    @pytest.mark.parametrize(
-        "name,value",
-        [("context", context), ("connection", connection), ("create_schema", False), ("create_tables", False)],
-    )
-    def test_if_keyword_arguments_are_passed_if_provided(self, lazy_schema_cls, schema_name, schema_cls, name, value):
-        lazy_schema_cls(schema_name, **{name: value}).initialize()
-        defaults = dict(context=None, connection=None, create_schema=True, create_tables=True)
-        defaults[name] = value
-        schema_cls.assert_called_once_with(schema_name=schema_name, **defaults)
 
     def test_if_schema_is_not_initialized_again_if_initialize_is_called_twice(
         self, lazy_schema_cls, schema_name, schema_cls
