@@ -192,7 +192,7 @@ def local_minio_config(get_minio_config, network_config, health_check_config):
     return get_minio_config(network_config, health_check_config, "local")
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def src_db(create_container, src_db_config, docker_client):
     with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
@@ -216,7 +216,7 @@ def src_db(create_container, src_db_config, docker_client):
         yield
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def local_db(create_container, local_db_config, docker_client):
     with create_container(docker_client, local_db_config), mysql_conn(local_db_config) as connection:
         with connection.cursor() as cursor:
@@ -311,13 +311,13 @@ def mysql_conn(db_config):
             connection.close()
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def src_minio(create_container, src_minio_config, docker_client):
     with create_container(docker_client, src_minio_config):
         yield
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def local_minio(create_container, local_minio_config, docker_client):
     with create_container(docker_client, local_minio_config):
         yield
@@ -397,33 +397,31 @@ def local_conn(local_db_config, local_store_config, src_store_config):
 
 
 @pytest.fixture
-def test_session(
-    src_db_config,
-    local_db_config,
-    src_conn,
-    local_conn,
-    src_minio_client,
-    local_minio_client,
-    src_store_config,
-    local_store_config,
-):
-    def remove_bucket(store_config):
+def cleanup_buckets(src_minio_client, local_minio_client, src_store_config, local_store_config):
+    yield
+    for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
         try:
-            local_minio_client.remove_bucket(store_config.bucket)
+            client.remove_bucket(config.bucket)
         except minio.error.NoSuchBucket:
-            warnings.warn(f"Tried to remove bucket '{store_config.bucket}' but it does not exist")
+            warnings.warn(f"Tried to remove bucket '{config.bucket}' but it does not exist")
+        except minio.error.BucketNotEmpty:
+            object_names = tuple(o.object_name for o in client.list_objects(config.bucket, recursive=True))
+            for del_err in client.remove_objects(config.bucket, object_names):
+                print(f"Deletion Error: {del_err}")
+            client.remove_bucket(config.bucket)
 
+
+@pytest.fixture
+def test_session(src_db_config, local_db_config, src_conn, local_conn):
     src_schema = schemas.LazySchema(src_db_config.schema_name, connection=src_conn)
     local_schema = schemas.LazySchema(local_db_config.schema_name, connection=local_conn)
     yield dict(src=src_schema, local=local_schema)
     local_schema.drop(force=True)
-    remove_bucket(local_store_config)
     with mysql_conn(src_db_config) as conn:
         with conn.cursor() as cursor:
             cursor.execute(f"DROP DATABASE IF EXISTS {'datajoint_outbound__' + src_db_config.schema_name};")
         conn.commit()
     src_schema.drop(force=True)
-    remove_bucket(src_store_config)
 
 
 @pytest.fixture
