@@ -13,7 +13,7 @@ import pymysql
 import minio
 import datajoint as dj
 
-from link import schemas
+from link import main, schemas
 
 
 SCOPE = os.environ.get("SCOPE", "session")
@@ -445,3 +445,65 @@ def src_schema(test_session):
 @pytest.fixture
 def local_schema(test_session):
     return test_session["local"]
+
+
+@pytest.fixture
+def src_table_definition():
+    return """
+    prim_attr: int
+    ---
+    sec_attr: int
+    """
+
+
+@pytest.fixture
+def src_table_cls(src_table_definition):
+    class Table(dj.Manual):
+        definition = src_table_definition
+
+    return Table
+
+
+@pytest.fixture
+def n_entities():
+    return int(os.environ.get("N_ENTITIES", 10))
+
+
+@pytest.fixture
+def src_data(n_entities):
+    return [dict(prim_attr=i, sec_attr=-i) for i in range(n_entities)]
+
+
+@pytest.fixture
+def src_table_with_data(src_schema, src_table_cls, src_data):
+    src_table = src_schema(src_table_cls)
+    src_table.insert(src_data)
+    return src_table
+
+
+@pytest.fixture
+def remote_schema(src_db_config):
+    os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
+    os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
+    return schemas.LazySchema(src_db_config.schema_name, host=src_db_config.name)
+
+
+@pytest.fixture
+def stores(request, local_store_name, src_store_name):
+    if getattr(request.module, "USES_EXTERNAL"):
+        return {local_store_name: src_store_name}
+
+
+@pytest.fixture
+def local_table_cls(local_schema, remote_schema, stores):
+    @main.Link(local_schema, remote_schema, stores=stores)
+    class Table:
+        """Local table."""
+
+    return Table
+
+
+@pytest.fixture
+def local_table_cls_with_pulled_data(local_table_cls):
+    local_table_cls().pull()
+    return local_table_cls
