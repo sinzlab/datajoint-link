@@ -459,6 +459,11 @@ def local_schema(test_session):
 
 
 @pytest.fixture
+def src_table_name():
+    return "Table"
+
+
+@pytest.fixture
 def src_table_definition():
     return """
     prim_attr: int
@@ -468,10 +473,11 @@ def src_table_definition():
 
 
 @pytest.fixture
-def src_table_cls(src_table_definition):
+def src_table_cls(src_table_name, src_table_definition):
     class Table(dj.Manual):
         definition = src_table_definition
 
+    Table.__name__ = src_table_name
     return Table
 
 
