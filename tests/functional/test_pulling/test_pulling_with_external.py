@@ -3,6 +3,9 @@ import os
 import pytest
 
 
+USES_EXTERNAL = True
+
+
 @pytest.fixture
 def src_table_definition(src_table_definition, src_store_config):
     src_table_definition += "ext_attr: attach@" + src_store_config.name

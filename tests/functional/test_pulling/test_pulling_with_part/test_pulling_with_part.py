@@ -1,6 +1,9 @@
 import pytest
 
 
+USES_EXTERNAL = False
+
+
 @pytest.fixture
 def pulled_data(pulled_data, local_table_cls):
     pulled_data["part"] = local_table_cls.Part().fetch(as_dict=True)

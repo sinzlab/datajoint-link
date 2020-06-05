@@ -3,6 +3,9 @@ import os
 import pytest
 
 
+USES_EXTERNAL = True
+
+
 @pytest.fixture
 def src_part_definition(src_part_definition, src_store_config):
     src_part_definition += "ext_attr: attach@" + src_store_config.name

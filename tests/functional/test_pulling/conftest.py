@@ -71,8 +71,14 @@ def remote_schema(src_db_config):
 
 
 @pytest.fixture
-def local_table_cls(local_schema, remote_schema, local_store_name, src_store_name):
-    @main.Link(local_schema, remote_schema, stores={local_store_name: src_store_name})
+def stores(request, local_store_name, src_store_name):
+    if getattr(request.module, "USES_EXTERNAL"):
+        return {local_store_name: src_store_name}
+
+
+@pytest.fixture
+def local_table_cls(local_schema, remote_schema, stores):
+    @main.Link(local_schema, remote_schema, stores=stores)
     class Table:
         """Local table."""
 
