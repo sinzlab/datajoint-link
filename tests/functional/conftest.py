@@ -343,16 +343,26 @@ def local_minio_client(local_minio_config):
 
 
 @pytest.fixture
-def src_store_config(get_store_config, src_minio_config):
-    return get_store_config(src_minio_config, "source")
+def src_store_name():
+    return os.environ.get("SOURCE_STORE_NAME", "source_store")
+
+
+@pytest.fixture
+def local_store_name():
+    return os.environ.get("LOCAL_STORE_NAME", "local_store")
+
+
+@pytest.fixture
+def src_store_config(get_store_config, src_minio_config, src_store_name):
+    return get_store_config(src_minio_config, "source", src_store_name)
 
 
 @pytest.fixture
 def get_store_config(store_config):
     # noinspection PyArgumentList
-    def _get_store_config(minio_config, kind):
+    def _get_store_config(minio_config, kind, store_name):
         return store_config(
-            name=os.environ.get(kind.upper() + "_STORE_NAME", kind + "_store"),
+            name=store_name,
             protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
             endpoint=minio_config.name + ":9000",
             bucket=os.environ.get(kind.upper() + "_STORE_BUCKET", kind + "-store-bucket"),
@@ -365,8 +375,8 @@ def get_store_config(store_config):
 
 
 @pytest.fixture
-def local_store_config(get_store_config, local_minio_config):
-    return get_store_config(local_minio_config, "local")
+def local_store_config(get_store_config, local_minio_config, local_store_name):
+    return get_store_config(local_minio_config, "local", local_store_name)
 
 
 @pytest.fixture
