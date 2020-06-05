@@ -120,6 +120,10 @@ def remove():
 @pytest.fixture(scope=SCOPE)
 def src_user_configs(user_config):
     return dict(
+        admin_user=user_config(
+            os.environ.get("SOURCE_DATABASE_ADMIN_USER", "source_admin_user"),
+            os.environ.get("SOURCE_DATABASE_ADMIN_PASS", "source_admin_user_pass"),
+        ),
         end_user=user_config(
             os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
             os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
@@ -204,14 +208,12 @@ def src_db(create_container, src_db_config, docker_client):
             sql_statements = (
                 fr"GRANT ALL PRIVILEGES ON `{src_db_config.users['end_user'].name}\_%`.* "
                 f"TO '{src_db_config.users['end_user'].name}'@'%';",
-                (
-                    f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
-                    f"TO '{src_db_config.users['dj_user'].name}'@'%';"
-                ),
-                (
-                    f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema_name}`.* "
-                    f"TO '{src_db_config.users['dj_user'].name}'@'%';"
-                ),
+                f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
+                f"TO '{src_db_config.users['dj_user'].name}'@'%';",
+                f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema_name}`.* "
+                f"TO '{src_db_config.users['dj_user'].name}'@'%';",
+                f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema_name}`.* "
+                f"TO '{src_db_config.users['admin_user'].name}'@'%';",
             )
             for sql_statement in sql_statements:
                 cursor.execute(sql_statement)
@@ -383,29 +385,33 @@ def local_store_config(get_store_config, local_minio_config, local_store_name):
 
 
 @pytest.fixture
-def src_conn(src_db_config, src_store_config):
-    with get_conn(src_db_config, [src_store_config]) as conn:
-        yield conn
+def get_conn():
+    @contextmanager
+    def _get_conn(db_config, user_type, stores=None):
+        conn = None
+        try:
+            dj.config["database.host"] = db_config.name
+            dj.config["database.user"] = db_config.users[user_type + "_user"].name
+            dj.config["database.password"] = db_config.users[user_type + "_user"].password
+            dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
+            conn = dj.conn(reset=True)
+            yield conn
+        finally:
+            if conn is not None:
+                conn.close()
 
-
-@contextmanager
-def get_conn(db_config, stores):
-    conn = None
-    try:
-        dj.config["database.host"] = db_config.name
-        dj.config["database.user"] = db_config.users["end_user"].name
-        dj.config["database.password"] = db_config.users["end_user"].password
-        dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
-        conn = dj.conn(reset=True)
-        yield conn
-    finally:
-        if conn is not None:
-            conn.close()
+    return _get_conn
 
 
 @pytest.fixture
-def local_conn(local_db_config, local_store_config, src_store_config):
-    with get_conn(local_db_config, [local_store_config, src_store_config]) as conn:
+def src_conn(src_db_config, src_store_config, get_conn):
+    with get_conn(src_db_config, "end", stores=[src_store_config]) as conn:
+        yield conn
+
+
+@pytest.fixture
+def local_conn(local_db_config, local_store_config, src_store_config, get_conn):
+    with get_conn(local_db_config, "end", stores=[local_store_config, src_store_config]) as conn:
         yield conn
 
 
