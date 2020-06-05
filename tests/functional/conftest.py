@@ -523,6 +523,6 @@ def local_table_cls(local_schema, remote_schema, stores):
 
 
 @pytest.fixture
-def local_table_cls_with_pulled_data(local_table_cls):
+def local_table_cls_with_pulled_data(src_table_with_data, local_table_cls):
     local_table_cls().pull()
     return local_table_cls
