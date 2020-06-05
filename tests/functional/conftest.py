@@ -393,6 +393,8 @@ def local_store_config(get_store_config, local_minio_config, local_store_name):
 def get_conn():
     @contextmanager
     def _get_conn(db_config, user_type, stores=None):
+        if stores is None:
+            stores = dict()
         conn = None
         try:
             dj.config["database.host"] = db_config.name
