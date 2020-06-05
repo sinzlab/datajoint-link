@@ -50,9 +50,23 @@ def insert_flags(local_table_cls_with_pulled_data, source_flags, outbound_table_
     outbound_table_cls().FlaggedForDeletion().insert(source_flags)
 
 
+@pytest.fixture
+def delete_flagged_entities(local_table_cls_with_pulled_data):
+    flags = local_table_cls_with_pulled_data().flagged_for_deletion.fetch(as_dict=True)
+    (local_table_cls_with_pulled_data() & flags).delete()
+
+
 @pytest.mark.usefixtures("insert_flags")
 def test_if_flagged_entities_are_present_in_flagged_for_deletion_part_table_on_local_side(
     local_table_cls_with_pulled_data, expected_local_flags
 ):
     actual_local_flags = local_table_cls_with_pulled_data().flagged_for_deletion.fetch(as_dict=True)
     assert actual_local_flags == expected_local_flags
+
+
+@pytest.mark.usefixtures("insert_flags", "delete_flagged_entities")
+def test_if_deleted_flagged_entities_are_present_in_ready_for_deletion_part_table_on_source_side(
+    outbound_table_cls, source_flags
+):
+    ready_for_deletion_flags = outbound_table_cls.ReadyForDeletion().fetch(as_dict=True)
+    assert ready_for_deletion_flags == source_flags
