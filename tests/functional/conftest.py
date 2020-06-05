@@ -200,7 +200,12 @@ def local_minio_config(get_minio_config, network_config, health_check_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(create_container, src_db_config, docker_client):
+def outbound_schema_name(src_db_config):
+    return "datajoint_outbound__" + src_db_config.schema_name
+
+
+@pytest.fixture(scope=SCOPE)
+def src_db(create_container, src_db_config, docker_client, outbound_schema_name):
     with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
             for user in src_db_config.users.values():
@@ -210,9 +215,9 @@ def src_db(create_container, src_db_config, docker_client):
                 f"TO '{src_db_config.users['end_user'].name}'@'%';",
                 f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
                 f"TO '{src_db_config.users['dj_user'].name}'@'%';",
-                f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema_name}`.* "
+                f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
                 f"TO '{src_db_config.users['dj_user'].name}'@'%';",
-                f"GRANT ALL PRIVILEGES ON `{'datajoint_outbound__' + src_db_config.schema_name}`.* "
+                f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
                 f"TO '{src_db_config.users['admin_user'].name}'@'%';",
             )
             for sql_statement in sql_statements:
