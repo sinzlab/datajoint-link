@@ -401,6 +401,7 @@ def get_conn():
             dj.config["database.user"] = db_config.users[user_type + "_user"].name
             dj.config["database.password"] = db_config.users[user_type + "_user"].password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
+            dj.config["safemode"] = False
             conn = dj.conn(reset=True)
             yield conn
         finally:
