@@ -92,9 +92,14 @@ def local_dir():
 
 
 @pytest.fixture
-def pulled_data(local_table_cls):
+def local_table_cls_with_pulled_data(local_table_cls):
     local_table_cls().pull()
-    return local_table_cls().fetch(as_dict=True)
+    return local_table_cls
+
+
+@pytest.fixture
+def pulled_data(local_table_cls_with_pulled_data):
+    return local_table_cls_with_pulled_data().fetch(as_dict=True)
 
 
 @pytest.fixture
