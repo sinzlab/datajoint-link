@@ -16,7 +16,10 @@ import datajoint as dj
 from link import schemas
 
 
-@pytest.fixture(scope="module")
+SCOPE = os.environ.get("SCOPE", "session")
+
+
+@pytest.fixture(scope=SCOPE)
 def container_config_cls(health_check_config_cls):
     @dataclass
     class ContainerConfig:
@@ -29,7 +32,7 @@ def container_config_cls(health_check_config_cls):
     return ContainerConfig
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def health_check_config_cls():
     @dataclass
     class HealthCheckConfig:
@@ -41,7 +44,7 @@ def health_check_config_cls():
     return HealthCheckConfig
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def database_config_cls(container_config_cls, user_config):
     @dataclass
     class DatabaseConfig(container_config_cls):
@@ -52,7 +55,7 @@ def database_config_cls(container_config_cls, user_config):
     return DatabaseConfig
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def user_config():
     @dataclass
     class UserConfig:
@@ -62,7 +65,7 @@ def user_config():
     return UserConfig
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def minio_config_cls(container_config_cls):
     @dataclass
     class MinIOConfig(container_config_cls):
@@ -87,18 +90,18 @@ def store_config():
     return StoreConfig
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def docker_client():
     return docker.client.from_env()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def network_config():
     return os.environ.get("DOCKER_NETWORK", "test_runner_network")
 
 
 # noinspection PyArgumentList
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def health_check_config(health_check_config_cls):
     return health_check_config_cls(
         start_period=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
@@ -108,13 +111,13 @@ def health_check_config(health_check_config_cls):
     )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def remove():
     return bool(int(os.environ.get("REMOVE", True)))
 
 
 # noinspection PyArgumentList
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def src_user_configs(user_config):
     return dict(
         end_user=user_config(
@@ -129,7 +132,7 @@ def src_user_configs(user_config):
 
 
 # noinspection PyArgumentList
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def local_user_configs(user_config):
     return dict(
         end_user=user_config(
@@ -139,12 +142,12 @@ def local_user_configs(user_config):
     )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def src_db_config(get_db_config, network_config, health_check_config, remove, src_user_configs):
     return get_db_config("source", network_config, health_check_config, remove, src_user_configs)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def get_db_config(database_config_cls):
     def _get_db_config(kind, network_config, health_check_config, remove, user_configs):
         return database_config_cls(
@@ -161,17 +164,17 @@ def get_db_config(database_config_cls):
     return _get_db_config
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def local_db_config(get_db_config, network_config, health_check_config, remove, local_user_configs):
     return get_db_config("local", network_config, health_check_config, remove, local_user_configs)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def src_minio_config(get_minio_config, network_config, health_check_config):
     return get_minio_config(network_config, health_check_config, "source")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def get_minio_config(minio_config_cls):
     def _get_minio_config(network_config, health_check_config, kind):
         return minio_config_cls(
@@ -187,12 +190,12 @@ def get_minio_config(minio_config_cls):
     return _get_minio_config
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def local_minio_config(get_minio_config, network_config, health_check_config):
     return get_minio_config(network_config, health_check_config, "local")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def src_db(create_container, src_db_config, docker_client):
     with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
@@ -216,7 +219,7 @@ def src_db(create_container, src_db_config, docker_client):
         yield
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def local_db(create_container, local_db_config, docker_client):
     with create_container(docker_client, local_db_config), mysql_conn(local_db_config) as connection:
         with connection.cursor() as cursor:
@@ -232,7 +235,7 @@ def local_db(create_container, local_db_config, docker_client):
         yield
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def create_container(run_container):
     @contextmanager
     def _create_container(client, container_config):
@@ -250,7 +253,7 @@ def create_container(run_container):
     return _create_container
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def run_container(database_config_cls, minio_config_cls):
     def _run_container(client, container_config):
         common = dict(detach=True, network=container_config.network)
@@ -311,13 +314,13 @@ def mysql_conn(db_config):
             connection.close()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def src_minio(create_container, src_minio_config, docker_client):
     with create_container(docker_client, src_minio_config):
         yield
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope=SCOPE)
 def local_minio(create_container, local_minio_config, docker_client):
     with create_container(docker_client, local_minio_config):
         yield
