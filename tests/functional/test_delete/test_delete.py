@@ -70,3 +70,12 @@ def test_if_deleted_flagged_entities_are_present_in_ready_for_deletion_part_tabl
 ):
     ready_for_deletion_flags = outbound_table_cls.ReadyForDeletion().fetch(as_dict=True)
     assert ready_for_deletion_flags == source_flags
+
+
+@pytest.mark.usefixtures("insert_flags")
+def test_if_pulling_skips_flagged_entities(local_table_cls_with_pulled_data):
+    data_before_pull = local_table_cls_with_pulled_data().fetch(as_dict=True)
+    with pytest.warns(UserWarning):
+        local_table_cls_with_pulled_data().pull()
+        data_after_pull = local_table_cls_with_pulled_data().fetch(as_dict=True)
+        assert data_before_pull == data_after_pull
