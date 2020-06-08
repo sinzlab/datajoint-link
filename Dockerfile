@@ -11,7 +11,9 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
 RUN python3.8 -m pip install \
     datajoint==0.12.5 \
     pytest \
-    coverage \
+    pytest-sugar \
+    pytest-cov \
+    pytest-xdist \
     docker \
     pymysql \
     minio
