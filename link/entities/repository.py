@@ -11,6 +11,10 @@ class Repository:
     def _create_entities(self, identifiers):
         return {i: self.entity_cls(self.address, i) for i in identifiers}
 
+    @property
+    def entities(self):
+        return list(self._entities.values())
+
     def list(self):
         return list(self._entities)
 
