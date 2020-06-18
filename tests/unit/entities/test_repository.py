@@ -248,3 +248,9 @@ class TestCancelTransaction:
     ):
         execute_with_faulty_gateway("cancel_transaction")
         assert repository.in_transaction is True
+
+    @pytest.mark.usefixtures("start_transaction")
+    def test_if_changes_are_rolled_back_if_transaction_is_cancelled(self, repository, selected_identifiers, entities):
+        repository.delete(selected_identifiers)
+        repository.cancel_transaction()
+        assert repository.entities == entities

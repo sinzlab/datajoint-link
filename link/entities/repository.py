@@ -7,6 +7,7 @@ class Repository:
         self.address = address
         self._entities = self._create_entities(self.gateway.get_identifiers())
         self._in_transaction = False
+        self._backup = None
 
     def _create_entities(self, identifiers):
         return {i: self.entity_cls(self.address, i) for i in identifiers}
@@ -45,6 +46,7 @@ class Repository:
         if self.in_transaction:
             raise RuntimeError("Can't start transaction while in transaction")
         self.gateway.start_transaction()
+        self._backup = self._create_entities(self._entities)
         self._in_transaction = True
 
     def commit_transaction(self):
@@ -57,6 +59,7 @@ class Repository:
         if not self.in_transaction:
             raise RuntimeError("Can't cancel transaction while not in transaction")
         self.gateway.cancel_transaction()
+        self._entities = self._create_entities(self._backup)
         self._in_transaction = False
 
     def __contains__(self, identifier):
