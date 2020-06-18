@@ -6,6 +6,7 @@ class Repository:
         """Initializes Repository."""
         self.address = address
         self._entities = self._create_entities(self.gateway.get_identifiers())
+        self._in_transaction = False
 
     def _create_entities(self, identifiers):
         return {i: self.entity_cls(self.address, i) for i in identifiers}
@@ -31,6 +32,28 @@ class Repository:
 
     def insert(self, entities):
         pass
+
+    @property
+    def in_transaction(self):
+        return self._in_transaction
+
+    def start_transaction(self):
+        if self.in_transaction:
+            raise RuntimeError("Can't start transaction while in transaction")
+        self.gateway.start_transaction()
+        self._in_transaction = True
+
+    def commit_transaction(self):
+        if not self.in_transaction:
+            raise RuntimeError("Can't commit transaction while not in transaction")
+        self.gateway.commit_transaction()
+        self._in_transaction = False
+
+    def cancel_transaction(self):
+        if not self.in_transaction:
+            raise RuntimeError("Can't cancel transaction while not in transaction")
+        self.gateway.cancel_transaction()
+        self._in_transaction = False
 
     def __contains__(self, identifier):
         return identifier in self._entities
