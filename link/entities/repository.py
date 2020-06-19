@@ -22,8 +22,11 @@ class Repository:
         return list(self._entities)
 
     def fetch(self, identifiers):
-        entities = [self._entities[i] for i in identifiers]
+        for identifier in identifiers:
+            if identifier not in self:
+                raise KeyError(identifier)
         self.gateway.fetch(identifiers)
+        entities = [self._entities[i] for i in identifiers]
         return entities
 
     def delete(self, identifiers):
