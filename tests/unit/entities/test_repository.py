@@ -6,8 +6,12 @@ from link.entities.repository import Repository
 from link.entities.entity import Entity
 
 
-def test_if_entity_cls_is_entity_by_default():
-    assert Repository.entity_cls is Entity
+def test_if_gateway_is_none_by_default():
+    assert Repository.gateway is None
+
+
+def test_if_entity_cls_is_none_by_default():
+    assert Repository.entity_cls is None
 
 
 @pytest.fixture

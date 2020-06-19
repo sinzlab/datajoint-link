@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Type
 from functools import wraps
 from contextlib import contextmanager
 
@@ -19,7 +19,7 @@ def _check_identifiers(function):
 
 class Repository:
     gateway = None
-    entity_cls = Entity
+    entity_cls: Type[Entity] = None
 
     def __init__(self, address: Address) -> None:
         """Initializes Repository."""
