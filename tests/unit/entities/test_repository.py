@@ -3,6 +3,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from link.entities.repository import Repository
+from link.entities.address import Address
+
+
+def test_if_entity_cls_is_entity_by_default():
+    assert Repository.entity_cls is Address
 
 
 @pytest.fixture

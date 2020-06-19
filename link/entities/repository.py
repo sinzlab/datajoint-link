@@ -19,7 +19,7 @@ def _check_identifiers(function):
 
 class Repository:
     gateway = None
-    entity_cls = None
+    entity_cls = Entity
 
     def __init__(self, address: Address) -> None:
         """Initializes Repository."""
