@@ -111,12 +111,21 @@ def selected_identifiers(identifiers, indexes):
 
 
 @pytest.fixture
-def test_if_error_is_raised_before_gateway_is_called(repository, gateway):
-    def _test_if_error_is_raised_before_gateway_is_called(method, arg, error):
+def execute_while_ignoring_error(repository):
+    def _execute_while_ignoring_error(method, arg, error):
         try:
             getattr(repository, method)(arg)
         except error:
-            getattr(gateway, method).assert_not_called()
+            pass
+
+    return _execute_while_ignoring_error
+
+
+@pytest.fixture
+def test_if_error_is_raised_before_gateway_is_called(repository, gateway, execute_while_ignoring_error):
+    def _test_if_error_is_raised_before_gateway_is_called(method, arg, error):
+        execute_while_ignoring_error(method, arg, error)
+        getattr(gateway, method).assert_not_called()
 
     return _test_if_error_is_raised_before_gateway_is_called
 
@@ -143,13 +152,13 @@ class TestFetch:
 
 
 @pytest.fixture
-def test_if_entities_are_not_processed_after_processing_failed_in_gateway(entities, repository, gateway):
+def test_if_entities_are_not_processed_after_processing_failed_in_gateway(
+    entities, repository, gateway, execute_while_ignoring_error
+):
     def _test_if_entities_are_not_processed_after_processing_failed_in_gateway(method, arg, error):
         getattr(gateway, method).side_effect = RuntimeError
-        try:
-            getattr(repository, method)(arg)
-        except error:
-            assert repository.entities == entities
+        execute_while_ignoring_error(method, arg, error)
+        assert repository.entities == entities
 
     return _test_if_entities_are_not_processed_after_processing_failed_in_gateway
 
