@@ -111,14 +111,14 @@ def selected_identifiers(identifiers, indexes):
 
 
 @pytest.fixture
-def execute_method_with_error(repository, gateway):
-    def _execute_method(method, arg, error):
+def test_if_error_is_raised_before_gateway_is_called(repository, gateway):
+    def _test_if_error_is_raised_before_gateway_is_called(method, arg, error):
         try:
             getattr(repository, method)(arg)
         except error:
             getattr(gateway, method).assert_not_called()
 
-    return _execute_method
+    return _test_if_error_is_raised_before_gateway_is_called
 
 
 class TestFetch:
@@ -130,8 +130,8 @@ class TestFetch:
         with pytest.raises(KeyError):
             repository.fetch(["ID999"])
 
-    def test_if_key_error_is_raised_before_gateway_is_called(self, execute_method_with_error):
-        execute_method_with_error("fetch", ["ID999"], KeyError)
+    def test_if_key_error_is_raised_before_gateway_is_called(self, test_if_error_is_raised_before_gateway_is_called):
+        test_if_error_is_raised_before_gateway_is_called("fetch", ["ID999"], KeyError)
 
     @pytest.mark.usefixtures("fetched_entities")
     def test_if_entities_are_fetched_from_gateway(self, gateway, selected_identifiers):
@@ -151,8 +151,8 @@ class TestDelete:
         with pytest.raises(KeyError):
             repository.delete(["ID999"])
 
-    def test_if_key_error_is_raised_before_gateway_is_called(self, execute_method_with_error):
-        execute_method_with_error("delete", ["ID999"], KeyError)
+    def test_if_key_error_is_raised_before_gateway_is_called(self, test_if_error_is_raised_before_gateway_is_called):
+        test_if_error_is_raised_before_gateway_is_called("delete", ["ID999"], KeyError)
 
     def test_if_entities_are_deleted_in_gateway(self, repository, gateway, selected_identifiers):
         repository.delete(selected_identifiers)
@@ -205,8 +205,10 @@ class TestInsert:
             repository.insert(new_entities)
 
     @pytest.mark.usefixtures("invalidate_identifier")
-    def test_if_value_error_is_raised_before_gateway_is_called(self, execute_method_with_error, new_entities):
-        execute_method_with_error("insert", new_entities, ValueError)
+    def test_if_value_error_is_raised_before_gateway_is_called(
+        self, test_if_error_is_raised_before_gateway_is_called, new_entities
+    ):
+        test_if_error_is_raised_before_gateway_is_called("insert", new_entities, ValueError)
 
     def test_if_entities_are_inserted_in_gateway(self, repository, gateway, new_entities):
         repository.insert(new_entities)
