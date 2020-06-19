@@ -371,3 +371,7 @@ class TestTransaction:
         with pytest.raises(RuntimeError):
             with repository.transaction():
                 raise RuntimeError
+
+
+def test_len(repository):
+    assert len(repository) == 10

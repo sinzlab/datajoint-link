@@ -100,3 +100,6 @@ class Repository:
 
     def __contains__(self, identifier) -> bool:
         return identifier in self.identifiers
+
+    def __len__(self) -> int:
+        return len(self.identifiers)
