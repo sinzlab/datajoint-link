@@ -18,9 +18,6 @@ class Repository:
     def entities(self):
         return list(self._entities.values())
 
-    def list(self):
-        return list(self._entities)
-
     def fetch(self, identifiers):
         for identifier in identifiers:
             if identifier not in self:
