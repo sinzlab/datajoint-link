@@ -1,4 +1,16 @@
+from functools import wraps
 from contextlib import contextmanager
+
+
+def _check_identifiers(function):
+    @wraps(function)
+    def wrapper(self, identifiers):
+        for identifier in identifiers:
+            if identifier not in self:
+                raise KeyError(identifier)
+        return function(self, identifiers)
+
+    return wrapper
 
 
 class Repository:
@@ -18,18 +30,14 @@ class Repository:
     def entities(self):
         return list(self._entities.values())
 
+    @_check_identifiers
     def fetch(self, identifiers):
-        for identifier in identifiers:
-            if identifier not in self:
-                raise KeyError(identifier)
         self.gateway.fetch(identifiers)
         entities = [self._entities[i] for i in identifiers]
         return entities
 
+    @_check_identifiers
     def delete(self, identifiers):
-        for identifier in identifiers:
-            if identifier not in self:
-                raise KeyError(identifier)
         self.gateway.delete(identifiers)
         for identifier in identifiers:
             del self._entities[identifier]
