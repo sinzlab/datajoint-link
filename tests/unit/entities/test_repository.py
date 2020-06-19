@@ -190,6 +190,16 @@ class TestStartTransaction:
         assert repository.in_transaction is False
 
 
+class TestStartTransactionWhenEmpty:
+    @pytest.fixture
+    def identifiers(self):
+        return list()
+
+    def test_if_repository_is_put_into_transaction_if_repository_is_empty(self, repository):
+        repository.start_transaction()
+        assert repository.in_transaction is True
+
+
 class TestCommitTransaction:
     @pytest.fixture
     def commit_transaction(self, repository):

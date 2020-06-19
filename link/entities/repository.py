@@ -39,7 +39,9 @@ class Repository:
 
     @property
     def in_transaction(self):
-        return bool(self._backup)
+        if self._backup is None:
+            return False
+        return True
 
     def start_transaction(self):
         if self.in_transaction:
