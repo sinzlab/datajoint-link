@@ -264,3 +264,28 @@ class TestCancelTransaction:
         repository.delete(selected_identifiers)
         repository.cancel_transaction()
         assert repository.entities == entities
+
+
+class TestTransaction:
+    def test_if_transaction_is_started(self, repository):
+        with repository.transaction():
+            assert repository.in_transaction is True
+
+    def test_if_transaction_is_committed(self, repository):
+        with repository.transaction():
+            pass
+        assert repository.in_transaction is False
+
+    def test_if_transaction_is_cancelled_if_error_is_raised(self, repository, selected_identifiers, entities):
+        try:
+            with repository.transaction():
+                repository.delete(selected_identifiers)
+                raise RuntimeError
+        except RuntimeError:
+            pass
+        assert repository.entities == entities
+
+    def test_if_error_raised_during_transaction_is_reraised_after(self, repository):
+        with pytest.raises(RuntimeError):
+            with repository.transaction():
+                raise RuntimeError

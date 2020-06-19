@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+
+
 class Repository:
     gateway = None
     entity_cls = None
@@ -61,6 +64,17 @@ class Repository:
         self.gateway.cancel_transaction()
         self._entities = self._create_entities(self._backup)
         self._backup = None
+
+    @contextmanager
+    def transaction(self):
+        self.start_transaction()
+        try:
+            yield
+        except RuntimeError as exception:
+            self.cancel_transaction()
+            raise exception
+        else:
+            self.commit_transaction()
 
     def __contains__(self, identifier):
         return identifier in self._entities
