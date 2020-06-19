@@ -19,6 +19,9 @@ def address_cls():
         def __eq__(self, other):
             return self.name == other.name
 
+        def __repr__(self):
+            return self.name
+
     return Address
 
 
@@ -375,3 +378,7 @@ class TestTransaction:
 
 def test_len(repository):
     assert len(repository) == 10
+
+
+def test_repr(repository):
+    assert repr(repository) == "Repository(address)"

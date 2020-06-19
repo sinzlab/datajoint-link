@@ -103,3 +103,6 @@ class Repository:
 
     def __len__(self) -> int:
         return len(self.identifiers)
+
+    def __repr__(self):
+        return f"{self.__class__.__qualname__}({repr(self.address)})"
