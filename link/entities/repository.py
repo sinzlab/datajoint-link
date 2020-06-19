@@ -27,6 +27,10 @@ class Repository:
         return {i: self.entity_cls(self.address, i) for i in identifiers}
 
     @property
+    def identifiers(self):
+        return list(self._entities)
+
+    @property
     def entities(self):
         return list(self._entities.values())
 
@@ -64,7 +68,7 @@ class Repository:
         if self.in_transaction:
             raise RuntimeError("Can't start transaction while in transaction")
         self.gateway.start_transaction()
-        self._backup = self._create_entities(self._entities)
+        self._backup = self._create_entities(self.identifiers)
 
     def commit_transaction(self):
         if not self.in_transaction:
@@ -76,7 +80,7 @@ class Repository:
         if not self.in_transaction:
             raise RuntimeError("Can't cancel transaction while not in transaction")
         self.gateway.cancel_transaction()
-        self._entities = self._create_entities(self._backup)
+        self._entities = self._create_entities(list(self._backup))
         self._backup = None
 
     @contextmanager
@@ -91,4 +95,4 @@ class Repository:
             self.commit_transaction()
 
     def __contains__(self, identifier):
-        return identifier in self._entities
+        return identifier in self.identifiers

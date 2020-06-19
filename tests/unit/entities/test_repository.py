@@ -80,6 +80,10 @@ def test_entities_property(repository, entities):
     assert repository.entities == entities
 
 
+def test_identifiers_property(repository, identifiers):
+    assert repository.identifiers == identifiers
+
+
 @pytest.fixture
 def indexes():
     return 0, 4
