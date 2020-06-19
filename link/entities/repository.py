@@ -27,15 +27,12 @@ class Repository:
         return entities
 
     def delete(self, identifiers):
-        working_copy = self._create_entities(self._entities)
         for identifier in identifiers:
-            del working_copy[identifier]
-        try:
-            self.gateway.delete(identifiers)
-        except RuntimeError:
-            pass
-        else:
-            self._entities = working_copy
+            if identifier not in self:
+                raise KeyError(identifier)
+        self.gateway.delete(identifiers)
+        for identifier in identifiers:
+            del self._entities[identifier]
 
     def insert(self, entities):
         pass

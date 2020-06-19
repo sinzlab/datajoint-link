@@ -109,33 +109,36 @@ class TestFetch:
 
 class TestDelete:
     @pytest.fixture
-    def remaining_identifiers(self, identifiers, selected_identifiers):
-        return [i for i in identifiers if i not in selected_identifiers]
+    def remaining_entities(self, entities, selected_identifiers):
+        return [e for e in entities if e.identifier not in selected_identifiers]
 
-    def test_if_gateway_is_correctly_called(self, repository, gateway, selected_identifiers):
-        repository.delete(selected_identifiers)
-        gateway.delete.assert_called_once_with(selected_identifiers)
-
-    def test_correct_entities_are_deleted(self, repository, selected_identifiers, remaining_identifiers):
-        repository.delete(selected_identifiers)
-        assert repository.list() == remaining_identifiers
-
-    def test_if_deleting_non_existing_entity_raises_error(self, repository):
+    def test_if_trying_to_delete_non_existing_entity_raises_key_error(self, repository):
         with pytest.raises(KeyError):
-            repository.delete("ID999")
+            repository.delete(["ID999"])
 
-    def test_if_error_is_raised_before_gateway_is_called(self, repository, gateway):
+    def test_if_key_error_is_raised_before_gateway_is_called(self, repository, gateway):
         try:
-            repository.delete("ID999")
+            repository.delete(["ID999"])
         except KeyError:
             gateway.delete.assert_not_called()
 
-    def test_if_repository_is_rolled_back_if_delete_fails_in_gateway(
-        self, repository, identifiers, gateway, selected_identifiers
+    def test_if_entities_are_deleted_in_gateway(self, repository, gateway, selected_identifiers):
+        repository.delete(selected_identifiers)
+        gateway.delete.assert_called_once_with(selected_identifiers)
+
+    def test_if_entities_are_not_deleted_after_deletion_failed_in_gateway(
+        self, repository, gateway, entities, selected_identifiers
     ):
         gateway.delete.side_effect = RuntimeError
+        try:
+            repository.delete(selected_identifiers)
+        except RuntimeError:
+            pass
+        assert repository.entities == entities
+
+    def test_if_correct_entities_are_deleted(self, repository, selected_identifiers, remaining_entities):
         repository.delete(selected_identifiers)
-        assert repository.list() == identifiers
+        assert repository.entities == remaining_entities
 
 
 class TestContains:
