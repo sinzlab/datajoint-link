@@ -38,7 +38,16 @@ class Repository:
             del self._entities[identifier]
 
     def insert(self, entities):
-        pass
+        for entity in entities:
+            if entity.address != self.address:
+                raise ValueError(
+                    f"Entity address ('{entity.address}') does not match repository address ('{self.address}')"
+                )
+            if entity.identifier in self:
+                raise ValueError(f"Entity with identifier '{entity.identifier}' is already in repository")
+        self.gateway.insert([e.identifier for e in entities])
+        for entity in entities:
+            self._entities[entity.identifier] = entity
 
     @property
     def in_transaction(self):

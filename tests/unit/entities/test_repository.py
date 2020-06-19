@@ -6,8 +6,20 @@ from link.entities.repository import Repository
 
 
 @pytest.fixture
-def address():
-    return MagicMock(name="address")
+def address_cls():
+    class Address:
+        def __init__(self, name):
+            self.name = name
+
+        def __eq__(self, other):
+            return self.name == other.name
+
+    return Address
+
+
+@pytest.fixture
+def address(address_cls):
+    return address_cls("address")
 
 
 @pytest.fixture
@@ -139,6 +151,64 @@ class TestDelete:
     def test_if_correct_entities_are_deleted(self, repository, selected_identifiers, remaining_entities):
         repository.delete(selected_identifiers)
         assert repository.entities == remaining_entities
+
+
+class TestInsert:
+    @pytest.fixture
+    def invalid_address(self, address_cls):
+        return address_cls("invalid_address")
+
+    @pytest.fixture
+    def new_entities(self, address, entity_cls):
+        return [entity_cls(address, "ID" + str(10 + i)) for i in range(3)]
+
+    @pytest.fixture(params=list(range(3)))
+    def invalid_entity_index(self, request):
+        return request.param
+
+    @pytest.fixture
+    def invalidate_address(self, invalid_address, new_entities, invalid_entity_index):
+        new_entities[invalid_entity_index].address = invalid_address
+
+    @pytest.fixture
+    def invalidate_identifier(self, identifiers, new_entities, invalid_entity_index):
+        new_entities[invalid_entity_index].identifier = identifiers[0]
+
+    @pytest.mark.usefixtures("invalidate_address")
+    def test_if_trying_to_insert_entity_with_invalid_address_raises_value_error(self, repository, new_entities):
+        with pytest.raises(ValueError):
+            repository.insert(new_entities)
+
+    @pytest.mark.usefixtures("invalidate_identifier")
+    def test_if_trying_to_insert_already_existing_entity_raises_value_error(self, repository, new_entities):
+        with pytest.raises(ValueError):
+            repository.insert(new_entities)
+
+    @pytest.mark.usefixtures("invalidate_identifier")
+    def test_if_value_error_is_raised_before_gateway_is_called(self, repository, gateway, new_entities):
+        try:
+            repository.insert(new_entities)
+        except ValueError:
+            pass
+        gateway.insert.assert_not_called()
+
+    def test_if_entities_are_inserted_in_gateway(self, repository, gateway, new_entities):
+        repository.insert(new_entities)
+        gateway.insert.assert_called_once_with([e.identifier for e in new_entities])
+
+    def test_if_entities_are_not_inserted_after_insertion_failed_in_gateway(
+        self, entities, repository, gateway, new_entities
+    ):
+        gateway.insert.side_effect = RuntimeError
+        try:
+            repository.insert(new_entities)
+        except RuntimeError:
+            pass
+        assert repository.entities == entities
+
+    def test_if_entities_are_inserted(self, entities, repository, new_entities):
+        repository.insert(new_entities)
+        assert repository.entities == entities + new_entities
 
 
 class TestContains:
