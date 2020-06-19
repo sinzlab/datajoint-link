@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Optional
 from functools import wraps
 from contextlib import contextmanager
 
@@ -24,31 +24,31 @@ class Repository:
     def __init__(self, address: Address) -> None:
         """Initializes Repository."""
         self.address = address
-        self._entities = self._create_entities(self.gateway.get_identifiers())
-        self._backed_up_identifiers = None
+        self._identifiers: List[str] = self.gateway.get_identifiers().copy()
+        self._backed_up_identifiers: Optional[List[str]] = None
 
-    def _create_entities(self, identifiers: List[str]) -> Dict[str, Entity]:
-        return {i: self.entity_cls(self.address, i) for i in identifiers}
+    def _create_entities(self, identifiers: List[str]) -> List[Entity]:
+        return [self.entity_cls(self.address, i) for i in identifiers]
 
     @property
     def identifiers(self):
-        return list(self._entities)
+        return self._identifiers.copy()
 
     @property
     def entities(self) -> List[Entity]:
-        return list(self._entities.values())
+        return self._create_entities(self.identifiers)
 
     @_check_identifiers
     def fetch(self, identifiers: List[str]) -> List[Entity]:
         self.gateway.fetch(identifiers)
-        entities = [self._entities[i] for i in identifiers]
+        entities = self._create_entities(identifiers)
         return entities
 
     @_check_identifiers
     def delete(self, identifiers: List[str]) -> None:
         self.gateway.delete(identifiers)
         for identifier in identifiers:
-            del self._entities[identifier]
+            del self._identifiers[self.identifiers.index(identifier)]
 
     def insert(self, entities: List[Entity]) -> None:
         for entity in entities:
@@ -60,7 +60,7 @@ class Repository:
                 raise ValueError(f"Entity with identifier '{entity.identifier}' is already in repository")
         self.gateway.insert([e.identifier for e in entities])
         for entity in entities:
-            self._entities[entity.identifier] = entity
+            self._identifiers.append(entity.identifier)
 
     @property
     def in_transaction(self) -> bool:
@@ -84,7 +84,7 @@ class Repository:
         if not self.in_transaction:
             raise RuntimeError("Can't cancel transaction while not in transaction")
         self.gateway.cancel_transaction()
-        self._entities = self._create_entities(self._backed_up_identifiers)
+        self._identifiers = self._backed_up_identifiers
         self._backed_up_identifiers = None
 
     @contextmanager

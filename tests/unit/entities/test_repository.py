@@ -81,12 +81,17 @@ class TestInit:
         assert repository.in_transaction is False
 
 
+class TestIdentifiersProperty:
+    def test_if_identifiers_are_returned(self, repository, identifiers):
+        assert repository.identifiers == identifiers
+
+    def test_if_identifiers_are_copy(self, repository, identifiers):
+        del repository.identifiers[0]
+        assert repository.identifiers == identifiers
+
+
 def test_entities_property(repository, entities):
     assert repository.entities == entities
-
-
-def test_identifiers_property(repository, identifiers):
-    assert repository.identifiers == identifiers
 
 
 @pytest.fixture
