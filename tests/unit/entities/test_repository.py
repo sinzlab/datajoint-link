@@ -142,6 +142,18 @@ class TestFetch:
         assert fetched_entities == expected_entities
 
 
+@pytest.fixture
+def test_if_entities_are_not_processed_after_processing_failed_in_gateway(entities, repository, gateway):
+    def _test_if_entities_are_not_processed_after_processing_failed_in_gateway(method, arg, error):
+        getattr(gateway, method).side_effect = RuntimeError
+        try:
+            getattr(repository, method)(arg)
+        except error:
+            assert repository.entities == entities
+
+    return _test_if_entities_are_not_processed_after_processing_failed_in_gateway
+
+
 class TestDelete:
     @pytest.fixture
     def remaining_entities(self, entities, selected_identifiers):
@@ -159,14 +171,11 @@ class TestDelete:
         gateway.delete.assert_called_once_with(selected_identifiers)
 
     def test_if_entities_are_not_deleted_after_deletion_failed_in_gateway(
-        self, repository, gateway, entities, selected_identifiers
+        self, test_if_entities_are_not_processed_after_processing_failed_in_gateway, selected_identifiers
     ):
-        gateway.delete.side_effect = RuntimeError
-        try:
-            repository.delete(selected_identifiers)
-        except RuntimeError:
-            pass
-        assert repository.entities == entities
+        test_if_entities_are_not_processed_after_processing_failed_in_gateway(
+            "delete", selected_identifiers, RuntimeError
+        )
 
     def test_if_correct_entities_are_deleted(self, repository, selected_identifiers, remaining_entities):
         repository.delete(selected_identifiers)
@@ -215,14 +224,9 @@ class TestInsert:
         gateway.insert.assert_called_once_with([e.identifier for e in new_entities])
 
     def test_if_entities_are_not_inserted_after_insertion_failed_in_gateway(
-        self, entities, repository, gateway, new_entities
+        self, test_if_entities_are_not_processed_after_processing_failed_in_gateway, new_entities
     ):
-        gateway.insert.side_effect = RuntimeError
-        try:
-            repository.insert(new_entities)
-        except RuntimeError:
-            pass
-        assert repository.entities == entities
+        test_if_entities_are_not_processed_after_processing_failed_in_gateway("insert", new_entities, RuntimeError)
 
     def test_if_entities_are_inserted(self, entities, repository, new_entities):
         repository.insert(new_entities)
