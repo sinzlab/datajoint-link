@@ -25,7 +25,7 @@ class Repository:
         """Initializes Repository."""
         self.address = address
         self._entities = self._create_entities(self.gateway.get_identifiers())
-        self._backup = None
+        self._backed_up_identifiers = None
 
     def _create_entities(self, identifiers: List[str]) -> Dict[str, Entity]:
         return {i: self.entity_cls(self.address, i) for i in identifiers}
@@ -64,7 +64,7 @@ class Repository:
 
     @property
     def in_transaction(self) -> bool:
-        if self._backup is None:
+        if self._backed_up_identifiers is None:
             return False
         return True
 
@@ -72,20 +72,20 @@ class Repository:
         if self.in_transaction:
             raise RuntimeError("Can't start transaction while in transaction")
         self.gateway.start_transaction()
-        self._backup = self._create_entities(self.identifiers)
+        self._backed_up_identifiers = self.identifiers
 
     def commit_transaction(self) -> None:
         if not self.in_transaction:
             raise RuntimeError("Can't commit transaction while not in transaction")
         self.gateway.commit_transaction()
-        self._backup = None
+        self._backed_up_identifiers = None
 
     def cancel_transaction(self) -> None:
         if not self.in_transaction:
             raise RuntimeError("Can't cancel transaction while not in transaction")
         self.gateway.cancel_transaction()
-        self._entities = self._create_entities(list(self._backup))
-        self._backup = None
+        self._entities = self._create_entities(self._backed_up_identifiers)
+        self._backed_up_identifiers = None
 
     @contextmanager
     def transaction(self):
