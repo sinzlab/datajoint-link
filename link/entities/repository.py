@@ -1,4 +1,4 @@
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Iterator
 from functools import wraps
 from contextlib import contextmanager
 
@@ -104,5 +104,9 @@ class Repository:
     def __len__(self) -> int:
         return len(self.identifiers)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({repr(self.address)})"
+
+    def __iter__(self) -> Iterator:
+        for identifier in self.identifiers:
+            yield identifier

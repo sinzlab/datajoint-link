@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from link.entities.repository import Repository
-from link.entities.entity import Entity
 
 
 def test_if_gateway_is_none_by_default():
@@ -386,3 +385,7 @@ def test_len(repository):
 
 def test_repr(repository):
     assert repr(repository) == "Repository(address)"
+
+
+def test_iter(identifiers, repository):
+    assert [i for i in repository] == identifiers
