@@ -88,23 +88,23 @@ class TestFetch:
     def fetched_entities(self, repository, selected_identifiers):
         return repository.fetch(selected_identifiers)
 
+    def test_if_trying_to_get_non_existing_entity_raises_key_error(self, repository):
+        with pytest.raises(KeyError):
+            repository.fetch(["ID999"])
+
+    def test_if_key_error_is_raised_before_gateway_is_called(self, repository, gateway):
+        try:
+            repository.fetch(["ID999"])
+        except KeyError:
+            gateway.fetch.assert_not_called()
+
     @pytest.mark.usefixtures("fetched_entities")
-    def test_if_gateway_is_correctly_called(self, gateway, selected_identifiers):
+    def test_if_entities_are_fetched_from_gateway(self, gateway, selected_identifiers):
         gateway.fetch.assert_called_once_with(selected_identifiers)
 
     def test_if_correct_entities_are_fetched(self, entities, indexes, fetched_entities):
         expected_entities = [entities[index] for index in indexes]
         assert fetched_entities == expected_entities
-
-    def test_if_getting_non_existing_entity_raises_error(self, repository):
-        with pytest.raises(KeyError):
-            repository.fetch("ID999")
-
-    def test_if_error_is_raised_before_gateway_is_called(self, repository, gateway):
-        try:
-            repository.fetch("ID999")
-        except KeyError:
-            gateway.fetch.assert_not_called()
 
 
 class TestDelete:
