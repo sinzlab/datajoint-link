@@ -1,9 +1,9 @@
-name: Lint
+name: Black
 
 on: [push, pull_request]
 
 jobs:
-  lint:
+  black:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
