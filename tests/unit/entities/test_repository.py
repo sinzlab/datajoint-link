@@ -41,7 +41,7 @@ def identifiers():
 @pytest.fixture
 def gateway(identifiers):
     gateway = MagicMock(name="gateway")
-    gateway.get_identifiers.return_value = identifiers
+    gateway.get_identifiers.return_value = identifiers.copy()
     return gateway
 
 

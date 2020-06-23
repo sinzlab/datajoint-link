@@ -24,7 +24,7 @@ class Repository:
     def __init__(self, address: Address) -> None:
         """Initializes Repository."""
         self.address = address
-        self._identifiers: List[str] = self.gateway.get_identifiers().copy()
+        self._identifiers: List[str] = self.gateway.get_identifiers()
         self._backed_up_identifiers: Optional[List[str]] = None
 
     def _create_entities(self, identifiers: List[str]) -> List[Entity]:
