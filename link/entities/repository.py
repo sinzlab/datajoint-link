@@ -1,20 +1,8 @@
 from typing import List, Optional, Type, Iterator, ContextManager
-from functools import wraps
 from contextlib import contextmanager
 
 from .address import Address
 from .entity import Entity
-
-
-def _check_identifiers(function):
-    @wraps(function)
-    def wrapper(self, identifiers):
-        for identifier in identifiers:
-            if identifier not in self:
-                raise KeyError(identifier)
-        return function(self, identifiers)
-
-    return wrapper
 
 
 class Repository:
@@ -38,26 +26,17 @@ class Repository:
     def entities(self) -> List[Entity]:
         return self._create_entities(self.identifiers)
 
-    @_check_identifiers
     def fetch(self, identifiers: List[str]) -> List[Entity]:
         self.gateway.fetch(identifiers)
         entities = self._create_entities(identifiers)
         return entities
 
-    @_check_identifiers
     def delete(self, identifiers: List[str]) -> None:
         self.gateway.delete(identifiers)
         for identifier in identifiers:
             del self._identifiers[self.identifiers.index(identifier)]
 
     def insert(self, entities: List[Entity]) -> None:
-        for entity in entities:
-            if entity.address != self.address:
-                raise ValueError(
-                    f"Entity address ('{entity.address}') does not match repository address ('{self.address}')"
-                )
-            if entity.identifier in self:
-                raise ValueError(f"Entity with identifier '{entity.identifier}' is already in repository")
         self.gateway.insert([e.identifier for e in entities])
         for entity in entities:
             self._identifiers.append(entity.identifier)

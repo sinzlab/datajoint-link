@@ -85,6 +85,20 @@ def selected_identifiers(identifiers, indexes):
     return [identifiers[i] for i in indexes]
 
 
+class TestFetch:
+    @pytest.fixture
+    def fetched_entities(self, repository, selected_identifiers):
+        return repository.fetch(selected_identifiers)
+
+    @pytest.mark.usefixtures("fetched_entities")
+    def test_if_entities_are_fetched_from_gateway(self, gateway, selected_identifiers):
+        gateway.fetch.assert_called_once_with(selected_identifiers)
+
+    def test_if_correct_entities_are_fetched(self, entities, indexes, fetched_entities):
+        expected_entities = [entities[index] for index in indexes]
+        assert fetched_entities == expected_entities
+
+
 @pytest.fixture
 def execute_while_ignoring_error(repository):
     def _execute_while_ignoring_error(method, arg, error):
@@ -94,36 +108,6 @@ def execute_while_ignoring_error(repository):
             pass
 
     return _execute_while_ignoring_error
-
-
-@pytest.fixture
-def test_if_error_is_raised_before_gateway_is_called(repository, gateway, execute_while_ignoring_error):
-    def _test_if_error_is_raised_before_gateway_is_called(method, arg, error):
-        execute_while_ignoring_error(method, arg, error)
-        getattr(gateway, method).assert_not_called()
-
-    return _test_if_error_is_raised_before_gateway_is_called
-
-
-class TestFetch:
-    @pytest.fixture
-    def fetched_entities(self, repository, selected_identifiers):
-        return repository.fetch(selected_identifiers)
-
-    def test_if_trying_to_get_non_existing_entity_raises_key_error(self, repository):
-        with pytest.raises(KeyError):
-            repository.fetch(["ID999"])
-
-    def test_if_key_error_is_raised_before_gateway_is_called(self, test_if_error_is_raised_before_gateway_is_called):
-        test_if_error_is_raised_before_gateway_is_called("fetch", ["ID999"], KeyError)
-
-    @pytest.mark.usefixtures("fetched_entities")
-    def test_if_entities_are_fetched_from_gateway(self, gateway, selected_identifiers):
-        gateway.fetch.assert_called_once_with(selected_identifiers)
-
-    def test_if_correct_entities_are_fetched(self, entities, indexes, fetched_entities):
-        expected_entities = [entities[index] for index in indexes]
-        assert fetched_entities == expected_entities
 
 
 @pytest.fixture
@@ -143,13 +127,6 @@ class TestDelete:
     def remaining_entities(self, entities, selected_identifiers):
         return [e for e in entities if e.identifier not in selected_identifiers]
 
-    def test_if_trying_to_delete_non_existing_entity_raises_key_error(self, repository):
-        with pytest.raises(KeyError):
-            repository.delete(["ID999"])
-
-    def test_if_key_error_is_raised_before_gateway_is_called(self, test_if_error_is_raised_before_gateway_is_called):
-        test_if_error_is_raised_before_gateway_is_called("delete", ["ID999"], KeyError)
-
     def test_if_entities_are_deleted_in_gateway(self, repository, gateway, selected_identifiers):
         repository.delete(selected_identifiers)
         gateway.delete.assert_called_once_with(selected_identifiers)
@@ -168,40 +145,8 @@ class TestDelete:
 
 class TestInsert:
     @pytest.fixture
-    def invalid_address(self, address_cls):
-        return address_cls("invalid_address")
-
-    @pytest.fixture
     def new_entities(self, address, entity_cls):
         return [entity_cls(address, "ID" + str(10 + i)) for i in range(3)]
-
-    @pytest.fixture(params=list(range(3)))
-    def invalid_entity_index(self, request):
-        return request.param
-
-    @pytest.fixture
-    def invalidate_address(self, invalid_address, new_entities, invalid_entity_index):
-        new_entities[invalid_entity_index].address = invalid_address
-
-    @pytest.fixture
-    def invalidate_identifier(self, identifiers, new_entities, invalid_entity_index):
-        new_entities[invalid_entity_index].identifier = identifiers[0]
-
-    @pytest.mark.usefixtures("invalidate_address")
-    def test_if_trying_to_insert_entity_with_invalid_address_raises_value_error(self, repository, new_entities):
-        with pytest.raises(ValueError):
-            repository.insert(new_entities)
-
-    @pytest.mark.usefixtures("invalidate_identifier")
-    def test_if_trying_to_insert_already_existing_entity_raises_value_error(self, repository, new_entities):
-        with pytest.raises(ValueError):
-            repository.insert(new_entities)
-
-    @pytest.mark.usefixtures("invalidate_identifier")
-    def test_if_value_error_is_raised_before_gateway_is_called(
-        self, test_if_error_is_raised_before_gateway_is_called, new_entities
-    ):
-        test_if_error_is_raised_before_gateway_is_called("insert", new_entities, ValueError)
 
     def test_if_entities_are_inserted_in_gateway(self, repository, gateway, new_entities):
         repository.insert(new_entities)
