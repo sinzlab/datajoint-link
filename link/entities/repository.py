@@ -1,4 +1,4 @@
-from typing import List, Optional, Type, Iterator
+from typing import List, Optional, Type, Iterator, ContextManager
 from functools import wraps
 from contextlib import contextmanager
 
@@ -88,7 +88,7 @@ class Repository:
         self._backed_up_identifiers = None
 
     @contextmanager
-    def transaction(self):
+    def transaction(self) -> ContextManager:
         self.start_transaction()
         try:
             yield
