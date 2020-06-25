@@ -341,3 +341,7 @@ def test_repr(repo):
 
 def test_iter(identifiers, repo):
     assert [i for i in repo] == identifiers
+
+
+def test_getitem(identifiers, entities, repo):
+    assert [repo[identifier] for identifier in identifiers] == entities

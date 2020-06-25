@@ -85,3 +85,6 @@ class Repository:
     def __iter__(self) -> Iterator:
         for identifier in self.identifiers:
             yield identifier
+
+    def __getitem__(self, identifier: str) -> Entity:
+        return self._entities[identifier]
