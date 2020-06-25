@@ -2,7 +2,7 @@ from typing import List, Optional, Iterator, ContextManager
 from contextlib import contextmanager
 
 from .address import Address
-from .entity import Entity
+from .domain import Entity
 
 
 class Repository:
