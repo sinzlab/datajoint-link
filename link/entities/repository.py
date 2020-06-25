@@ -29,7 +29,7 @@ class Repository:
 
     def delete(self, identifiers: List[str]) -> None:
         self.gateway.delete(identifiers)
-        self._entities = [entity for entity in self._entities if entity.identifier not in identifiers]
+        self._entities = [entity for entity in self.entities if entity.identifier not in identifiers]
 
     def insert(self, entities: List[Entity]) -> None:
         self.gateway.insert([entity.identifier for entity in entities])

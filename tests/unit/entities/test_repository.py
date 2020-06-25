@@ -14,23 +14,10 @@ def test_if_entity_creator_is_none_by_default():
 
 
 @pytest.fixture
-def address_cls():
-    class Address:
-        def __init__(self, name):
-            self.name = name
-
-        def __eq__(self, other):
-            return self.name == other.name
-
-        def __repr__(self):
-            return self.name
-
-    return Address
-
-
-@pytest.fixture
-def address(address_cls):
-    return address_cls("address")
+def address():
+    address = MagicMock(name="address")
+    address.__repr__ = MagicMock(return_value="address")
+    return address
 
 
 @pytest.fixture
@@ -39,28 +26,13 @@ def identifiers():
 
 
 @pytest.fixture
-def gateway(identifiers):
-    gateway = MagicMock(name="gateway")
-    gateway.get_identifiers.return_value = identifiers.copy()
-    return gateway
+def gateway():
+    return MagicMock(name="gateway")
 
 
 @pytest.fixture
-def entity_cls():
-    class EntityClass:
-        def __init__(self, address, identifier):
-            self.address = address
-            self.identifier = identifier
-
-        def __eq__(self, other):
-            return self.address == other.address and self.identifier == other.identifier
-
-    return EntityClass
-
-
-@pytest.fixture
-def entities(address, entity_cls, identifiers):
-    return [entity_cls(address, i) for i in identifiers]
+def entities(identifiers):
+    return [MagicMock(name="entity_" + identifier, identifier=identifier) for identifier in identifiers]
 
 
 @pytest.fixture
@@ -71,7 +43,7 @@ def entity_creator(entities):
 
 
 @pytest.fixture
-def repo_cls(gateway, entity_cls, entity_creator):
+def repo_cls(gateway, entity_creator):
     class Repository(repository.Repository):
         __qualname__ = "Repository"
 
@@ -180,8 +152,12 @@ class TestDelete:
 
 class TestInsert:
     @pytest.fixture
-    def new_entities(self, address, entity_cls):
-        return [entity_cls(address, "ID" + str(10 + i)) for i in range(3)]
+    def new_identifiers(self):
+        return ["ID" + str(10 + i) for i in range(3)]
+
+    @pytest.fixture
+    def new_entities(self, new_identifiers):
+        return [MagicMock(name="entity_" + identifier, identifier=identifier) for identifier in new_identifiers]
 
     def test_if_entities_are_inserted_in_gateway(self, repo, gateway, new_entities):
         repo.insert(new_entities)
