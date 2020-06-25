@@ -1,4 +1,4 @@
-from typing import List, Optional, Iterator, ContextManager
+from typing import List, Optional, Iterator, ContextManager, Dict
 from contextlib import contextmanager
 
 from .address import Address
@@ -12,28 +12,30 @@ class Repository:
     def __init__(self, address: Address) -> None:
         """Initializes Repository."""
         self.address = address
-        self._entities = self.entity_creator.create_entities()
-        self._backed_up_entities: Optional[List[Entity]] = None
+        self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
+        self._backed_up_entities: Optional[Dict[Entity]] = None
 
     @property
     def identifiers(self):
-        return [entity.identifier for entity in self.entities]
+        return list(self._entities)
 
     @property
     def entities(self) -> List[Entity]:
-        return self._entities.copy()
+        return list(self._entities.values())
 
     def fetch(self, identifiers: List[str]) -> List[Entity]:
         self.gateway.fetch(identifiers)
-        return [entity for entity in self.entities if entity.identifier in identifiers]
+        return [self._entities[identifier] for identifier in identifiers]
 
     def delete(self, identifiers: List[str]) -> None:
         self.gateway.delete(identifiers)
-        self._entities = [entity for entity in self.entities if entity.identifier not in identifiers]
+        for identifier in identifiers:
+            del self._entities[identifier]
 
     def insert(self, entities: List[Entity]) -> None:
         self.gateway.insert([entity.identifier for entity in entities])
-        self._entities += entities
+        for entity in entities:
+            self._entities[entity.identifier] = entity
 
     @property
     def in_transaction(self) -> bool:
@@ -45,7 +47,7 @@ class Repository:
         if self.in_transaction:
             raise RuntimeError("Can't start transaction while in transaction")
         self.gateway.start_transaction()
-        self._backed_up_entities = self.entities
+        self._backed_up_entities = self._entities.copy()
 
     def commit_transaction(self) -> None:
         if not self.in_transaction:
