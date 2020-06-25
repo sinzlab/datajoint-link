@@ -43,7 +43,7 @@ class AbstractEntityCreator(ABC):
 class EntityCreator(AbstractEntityCreator):
     entity_cls = Entity
 
-    def _create_entities(self):
+    def _create_entities(self) -> List[Entity]:
         # noinspection PyArgumentList
         return [self.entity_cls(self.address, identifier) for identifier in self.identifiers]
 
@@ -53,10 +53,10 @@ class FlaggedEntityCreator(AbstractEntityCreator):
 
     def __init__(self) -> None:
         super().__init__()
-        self.deletion_requested_flags = self.gateway.deletion_requested_flags
-        self.can_be_deleted_flags = self.gateway.can_be_deleted_flags
+        self.deletion_requested_flags: List[bool] = self.gateway.deletion_requested_flags
+        self.can_be_deleted_flags: List[bool] = self.gateway.can_be_deleted_flags
 
-    def _create_entities(self):
+    def _create_entities(self) -> List[FlaggedEntity]:
         entities = []
         for identifier, deletion_requested_flag, can_be_deleted_flag in zip(
             self.identifiers, self.deletion_requested_flags, self.can_be_deleted_flags
