@@ -21,7 +21,7 @@ class Repository:
 
     @property
     def entities(self) -> List[Entity]:
-        return self._entities
+        return self._entities.copy()
 
     def fetch(self, identifiers: List[str]) -> List[Entity]:
         self.gateway.fetch(identifiers)

@@ -78,8 +78,13 @@ class TestIdentifiersProperty:
         assert repo.identifiers == identifiers
 
 
-def test_entities_property(repo, entities):
-    assert repo.entities == entities
+class TestEntitiesProperty:
+    def test_if_entities_are_returned(self, repo, entities):
+        assert repo.entities == entities
+
+    def test_if_entities_are_copy(self, repo, entities):
+        del repo.entities[0]
+        assert repo.entities == entities
 
 
 @pytest.fixture
