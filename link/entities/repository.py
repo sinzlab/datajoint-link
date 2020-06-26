@@ -1,8 +1,7 @@
 from typing import List, Optional, Iterator, ContextManager, Dict
 from contextlib import contextmanager
 
-from .address import Address
-from .domain import EntityTypeVar
+from .domain import Address, EntityTypeVar
 
 
 class Repository:

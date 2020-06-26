@@ -1,7 +1,7 @@
 from typing import List
 
 from .repository import Repository
-from .address import Address
+from .domain import Address
 from .local import LocalRepository
 
 
