@@ -2,13 +2,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.entities.domain import Address
+from link.entities import domain
 
 
 @pytest.fixture
 def address():
     address = MagicMock(name="address")
-    address.__repr__ = MagicMock(return_value="address", spec=Address)
+    address.__repr__ = MagicMock(return_value="address", spec=domain.Address)
     return address
 
 
@@ -20,6 +20,18 @@ def identifiers():
 @pytest.fixture
 def entities(identifiers):
     return [MagicMock(name="entity_" + identifier, identifier=identifier) for identifier in identifiers]
+
+
+@pytest.fixture
+def gateway():
+    return MagicMock(name="gateway")
+
+
+@pytest.fixture
+def entity_creator(entities):
+    entity_creator = MagicMock(name="entity_creator")
+    entity_creator.create_entities.return_value = entities.copy()
+    return entity_creator
 
 
 @pytest.fixture

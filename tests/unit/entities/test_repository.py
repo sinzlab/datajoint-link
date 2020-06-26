@@ -14,18 +14,6 @@ def test_if_entity_creator_is_none_by_default():
 
 
 @pytest.fixture
-def gateway():
-    return MagicMock(name="gateway")
-
-
-@pytest.fixture
-def entity_creator(entities):
-    entity_creator = MagicMock(name="entity_creator")
-    entity_creator.create_entities.return_value = entities.copy()
-    return entity_creator
-
-
-@pytest.fixture
 def repo_cls(gateway, entity_creator):
     class Repository(repository.Repository):
         __qualname__ = "Repository"

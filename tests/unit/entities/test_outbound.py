@@ -11,21 +11,38 @@ def test_if_outbound_repository_is_subclass_of_repository():
 
 
 @pytest.fixture
-def repo_cls():
+def repo_cls(add_spy):
     class Repository(repository.Repository):
-        __init__ = MagicMock(name="Repository.__init__")
+        pass
 
+    Repository.__init__ = add_spy(Repository.__init__)
+    Repository.delete = add_spy(Repository.delete)
     return Repository
 
 
 @pytest.fixture
-def outbound_repo_cls(address, entities, repo_cls):
+def add_spy():
+    def _add_spy(func):
+        spy = MagicMock()
+
+        def wrapper(*args, **kwargs):
+            spy(*args, **kwargs)
+            return func(*args, **kwargs)
+
+        wrapper.spy = spy
+        return wrapper
+
+    return _add_spy
+
+
+@pytest.fixture
+def outbound_repo_cls(gateway, entity_creator, repo_cls):
     class OutboundRepository(outbound.OutboundRepository, repo_cls):
         pass
 
     OutboundRepository.__qualname__ = OutboundRepository.__name__
-    OutboundRepository.address = address
-    OutboundRepository.__getitem__ = MagicMock(name=OutboundRepository.__qualname__, side_effect=entities)
+    OutboundRepository.gateway = gateway
+    OutboundRepository.entity_creator = entity_creator
     return OutboundRepository
 
 
@@ -44,9 +61,8 @@ def outbound_repo(outbound_repo_cls, address, local_repo):
 
 
 class TestInit:
-    @pytest.mark.usefixtures("outbound_repo")
-    def test_if_super_class_is_initialized(self, repo_cls, address):
-        repo_cls.__init__.assert_called_once_with(address)
+    def test_if_super_class_is_initialized(self, address, repo_cls, outbound_repo):
+        repo_cls.__init__.spy.assert_called_once_with(outbound_repo, address)
 
     def test_if_local_repository_is_stored_as_instance_attribute(self, local_repo, outbound_repo):
         assert outbound_repo.local_repo is local_repo
@@ -58,11 +74,6 @@ class TestDelete:
         for entity in entities:
             entity.deletion_requested = False
         return entities
-
-    @pytest.fixture
-    def repo_cls(self, repo_cls):
-        repo_cls.delete = MagicMock(name=repo_cls.__name__ + ".delete")
-        return repo_cls
 
     @pytest.fixture
     def request_deletion(self, entities, selected_identifiers):
@@ -90,7 +101,7 @@ class TestDelete:
 
     def test_if_entities_are_deleted(self, identifiers, repo_cls, outbound_repo):
         outbound_repo.delete(identifiers)
-        repo_cls.delete.assert_called_once_with(identifiers)
+        repo_cls.delete.spy.assert_called_once_with(outbound_repo, identifiers)
 
     def test_if_runtime_error_due_to_local_presence_is_raised_before_deletion(
         self, identifiers, repo_cls, local_repo, outbound_repo
@@ -100,7 +111,7 @@ class TestDelete:
             outbound_repo.delete(identifiers)
         except RuntimeError:
             pass
-        repo_cls.delete.assert_not_called()
+        repo_cls.delete.spy.assert_not_called()
 
     @pytest.mark.usefixtures("request_deletion")
     def test_if_runtime_error_due_to_deletion_request_is_raised_before_deletion(
@@ -110,7 +121,7 @@ class TestDelete:
             outbound_repo.delete(identifiers)
         except RuntimeError:
             pass
-        repo_cls.delete.assert_not_called()
+        repo_cls.delete.spy.assert_not_called()
 
 
 def test_repr(outbound_repo):
