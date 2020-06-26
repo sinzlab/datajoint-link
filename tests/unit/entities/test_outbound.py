@@ -11,33 +11,8 @@ def test_if_outbound_repository_is_subclass_of_repository():
 
 
 @pytest.fixture
-def repo_cls(add_spy):
-    class Repository(repository.Repository):
-        pass
-
-    Repository.__init__ = add_spy(Repository.__init__)
-    Repository.delete = add_spy(Repository.delete)
-    return Repository
-
-
-@pytest.fixture
-def add_spy():
-    def _add_spy(func):
-        spy = MagicMock()
-
-        def wrapper(*args, **kwargs):
-            spy(*args, **kwargs)
-            return func(*args, **kwargs)
-
-        wrapper.spy = spy
-        return wrapper
-
-    return _add_spy
-
-
-@pytest.fixture
-def outbound_repo_cls(gateway, entity_creator, repo_cls):
-    class OutboundRepository(outbound.OutboundRepository, repo_cls):
+def outbound_repo_cls(gateway, entity_creator):
+    class OutboundRepository(outbound.OutboundRepository):
         pass
 
     OutboundRepository.__qualname__ = OutboundRepository.__name__
@@ -60,12 +35,8 @@ def outbound_repo(outbound_repo_cls, address, local_repo):
     return outbound_repo_cls(address, local_repo)
 
 
-class TestInit:
-    def test_if_super_class_is_initialized(self, address, repo_cls, outbound_repo):
-        repo_cls.__init__.spy.assert_called_once_with(outbound_repo, address)
-
-    def test_if_local_repository_is_stored_as_instance_attribute(self, local_repo, outbound_repo):
-        assert outbound_repo.local_repo is local_repo
+def test_if_local_repository_is_stored_as_instance_attribute(local_repo, outbound_repo):
+    assert outbound_repo.local_repo is local_repo
 
 
 class TestDelete:
@@ -99,29 +70,27 @@ class TestDelete:
         with pytest.raises(RuntimeError):
             outbound_repo.delete(identifiers)
 
-    def test_if_entities_are_deleted(self, identifiers, repo_cls, outbound_repo):
+    def test_if_entities_are_deleted(self, identifiers, outbound_repo):
         outbound_repo.delete(identifiers)
-        repo_cls.delete.spy.assert_called_once_with(outbound_repo, identifiers)
+        assert outbound_repo.identifiers == []
 
     def test_if_runtime_error_due_to_local_presence_is_raised_before_deletion(
-        self, identifiers, repo_cls, local_repo, outbound_repo
+        self, identifiers, local_repo, outbound_repo
     ):
         local_repo.__contains__.return_value = True
         try:
             outbound_repo.delete(identifiers)
         except RuntimeError:
             pass
-        repo_cls.delete.spy.assert_not_called()
+        assert outbound_repo.identifiers == identifiers
 
     @pytest.mark.usefixtures("request_deletion")
-    def test_if_runtime_error_due_to_deletion_request_is_raised_before_deletion(
-        self, identifiers, repo_cls, outbound_repo
-    ):
+    def test_if_runtime_error_due_to_deletion_request_is_raised_before_deletion(self, identifiers, outbound_repo):
         try:
             outbound_repo.delete(identifiers)
         except RuntimeError:
             pass
-        repo_cls.delete.spy.assert_not_called()
+        assert outbound_repo.identifiers == identifiers
 
 
 def test_repr(outbound_repo):
