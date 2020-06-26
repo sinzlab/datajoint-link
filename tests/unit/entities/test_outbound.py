@@ -65,9 +65,10 @@ class TestDelete:
         return repo_cls
 
     @pytest.fixture
-    def request_deletion(self, entities):
+    def request_deletion(self, entities, selected_identifiers):
         for entity in entities:
-            entity.deletion_requested = True
+            if entity.identifier in selected_identifiers:
+                entity.deletion_requested = True
 
     def test_if_presence_of_entities_in_local_repository_is_checked(self, identifiers, local_repo, outbound_repo):
         outbound_repo.delete(identifiers)

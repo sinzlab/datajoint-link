@@ -70,16 +70,6 @@ class TestEntitiesProperty:
         assert repo.entities == entities
 
 
-@pytest.fixture
-def indexes():
-    return 0, 4
-
-
-@pytest.fixture
-def selected_identifiers(identifiers, indexes):
-    return [identifiers[i] for i in indexes]
-
-
 class TestFetch:
     @pytest.fixture
     def fetched_entities(self, repo, selected_identifiers):

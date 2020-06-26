@@ -20,3 +20,13 @@ def identifiers():
 @pytest.fixture
 def entities(identifiers):
     return [MagicMock(name="entity_" + identifier, identifier=identifier) for identifier in identifiers]
+
+
+@pytest.fixture
+def indexes():
+    return 0, 4
+
+
+@pytest.fixture
+def selected_identifiers(identifiers, indexes):
+    return [identifiers[i] for i in indexes]
