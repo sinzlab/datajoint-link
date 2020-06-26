@@ -6,6 +6,10 @@ from link.entities import outbound
 from link.entities import repository
 
 
+def test_if_outbound_repository_is_subclass_of_repository():
+    assert issubclass(outbound.OutboundRepository, repository.Repository)
+
+
 @pytest.fixture
 def repo_cls():
     class Repository(repository.Repository):
