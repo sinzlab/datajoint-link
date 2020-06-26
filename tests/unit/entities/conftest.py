@@ -2,11 +2,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from link.entities.domain import Address
+
 
 @pytest.fixture
 def address():
     address = MagicMock(name="address")
-    address.__repr__ = MagicMock(return_value="address")
+    address.__repr__ = MagicMock(return_value="address", spec=Address)
     return address
 
 
