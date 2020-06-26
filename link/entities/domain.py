@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, TypeVar, Type
 
 from .address import Address
 
@@ -17,6 +17,9 @@ class FlaggedEntity(Entity):
     can_be_deleted: bool
 
 
+EntityTypeVar = TypeVar("EntityTypeVar", Entity, FlaggedEntity)
+
+
 class AbstractEntityCreator(ABC):
     gateway = None
 
@@ -26,14 +29,14 @@ class AbstractEntityCreator(ABC):
 
     @property
     @abstractmethod
-    def entity_cls(self):
+    def entity_cls(self) -> Type[EntityTypeVar]:
         pass
 
     @abstractmethod
-    def _create_entities(self):
+    def _create_entities(self) -> List[EntityTypeVar]:
         pass
 
-    def create_entities(self):
+    def create_entities(self) -> List[EntityTypeVar]:
         return self._create_entities()
 
     def __repr__(self) -> str:

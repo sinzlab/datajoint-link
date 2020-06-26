@@ -2,7 +2,7 @@ from typing import List, Optional, Iterator, ContextManager, Dict
 from contextlib import contextmanager
 
 from .address import Address
-from .domain import Entity
+from .domain import EntityTypeVar
 
 
 class Repository:
@@ -13,17 +13,17 @@ class Repository:
         """Initializes Repository."""
         self.address = address
         self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
-        self._backed_up_entities: Optional[Dict[Entity]] = None
+        self._backed_up_entities: Optional[Dict[EntityTypeVar]] = None
 
     @property
     def identifiers(self):
         return list(self._entities)
 
     @property
-    def entities(self) -> List[Entity]:
+    def entities(self) -> List[EntityTypeVar]:
         return list(self._entities.values())
 
-    def fetch(self, identifiers: List[str]) -> List[Entity]:
+    def fetch(self, identifiers: List[str]) -> List[EntityTypeVar]:
         self.gateway.fetch(identifiers)
         return [self._entities[identifier] for identifier in identifiers]
 
@@ -32,7 +32,7 @@ class Repository:
         for identifier in identifiers:
             del self._entities[identifier]
 
-    def insert(self, entities: List[Entity]) -> None:
+    def insert(self, entities: List[EntityTypeVar]) -> None:
         self.gateway.insert([entity.identifier for entity in entities])
         for entity in entities:
             self._entities[entity.identifier] = entity
@@ -86,5 +86,5 @@ class Repository:
         for identifier in self.identifiers:
             yield identifier
 
-    def __getitem__(self, identifier: str) -> Entity:
+    def __getitem__(self, identifier: str) -> EntityTypeVar:
         return self._entities[identifier]
