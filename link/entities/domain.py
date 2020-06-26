@@ -2,7 +2,12 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import List, TypeVar, Type
 
-from .address import Address
+
+@dataclass(frozen=True)
+class Address:
+    host: str
+    database: str
+    table: str
 
 
 @dataclass(frozen=True)
