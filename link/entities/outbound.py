@@ -1,8 +1,11 @@
-from typing import List
+from __future__ import annotations
+from typing import TYPE_CHECKING, List
 
 from .repository import Repository
-from .domain import Address
-from .local import LocalRepository
+
+if TYPE_CHECKING:
+    from .domain import Address
+    from .local import LocalRepository
 
 
 class OutboundRepository(Repository):

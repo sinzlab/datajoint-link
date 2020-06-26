@@ -1,7 +1,9 @@
-from typing import List, Optional, Iterator, ContextManager, Dict
+from __future__ import annotations
+from typing import TYPE_CHECKING, List, Optional, Iterator, ContextManager, Dict
 from contextlib import contextmanager
 
-from .domain import Address, EntityTypeVar
+if TYPE_CHECKING:
+    from .domain import Address, EntityTypeVar
 
 
 class Repository:
