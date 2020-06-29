@@ -117,14 +117,6 @@ class TestDelete:
 
 
 class TestInsert:
-    @pytest.fixture
-    def new_identifiers(self):
-        return ["ID" + str(10 + i) for i in range(3)]
-
-    @pytest.fixture
-    def new_entities(self, new_identifiers):
-        return [MagicMock(name="entity_" + identifier, identifier=identifier) for identifier in new_identifiers]
-
     def test_if_entities_are_inserted_in_gateway(self, repo, gateway, new_entities):
         repo.insert(new_entities)
         gateway.insert.assert_called_once_with([e.identifier for e in new_entities])
