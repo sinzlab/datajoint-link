@@ -52,6 +52,10 @@ class TestDelete:
             if entity.identifier in selected_identifiers:
                 entity.deletion_requested = True
 
+    @pytest.fixture
+    def selected_entities(self, entities, selected_identifiers):
+        return [entity for entity in entities if entity.identifier in selected_identifiers]
+
     def test_if_presence_of_entities_in_local_repository_is_checked(self, identifiers, local_repo, outbound_repo):
         outbound_repo.delete(identifiers)
         assert local_repo.__contains__.mock_calls == [call(identifier) for identifier in identifiers]
@@ -64,28 +68,21 @@ class TestDelete:
             outbound_repo.delete(identifiers)
 
     @pytest.mark.usefixtures("request_deletion")
-    def test_if_runtime_error_is_raised_if_one_or_more_entities_had_deletion_requested(
-        self, identifiers, outbound_repo
+    def test_if_entities_that_had_their_deletion_requested_have_it_granted(
+        self, identifiers, outbound_repo, selected_entities
     ):
-        with pytest.raises(RuntimeError):
-            outbound_repo.delete(identifiers)
-
-    def test_if_entities_are_deleted(self, identifiers, outbound_repo):
         outbound_repo.delete(identifiers)
-        assert outbound_repo.identifiers == []
-
-    def test_if_runtime_error_due_to_local_presence_is_raised_before_deletion(
-        self, identifiers, local_repo, outbound_repo
-    ):
-        local_repo.__contains__.return_value = True
-        try:
-            outbound_repo.delete(identifiers)
-        except RuntimeError:
-            pass
-        assert outbound_repo.identifiers == identifiers
+        assert all(entity.deletion_approved is True for entity in selected_entities)
 
     @pytest.mark.usefixtures("request_deletion")
-    def test_if_runtime_error_due_to_deletion_request_is_raised_before_deletion(self, identifiers, outbound_repo):
+    def test_if_entities_that_had_their_deletion_not_requested_are_deleted(
+        self, identifiers, selected_identifiers, outbound_repo
+    ):
+        outbound_repo.delete(identifiers)
+        assert outbound_repo.identifiers == selected_identifiers
+
+    def test_if_runtime_error_is_raised_before_deletion(self, identifiers, local_repo, outbound_repo):
+        local_repo.__contains__.return_value = True
         try:
             outbound_repo.delete(identifiers)
         except RuntimeError:
