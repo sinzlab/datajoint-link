@@ -23,8 +23,20 @@ def identifiers(n_identifiers):
 
 
 @pytest.fixture
-def entities(identifiers):
-    return [MagicMock(name="entity_" + identifier, identifier=identifier) for identifier in identifiers]
+def entity_cls():
+    class Entity:
+        def __init__(self, identifier):
+            self.identifier = identifier
+
+        def __repr__(self):
+            return f"{self.__class__.__qualname__}({self.identifier})"
+
+    return Entity
+
+
+@pytest.fixture
+def entities(identifiers, entity_cls):
+    return [entity_cls(identifier) for identifier in identifiers]
 
 
 @pytest.fixture
