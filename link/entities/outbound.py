@@ -14,12 +14,16 @@ class OutboundRepository(Repository):
         self.local_repo = local_repo
 
     def delete(self, identifiers: List[str]) -> None:
-        for index, identifier in enumerate(identifiers):
+        for identifier in identifiers:
             if identifier in self.local_repo:
                 raise RuntimeError(f"Can't delete entity that is present in local repository. ID: {identifier}")
+        deletion_requested = []
+        for index, identifier in enumerate(identifiers):
             if self[identifier].deletion_requested:
                 self[identifier].deletion_approved = True
                 del identifiers[index]
+                deletion_requested.append(identifier)
+        self.gateway.approve_deletion(deletion_requested)
         super().delete(identifiers)
 
     def __repr__(self) -> str:

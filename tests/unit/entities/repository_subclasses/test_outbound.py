@@ -50,11 +50,18 @@ class TestDelete:
             outbound_repo.delete(identifiers)
 
     @pytest.mark.usefixtures("request_deletion_of_present_entities")
-    def test_if_entities_that_had_their_deletion_requested_have_it_granted(
+    def test_if_entities_that_had_their_deletion_requested_have_it_approved(
         self, identifiers, outbound_repo, selected_entities
     ):
         outbound_repo.delete(identifiers)
         assert all(entity.deletion_approved is True for entity in selected_entities)
+
+    @pytest.mark.usefixtures("request_deletion_of_present_entities")
+    def test_if_entities_that_had_their_deletion_requested_have_it_approved_in_gateway(
+        self, identifiers, gateway, outbound_repo, selected_identifiers
+    ):
+        outbound_repo.delete(identifiers)
+        gateway.approve_deletion.assert_called_once_with(selected_identifiers)
 
     @pytest.mark.usefixtures("request_deletion_of_present_entities")
     def test_if_entities_that_had_their_deletion_not_requested_are_deleted(
