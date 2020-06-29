@@ -13,8 +13,13 @@ def address():
 
 
 @pytest.fixture
-def identifiers():
-    return ["ID" + str(i) for i in range(10)]
+def n_identifiers():
+    return 10
+
+
+@pytest.fixture
+def identifiers(n_identifiers):
+    return ["ID" + str(i) for i in range(n_identifiers)]
 
 
 @pytest.fixture
