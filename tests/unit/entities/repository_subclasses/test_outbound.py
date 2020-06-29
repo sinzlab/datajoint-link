@@ -41,18 +41,6 @@ def test_if_local_repository_is_stored_as_instance_attribute(local_repo, outboun
 
 class TestDelete:
     @pytest.fixture
-    def entities(self, entities):
-        for entity in entities:
-            entity.deletion_requested = False
-        return entities
-
-    @pytest.fixture
-    def request_deletion(self, entities, selected_identifiers):
-        for entity in entities:
-            if entity.identifier in selected_identifiers:
-                entity.deletion_requested = True
-
-    @pytest.fixture
     def selected_entities(self, entities, selected_identifiers):
         return [entity for entity in entities if entity.identifier in selected_identifiers]
 
@@ -67,14 +55,14 @@ class TestDelete:
         with pytest.raises(RuntimeError):
             outbound_repo.delete(identifiers)
 
-    @pytest.mark.usefixtures("request_deletion")
+    @pytest.mark.usefixtures("request_deletion_of_present_entities")
     def test_if_entities_that_had_their_deletion_requested_have_it_granted(
         self, identifiers, outbound_repo, selected_entities
     ):
         outbound_repo.delete(identifiers)
         assert all(entity.deletion_approved is True for entity in selected_entities)
 
-    @pytest.mark.usefixtures("request_deletion")
+    @pytest.mark.usefixtures("request_deletion_of_present_entities")
     def test_if_entities_that_had_their_deletion_not_requested_are_deleted(
         self, identifiers, selected_identifiers, outbound_repo
     ):
