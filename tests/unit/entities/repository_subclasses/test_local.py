@@ -11,13 +11,11 @@ def test_if_local_repository_is_subclass_of_repository():
 
 
 @pytest.fixture
-def local_repo_cls(gateway, entity_creator):
+def local_repo_cls(configure_repo_cls):
     class LocalRepository(local.LocalRepository):
         pass
 
-    LocalRepository.__qualname__ = LocalRepository.__name__
-    LocalRepository.gateway = gateway
-    LocalRepository.entity_creator = entity_creator
+    configure_repo_cls(LocalRepository)
     return LocalRepository
 
 

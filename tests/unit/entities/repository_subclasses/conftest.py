@@ -18,6 +18,16 @@ def new_selected_identifiers(new_identifiers, indexes):
 
 
 @pytest.fixture
+def configure_repo_cls(gateway, entity_creator):
+    def _configure_repo_cls(repo_cls):
+        repo_cls.__qualname__ = repo_cls.__name__
+        repo_cls.gateway = gateway
+        repo_cls.entity_creator = entity_creator
+
+    return _configure_repo_cls
+
+
+@pytest.fixture
 def request_deletion_of_present_entities(entities, selected_identifiers, request_deletion):
     request_deletion(selected_identifiers, entities)
 

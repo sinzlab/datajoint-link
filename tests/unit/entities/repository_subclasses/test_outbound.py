@@ -11,13 +11,11 @@ def test_if_outbound_repository_is_subclass_of_repository():
 
 
 @pytest.fixture
-def outbound_repo_cls(gateway, entity_creator):
+def outbound_repo_cls(configure_repo_cls):
     class OutboundRepository(outbound.OutboundRepository):
         pass
 
-    OutboundRepository.__qualname__ = OutboundRepository.__name__
-    OutboundRepository.gateway = gateway
-    OutboundRepository.entity_creator = entity_creator
+    configure_repo_cls(OutboundRepository)
     return OutboundRepository
 
 
