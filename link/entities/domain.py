@@ -19,7 +19,7 @@ class Entity:
 @dataclass(frozen=True)
 class FlaggedEntity(Entity):
     deletion_requested: bool
-    can_be_deleted: bool
+    deletion_approved: bool
 
 
 EntityTypeVar = TypeVar("EntityTypeVar", Entity, FlaggedEntity)
