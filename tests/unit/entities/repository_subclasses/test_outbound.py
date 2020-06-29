@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call
+from unittest.mock import call
 
 import pytest
 
@@ -20,12 +20,8 @@ def outbound_repo_cls(configure_repo_cls):
 
 
 @pytest.fixture
-def local_repo():
-    name = "local_repo"
-    local_repo = MagicMock(name=name)
-    local_repo.__contains__ = MagicMock(name=name + ".__contains__", return_value=False)
-    local_repo.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return local_repo
+def local_repo(get_collaborating_repo):
+    return get_collaborating_repo("local_repo", entities_are_present=False)
 
 
 @pytest.fixture

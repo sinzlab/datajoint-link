@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 
@@ -25,6 +27,17 @@ def configure_repo_cls(gateway, entity_creator):
         repo_cls.entity_creator = entity_creator
 
     return _configure_repo_cls
+
+
+@pytest.fixture
+def get_collaborating_repo():
+    def _get_collaborating_repo(name, entities_are_present):
+        repo = MagicMock(name=name)
+        repo.__contains__ = MagicMock(name=name + ".__contains__", return_value=entities_are_present)
+        repo.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+        return repo
+
+    return _get_collaborating_repo
 
 
 @pytest.fixture
