@@ -131,13 +131,13 @@ class TestFlaggedEntityCreator:
         return [True for _ in range(3)]
 
     @pytest.fixture
-    def can_be_deleted_flags(self):
+    def deletion_approved_flags(self):
         return [False for _ in range(3)]
 
     @pytest.fixture
-    def gateway(self, gateway, deletion_requested_flags, can_be_deleted_flags):
+    def gateway(self, gateway, deletion_requested_flags, deletion_approved_flags):
         gateway.deletion_requested_flags = deletion_requested_flags
-        gateway.can_be_deleted_flags = can_be_deleted_flags
+        gateway.deletion_approved_flags = deletion_approved_flags
         return gateway
 
     @pytest.fixture
@@ -160,16 +160,16 @@ class TestFlaggedEntityCreator:
     ):
         assert entity_creator.deletion_requested_flags == deletion_requested_flags
 
-    def test_if_can_be_deleted_flags_are_stored_as_instance_attribute(self, entity_creator, can_be_deleted_flags):
-        assert entity_creator.can_be_deleted_flags == can_be_deleted_flags
+    def test_if_deletion_approved_flags_are_stored_as_instance_attribute(self, entity_creator, deletion_approved_flags):
+        assert entity_creator.deletion_approved_flags == deletion_approved_flags
 
     def test_if_entities_are_correctly_initialized(
-        self, address, identifiers, entity_cls, entity_creator, deletion_requested_flags, can_be_deleted_flags
+        self, address, identifiers, entity_cls, entity_creator, deletion_requested_flags, deletion_approved_flags
     ):
         entity_creator.create_entities()
         calls = []
-        for identifier, deletion_requested_flag, can_be_deleted_flag in zip(
-            identifiers, deletion_requested_flags, can_be_deleted_flags
+        for identifier, deletion_requested_flag, deletion_approved_flag in zip(
+            identifiers, deletion_requested_flags, deletion_approved_flags
         ):
-            calls.append(call(address, identifier, deletion_requested_flag, can_be_deleted_flag))
+            calls.append(call(address, identifier, deletion_requested_flag, deletion_approved_flag))
         assert entity_cls.mock_calls == calls
