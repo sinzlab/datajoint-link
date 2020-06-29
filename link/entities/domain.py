@@ -10,13 +10,13 @@ class Address:
     table: str
 
 
-@dataclass(frozen=True)
+@dataclass()
 class Entity:
     address: Address
     identifier: str
 
 
-@dataclass(frozen=True)
+@dataclass()
 class FlaggedEntity(Entity):
     deletion_requested: bool
     deletion_approved: bool

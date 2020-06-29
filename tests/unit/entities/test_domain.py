@@ -22,12 +22,6 @@ class TestEntity:
     def test_if_entity_is_dataclass(self):
         assert dataclasses.is_dataclass(domain.Entity)
 
-    def test_if_entity_is_frozen(self, address):
-        entity = domain.Entity(address, "ID0")
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            # noinspection PyDataclass
-            entity.identifier = "ID1"
-
 
 class TestFlaggedEntity:
     def test_if_dataclass(self):
