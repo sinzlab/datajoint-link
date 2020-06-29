@@ -74,6 +74,17 @@ class TestDelete:
 
 
 class TestInsert:
+    @pytest.fixture
+    def test_if_error_is_raised_before_insertion(self, entities, new_entities, local_repo):
+        def _test_if_error_is_raised_before_insertion():
+            try:
+                local_repo.insert(new_entities)
+            except RuntimeError:
+                pass
+            assert local_repo.entities == entities
+
+        return _test_if_error_is_raised_before_insertion
+
     def test_if_presence_of_entities_in_outbound_repository_is_checked(self, new_entities, outbound_repo, local_repo):
         local_repo.insert(new_entities)
         assert outbound_repo.__contains__.mock_calls == [call(entity.identifier) for entity in new_entities]
@@ -97,24 +108,16 @@ class TestInsert:
         assert local_repo.entities == entities + new_entities
 
     def test_if_runtime_error_due_to_absence_in_outbound_repository_is_raised_before_insertion(
-        self, entities, new_entities, outbound_repo, local_repo
+        self, outbound_repo, test_if_error_is_raised_before_insertion
     ):
         outbound_repo.__contains__.return_value = False
-        try:
-            local_repo.insert(new_entities)
-        except RuntimeError:
-            pass
-        assert local_repo.entities == entities
+        test_if_error_is_raised_before_insertion()
 
     @pytest.mark.usefixtures("request_deletion_of_new_entities")
     def test_if_runtime_error_due_to_deletion_requested_is_raised_before_insertion(
-        self, entities, new_entities, local_repo
+        self, test_if_error_is_raised_before_insertion
     ):
-        try:
-            local_repo.insert(new_entities)
-        except RuntimeError:
-            pass
-        assert local_repo.entities == entities
+        test_if_error_is_raised_before_insertion()
 
 
 def test_repr(local_repo):
