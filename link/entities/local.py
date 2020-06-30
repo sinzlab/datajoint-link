@@ -21,10 +21,11 @@ class LocalRepository(Repository):
     def insert(self, entities: List[FlaggedEntity]) -> None:
         for entity in entities:
             if self.link.not_present_in_outbound_repo(entity.identifier):
-                raise RuntimeError
-        for entity in entities:
+                raise RuntimeError(
+                    f"Can't insert entity that is not present in outbound repository. ID: {entity.identifier}"
+                )
             if entity.deletion_requested:
-                raise RuntimeError
+                raise RuntimeError(f"Can't insert entity that had its deletion requested. ID: {entity.identifier}")
         super().insert(entities)
 
     def __repr__(self) -> str:
