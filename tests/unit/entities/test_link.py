@@ -2,13 +2,15 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from link.entities.local import LocalRepository
+from link.entities.outbound import OutboundRepository
 from link.entities import link
 
 
 @pytest.fixture
 def local_repo():
     name = "local_repo"
-    local_repo = MagicMock(name=name)
+    local_repo = MagicMock(name=name, spec=LocalRepository)
     local_repo.__contains__ = MagicMock(name=name + ".__contains__", return_value=True)
     local_repo.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return local_repo
@@ -17,7 +19,7 @@ def local_repo():
 @pytest.fixture
 def outbound_repo():
     name = "outbound_repo"
-    outbound_repo = MagicMock(name=name)
+    outbound_repo = MagicMock(name=name, spec=OutboundRepository)
     outbound_repo.__contains__ = MagicMock(name=name + ".__contains__", return_value=True)
     outbound_repo.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return outbound_repo
@@ -52,14 +54,14 @@ class TestPresentInLocalRepository:
         assert all(link_instance.present_in_local_repo(identifier) is True for identifier in identifiers)
 
 
-class TestPresentInOutboundRepository:
+class TestNotPresentInOutboundRepository:
     def test_if_presence_is_checked_in_outbound_repository(self, identifiers, link_instance, outbound_repo):
         for identifier in identifiers:
-            link_instance.present_in_outbound_repo(identifier)
+            link_instance.not_present_in_outbound_repo(identifier)
         assert outbound_repo.__contains__.mock_calls == [call(identifier) for identifier in identifiers]
 
     def test_if_correct_value_is_returned(self, identifiers, link_instance, outbound_repo):
-        assert all(link_instance.present_in_outbound_repo(identifier) is True for identifier in identifiers)
+        assert all(link_instance.not_present_in_outbound_repo(identifier) is False for identifier in identifiers)
 
 
 def test_if_delete_in_outbound_repository_deletes_in_outbound_repository(identifiers, link_instance, outbound_repo):

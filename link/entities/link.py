@@ -16,8 +16,8 @@ class Link:
     def present_in_local_repo(self, identifier: str) -> bool:
         return identifier in self.local_repo
 
-    def present_in_outbound_repo(self, identifier: str) -> bool:
-        return identifier in self.outbound_repo
+    def not_present_in_outbound_repo(self, identifier: str) -> bool:
+        return identifier not in self.outbound_repo
 
     def delete_in_outbound_repo(self, identifiers: List[str]) -> None:
         self.outbound_repo.delete(identifiers)
