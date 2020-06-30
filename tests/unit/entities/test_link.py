@@ -8,21 +8,24 @@ from link.entities import link
 
 
 @pytest.fixture
-def local_repo():
-    name = "local_repo"
-    local_repo = MagicMock(name=name, spec=LocalRepository)
-    local_repo.__contains__ = MagicMock(name=name + ".__contains__", return_value=True)
-    local_repo.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return local_repo
+def create_repo_mock():
+    def _create_repo_mock(name, spec):
+        repo = MagicMock(name=name, spec=spec)
+        repo.__contains__ = MagicMock(name=name + ".__contains__", return_value=True)
+        repo.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+        return repo
+
+    return _create_repo_mock
 
 
 @pytest.fixture
-def outbound_repo():
-    name = "outbound_repo"
-    outbound_repo = MagicMock(name=name, spec=OutboundRepository)
-    outbound_repo.__contains__ = MagicMock(name=name + ".__contains__", return_value=True)
-    outbound_repo.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return outbound_repo
+def local_repo(create_repo_mock):
+    return create_repo_mock("local_repo", LocalRepository)
+
+
+@pytest.fixture
+def outbound_repo(create_repo_mock):
+    return create_repo_mock("outbound_repo", spec=OutboundRepository)
 
 
 @pytest.fixture
