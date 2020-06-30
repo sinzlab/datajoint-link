@@ -1,10 +1,9 @@
-from unittest.mock import MagicMock, call
+from unittest.mock import call
 
 import pytest
 
 from link.entities import local
 from link.entities import repository
-from link.entities.link import Link
 
 
 def test_if_local_repository_is_subclass_of_repository():
@@ -30,9 +29,7 @@ def test_if_link_is_none(local_repo):
 
 
 @pytest.fixture
-def link():
-    name = "link"
-    link = MagicMock(name=name, spec=Link)
+def link(link):
     link.not_present_in_outbound_repo.return_value = False
     return link
 
