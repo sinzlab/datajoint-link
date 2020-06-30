@@ -1,26 +1,26 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from .repository import Repository
 
 if TYPE_CHECKING:
     from .domain import Address, FlaggedEntity
-    from .outbound import OutboundRepository
+    from .link import Link
 
 
 class LocalRepository(Repository):
-    def __init__(self, address: Address, outbound_repo: OutboundRepository):
+    def __init__(self, address: Address):
         super().__init__(address)
-        self.outbound_repo = outbound_repo
+        self.link: Optional[Link] = None
 
     def delete(self, identifiers: List[str]) -> None:
         with self.transaction():
             super().delete(identifiers)
-            self.outbound_repo.delete(identifiers)
+            self.link.delete_in_outbound_repo(identifiers)
 
     def insert(self, entities: List[FlaggedEntity]) -> None:
         for entity in entities:
-            if entity.identifier not in self.outbound_repo:
+            if self.link.not_present_in_outbound_repo(entity.identifier):
                 raise RuntimeError
         for entity in entities:
             if entity.deletion_requested:
@@ -28,4 +28,4 @@ class LocalRepository(Repository):
         super().insert(entities)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({self.address}, {self.outbound_repo})"
+        return f"{self.__class__.__qualname__}({self.address})"

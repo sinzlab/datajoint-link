@@ -1,9 +1,10 @@
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 
 from link.entities import local
 from link.entities import repository
+from link.entities.link import Link
 
 
 def test_if_local_repository_is_subclass_of_repository():
@@ -20,19 +21,28 @@ def local_repo_cls(configure_repo_cls):
 
 
 @pytest.fixture
-def outbound_repo(get_collaborating_repo):
-    return get_collaborating_repo("outbound_repo", entities_are_present=True)
+def local_repo(address, local_repo_cls):
+    return local_repo_cls(address)
+
+
+def test_if_link_is_none(local_repo):
+    assert local_repo.link is None
 
 
 @pytest.fixture
-def local_repo(address, local_repo_cls, outbound_repo):
-    return local_repo_cls(address, outbound_repo)
+def link():
+    name = "link"
+    link = MagicMock(name=name, spec=Link)
+    link.not_present_in_outbound_repo.return_value = False
+    return link
 
 
-def test_if_outbound_repository_is_stored_as_instance_attribute(outbound_repo, local_repo):
-    assert local_repo.outbound_repo is outbound_repo
+@pytest.fixture
+def add_link(local_repo, link):
+    local_repo.link = link
 
 
+@pytest.mark.usefixtures("add_link")
 class TestDelete:
     @pytest.fixture
     def non_selected_identifiers(self, identifiers, selected_identifiers):
@@ -42,14 +52,12 @@ class TestDelete:
         local_repo.delete(identifiers)
         assert local_repo.identifiers == []
 
-    def test_if_entities_are_deleted_in_outbound_repository(self, identifiers, outbound_repo, local_repo):
+    def test_if_entities_are_deleted_in_outbound_repository(self, identifiers, local_repo, link):
         local_repo.delete(identifiers)
-        outbound_repo.delete.assert_called_once_with(identifiers)
+        link.delete_in_outbound_repo.assert_called_once_with(identifiers)
 
-    def test_if_entities_are_not_deleted_if_deletion_fails_in_outbound_repository(
-        self, identifiers, outbound_repo, local_repo
-    ):
-        outbound_repo.delete.side_effect = RuntimeError
+    def test_if_entities_are_not_deleted_if_deletion_fails_in_outbound_repository(self, identifiers, local_repo, link):
+        link.delete_in_outbound_repo.side_effect = RuntimeError
         try:
             local_repo.delete(identifiers)
         except RuntimeError:
@@ -57,16 +65,17 @@ class TestDelete:
         assert local_repo.identifiers == identifiers
 
     def test_if_entities_are_not_deleted_in_outbound_repository_if_deletion_fails_in_local_repository(
-        self, identifiers, gateway, outbound_repo, local_repo
+        self, identifiers, gateway, local_repo, link
     ):
         gateway.delete.side_effect = RuntimeError
         try:
             local_repo.delete(identifiers)
         except RuntimeError:
             pass
-        outbound_repo.delete.assert_not_called()
+        link.delete_in_outbound_repo.assert_not_called()
 
 
+@pytest.mark.usefixtures("add_link")
 class TestInsert:
     @pytest.fixture
     def test_if_error_is_raised_before_insertion(self, entities, new_entities, local_repo):
@@ -79,14 +88,14 @@ class TestInsert:
 
         return _test_if_error_is_raised_before_insertion
 
-    def test_if_presence_of_entities_in_outbound_repository_is_checked(self, new_entities, outbound_repo, local_repo):
+    def test_if_presence_of_entities_in_outbound_repository_is_checked(self, new_entities, local_repo, link):
         local_repo.insert(new_entities)
-        assert outbound_repo.__contains__.mock_calls == [call(entity.identifier) for entity in new_entities]
+        assert link.not_present_in_outbound_repo.mock_calls == [call(entity.identifier) for entity in new_entities]
 
     def test_if_runtime_error_is_raised_if_one_or_more_entities_are_not_present_in_outbound_repository(
-        self, new_entities, outbound_repo, local_repo
+        self, new_entities, local_repo, link
     ):
-        outbound_repo.__contains__.return_value = False
+        link.not_present_in_outbound_repo.return_value = True
         with pytest.raises(RuntimeError):
             local_repo.insert(new_entities)
 
@@ -102,9 +111,9 @@ class TestInsert:
         assert local_repo.entities == entities + new_entities
 
     def test_if_runtime_error_due_to_absence_in_outbound_repository_is_raised_before_insertion(
-        self, outbound_repo, test_if_error_is_raised_before_insertion
+        self, link, test_if_error_is_raised_before_insertion
     ):
-        outbound_repo.__contains__.return_value = False
+        link.not_present_in_outbound_repo.return_value = True
         test_if_error_is_raised_before_insertion()
 
     @pytest.mark.usefixtures("request_deletion_of_new_entities")
@@ -115,4 +124,4 @@ class TestInsert:
 
 
 def test_repr(local_repo):
-    assert repr(local_repo) == "LocalRepository(address, outbound_repo)"
+    assert repr(local_repo) == "LocalRepository(address)"
