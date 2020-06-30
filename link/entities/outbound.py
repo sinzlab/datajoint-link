@@ -1,21 +1,21 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from .repository import Repository
 
 if TYPE_CHECKING:
     from .domain import Address
-    from .local import LocalRepository
+    from .link import Link
 
 
 class OutboundRepository(Repository):
-    def __init__(self, address: Address, local_repo: LocalRepository) -> None:
+    def __init__(self, address: Address) -> None:
         super().__init__(address)
-        self.local_repo = local_repo
+        self.link: Optional[Link] = None
 
     def delete(self, identifiers: List[str]) -> None:
         for identifier in identifiers:
-            if identifier in self.local_repo:
+            if self.link.present_in_local_repo(identifier):
                 raise RuntimeError(f"Can't delete entity that is present in local repository. ID: {identifier}")
         deletion_requested = []
         for index, identifier in enumerate(identifiers):
@@ -27,4 +27,4 @@ class OutboundRepository(Repository):
         super().delete(identifiers)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({self.address}, {self.local_repo})"
+        return f"{self.__class__.__qualname__}({self.address})"

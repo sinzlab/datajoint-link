@@ -1,9 +1,10 @@
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 
 from link.entities import outbound
 from link.entities import repository
+from link.entities.link import Link
 
 
 def test_if_outbound_repository_is_subclass_of_repository():
@@ -20,32 +21,41 @@ def outbound_repo_cls(configure_repo_cls):
 
 
 @pytest.fixture
-def local_repo(get_collaborating_repo):
-    return get_collaborating_repo("local_repo", entities_are_present=False)
+def outbound_repo(address, outbound_repo_cls):
+    return outbound_repo_cls(address)
+
+
+def test_if_link_is_none(outbound_repo):
+    assert outbound_repo.link is None
 
 
 @pytest.fixture
-def outbound_repo(outbound_repo_cls, address, local_repo):
-    return outbound_repo_cls(address, local_repo)
+def link():
+    name = "link"
+    link = MagicMock(name=name, spec=Link)
+    link.present_in_local_repo.return_value = False
+    return link
 
 
-def test_if_local_repository_is_stored_as_instance_attribute(local_repo, outbound_repo):
-    assert outbound_repo.local_repo is local_repo
+@pytest.fixture
+def add_link(outbound_repo, link):
+    outbound_repo.link = link
 
 
+@pytest.mark.usefixtures("add_link")
 class TestDelete:
     @pytest.fixture
     def selected_entities(self, entities, selected_identifiers):
         return [entity for entity in entities if entity.identifier in selected_identifiers]
 
-    def test_if_presence_of_entities_in_local_repository_is_checked(self, identifiers, local_repo, outbound_repo):
+    def test_if_presence_of_entities_in_local_repository_is_checked(self, identifiers, outbound_repo, link):
         outbound_repo.delete(identifiers)
-        assert local_repo.__contains__.mock_calls == [call(identifier) for identifier in identifiers]
+        assert link.present_in_local_repo.mock_calls == [call(identifier) for identifier in identifiers]
 
     def test_if_runtime_error_is_raised_if_one_or_more_entities_are_present_in_local_repository(
-        self, identifiers, local_repo, outbound_repo
+        self, identifiers, link, outbound_repo
     ):
-        local_repo.__contains__.return_value = True
+        link.present_in_local_repo.return_value = True
         with pytest.raises(RuntimeError):
             outbound_repo.delete(identifiers)
 
@@ -70,8 +80,8 @@ class TestDelete:
         outbound_repo.delete(identifiers)
         assert outbound_repo.identifiers == selected_identifiers
 
-    def test_if_runtime_error_is_raised_before_deletion(self, identifiers, local_repo, outbound_repo):
-        local_repo.__contains__.return_value = True
+    def test_if_runtime_error_is_raised_before_deletion(self, identifiers, outbound_repo, link):
+        link.present_in_local_repo.return_value = True
         try:
             outbound_repo.delete(identifiers)
         except RuntimeError:
@@ -80,4 +90,4 @@ class TestDelete:
 
 
 def test_repr(outbound_repo):
-    assert repr(outbound_repo) == "OutboundRepository(address, local_repo)"
+    assert repr(outbound_repo) == "OutboundRepository(address)"
