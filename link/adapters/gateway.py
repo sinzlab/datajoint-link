@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, TypeVar
 
 
 class AbstractGateway(ABC):
@@ -57,3 +57,7 @@ class AbstractOutboundGateway(AbstractFlaggedGateway, ABC):
 
 class AbstractLocalGateway(AbstractFlaggedGateway, ABC):
     pass
+
+
+GatewayTypeVar = TypeVar("GatewayTypeVar", AbstractSourceGateway, AbstractOutboundGateway, AbstractLocalGateway)
+FlaggedGatewayTypeVar = TypeVar("FlaggedGatewayTypeVar", AbstractOutboundGateway, AbstractLocalGateway)
