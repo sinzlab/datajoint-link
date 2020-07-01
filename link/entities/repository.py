@@ -4,10 +4,11 @@ from contextlib import contextmanager
 
 if TYPE_CHECKING:
     from .entity import EntityTypeVar
+    from ..adapters.gateway import AbstractGateway
 
 
 class Repository:
-    gateway = None
+    gateway: AbstractGateway = None
     entity_creator = None
 
     def __init__(self) -> None:

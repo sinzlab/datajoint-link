@@ -6,9 +6,12 @@ from .repository import Repository
 if TYPE_CHECKING:
     from .entity import FlaggedEntity
     from .link import Link
+    from ..adapters.gateway import AbstractLocalGateway
 
 
 class LocalRepository(Repository):
+    gateway: AbstractLocalGateway
+
     def __init__(self):
         super().__init__()
         self.link: Optional[Link] = None

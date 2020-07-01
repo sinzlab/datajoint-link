@@ -5,9 +5,12 @@ from .repository import Repository
 
 if TYPE_CHECKING:
     from .link import Link
+    from ..adapters.gateway import AbstractOutboundGateway
 
 
 class OutboundRepository(Repository):
+    gateway: AbstractOutboundGateway
+
     def __init__(self) -> None:
         super().__init__()
         self.link: Optional[Link] = None
