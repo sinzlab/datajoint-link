@@ -36,8 +36,8 @@ def entity_cls(entities):
 
 
 @pytest.fixture
-def gateway(address, identifiers):
-    return MagicMock(name="gateway", address=address, identifiers=identifiers)
+def gateway(identifiers):
+    return MagicMock(name="gateway", identifiers=identifiers)
 
 
 @pytest.fixture
@@ -76,9 +76,6 @@ class TestAbstractEntityCreator:
     def test_if_abstract_base_class(self, entity_creator_cls):
         assert issubclass(entity_creator_cls, ABC)
 
-    def test_if_address_is_stored_as_instance_attribute(self, address, entity_creator):
-        assert entity_creator.address == address
-
     def test_if_identifiers_are_stored_as_instance_attribute(self, identifiers, entity_creator):
         assert entity_creator.identifiers == identifiers
 
@@ -97,9 +94,9 @@ class TestEntityCreator:
     def entity_creator_base_cls(self):
         return entity.EntityCreator
 
-    def test_if_entities_are_correctly_initialized(self, address, identifiers, entity_cls, entity_creator):
+    def test_if_entities_are_correctly_initialized(self, identifiers, entity_cls, entity_creator):
         entity_creator.create_entities()
-        assert entity_cls.mock_calls == [call(address, identifier) for identifier in identifiers]
+        assert entity_cls.mock_calls == [call(identifier) for identifier in identifiers]
 
     def test_if_entities_are_returned(self, entities, entity_creator):
         assert entity_creator.create_entities() == entities
@@ -147,12 +144,12 @@ class TestFlaggedEntityCreator:
         assert entity_creator.deletion_approved_flags == deletion_approved_flags
 
     def test_if_entities_are_correctly_initialized(
-        self, address, identifiers, entity_cls, entity_creator, deletion_requested_flags, deletion_approved_flags
+        self, identifiers, entity_cls, entity_creator, deletion_requested_flags, deletion_approved_flags
     ):
         entity_creator.create_entities()
         calls = []
         for identifier, deletion_requested_flag, deletion_approved_flag in zip(
             identifiers, deletion_requested_flags, deletion_approved_flags
         ):
-            calls.append(call(address, identifier, deletion_requested_flag, deletion_approved_flag))
+            calls.append(call(identifier, deletion_requested_flag, deletion_approved_flag))
         assert entity_cls.mock_calls == calls

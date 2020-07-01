@@ -20,10 +20,8 @@ def outbound_repo_cls(configure_repo_cls):
 
 
 @pytest.fixture
-def outbound_repo(address, outbound_repo_cls):
-    outbound_repo = outbound_repo_cls()
-    outbound_repo.address = address
-    return outbound_repo
+def outbound_repo(outbound_repo_cls):
+    return outbound_repo_cls()
 
 
 def test_if_link_is_none(outbound_repo):

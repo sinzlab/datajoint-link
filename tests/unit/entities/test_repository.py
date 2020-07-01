@@ -22,16 +22,11 @@ def repo_cls(gateway, entity_creator):
 
 
 @pytest.fixture
-def repo(repo_cls, address):
-    repo = repo_cls()
-    repo.address = address
-    return repo
+def repo(repo_cls):
+    return repo_cls()
 
 
 class TestInit:
-    def test_if_address_is_stored_as_instance_attribute(self, repo, address):
-        assert repo.address is address
-
     @pytest.mark.usefixtures("repo")
     def test_if_entity_creator_gets_called_correctly(self, entity_creator):
         entity_creator.create_entities.assert_called_once_with()

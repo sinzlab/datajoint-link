@@ -2,12 +2,9 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import List, TypeVar, Type
 
-from .configuration import Address
-
 
 @dataclass()
 class Entity:
-    address: Address
     identifier: str
 
 
@@ -24,7 +21,6 @@ class AbstractEntityCreator(ABC):
     gateway = None
 
     def __init__(self) -> None:
-        self.address: Address = self.gateway.address
         self.identifiers: List[str] = self.gateway.identifiers
 
     @property
@@ -48,7 +44,7 @@ class EntityCreator(AbstractEntityCreator):
 
     def _create_entities(self) -> List[Entity]:
         # noinspection PyArgumentList
-        return [self.entity_cls(self.address, identifier) for identifier in self.identifiers]
+        return [self.entity_cls(identifier) for identifier in self.identifiers]
 
 
 class FlaggedEntityCreator(AbstractEntityCreator):
@@ -65,5 +61,5 @@ class FlaggedEntityCreator(AbstractEntityCreator):
             self.identifiers, self.deletion_requested_flags, self.deletion_approved_flags
         ):
             # noinspection PyArgumentList
-            entities.append(self.entity_cls(self.address, identifier, deletion_requested_flag, deletion_approved_flag))
+            entities.append(self.entity_cls(identifier, deletion_requested_flag, deletion_approved_flag))
         return entities

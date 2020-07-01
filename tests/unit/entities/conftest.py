@@ -2,13 +2,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.entities import configuration
-
-
-@pytest.fixture
-def address():
-    return MagicMock(name="address", spec=configuration.Address)
-
 
 @pytest.fixture
 def n_identifiers():
