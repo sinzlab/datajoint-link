@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, List, Optional, Iterator, ContextManager, Dict
 from contextlib import contextmanager
 
 if TYPE_CHECKING:
-    from .domain import Address, EntityTypeVar
+    from .domain import EntityTypeVar
+    from .configuration import Address
 
 
 class Repository:

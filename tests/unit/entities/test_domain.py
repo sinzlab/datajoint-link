@@ -7,17 +7,6 @@ import pytest
 from link.entities import domain
 
 
-class TestAddress:
-    def test_if_address_is_dataclass(self):
-        assert dataclasses.is_dataclass(domain.Address)
-
-    def test_if_address_is_frozen(self):
-        address = domain.Address("host", "database", "table")
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            # noinspection PyDataclass
-            address.host = "host2"
-
-
 class TestEntity:
     def test_if_entity_is_dataclass(self):
         assert dataclasses.is_dataclass(domain.Entity)

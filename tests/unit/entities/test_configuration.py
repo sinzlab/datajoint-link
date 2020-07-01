@@ -1,7 +1,18 @@
+import dataclasses
 import pytest
 
 from link.entities import configuration
-from link.entities.domain import Address
+
+
+class TestAddress:
+    def test_if_address_is_dataclass(self):
+        assert dataclasses.is_dataclass(configuration.Address)
+
+    def test_if_address_is_frozen(self):
+        address = configuration.Address("host", "database", "table")
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            # noinspection PyDataclass
+            address.host = "host2"
 
 
 @pytest.fixture
@@ -95,7 +106,7 @@ class TestLocalAddressProperty:
 
     @pytest.mark.usefixtures("configure")
     def test_if_correct_address_is_returned(self, config, table_name, local_host_name, local_database_name):
-        assert config.local_address == Address(local_host_name, local_database_name, table_name)
+        assert config.local_address == configuration.Address(local_host_name, local_database_name, table_name)
 
 
 class TestSourceAddressProperty:
@@ -105,7 +116,7 @@ class TestSourceAddressProperty:
 
     @pytest.mark.usefixtures("configure")
     def test_if_correct_address_is_returned(self, config, table_name, source_host_name, source_database_name):
-        assert config.source_address == Address(source_host_name, source_database_name, table_name)
+        assert config.source_address == configuration.Address(source_host_name, source_database_name, table_name)
 
 
 class TestOutboundAddressProperty:
@@ -117,7 +128,9 @@ class TestOutboundAddressProperty:
     def test_if_correct_address_is_returned(
         self, config, outbound_table_name, source_host_name, outbound_database_name
     ):
-        assert config.outbound_address == Address(source_host_name, outbound_database_name, outbound_table_name)
+        assert config.outbound_address == configuration.Address(
+            source_host_name, outbound_database_name, outbound_table_name
+        )
 
 
 class TestRepr:

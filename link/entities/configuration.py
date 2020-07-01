@@ -1,6 +1,12 @@
+from dataclasses import dataclass
 from functools import wraps
 
-from .domain import Address
+
+@dataclass(frozen=True)
+class Address:
+    host: str
+    database: str
+    table: str
 
 
 def _needs_configuration(kind):
