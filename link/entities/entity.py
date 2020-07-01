@@ -1,6 +1,10 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import List, TypeVar, Type
+from typing import TYPE_CHECKING, List, TypeVar, Type
+
+if TYPE_CHECKING:
+    from ..adapters.gateway import GatewayTypeVar, AbstractSourceGateway, FlaggedGatewayTypeVar
 
 
 @dataclass()
@@ -18,10 +22,8 @@ EntityTypeVar = TypeVar("EntityTypeVar", Entity, FlaggedEntity)
 
 
 class AbstractEntityCreator(ABC):
-    gateway = None
-
-    def __init__(self) -> None:
-        self.identifiers: List[str] = self.gateway.identifiers
+    def __init__(self, gateway: GatewayTypeVar) -> None:
+        self.gateway = gateway
 
     @property
     @abstractmethod
@@ -41,24 +43,21 @@ class AbstractEntityCreator(ABC):
 
 class EntityCreator(AbstractEntityCreator):
     entity_cls = Entity
+    gateway: AbstractSourceGateway
 
     def _create_entities(self) -> List[Entity]:
         # noinspection PyArgumentList
-        return [self.entity_cls(identifier) for identifier in self.identifiers]
+        return [self.entity_cls(identifier) for identifier in self.gateway.identifiers]
 
 
 class FlaggedEntityCreator(AbstractEntityCreator):
     entity_cls = FlaggedEntity
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.deletion_requested_flags: List[bool] = self.gateway.deletion_requested_flags
-        self.deletion_approved_flags: List[bool] = self.gateway.deletion_approved_flags
+    gateway: FlaggedGatewayTypeVar
 
     def _create_entities(self) -> List[FlaggedEntity]:
         entities = []
         for identifier, deletion_requested_flag, deletion_approved_flag in zip(
-            self.identifiers, self.deletion_requested_flags, self.deletion_approved_flags
+            self.gateway.identifiers, self.gateway.deletion_requested_flags, self.gateway.deletion_approved_flags
         ):
             # noinspection PyArgumentList
             entities.append(self.entity_cls(identifier, deletion_requested_flag, deletion_approved_flag))

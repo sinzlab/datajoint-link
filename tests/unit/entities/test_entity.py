@@ -41,7 +41,7 @@ def gateway(identifiers):
 
 
 @pytest.fixture
-def entity_creator_cls(entity_creator_base_cls, gateway, entity_cls):
+def entity_creator_cls(entity_creator_base_cls, entity_cls):
     class EntityCreator(entity_creator_base_cls):
         _entity_cls = None
 
@@ -50,19 +50,18 @@ def entity_creator_cls(entity_creator_base_cls, gateway, entity_cls):
             return self._entity_cls
 
     EntityCreator.__name__ = entity_creator_base_cls.__name__
-    EntityCreator.gateway = gateway
     EntityCreator._entity_cls = entity_cls
     return EntityCreator
 
 
 @pytest.fixture
-def entity_creator(entity_creator_cls):
-    return entity_creator_cls()
+def entity_creator(entity_creator_cls, gateway):
+    return entity_creator_cls(gateway)
 
 
 class TestAbstractEntityCreator:
     @pytest.fixture
-    def entity_creator_cls(self, gateway, entities):
+    def entity_creator_cls(self, entities):
         class EntityCreator(entity.AbstractEntityCreator):
             __qualname__ = "EntityCreator"
             entity_cls = None
@@ -70,14 +69,10 @@ class TestAbstractEntityCreator:
             def _create_entities(self):
                 return entities
 
-        EntityCreator.gateway = gateway
         return EntityCreator
 
     def test_if_abstract_base_class(self, entity_creator_cls):
         assert issubclass(entity_creator_cls, ABC)
-
-    def test_if_identifiers_are_stored_as_instance_attribute(self, identifiers, entity_creator):
-        assert entity_creator.identifiers == identifiers
 
     def test_if_entities_are_returned_when_created(self, entities, entity_creator):
         assert entity_creator.create_entities() == entities
@@ -123,25 +118,6 @@ class TestFlaggedEntityCreator:
     @pytest.fixture
     def entity_creator_base_cls(self):
         return entity.FlaggedEntityCreator
-
-    def test_if_abstract_entity_creator_is_initialized(self, gateway):
-        class FakeAbstractEntityCreator(entity.AbstractEntityCreator, ABC):
-            __init__ = MagicMock(name="FakeAbstractEntityCreator.__init__")
-
-        class EntityCreator(entity.FlaggedEntityCreator, FakeAbstractEntityCreator):
-            pass
-
-        EntityCreator.gateway = gateway
-        EntityCreator()
-        FakeAbstractEntityCreator.__init__.assert_called_once_with()
-
-    def test_if_deletion_requested_flags_are_stored_as_instance_attribute(
-        self, entity_creator, deletion_requested_flags
-    ):
-        assert entity_creator.deletion_requested_flags == deletion_requested_flags
-
-    def test_if_deletion_approved_flags_are_stored_as_instance_attribute(self, entity_creator, deletion_approved_flags):
-        assert entity_creator.deletion_approved_flags == deletion_approved_flags
 
     def test_if_entities_are_correctly_initialized(
         self, identifiers, entity_cls, entity_creator, deletion_requested_flags, deletion_approved_flags
