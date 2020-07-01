@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, List, Optional
 from .repository import Repository
 
 if TYPE_CHECKING:
-    from .domain import Address, FlaggedEntity
+    from .domain import FlaggedEntity
     from .link import Link
 
 
 class LocalRepository(Repository):
-    def __init__(self, address: Address):
-        super().__init__(address)
+    def __init__(self):
+        super().__init__()
         self.link: Optional[Link] = None
 
     def delete(self, identifiers: List[str]) -> None:

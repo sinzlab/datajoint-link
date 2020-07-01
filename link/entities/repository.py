@@ -10,9 +10,9 @@ class Repository:
     gateway = None
     entity_creator = None
 
-    def __init__(self, address: Address) -> None:
+    def __init__(self) -> None:
         """Initializes Repository."""
-        self.address = address
+        self.address: Optional[Address] = None
         self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
         self._backed_up_entities: Optional[Dict[EntityTypeVar]] = None
 

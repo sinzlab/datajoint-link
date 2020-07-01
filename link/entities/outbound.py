@@ -4,13 +4,12 @@ from typing import TYPE_CHECKING, List, Optional
 from .repository import Repository
 
 if TYPE_CHECKING:
-    from .domain import Address
     from .link import Link
 
 
 class OutboundRepository(Repository):
-    def __init__(self, address: Address) -> None:
-        super().__init__(address)
+    def __init__(self) -> None:
+        super().__init__()
         self.link: Optional[Link] = None
 
     def delete(self, identifiers: List[str]) -> None:

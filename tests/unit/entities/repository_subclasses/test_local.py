@@ -21,7 +21,9 @@ def local_repo_cls(configure_repo_cls):
 
 @pytest.fixture
 def local_repo(address, local_repo_cls):
-    return local_repo_cls(address)
+    local_repo = local_repo_cls()
+    local_repo.address = address
+    return local_repo
 
 
 def test_if_link_is_none(local_repo):

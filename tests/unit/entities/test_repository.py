@@ -23,7 +23,9 @@ def repo_cls(gateway, entity_creator):
 
 @pytest.fixture
 def repo(repo_cls, address):
-    return repo_cls(address)
+    repo = repo_cls()
+    repo.address = address
+    return repo
 
 
 class TestInit:
