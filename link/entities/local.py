@@ -27,6 +27,3 @@ class LocalRepository(Repository):
             if entity.deletion_requested:
                 raise RuntimeError(f"Can't insert entity that had its deletion requested. ID: {entity.identifier}")
         super().insert(entities)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({self.address})"

@@ -123,4 +123,4 @@ class TestInsert:
 
 
 def test_repr(local_repo):
-    assert repr(local_repo) == "LocalRepository(address)"
+    assert repr(local_repo) == "LocalRepository()"

@@ -7,9 +7,7 @@ from link.entities import configuration
 
 @pytest.fixture
 def address():
-    address = MagicMock(name="address")
-    address.__repr__ = MagicMock(return_value="address", spec=configuration.Address)
-    return address
+    return MagicMock(name="address", spec=configuration.Address)
 
 
 @pytest.fixture

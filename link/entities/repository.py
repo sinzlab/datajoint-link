@@ -4,7 +4,6 @@ from contextlib import contextmanager
 
 if TYPE_CHECKING:
     from .entity import EntityTypeVar
-    from .configuration import Address
 
 
 class Repository:
@@ -13,7 +12,6 @@ class Repository:
 
     def __init__(self) -> None:
         """Initializes Repository."""
-        self.address: Optional[Address] = None
         self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
         self._backed_up_entities: Optional[Dict[EntityTypeVar]] = None
 
@@ -82,7 +80,7 @@ class Repository:
         return len(self.identifiers)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({repr(self.address)})"
+        return self.__class__.__qualname__ + "()"
 
     def __iter__(self) -> Iterator:
         for identifier in self.identifiers:

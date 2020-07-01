@@ -289,7 +289,7 @@ def test_len(repo):
 
 
 def test_repr(repo):
-    assert repr(repo) == "Repository(address)"
+    assert repr(repo) == "Repository()"
 
 
 def test_iter(identifiers, repo):

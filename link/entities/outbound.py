@@ -24,6 +24,3 @@ class OutboundRepository(Repository):
                 deletion_requested.append(identifier)
         self.gateway.approve_deletion(deletion_requested)
         super().delete(identifiers)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({self.address})"

@@ -89,4 +89,4 @@ class TestDelete:
 
 
 def test_repr(outbound_repo):
-    assert repr(outbound_repo) == "OutboundRepository(address)"
+    assert repr(outbound_repo) == "OutboundRepository()"
