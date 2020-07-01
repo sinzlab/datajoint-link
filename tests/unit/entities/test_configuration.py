@@ -1,6 +1,6 @@
 import pytest
 
-from link.entities import address
+from link.entities import configuration
 from link.entities.domain import Address
 
 
@@ -62,7 +62,7 @@ def info(
 
 @pytest.fixture
 def config():
-    return address.Configuration()
+    return configuration.Configuration()
 
 
 @pytest.fixture
