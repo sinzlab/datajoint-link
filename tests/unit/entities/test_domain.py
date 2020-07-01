@@ -4,20 +4,20 @@ from abc import ABC
 
 import pytest
 
-from link.entities import domain
+from link.entities import entity
 
 
 class TestEntity:
     def test_if_entity_is_dataclass(self):
-        assert dataclasses.is_dataclass(domain.Entity)
+        assert dataclasses.is_dataclass(entity.Entity)
 
 
 class TestFlaggedEntity:
     def test_if_dataclass(self):
-        assert dataclasses.is_dataclass(domain.FlaggedEntity)
+        assert dataclasses.is_dataclass(entity.FlaggedEntity)
 
     def test_if_subclass_of_entity(self):
-        assert issubclass(domain.FlaggedEntity, domain.Entity)
+        assert issubclass(entity.FlaggedEntity, entity.Entity)
 
 
 @pytest.fixture
@@ -63,7 +63,7 @@ def entity_creator(entity_creator_cls):
 class TestAbstractEntityCreator:
     @pytest.fixture
     def entity_creator_cls(self, gateway, entities):
-        class EntityCreator(domain.AbstractEntityCreator):
+        class EntityCreator(entity.AbstractEntityCreator):
             __qualname__ = "EntityCreator"
             entity_cls = None
 
@@ -91,11 +91,11 @@ class TestAbstractEntityCreator:
 
 class TestEntityCreator:
     def test_if_entity_class_is_entity(self):
-        assert domain.EntityCreator.entity_cls is domain.Entity
+        assert entity.EntityCreator.entity_cls is entity.Entity
 
     @pytest.fixture
     def entity_creator_base_cls(self):
-        return domain.EntityCreator
+        return entity.EntityCreator
 
     def test_if_entities_are_correctly_initialized(self, address, identifiers, entity_cls, entity_creator):
         entity_creator.create_entities()
@@ -107,7 +107,7 @@ class TestEntityCreator:
 
 class TestFlaggedEntityCreator:
     def test_if_entity_class_is_flagged_entity(self):
-        assert domain.FlaggedEntityCreator.entity_cls is domain.FlaggedEntity
+        assert entity.FlaggedEntityCreator.entity_cls is entity.FlaggedEntity
 
     @pytest.fixture
     def deletion_requested_flags(self):
@@ -125,13 +125,13 @@ class TestFlaggedEntityCreator:
 
     @pytest.fixture
     def entity_creator_base_cls(self):
-        return domain.FlaggedEntityCreator
+        return entity.FlaggedEntityCreator
 
     def test_if_abstract_entity_creator_is_initialized(self, gateway):
-        class FakeAbstractEntityCreator(domain.AbstractEntityCreator, ABC):
+        class FakeAbstractEntityCreator(entity.AbstractEntityCreator, ABC):
             __init__ = MagicMock(name="FakeAbstractEntityCreator.__init__")
 
-        class EntityCreator(domain.FlaggedEntityCreator, FakeAbstractEntityCreator):
+        class EntityCreator(entity.FlaggedEntityCreator, FakeAbstractEntityCreator):
             pass
 
         EntityCreator.gateway = gateway

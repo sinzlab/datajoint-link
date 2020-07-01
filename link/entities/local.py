@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List, Optional
 from .repository import Repository
 
 if TYPE_CHECKING:
-    from .domain import FlaggedEntity
+    from .entity import FlaggedEntity
     from .link import Link
 
 
