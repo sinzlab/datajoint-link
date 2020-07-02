@@ -42,7 +42,20 @@ def selected_identifiers(identifiers, indexes):
 
 @pytest.fixture
 def configured_repo_cls(gateway, entity_creator, repo_cls, storage):
+    repo_cls.__qualname__ = repo_cls.__name__
     repo_cls.gateway = gateway
     repo_cls.entity_creator = entity_creator
     repo_cls.storage = storage
     return repo_cls
+
+
+@pytest.fixture
+def storage():
+    storage = MagicMock(name="storage")
+    storage.__contains__ = MagicMock(name="storage.__contains__", return_value=False)
+    return storage
+
+
+@pytest.fixture
+def repo(configured_repo_cls):
+    return configured_repo_cls()

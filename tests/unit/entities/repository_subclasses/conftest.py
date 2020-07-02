@@ -22,18 +22,16 @@ def new_selected_identifiers(new_identifiers, indexes):
 
 
 @pytest.fixture
-def configure_repo_cls(gateway, entity_creator):
-    def _configure_repo_cls(repo_cls):
-        repo_cls.__qualname__ = repo_cls.__name__
-        repo_cls.gateway = gateway
-        repo_cls.entity_creator = entity_creator
-
-    return _configure_repo_cls
+def link():
+    link = MagicMock(name="link", spec=Link)
+    link.present_in_local_repo.return_value = False
+    link.not_present_in_outbound_repo.return_value = False
+    return link
 
 
 @pytest.fixture
-def link():
-    return MagicMock(name="link", spec=Link)
+def add_link(repo, link):
+    repo.link = link
 
 
 @pytest.fixture
