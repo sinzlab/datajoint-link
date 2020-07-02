@@ -62,3 +62,6 @@ class FlaggedEntityCreator(AbstractEntityCreator):
             # noinspection PyArgumentList
             entities.append(self.entity_cls(identifier, deletion_requested_flag, deletion_approved_flag))
         return entities
+
+
+EntityCreatorTypeVar = TypeVar("EntityCreatorTypeVar", EntityCreator, FlaggedEntityCreator)

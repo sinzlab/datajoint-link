@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING, List, Optional, Iterator, ContextManager, Dict
 from contextlib import contextmanager
 
 if TYPE_CHECKING:
-    from .entity import EntityTypeVar
+    from .entity import EntityTypeVar, FlaggedEntity, EntityCreatorTypeVar, FlaggedEntityCreator
     from ..adapters.gateway import AbstractGateway
 
 
 class ReadOnlyRepository:
     gateway: AbstractGateway = None
-    entity_creator = None
+    entity_creator: EntityCreatorTypeVar = None
 
     def __init__(self) -> None:
         self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
@@ -44,16 +44,18 @@ class ReadOnlyRepository:
 
 
 class Repository(ReadOnlyRepository):
+    entity_creator: FlaggedEntityCreator
+
     def __init__(self) -> None:
         super().__init__()
-        self._backed_up_entities: Optional[Dict[EntityTypeVar]] = None
+        self._backed_up_entities: Optional[Dict[FlaggedEntity]] = None
 
     def delete(self, identifiers: List[str]) -> None:
         self.gateway.delete(identifiers)
         for identifier in identifiers:
             del self._entities[identifier]
 
-    def insert(self, entities: List[EntityTypeVar]) -> None:
+    def insert(self, entities: List[FlaggedEntity]) -> None:
         self.gateway.insert([entity.identifier for entity in entities])
         for entity in entities:
             self._entities[entity.identifier] = entity
