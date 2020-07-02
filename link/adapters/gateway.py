@@ -50,8 +50,8 @@ class AbstractSourceGateway(AbstractGateway, ABC):
 
 
 class AbstractOutboundGateway(AbstractFlaggedGateway, ABC):
-    @property
-    def approve_deletion(self):
+    @abstractmethod
+    def approve_deletion(self, identifiers: List[str]) -> None:
         return
 
 
