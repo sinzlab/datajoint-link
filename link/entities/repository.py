@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 class ReadOnlyRepository:
     gateway: AbstractGateway = None
     entity_creator: EntityCreatorTypeVar = None
+    storage = None
 
     def __init__(self) -> None:
         self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
@@ -23,7 +24,9 @@ class ReadOnlyRepository:
         return list(self._entities.values())
 
     def fetch(self, identifiers: List[str]) -> List[EntityTypeVar]:
-        self.gateway.fetch(identifiers)
+        identifiers = [identifier for identifier in identifiers if identifier not in self.storage]
+        data = self.gateway.fetch(identifiers)
+        self.storage.store(data)
         return [self._entities[identifier] for identifier in identifiers]
 
     def __contains__(self, identifier) -> bool:

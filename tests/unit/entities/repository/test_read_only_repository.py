@@ -1,3 +1,5 @@
+from unittest.mock import call
+
 import pytest
 
 from link.entities import repository
@@ -9,6 +11,10 @@ def test_if_gateway_is_none_by_default():
 
 def test_if_entity_creator_is_none_by_default():
     assert repository.ReadOnlyRepository.entity_creator is None
+
+
+def test_if_storage_is_none_by_default():
+    assert repository.ReadOnlyRepository.storage is None
 
 
 @pytest.fixture
@@ -49,8 +55,21 @@ class TestFetch:
         return repo.fetch(selected_identifiers)
 
     @pytest.mark.usefixtures("fetched_entities")
+    def test_if_presence_of_data_in_storage_is_checked(self, selected_identifiers, storage):
+        assert storage.__contains__.mock_calls == [call(identifier) for identifier in selected_identifiers]
+
+    @pytest.mark.usefixtures("fetched_entities")
     def test_if_entities_are_fetched_from_gateway(self, gateway, selected_identifiers):
         gateway.fetch.assert_called_once_with(selected_identifiers)
+
+    def test_if_entities_are_not_fetched_if_present_in_storage(self, gateway, repo, selected_identifiers, storage):
+        storage.__contains__.side_effect = [True, False]
+        repo.fetch(selected_identifiers)
+        gateway.fetch.assert_called_once_with([selected_identifiers[1]])
+
+    @pytest.mark.usefixtures("fetched_entities")
+    def test_if_data_is_stored(self, storage, data):
+        storage.store.assert_called_once_with(data)
 
     def test_if_correct_entities_are_fetched(self, entities, indexes, fetched_entities):
         expected_entities = [entities[index] for index in indexes]
