@@ -1,6 +1,6 @@
-from .repository import Repository
+from .repository import ReadOnlyRepository
 from ..adapters.gateway import AbstractSourceGateway
 
 
-class SourceRepository(Repository):
+class SourceRepository(ReadOnlyRepository):
     gateway: AbstractSourceGateway
