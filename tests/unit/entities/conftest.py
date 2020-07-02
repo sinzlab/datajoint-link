@@ -38,3 +38,11 @@ def indexes():
 @pytest.fixture
 def selected_identifiers(identifiers, indexes):
     return [identifiers[i] for i in indexes]
+
+
+@pytest.fixture
+def configured_repo_cls(gateway, entity_creator, repo_cls, storage):
+    repo_cls.gateway = gateway
+    repo_cls.entity_creator = entity_creator
+    repo_cls.storage = storage
+    return repo_cls
