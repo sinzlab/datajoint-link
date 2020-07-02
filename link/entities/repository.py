@@ -7,14 +7,12 @@ if TYPE_CHECKING:
     from ..adapters.gateway import AbstractGateway
 
 
-class Repository:
+class ReadOnlyRepository:
     gateway: AbstractGateway = None
     entity_creator = None
 
     def __init__(self) -> None:
-        """Initializes Repository."""
         self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
-        self._backed_up_entities: Optional[Dict[EntityTypeVar]] = None
 
     @property
     def identifiers(self):
@@ -27,6 +25,28 @@ class Repository:
     def fetch(self, identifiers: List[str]) -> List[EntityTypeVar]:
         self.gateway.fetch(identifiers)
         return [self._entities[identifier] for identifier in identifiers]
+
+    def __contains__(self, identifier) -> bool:
+        return identifier in self.identifiers
+
+    def __len__(self) -> int:
+        return len(self.identifiers)
+
+    def __repr__(self) -> str:
+        return self.__class__.__qualname__ + "()"
+
+    def __iter__(self) -> Iterator:
+        for identifier in self.identifiers:
+            yield identifier
+
+    def __getitem__(self, identifier: str) -> EntityTypeVar:
+        return self._entities[identifier]
+
+
+class Repository(ReadOnlyRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self._backed_up_entities: Optional[Dict[EntityTypeVar]] = None
 
     def delete(self, identifiers: List[str]) -> None:
         self.gateway.delete(identifiers)
@@ -73,19 +93,3 @@ class Repository:
             raise exception
         else:
             self.commit_transaction()
-
-    def __contains__(self, identifier) -> bool:
-        return identifier in self.identifiers
-
-    def __len__(self) -> int:
-        return len(self.identifiers)
-
-    def __repr__(self) -> str:
-        return self.__class__.__qualname__ + "()"
-
-    def __iter__(self) -> Iterator:
-        for identifier in self.identifiers:
-            yield identifier
-
-    def __getitem__(self, identifier: str) -> EntityTypeVar:
-        return self._entities[identifier]
