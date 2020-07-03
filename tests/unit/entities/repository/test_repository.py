@@ -65,9 +65,13 @@ class TestDelete:
 
 
 class TestInsert:
-    def test_if_entities_are_inserted_in_gateway(self, repo, gateway, new_entities):
+    def test_if_data_is_retrieved_from_storage(self, repo, new_identifiers, new_entities, storage):
         repo.insert(new_entities)
-        gateway.insert.assert_called_once_with([e.identifier for e in new_entities])
+        storage.retrieve.assert_called_once_with(new_identifiers)
+
+    def test_if_data_is_inserted_in_gateway(self, repo, gateway, new_entities, new_data):
+        repo.insert(new_entities)
+        gateway.insert.assert_called_once_with(new_data)
 
     def test_if_entities_are_not_inserted_after_insertion_failed_in_gateway(
         self, test_if_entities_are_not_processed_after_processing_failed_in_gateway, new_entities

@@ -24,6 +24,11 @@ def data(identifiers):
 
 
 @pytest.fixture
+def new_data(n_new_identifiers, new_identifiers):
+    return {identifier: "data" + str(n_new_identifiers + i) for i, identifier in enumerate(new_identifiers)}
+
+
+@pytest.fixture
 def gateway(data):
     gateway = MagicMock(name="gateway")
     gateway.fetch.return_value = data
@@ -57,9 +62,10 @@ def configured_repo_cls(gateway, entity_creator, repo_cls, storage):
 
 
 @pytest.fixture
-def storage():
+def storage(new_data):
     storage = MagicMock(name="storage")
     storage.__contains__ = MagicMock(name="storage.__contains__", return_value=False)
+    storage.retrieve.return_value = new_data
     return storage
 
 

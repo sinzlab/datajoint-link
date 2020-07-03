@@ -59,7 +59,8 @@ class Repository(ReadOnlyRepository):
             del self._entities[identifier]
 
     def insert(self, entities: List[FlaggedEntity]) -> None:
-        self.gateway.insert([entity.identifier for entity in entities])
+        data = self.storage.retrieve([entity.identifier for entity in entities])
+        self.gateway.insert(data)
         for entity in entities:
             self._entities[entity.identifier] = entity
 
