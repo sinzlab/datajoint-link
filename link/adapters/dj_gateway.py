@@ -39,6 +39,9 @@ class ReadOnlyGateway(gateway.AbstractReadOnlyGateway):
     def _hash_primary_key(primary_key):
         return hashlib.sha1(json.dumps(primary_key, sort_keys=True).encode()).hexdigest()
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__qualname__}({self.table})"
+
 
 class Gateway(ReadOnlyGateway, gateway.AbstractGateway):
     @property

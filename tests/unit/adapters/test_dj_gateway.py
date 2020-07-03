@@ -46,8 +46,10 @@ def entities(primary_keys, secondary_attr_names, secondary_attr_data):
 
 @pytest.fixture
 def table(primary_attr_names, primary_keys, entities):
-    table = MagicMock(name="table", primary_attr_names=primary_attr_names, primary_keys=primary_keys)
+    name = "table"
+    table = MagicMock(name=name, primary_attr_names=primary_attr_names, primary_keys=primary_keys)
     table.fetch.return_value = entities
+    table.__repr__ = MagicMock(name=name + "__repr__", return_value=name)
     return table
 
 
@@ -79,10 +81,7 @@ class TestReadOnlyGateway:
 
     @pytest.fixture
     def gateway_cls(self):
-        class Gateway(dj_gateway.ReadOnlyGateway):
-            pass
-
-        return Gateway
+        return dj_gateway.ReadOnlyGateway
 
     def test_if_table_is_stored_as_instance_attribute(self, gateway, table):
         assert gateway.table is table
@@ -97,6 +96,9 @@ class TestReadOnlyGateway:
     def test_if_data_is_returned(self, primary_keys, gateway, identifiers, data):
         assert gateway.fetch(identifiers) == data
 
+    def test_repr(self, gateway):
+        assert repr(gateway) == "ReadOnlyGateway(table)"
+
 
 class TestGateway:
     def test_if_subclass_of_read_only_gateway(self):
@@ -107,10 +109,7 @@ class TestGateway:
 
     @pytest.fixture
     def gateway_cls(self):
-        class FlaggedGateway(dj_gateway.Gateway):
-            pass
-
-        return FlaggedGateway
+        return dj_gateway.Gateway
 
     @pytest.fixture
     def table(self, table, primary_keys):
