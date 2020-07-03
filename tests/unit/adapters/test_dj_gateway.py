@@ -7,47 +7,73 @@ from link.adapters import gateway as abstract_gateway
 
 
 @pytest.fixture
-def primary_attr_names():
-    return ["p0", "p1", "p2"]
+def n_attrs():
+    return 5
 
 
 @pytest.fixture
-def primary_attr_data():
-    return [(1, 2.5, "Hello world!"), (5, 5.12, "Goodbye world!"), (12, 14.64, "Yo!")]
+def n_entities():
+    return 6
 
 
 @pytest.fixture
-def secondary_attr_names():
-    return ["s0", "s1"]
+def n_primary_attrs():
+    return 3
 
 
 @pytest.fixture
-def secondary_attr_data():
-    return [(4.5, 12), (7.51, 64), (5.123, 34)]
+def attrs(n_attrs):
+    return ["a" + str(i) for i in range(n_attrs)]
 
 
 @pytest.fixture
-def primary_keys(primary_attr_names, primary_attr_data):
-    primary_keys = []
-    for data in primary_attr_data:
-        primary_keys.append({k: v for k, v in zip(primary_attr_names, data)})
-    return primary_keys
+def primary_attrs(n_primary_attrs, attrs):
+    return attrs[:n_primary_attrs]
 
 
 @pytest.fixture
-def entities(primary_keys, secondary_attr_names, secondary_attr_data):
-    entities = []
-    for primary_key, data in zip(primary_keys, secondary_attr_data):
-        entity = {k: v for k, v in zip(secondary_attr_names, data)}
-        entity.update(primary_key)
-        entities.append(entity)
-    return entities
+def secondary_attrs(n_primary_attrs, attrs):
+    return attrs[n_primary_attrs:]
 
 
 @pytest.fixture
-def table(primary_attr_names, primary_keys, entities):
+def attr_values(n_attrs, n_entities):
+    return [["v" + str(i) + str(j) for j in range(n_attrs)] for i in range(n_entities)]
+
+
+@pytest.fixture
+def primary_attr_values(n_primary_attrs, attr_values):
+    return [entity_attr_values[:n_primary_attrs] for entity_attr_values in attr_values]
+
+
+@pytest.fixture
+def secondary_attr_values(n_primary_attrs, attr_values):
+    return [entity_attr_values[n_primary_attrs:] for entity_attr_values in attr_values]
+
+
+@pytest.fixture
+def primary_keys(primary_attrs, primary_attr_values):
+    return [
+        {pa: pav for pa, pav in zip(primary_attrs, primary_entity_attr_values)}
+        for primary_entity_attr_values in primary_attr_values
+    ]
+
+
+@pytest.fixture
+def entities(attrs, attr_values):
+    return [{a: av for a, av in zip(attrs, entity_attr_values)} for entity_attr_values in attr_values]
+
+
+@pytest.fixture
+def table(primary_attrs, primary_keys, entities):
     name = "table"
-    table = MagicMock(name=name, primary_attr_names=primary_attr_names, primary_keys=primary_keys)
+    table = MagicMock(
+        name=name,
+        primary_attr_names=primary_attrs,
+        primary_keys=primary_keys,
+        deletion_requested=[primary_keys[0], primary_keys[1]],
+        deletion_approved=[primary_keys[0]],
+    )
     table.fetch.return_value = entities
     table.__repr__ = MagicMock(name=name + "__repr__", return_value=name)
     return table
@@ -56,17 +82,20 @@ def table(primary_attr_names, primary_keys, entities):
 @pytest.fixture
 def identifiers():
     return [
-        "edbaaf579279b704bd776d22a35b47a7477702de",
-        "25d0f885e46404fa3774b32f614e086c4afa7f4f",
-        "c8a5fac2306aab1cc2d12459c575bde80c403a02",
+        "62aad6b1b90f0613ac14b3ed0f5ecbf1c3cca448",
+        "2d78c5aafa6200eb909bfc7b4b5b8f07284ad734",
+        "e359f33515accad6b2e967135ee713cd17a200c9",
+        "f62ac0bf9e4f661e617b935c76076bdfb5845cf3",
+        "9f1d3a454a02283d83d2da2b02ce8950fb683d14",
+        "f355683595377472c79473009e2cef9259254359",
     ]
 
 
 @pytest.fixture
-def data(identifiers, secondary_attr_names, secondary_attr_data):
+def data(identifiers, secondary_attrs, secondary_attr_values):
     return {
-        identifier: {k: v for k, v in zip(secondary_attr_names, data)}
-        for identifier, data in zip(identifiers, secondary_attr_data)
+        identifier: {k: v for k, v in zip(secondary_attrs, secondary_entity_attr_values)}
+        for identifier, secondary_entity_attr_values in zip(identifiers, secondary_attr_values)
     }
 
 
@@ -110,12 +139,6 @@ class TestGateway:
     @pytest.fixture
     def gateway_cls(self):
         return dj_gateway.Gateway
-
-    @pytest.fixture
-    def table(self, table, primary_keys):
-        table.deletion_requested = [primary_keys[0], primary_keys[1]]
-        table.deletion_approved = [primary_keys[0]]
-        return table
 
     def test_deletion_requested_identifiers(self, gateway, identifiers):
         assert gateway.deletion_requested_identifiers == [identifiers[0], identifiers[1]]
