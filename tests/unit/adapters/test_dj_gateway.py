@@ -154,11 +154,19 @@ class TestSourceGateway:
 
 
 class TestOutboundGateway:
+    @pytest.fixture
+    def gateway_cls(self):
+        return dj_gateway.OutboundGateway
+
     def test_if_subclass_of_gateway(self):
         assert issubclass(dj_gateway.OutboundGateway, dj_gateway.Gateway)
 
     def test_if_subclass_of_abstract_outbound_gateway(self):
         assert issubclass(dj_gateway.OutboundGateway, abstract_gateway.AbstractOutboundGateway)
+
+    def test_if_deletion_is_approved_in_gateway(self, table, gateway, primary_keys, identifiers):
+        gateway.approve_deletion(identifiers)
+        table.approve_deletion.assert_called_once_with(primary_keys)
 
 
 class TestLocalGateway:

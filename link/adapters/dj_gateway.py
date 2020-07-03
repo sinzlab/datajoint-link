@@ -72,8 +72,9 @@ class SourceGateway(ReadOnlyGateway, gateway.AbstractSourceGateway):
 
 
 class OutboundGateway(Gateway, gateway.AbstractOutboundGateway):
+    @_identifiers_to_primary_keys
     def approve_deletion(self, identifiers: List[str]) -> None:
-        pass
+        self.table.approve_deletion(identifiers)
 
 
 class LocalGateway(Gateway, gateway.AbstractLocalGateway):
