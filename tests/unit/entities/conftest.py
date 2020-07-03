@@ -29,8 +29,33 @@ def new_data(n_new_identifiers, new_identifiers):
 
 
 @pytest.fixture
-def gateway(data):
-    gateway = MagicMock(name="gateway")
+def deletion_requested_indexes():
+    return [1, 5, 7]
+
+
+@pytest.fixture
+def deletion_requested_identifiers(identifiers, deletion_requested_indexes):
+    return [identifiers[index] for index in deletion_requested_indexes]
+
+
+@pytest.fixture
+def deletion_approved_indexes():
+    return [7]
+
+
+@pytest.fixture
+def deletion_approved_identifiers(identifiers, deletion_approved_indexes):
+    return [identifiers[index] for index in deletion_approved_indexes]
+
+
+@pytest.fixture
+def gateway(identifiers, data, deletion_requested_identifiers, deletion_approved_identifiers):
+    gateway = MagicMock(
+        name="gateway",
+        identifiers=identifiers,
+        deletion_requested_identifiers=deletion_requested_identifiers,
+        deletion_approved_identifiers=deletion_approved_identifiers,
+    )
     gateway.fetch.return_value = data
     return gateway
 

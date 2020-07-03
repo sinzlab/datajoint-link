@@ -56,11 +56,15 @@ class FlaggedEntityCreator(AbstractEntityCreator):
 
     def _create_entities(self) -> List[FlaggedEntity]:
         entities = []
-        for identifier, deletion_requested_flag, deletion_approved_flag in zip(
-            self.gateway.identifiers, self.gateway.deletion_requested_flags, self.gateway.deletion_approved_flags
-        ):
+        for identifier in self.gateway.identifiers:
             # noinspection PyArgumentList
-            entities.append(self.entity_cls(identifier, deletion_requested_flag, deletion_approved_flag))
+            entities.append(
+                self.entity_cls(
+                    identifier,
+                    True if identifier in self.gateway.deletion_requested_identifiers else False,
+                    True if identifier in self.gateway.deletion_approved_identifiers else False,
+                )
+            )
         return entities
 
 

@@ -21,11 +21,6 @@ class TestFlaggedEntity:
 
 
 @pytest.fixture
-def identifiers():
-    return ["ID" + str(i) for i in range(3)]
-
-
-@pytest.fixture
 def entities(identifiers):
     return [MagicMock(name="entity_" + identifier) for identifier in identifiers]
 
@@ -33,11 +28,6 @@ def entities(identifiers):
 @pytest.fixture
 def entity_cls(entities):
     return MagicMock(name="entity_cls", side_effect=entities)
-
-
-@pytest.fixture
-def gateway(identifiers):
-    return MagicMock(name="gateway", identifiers=identifiers)
 
 
 @pytest.fixture
@@ -102,22 +92,16 @@ class TestFlaggedEntityCreator:
         assert entity.FlaggedEntityCreator.entity_cls is entity.FlaggedEntity
 
     @pytest.fixture
-    def deletion_requested_flags(self):
-        return [True for _ in range(3)]
-
-    @pytest.fixture
-    def deletion_approved_flags(self):
-        return [False for _ in range(3)]
-
-    @pytest.fixture
-    def gateway(self, gateway, deletion_requested_flags, deletion_approved_flags):
-        gateway.deletion_requested_flags = deletion_requested_flags
-        gateway.deletion_approved_flags = deletion_approved_flags
-        return gateway
-
-    @pytest.fixture
     def entity_creator_base_cls(self):
         return entity.FlaggedEntityCreator
+
+    @pytest.fixture
+    def deletion_requested_flags(self, n_identifiers, deletion_requested_indexes):
+        return [True if i in deletion_requested_indexes else False for i in range(n_identifiers)]
+
+    @pytest.fixture
+    def deletion_approved_flags(self, n_identifiers, deletion_approved_indexes):
+        return [True if i in deletion_approved_indexes else False for i in range(n_identifiers)]
 
     def test_if_entities_are_correctly_initialized(
         self, identifiers, entity_cls, entity_creator, deletion_requested_flags, deletion_approved_flags
