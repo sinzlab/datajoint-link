@@ -3,25 +3,25 @@ from abc import ABC
 from link.adapters import gateway
 
 
+class TestAbstractReadOnlyGateway:
+    def test_if_abstract_base_class(self):
+        assert issubclass(gateway.AbstractReadOnlyGateway, ABC)
+
+
 class TestAbstractGateway:
     def test_if_abstract_base_class(self):
         assert issubclass(gateway.AbstractGateway, ABC)
 
-
-class TestAbstractFlaggedGateway:
-    def test_if_abstract_base_class(self):
-        assert issubclass(gateway.AbstractFlaggedGateway, ABC)
-
     def test_if_subclass_of_abstract_gateway(self):
-        assert issubclass(gateway.AbstractFlaggedGateway, gateway.AbstractGateway)
+        assert issubclass(gateway.AbstractGateway, gateway.AbstractReadOnlyGateway)
 
 
 class TestAbstractSourceGateway:
     def test_if_abstract_base_class(self):
-        assert issubclass(gateway.AbstractFlaggedGateway, ABC)
+        assert issubclass(gateway.AbstractSourceGateway, ABC)
 
     def test_if_subclass_of_abstract_gateway(self):
-        assert issubclass(gateway.AbstractSourceGateway, gateway.AbstractGateway)
+        assert issubclass(gateway.AbstractSourceGateway, gateway.AbstractReadOnlyGateway)
 
 
 class TestAbstractOutboundGateway:
@@ -29,7 +29,7 @@ class TestAbstractOutboundGateway:
         assert issubclass(gateway.AbstractOutboundGateway, ABC)
 
     def test_if_subclass_of_abstract_flagged_gateway(self):
-        assert issubclass(gateway.AbstractOutboundGateway, gateway.AbstractFlaggedGateway)
+        assert issubclass(gateway.AbstractOutboundGateway, gateway.AbstractGateway)
 
 
 class TestAbstractLocalGateway:
@@ -37,4 +37,4 @@ class TestAbstractLocalGateway:
         assert issubclass(gateway.AbstractLocalGateway, ABC)
 
     def test_if_subclass_of_abstract_flagged_gateway(self):
-        assert issubclass(gateway.AbstractLocalGateway, gateway.AbstractFlaggedGateway)
+        assert issubclass(gateway.AbstractLocalGateway, gateway.AbstractGateway)

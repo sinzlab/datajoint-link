@@ -1,15 +1,27 @@
 from abc import ABC, abstractmethod
-from typing import List, TypeVar
+from typing import List, TypeVar, Dict, Any
 
 
-class AbstractGateway(ABC):
+class AbstractReadOnlyGateway(ABC):
     @property
     @abstractmethod
     def identifiers(self) -> List[str]:
         pass
 
     @abstractmethod
-    def fetch(self, identifiers: List[str]) -> None:
+    def fetch(self, identifiers: List[str]) -> Dict[str, Any]:
+        pass
+
+
+class AbstractGateway(AbstractReadOnlyGateway, ABC):
+    @property
+    @abstractmethod
+    def deletion_requested_identifiers(self) -> List[str]:
+        pass
+
+    @property
+    @abstractmethod
+    def deletion_approved_identifiers(self) -> List[str]:
         pass
 
     @abstractmethod
@@ -17,7 +29,7 @@ class AbstractGateway(ABC):
         pass
 
     @abstractmethod
-    def insert(self, identifiers: List[str]) -> None:
+    def insert(self, identifiers: Dict[str, Any]) -> None:
         pass
 
     @abstractmethod
@@ -33,29 +45,17 @@ class AbstractGateway(ABC):
         pass
 
 
-class AbstractFlaggedGateway(AbstractGateway, ABC):
-    @property
-    @abstractmethod
-    def deletion_requested_flags(self) -> List[bool]:
-        pass
-
-    @property
-    @abstractmethod
-    def deletion_approved_flags(self) -> List[bool]:
-        pass
-
-
-class AbstractSourceGateway(AbstractGateway, ABC):
+class AbstractSourceGateway(AbstractReadOnlyGateway, ABC):
     pass
 
 
-class AbstractOutboundGateway(AbstractFlaggedGateway, ABC):
+class AbstractOutboundGateway(AbstractGateway, ABC):
     @abstractmethod
     def approve_deletion(self, identifiers: List[str]) -> None:
         return
 
 
-class AbstractLocalGateway(AbstractFlaggedGateway, ABC):
+class AbstractLocalGateway(AbstractGateway, ABC):
     pass
 
 

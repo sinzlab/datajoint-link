@@ -4,11 +4,11 @@ from contextlib import contextmanager
 
 if TYPE_CHECKING:
     from .entity import EntityTypeVar, FlaggedEntity, EntityCreatorTypeVar, FlaggedEntityCreator
-    from ..adapters.gateway import AbstractGateway
+    from ..adapters.gateway import GatewayTypeVar
 
 
 class ReadOnlyRepository:
-    gateway: AbstractGateway = None
+    gateway: GatewayTypeVar = None
     entity_creator: EntityCreatorTypeVar = None
     storage = None
 
