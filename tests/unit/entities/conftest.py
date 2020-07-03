@@ -19,8 +19,15 @@ def new_entities(new_identifiers, entity_cls):
 
 
 @pytest.fixture
-def gateway():
-    return MagicMock(name="gateway")
+def data(identifiers):
+    return {identifier: "data" + str(i) for i, identifier in enumerate(identifiers)}
+
+
+@pytest.fixture
+def gateway(data):
+    gateway = MagicMock(name="gateway")
+    gateway.fetch.return_value = data
+    return gateway
 
 
 @pytest.fixture
