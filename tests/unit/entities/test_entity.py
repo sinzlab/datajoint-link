@@ -68,6 +68,16 @@ def entity_creator(gateway, entity_cls, entity_creator_cls):
     return entity_creator_cls(gateway)
 
 
+@pytest.fixture
+def calls_kwargs(identifiers):
+    return [dict(identifier=identifier) for identifier in identifiers]
+
+
+@pytest.fixture
+def calls(calls_kwargs):
+    return [call(**c) for c in calls_kwargs]
+
+
 class TestEntityCreator:
     def test_if_entity_cls_is_entity(self):
         assert entity.EntityCreator._entity_cls is entity.Entity
@@ -79,17 +89,29 @@ class TestEntityCreator:
     def test_if_gateway_is_stored_as_instance_attribute(self, gateway, entity_creator):
         assert entity_creator.gateway is gateway
 
-    def test_if_entities_are_correctly_initialized_when_creating_entities(
-        self, identifiers, entity_cls, entity_creator
-    ):
+    def test_if_entities_are_correctly_initialized_when_creating_entities(self, entity_cls, entity_creator, calls):
         entity_creator.create_entities()
-        assert entity_cls.mock_calls == [call(identifier=identifier) for identifier in identifiers]
+        assert entity_cls.mock_calls == calls
 
     def test_if_entities_are_returned(self, entities, entity_creator):
         assert entity_creator.create_entities() == entities
 
     def test_repr(self, entity_creator):
         assert repr(entity_creator) == "EntityCreator(gateway)"
+
+
+@pytest.fixture
+def add_flags_to_calls(identifiers, calls_kwargs):
+    def _add_flags_to_calls(flag_name, flagged_identifiers):
+        for identifier, call_kwargs in zip(identifiers, calls_kwargs):
+            call_kwargs[flag_name] = True if identifier in flagged_identifiers else False
+
+    return _add_flags_to_calls
+
+
+@pytest.fixture
+def add_deletion_requested_flags_to_calls(deletion_requested_identifiers, add_flags_to_calls):
+    add_flags_to_calls("deletion_requested", deletion_requested_identifiers)
 
 
 class TestManagedEntityCreator:
@@ -103,18 +125,9 @@ class TestManagedEntityCreator:
     def entity_creator_cls(self):
         return entity.ManagedEntityCreator
 
-    def test_if_entities_are_correctly_initialized_when_creating_entities(
-        self, identifiers, deletion_requested_identifiers, entity_cls, entity_creator
-    ):
+    @pytest.mark.usefixtures("add_deletion_requested_flags_to_calls")
+    def test_if_entities_are_correctly_initialized_when_creating_entities(self, entity_cls, entity_creator, calls):
         entity_creator.create_entities()
-        calls = []
-        for identifier in identifiers:
-            calls.append(
-                call(
-                    identifier=identifier,
-                    deletion_requested=True if identifier in deletion_requested_identifiers else False,
-                )
-            )
         assert entity_cls.mock_calls == calls
 
     def test_if_entities_are_returned(self, entities, entity_creator):
@@ -140,19 +153,13 @@ class TestOutboundEntityCreator:
     def entity_creator_cls(self):
         return entity.OutboundEntityCreator
 
-    def test_if_entities_are_correctly_initialized_when_creating_entities(
-        self, identifiers, deletion_requested_identifiers, deletion_approved_identifiers, entity_cls, entity_creator
-    ):
+    @pytest.fixture
+    def add_deletion_approved_flags_to_calls(self, deletion_approved_identifiers, add_flags_to_calls):
+        add_flags_to_calls("deletion_approved", deletion_approved_identifiers)
+
+    @pytest.mark.usefixtures("add_deletion_requested_flags_to_calls", "add_deletion_approved_flags_to_calls")
+    def test_if_entities_are_correctly_initialized_when_creating_entities(self, entity_cls, entity_creator, calls):
         entity_creator.create_entities()
-        calls = []
-        for identifier in identifiers:
-            calls.append(
-                call(
-                    identifier=identifier,
-                    deletion_requested=True if identifier in deletion_requested_identifiers else False,
-                    deletion_approved=True if identifier in deletion_approved_identifiers else False,
-                )
-            )
         assert entity_cls.mock_calls == calls
 
     def test_if_entities_are_returned(self, entities, entity_creator):
