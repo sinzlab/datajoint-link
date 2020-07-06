@@ -52,10 +52,10 @@ class ManagedEntityCreator(EntityCreator):
     def _entities_args(self):
         return self._add_flags(super()._entities_args, "deletion_requested")
 
-    def _add_flags(self, entities_args, identifiers):
+    def _add_flags(self, entities_args, flag_name):
         for entity_args in entities_args:
-            entity_args[identifiers] = (
-                True if entity_args["identifier"] in getattr(self.gateway, identifiers + "_identifiers") else False
+            entity_args[flag_name] = (
+                True if entity_args["identifier"] in getattr(self.gateway, flag_name + "_identifiers") else False
             )
         return entities_args
 
