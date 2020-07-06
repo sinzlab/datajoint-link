@@ -8,8 +8,49 @@ from link.entities import entity
 
 
 class TestEntity:
-    def test_if_entity_is_dataclass(self):
+    def test_if_dataclass(self):
         assert dataclasses.is_dataclass(entity.Entity)
+
+    def test_if_identifier_attribute_is_present(self):
+        assert entity.Entity("identifier").identifier == "identifier"
+
+
+class TestManagedEntity:
+    def test_if_dataclass(self):
+        assert dataclasses.is_dataclass(entity.ManagedEntity)
+
+    def test_if_subclass_of_entity(self):
+        assert issubclass(entity.ManagedEntity, entity.Entity)
+
+    def test_if_deletion_requested_attribute_is_present(self):
+        assert entity.ManagedEntity("identifier", True).deletion_requested is True
+
+
+class TestSourceEntity:
+    def test_if_dataclass(self):
+        assert dataclasses.is_dataclass(entity.SourceEntity)
+
+    def test_if_subclass_of_entity(self):
+        assert issubclass(entity.SourceEntity, entity.Entity)
+
+
+class TestOutboundEntity:
+    def test_if_dataclass(self):
+        assert dataclasses.is_dataclass(entity.OutboundEntity)
+
+    def test_if_subclass_of_managed_entity(self):
+        assert issubclass(entity.OutboundEntity, entity.Entity)
+
+    def test_if_deletion_approved_attribute_is_present(self):
+        assert entity.OutboundEntity("identifier", True, True).deletion_approved is True
+
+
+class TestLocalEntity:
+    def test_if_dataclass(self):
+        assert dataclasses.is_dataclass(entity.LocalEntity)
+
+    def test_if_subclass_of_managed_entity(self):
+        assert issubclass(entity.LocalEntity, entity.Entity)
 
 
 class TestFlaggedEntity:

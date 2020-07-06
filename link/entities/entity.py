@@ -7,9 +7,29 @@ if TYPE_CHECKING:
     from ..adapters.gateway import GatewayTypeVar, AbstractSourceGateway, FlaggedGatewayTypeVar
 
 
-@dataclass()
+@dataclass
 class Entity:
     identifier: str
+
+
+@dataclass
+class ManagedEntity(Entity):
+    deletion_requested: bool
+
+
+@dataclass
+class SourceEntity(Entity):
+    pass
+
+
+@dataclass
+class OutboundEntity(ManagedEntity):
+    deletion_approved: bool
+
+
+@dataclass
+class LocalEntity(ManagedEntity):
+    pass
 
 
 @dataclass()
