@@ -50,13 +50,15 @@ def deletion_approved_identifiers(identifiers, deletion_approved_indexes):
 
 @pytest.fixture
 def gateway(identifiers, data, deletion_requested_identifiers, deletion_approved_identifiers):
+    name = "gateway"
     gateway = MagicMock(
-        name="gateway",
+        name=name,
         identifiers=identifiers,
         deletion_requested_identifiers=deletion_requested_identifiers,
         deletion_approved_identifiers=deletion_approved_identifiers,
     )
     gateway.fetch.return_value = data
+    gateway.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return gateway
 
 
