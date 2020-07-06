@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List, Optional
 from .repository import Repository
 
 if TYPE_CHECKING:
-    from .entity import FlaggedEntity
+    from .entity import LocalEntity
     from .link import Link
     from ..adapters.gateway import AbstractLocalGateway
 
@@ -21,7 +21,7 @@ class LocalRepository(Repository):
             super().delete(identifiers)
             self.link.delete_in_outbound_repo(identifiers)
 
-    def insert(self, entities: List[FlaggedEntity]) -> None:
+    def insert(self, entities: List[LocalEntity]) -> None:
         for entity in entities:
             if self.link.not_present_in_outbound_repo(entity.identifier):
                 raise RuntimeError(

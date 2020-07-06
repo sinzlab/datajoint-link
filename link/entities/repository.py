@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Iterator, ContextManager, Dict
 from contextlib import contextmanager
 
 if TYPE_CHECKING:
-    from .entity import EntityTypeVar, FlaggedEntity, EntityCreatorTypeVar, FlaggedEntityCreator
+    from .entity import EntityTypeVar, EntityCreatorTypeVar
     from ..adapters.gateway import GatewayTypeVar
 
 
@@ -47,18 +47,18 @@ class ReadOnlyRepository:
 
 
 class Repository(ReadOnlyRepository):
-    entity_creator: FlaggedEntityCreator
+    entity_creator: EntityCreatorTypeVar
 
     def __init__(self) -> None:
         super().__init__()
-        self._backed_up_entities: Optional[Dict[FlaggedEntity]] = None
+        self._backed_up_entities: Optional[Dict[EntityTypeVar]] = None
 
     def delete(self, identifiers: List[str]) -> None:
         self.gateway.delete(identifiers)
         for identifier in identifiers:
             del self._entities[identifier]
 
-    def insert(self, entities: List[FlaggedEntity]) -> None:
+    def insert(self, entities: List[EntityTypeVar]) -> None:
         data = self.storage.retrieve([entity.identifier for entity in entities])
         self.gateway.insert(data)
         for entity in entities:

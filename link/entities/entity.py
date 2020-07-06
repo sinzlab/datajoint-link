@@ -1,5 +1,5 @@
-from __future__ import annotations
 from dataclasses import dataclass
+from typing import TypeVar
 
 
 @dataclass
@@ -25,6 +25,9 @@ class OutboundEntity(ManagedEntity):
 @dataclass
 class LocalEntity(ManagedEntity):
     pass
+
+
+EntityTypeVar = TypeVar("EntityTypeVar", SourceEntity, OutboundEntity, LocalEntity)
 
 
 class EntityCreator:
@@ -74,3 +77,6 @@ class OutboundEntityCreator(ManagedEntityCreator):
 
 class LocalEntityCreator(ManagedEntityCreator):
     _entity_cls = LocalEntity
+
+
+EntityCreatorTypeVar = TypeVar("EntityCreatorTypeVar", SourceEntityCreator, OutboundEntityCreator, LocalEntityCreator)
