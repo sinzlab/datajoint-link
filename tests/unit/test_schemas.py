@@ -41,8 +41,12 @@ def schema_cls(schema):
 
 @pytest.fixture
 def lazy_schema_cls(schema_cls):
-    schemas.LazySchema._schema_cls = schema_cls
-    return schemas.LazySchema
+    class LazySchema(schemas.LazySchema):
+        pass
+
+    LazySchema.__qualname__ = LazySchema.__name__
+    LazySchema._schema_cls = schema_cls
+    return LazySchema
 
 
 class TestInit:
