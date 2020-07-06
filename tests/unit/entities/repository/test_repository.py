@@ -132,6 +132,14 @@ class TestStartTransactionWhenEmpty:
     def identifiers(self):
         return list()
 
+    @pytest.fixture
+    def deletion_requested_indexes(self):
+        return list()
+
+    @pytest.fixture
+    def deletion_approved_indexes(self):
+        return list()
+
     def test_if_repository_is_put_into_transaction_if_repository_is_empty(self, repo):
         repo.start_transaction()
         assert repo.in_transaction is True
