@@ -1,10 +1,5 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, TypeVar, Type
-
-if TYPE_CHECKING:
-    from ..adapters.gateway import GatewayTypeVar, AbstractSourceGateway, FlaggedGatewayTypeVar
 
 
 @dataclass
@@ -32,60 +27,50 @@ class LocalEntity(ManagedEntity):
     pass
 
 
-@dataclass()
-class FlaggedEntity(Entity):
-    deletion_requested: bool
-    deletion_approved: bool
+class EntityCreator:
+    _entity_cls = Entity
 
-
-EntityTypeVar = TypeVar("EntityTypeVar", Entity, FlaggedEntity)
-
-
-class AbstractEntityCreator(ABC):
-    def __init__(self, gateway: GatewayTypeVar) -> None:
+    def __init__(self, gateway):
         self.gateway = gateway
 
-    @property
-    @abstractmethod
-    def entity_cls(self) -> Type[EntityTypeVar]:
-        pass
-
-    @abstractmethod
-    def _create_entities(self) -> List[EntityTypeVar]:
-        pass
-
-    def create_entities(self) -> List[EntityTypeVar]:
-        return self._create_entities()
-
-    def __repr__(self) -> str:
-        return self.__class__.__qualname__ + "()"
-
-
-class EntityCreator(AbstractEntityCreator):
-    entity_cls = Entity
-    gateway: AbstractSourceGateway
-
-    def _create_entities(self) -> List[Entity]:
+    def create_entities(self):
         # noinspection PyArgumentList
-        return [self.entity_cls(identifier) for identifier in self.gateway.identifiers]
+        return [self._entity_cls(**entity_args) for entity_args in self._entities_args]
+
+    @property
+    def _entities_args(self):
+        return [dict(identifier=identifier) for identifier in self.gateway.identifiers]
+
+    def __repr__(self):
+        return self.__class__.__qualname__ + "(" + repr(self.gateway) + ")"
 
 
-class FlaggedEntityCreator(AbstractEntityCreator):
-    entity_cls = FlaggedEntity
-    gateway: FlaggedGatewayTypeVar
+class ManagedEntityCreator(EntityCreator):
+    _entity_cls = ManagedEntity
 
-    def _create_entities(self) -> List[FlaggedEntity]:
-        entities = []
-        for identifier in self.gateway.identifiers:
-            # noinspection PyArgumentList
-            entities.append(
-                self.entity_cls(
-                    identifier,
-                    True if identifier in self.gateway.deletion_requested_identifiers else False,
-                    True if identifier in self.gateway.deletion_approved_identifiers else False,
-                )
+    @property
+    def _entities_args(self):
+        return self._add_flags(super()._entities_args, "deletion_requested")
+
+    def _add_flags(self, entities_args, identifiers):
+        for entity_args in entities_args:
+            entity_args[identifiers] = (
+                True if entity_args["identifier"] in getattr(self.gateway, identifiers + "_identifiers") else False
             )
-        return entities
+        return entities_args
 
 
-EntityCreatorTypeVar = TypeVar("EntityCreatorTypeVar", EntityCreator, FlaggedEntityCreator)
+class SourceEntityCreator(EntityCreator):
+    _entity_cls = SourceEntity
+
+
+class OutboundEntityCreator(ManagedEntityCreator):
+    _entity_cls = OutboundEntity
+
+    @property
+    def _entities_args(self):
+        return self._add_flags(super()._entities_args, "deletion_approved")
+
+
+class LocalEntityCreator(ManagedEntityCreator):
+    _entity_cls = LocalEntity

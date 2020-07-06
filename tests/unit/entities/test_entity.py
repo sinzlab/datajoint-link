@@ -1,6 +1,5 @@
 import dataclasses
 from unittest.mock import MagicMock, call
-from abc import ABC
 
 import pytest
 
@@ -53,14 +52,6 @@ class TestLocalEntity:
         assert issubclass(entity.LocalEntity, entity.Entity)
 
 
-class TestFlaggedEntity:
-    def test_if_dataclass(self):
-        assert dataclasses.is_dataclass(entity.FlaggedEntity)
-
-    def test_if_subclass_of_entity(self):
-        assert issubclass(entity.FlaggedEntity, entity.Entity)
-
-
 @pytest.fixture
 def entities(identifiers):
     return [MagicMock(name="entity_" + identifier) for identifier in identifiers]
@@ -72,85 +63,105 @@ def entity_cls(entities):
 
 
 @pytest.fixture
-def entity_creator_cls(entity_creator_base_cls, entity_cls):
-    class EntityCreator(entity_creator_base_cls):
-        _entity_cls = None
-
-        @property
-        def entity_cls(self):
-            return self._entity_cls
-
-    EntityCreator.__name__ = entity_creator_base_cls.__name__
-    EntityCreator._entity_cls = entity_cls
-    return EntityCreator
-
-
-@pytest.fixture
-def entity_creator(entity_creator_cls, gateway):
+def entity_creator(gateway, entity_cls, entity_creator_cls):
+    entity_creator_cls._entity_cls = entity_cls
     return entity_creator_cls(gateway)
 
 
-class TestAbstractEntityCreator:
+class TestEntityCreator:
+    def test_if_entity_cls_is_entity(self):
+        assert entity.EntityCreator._entity_cls is entity.Entity
+
     @pytest.fixture
-    def entity_creator_cls(self, entities):
-        class EntityCreator(entity.AbstractEntityCreator):
-            __qualname__ = "EntityCreator"
-            entity_cls = None
+    def entity_creator_cls(self):
+        return entity.EntityCreator
 
-            def _create_entities(self):
-                return entities
+    def test_if_gateway_is_stored_as_instance_attribute(self, gateway, entity_creator):
+        assert entity_creator.gateway is gateway
 
-        return EntityCreator
+    def test_if_entities_are_correctly_initialized_when_creating_entities(
+        self, identifiers, entity_cls, entity_creator
+    ):
+        entity_creator.create_entities()
+        assert entity_cls.mock_calls == [call(identifier=identifier) for identifier in identifiers]
 
-    def test_if_abstract_base_class(self, entity_creator_cls):
-        assert issubclass(entity_creator_cls, ABC)
-
-    def test_if_entities_are_returned_when_created(self, entities, entity_creator):
+    def test_if_entities_are_returned(self, entities, entity_creator):
         assert entity_creator.create_entities() == entities
 
     def test_repr(self, entity_creator):
-        assert repr(entity_creator) == "EntityCreator()"
+        assert repr(entity_creator) == "EntityCreator(gateway)"
 
 
-class TestEntityCreator:
-    def test_if_entity_class_is_entity(self):
-        assert entity.EntityCreator.entity_cls is entity.Entity
+class TestManagedEntityCreator:
+    def test_if_entity_cls_is_managed_entity(self):
+        assert entity.ManagedEntityCreator._entity_cls is entity.ManagedEntity
+
+    def test_if_subclass_of_entity_creator(self):
+        assert issubclass(entity.ManagedEntityCreator, entity.EntityCreator)
 
     @pytest.fixture
-    def entity_creator_base_cls(self):
-        return entity.EntityCreator
+    def entity_creator_cls(self):
+        return entity.ManagedEntityCreator
 
-    def test_if_entities_are_correctly_initialized(self, identifiers, entity_cls, entity_creator):
+    def test_if_entities_are_correctly_initialized_when_creating_entities(
+        self, identifiers, deletion_requested_identifiers, entity_cls, entity_creator
+    ):
         entity_creator.create_entities()
-        assert entity_cls.mock_calls == [call(identifier) for identifier in identifiers]
+        calls = []
+        for identifier in identifiers:
+            calls.append(
+                call(
+                    identifier=identifier,
+                    deletion_requested=True if identifier in deletion_requested_identifiers else False,
+                )
+            )
+        assert entity_cls.mock_calls == calls
 
     def test_if_entities_are_returned(self, entities, entity_creator):
         assert entity_creator.create_entities() == entities
 
 
-class TestFlaggedEntityCreator:
-    def test_if_entity_class_is_flagged_entity(self):
-        assert entity.FlaggedEntityCreator.entity_cls is entity.FlaggedEntity
+class TestSourceEntityCreator:
+    def test_if_entity_cls_is_source_entity(self):
+        assert entity.SourceEntityCreator._entity_cls is entity.SourceEntity
+
+    def test_if_subclass_of_entity_creator(self):
+        assert issubclass(entity.SourceEntityCreator, entity.EntityCreator)
+
+
+class TestOutboundEntityCreator:
+    def test_if_entity_cls_is_outbound_entity(self):
+        assert entity.OutboundEntityCreator._entity_cls is entity.OutboundEntity
+
+    def test_if_subclass_of_managed_entity_creator(self):
+        assert issubclass(entity.OutboundEntityCreator, entity.ManagedEntityCreator)
 
     @pytest.fixture
-    def entity_creator_base_cls(self):
-        return entity.FlaggedEntityCreator
+    def entity_creator_cls(self):
+        return entity.OutboundEntityCreator
 
-    @pytest.fixture
-    def deletion_requested_flags(self, n_identifiers, deletion_requested_indexes):
-        return [True if i in deletion_requested_indexes else False for i in range(n_identifiers)]
-
-    @pytest.fixture
-    def deletion_approved_flags(self, n_identifiers, deletion_approved_indexes):
-        return [True if i in deletion_approved_indexes else False for i in range(n_identifiers)]
-
-    def test_if_entities_are_correctly_initialized(
-        self, identifiers, entity_cls, entity_creator, deletion_requested_flags, deletion_approved_flags
+    def test_if_entities_are_correctly_initialized_when_creating_entities(
+        self, identifiers, deletion_requested_identifiers, deletion_approved_identifiers, entity_cls, entity_creator
     ):
         entity_creator.create_entities()
         calls = []
-        for identifier, deletion_requested_flag, deletion_approved_flag in zip(
-            identifiers, deletion_requested_flags, deletion_approved_flags
-        ):
-            calls.append(call(identifier, deletion_requested_flag, deletion_approved_flag))
+        for identifier in identifiers:
+            calls.append(
+                call(
+                    identifier=identifier,
+                    deletion_requested=True if identifier in deletion_requested_identifiers else False,
+                    deletion_approved=True if identifier in deletion_approved_identifiers else False,
+                )
+            )
         assert entity_cls.mock_calls == calls
+
+    def test_if_entities_are_returned(self, entities, entity_creator):
+        assert entity_creator.create_entities() == entities
+
+
+class TestLocalEntityCreator:
+    def test_if_entity_cls_is_local_entity(self):
+        assert entity.LocalEntityCreator._entity_cls is entity.LocalEntity
+
+    def test_if_subclass_of_managed_entity_creator(self):
+        assert issubclass(entity.LocalEntityCreator, entity.ManagedEntityCreator)
