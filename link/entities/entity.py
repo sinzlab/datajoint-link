@@ -3,35 +3,30 @@ from typing import TypeVar
 
 
 @dataclass
-class Entity:
+class SourceEntity:
     identifier: str
 
 
 @dataclass
-class ManagedEntity(Entity):
+class NonSourceEntity(SourceEntity):
     deletion_requested: bool
 
 
 @dataclass
-class SourceEntity(Entity):
-    pass
-
-
-@dataclass
-class OutboundEntity(ManagedEntity):
+class OutboundEntity(NonSourceEntity):
     deletion_approved: bool
 
 
 @dataclass
-class LocalEntity(ManagedEntity):
+class LocalEntity(NonSourceEntity):
     pass
 
 
 EntityTypeVar = TypeVar("EntityTypeVar", SourceEntity, OutboundEntity, LocalEntity)
 
 
-class EntityCreator:
-    _entity_cls = Entity
+class SourceEntityCreator:
+    _entity_cls = SourceEntity
 
     def __init__(self, gateway):
         self.gateway = gateway
@@ -48,8 +43,8 @@ class EntityCreator:
         return self.__class__.__qualname__ + "(" + repr(self.gateway) + ")"
 
 
-class ManagedEntityCreator(EntityCreator):
-    _entity_cls = ManagedEntity
+class NonSourceEntityCreator(SourceEntityCreator):
+    _entity_cls = NonSourceEntity
 
     @property
     def _entities_args(self):
@@ -63,11 +58,7 @@ class ManagedEntityCreator(EntityCreator):
         return entities_args
 
 
-class SourceEntityCreator(EntityCreator):
-    _entity_cls = SourceEntity
-
-
-class OutboundEntityCreator(ManagedEntityCreator):
+class OutboundEntityCreator(NonSourceEntityCreator):
     _entity_cls = OutboundEntity
 
     @property
@@ -75,7 +66,7 @@ class OutboundEntityCreator(ManagedEntityCreator):
         return self._add_flags(super()._entities_args, "deletion_approved")
 
 
-class LocalEntityCreator(ManagedEntityCreator):
+class LocalEntityCreator(NonSourceEntityCreator):
     _entity_cls = LocalEntity
 
 
