@@ -28,10 +28,6 @@ class NonSourceTableProxy(SourceTableProxy):
     def deletion_requested(self) -> List[PrimaryKey]:
         return self.table.DeletionRequested.fetch(as_dict=True)
 
-    @property
-    def deletion_approved(self) -> List[PrimaryKey]:
-        return self.table.DeletionApproved.fetch(as_dict=True)
-
     def delete(self, primary_keys: List[PrimaryKey]) -> None:
         (self.table & primary_keys).delete()
 
@@ -49,6 +45,10 @@ class NonSourceTableProxy(SourceTableProxy):
 
 
 class OutboundTableProxy(NonSourceTableProxy):
+    @property
+    def deletion_approved(self) -> List[PrimaryKey]:
+        return self.table.DeletionApproved.fetch(as_dict=True)
+
     def approve_deletion(self, primary_keys: List[PrimaryKey]) -> None:
         self.table.DeletionApproved.insert(primary_keys)
 

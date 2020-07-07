@@ -95,13 +95,6 @@ class TestNonSourceTableProxy:
     def test_if_primary_keys_of_deletion_requested_entities_are_returned(self, primary_keys, proxy):
         assert proxy.deletion_requested == primary_keys
 
-    def test_if_primary_keys_of_deletion_approved_entities_are_fetched_correctly(self, table, proxy):
-        _ = proxy.deletion_approved
-        table.DeletionApproved.fetch.assert_called_once_with(as_dict=True)
-
-    def test_if_primary_keys_of_deletion_approved_entities_are_returned(self, primary_keys, proxy):
-        assert proxy.deletion_approved == primary_keys
-
     @pytest.mark.usefixtures("delete")
     def test_if_table_is_restricted_when_deleting_entities(self, primary_keys, table):
         table.__and__.assert_called_once_with(primary_keys)
@@ -134,6 +127,13 @@ class TestOutboundTableProxy:
     @pytest.fixture
     def proxy_cls(self):
         return proxies.OutboundTableProxy
+
+    def test_if_primary_keys_of_deletion_approved_entities_are_fetched_correctly(self, table, proxy):
+        _ = proxy.deletion_approved
+        table.DeletionApproved.fetch.assert_called_once_with(as_dict=True)
+
+    def test_if_primary_keys_of_deletion_approved_entities_are_returned(self, primary_keys, proxy):
+        assert proxy.deletion_approved == primary_keys
 
     def test_if_primary_keys_are_inserted_into_deletion_approved_part_table(self, primary_keys, table, proxy):
         proxy.approve_deletion(primary_keys)
