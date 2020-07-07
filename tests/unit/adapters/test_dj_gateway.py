@@ -106,7 +106,7 @@ def gateway(gateway_cls, table):
 
 class TestReadOnlyGateway:
     def test_if_subclass_of_abstract_read_only_gateway(self):
-        assert issubclass(dj_gateway.ReadOnlyGateway, abstract_gateway.AbstractReadOnlyGateway)
+        assert issubclass(dj_gateway.ReadOnlyGateway, abstract_gateway.AbstractSourceGateway)
 
     @pytest.fixture
     def gateway_cls(self):
@@ -134,7 +134,7 @@ class TestGateway:
         assert issubclass(dj_gateway.Gateway, dj_gateway.ReadOnlyGateway)
 
     def test_if_subclass_of_abstract_gateway(self):
-        assert issubclass(dj_gateway.Gateway, abstract_gateway.AbstractGateway)
+        assert issubclass(dj_gateway.Gateway, abstract_gateway.AbstractNonSourceGateway)
 
     @pytest.fixture
     def gateway_cls(self):

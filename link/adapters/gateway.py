@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, TypeVar, Dict, Any
 
 
-class AbstractReadOnlyGateway(ABC):
+class AbstractSourceGateway(ABC):
     @property
     @abstractmethod
     def identifiers(self) -> List[str]:
@@ -13,7 +13,7 @@ class AbstractReadOnlyGateway(ABC):
         pass
 
 
-class AbstractGateway(AbstractReadOnlyGateway, ABC):
+class AbstractNonSourceGateway(AbstractSourceGateway, ABC):
     @property
     @abstractmethod
     def deletion_requested_identifiers(self) -> List[str]:
@@ -45,17 +45,13 @@ class AbstractGateway(AbstractReadOnlyGateway, ABC):
         pass
 
 
-class AbstractSourceGateway(AbstractReadOnlyGateway, ABC):
-    pass
-
-
-class AbstractOutboundGateway(AbstractGateway, ABC):
+class AbstractOutboundGateway(AbstractNonSourceGateway, ABC):
     @abstractmethod
     def approve_deletion(self, identifiers: List[str]) -> None:
         return
 
 
-class AbstractLocalGateway(AbstractGateway, ABC):
+class AbstractLocalGateway(AbstractNonSourceGateway, ABC):
     pass
 
 
