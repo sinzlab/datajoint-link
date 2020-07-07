@@ -104,13 +104,13 @@ def gateway(gateway_cls, table):
     return gateway_cls(table)
 
 
-class TestReadOnlyGateway:
-    def test_if_subclass_of_abstract_read_only_gateway(self):
-        assert issubclass(dj_gateway.ReadOnlyGateway, abstract_gateway.AbstractSourceGateway)
+class TestSourceGateway:
+    def test_if_subclass_of_abstract_source_gateway(self):
+        assert issubclass(dj_gateway.SourceGateway, abstract_gateway.AbstractSourceGateway)
 
     @pytest.fixture
     def gateway_cls(self):
-        return dj_gateway.ReadOnlyGateway
+        return dj_gateway.SourceGateway
 
     def test_if_table_is_stored_as_instance_attribute(self, gateway, table):
         assert gateway.table is table
@@ -126,19 +126,19 @@ class TestReadOnlyGateway:
         assert gateway.fetch(identifiers) == data
 
     def test_repr(self, gateway):
-        assert repr(gateway) == "ReadOnlyGateway(table)"
+        assert repr(gateway) == "SourceGateway(table)"
 
 
-class TestGateway:
-    def test_if_subclass_of_read_only_gateway(self):
-        assert issubclass(dj_gateway.Gateway, dj_gateway.ReadOnlyGateway)
+class TestNonSourceGateway:
+    def test_if_subclass_of_source_gateway(self):
+        assert issubclass(dj_gateway.NonSourceGateway, dj_gateway.SourceGateway)
 
-    def test_if_subclass_of_abstract_gateway(self):
-        assert issubclass(dj_gateway.Gateway, abstract_gateway.AbstractNonSourceGateway)
+    def test_if_subclass_of_abstract_non_source_gateway(self):
+        assert issubclass(dj_gateway.NonSourceGateway, abstract_gateway.AbstractNonSourceGateway)
 
     @pytest.fixture
     def gateway_cls(self):
-        return dj_gateway.Gateway
+        return dj_gateway.NonSourceGateway
 
     def test_deletion_requested_identifiers(self, gateway, identifiers):
         assert gateway.deletion_requested_identifiers == [identifiers[0], identifiers[1]]
@@ -167,21 +167,13 @@ class TestGateway:
         table.cancel_transaction.assert_called_once_with()
 
 
-class TestSourceGateway:
-    def test_if_subclass_of_read_only_gateway(self):
-        assert issubclass(dj_gateway.SourceGateway, dj_gateway.ReadOnlyGateway)
-
-    def test_if_subclass_of_abstract_source_gateway(self):
-        assert issubclass(dj_gateway.SourceGateway, abstract_gateway.AbstractSourceGateway)
-
-
 class TestOutboundGateway:
     @pytest.fixture
     def gateway_cls(self):
         return dj_gateway.OutboundGateway
 
-    def test_if_subclass_of_gateway(self):
-        assert issubclass(dj_gateway.OutboundGateway, dj_gateway.Gateway)
+    def test_if_subclass_of_non_source_gateway(self):
+        assert issubclass(dj_gateway.OutboundGateway, dj_gateway.NonSourceGateway)
 
     def test_if_subclass_of_abstract_outbound_gateway(self):
         assert issubclass(dj_gateway.OutboundGateway, abstract_gateway.AbstractOutboundGateway)
@@ -192,8 +184,8 @@ class TestOutboundGateway:
 
 
 class TestLocalGateway:
-    def test_if_subclass_of_gateway(self):
-        assert issubclass(dj_gateway.LocalGateway, dj_gateway.Gateway)
+    def test_if_subclass_of_non_source_gateway(self):
+        assert issubclass(dj_gateway.LocalGateway, dj_gateway.NonSourceGateway)
 
     def test_if_subclass_of_abstract_local_gateway(self):
         assert issubclass(dj_gateway.LocalGateway, abstract_gateway.AbstractLocalGateway)

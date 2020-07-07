@@ -15,7 +15,7 @@ def _identifiers_to_primary_keys(method):
     return wrapper
 
 
-class ReadOnlyGateway(gateway.AbstractSourceGateway):
+class SourceGateway(gateway.AbstractSourceGateway):
     def __init__(self, table):
         self.table = table
 
@@ -43,7 +43,7 @@ class ReadOnlyGateway(gateway.AbstractSourceGateway):
         return f"{self.__class__.__qualname__}({self.table})"
 
 
-class Gateway(ReadOnlyGateway, gateway.AbstractNonSourceGateway):
+class NonSourceGateway(SourceGateway, gateway.AbstractNonSourceGateway):
     @property
     def deletion_requested_identifiers(self) -> List[str]:
         return [self._hash_primary_key(key) for key in self.table.deletion_requested]
@@ -70,15 +70,11 @@ class Gateway(ReadOnlyGateway, gateway.AbstractNonSourceGateway):
         self.table.cancel_transaction()
 
 
-class SourceGateway(ReadOnlyGateway, gateway.AbstractSourceGateway):
-    pass
-
-
-class OutboundGateway(Gateway, gateway.AbstractOutboundGateway):
+class OutboundGateway(NonSourceGateway, gateway.AbstractOutboundGateway):
     @_identifiers_to_primary_keys
     def approve_deletion(self, identifiers: List[str]) -> None:
         self.table.approve_deletion(identifiers)
 
 
-class LocalGateway(Gateway, gateway.AbstractLocalGateway):
+class LocalGateway(NonSourceGateway, gateway.AbstractLocalGateway):
     pass
