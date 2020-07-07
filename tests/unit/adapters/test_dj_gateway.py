@@ -143,9 +143,6 @@ class TestNonSourceGateway:
     def test_deletion_requested_identifiers(self, gateway, identifiers):
         assert gateway.deletion_requested_identifiers == [identifiers[0], identifiers[1]]
 
-    def test_deletion_approved_identifiers(self, gateway, identifiers):
-        assert gateway.deletion_approved_identifiers == [identifiers[0]]
-
     def test_delete(self, primary_keys, table, gateway, identifiers):
         gateway.delete(identifiers)
         table.delete.assert_called_once_with(primary_keys)
@@ -177,6 +174,9 @@ class TestOutboundGateway:
 
     def test_if_subclass_of_abstract_outbound_gateway(self):
         assert issubclass(dj_gateway.OutboundGateway, abstract_gateway.AbstractOutboundGateway)
+
+    def test_deletion_approved_identifiers(self, gateway, identifiers):
+        assert gateway.deletion_approved_identifiers == [identifiers[0]]
 
     def test_if_deletion_is_approved_in_gateway(self, table, gateway, primary_keys, identifiers):
         gateway.approve_deletion(identifiers)

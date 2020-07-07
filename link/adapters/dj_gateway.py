@@ -48,10 +48,6 @@ class NonSourceGateway(SourceGateway, gateway.AbstractNonSourceGateway):
     def deletion_requested_identifiers(self) -> List[str]:
         return [self._hash_primary_key(key) for key in self.table.deletion_requested]
 
-    @property
-    def deletion_approved_identifiers(self) -> List[str]:
-        return [self._hash_primary_key(key) for key in self.table.deletion_approved]
-
     @_identifiers_to_primary_keys
     def delete(self, identifiers: List[str]) -> None:
         self.table.delete(identifiers)
@@ -71,6 +67,10 @@ class NonSourceGateway(SourceGateway, gateway.AbstractNonSourceGateway):
 
 
 class OutboundGateway(NonSourceGateway, gateway.AbstractOutboundGateway):
+    @property
+    def deletion_approved_identifiers(self) -> List[str]:
+        return [self._hash_primary_key(key) for key in self.table.deletion_approved]
+
     @_identifiers_to_primary_keys
     def approve_deletion(self, identifiers: List[str]) -> None:
         self.table.approve_deletion(identifiers)
