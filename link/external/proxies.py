@@ -16,6 +16,9 @@ class SourceTableProxy:
     def primary_keys(self) -> List[PrimaryKey]:
         return self.table.proj().fetch(as_dict=True)
 
+    def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
+        return (self.table.proj() & restriction).fetch(as_dict=True)
+
     def fetch(self, primary_keys: List[PrimaryKey]) -> Dict[str, Any]:
         return (self.table & primary_keys).fetch(as_dict=True)
 

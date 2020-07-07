@@ -26,6 +26,7 @@ def table(primary_attr_names, primary_keys, entities):
     table = MagicMock(name=name)
     table.heading.primary_key = primary_attr_names
     table.proj.return_value.fetch.return_value = primary_keys
+    table.proj.return_value.__and__.return_value.fetch.return_value = primary_keys
     table.__and__.return_value.fetch.return_value = entities
     table.DeletionRequested.fetch.return_value = primary_keys
     table.DeletionApproved.fetch.return_value = primary_keys
@@ -47,6 +48,10 @@ class TestSourceTableProxy:
     def fetch(self, primary_keys, proxy):
         proxy.fetch(primary_keys)
 
+    @pytest.fixture
+    def restriction(self):
+        return "restriction"
+
     def test_if_table_is_stored_as_instance_attribute(self, table, proxy):
         assert proxy.table is table
 
@@ -60,6 +65,27 @@ class TestSourceTableProxy:
 
     def test_if_primary_keys_property_returns_correct_value(self, primary_keys, proxy):
         assert proxy.primary_keys == primary_keys
+
+    def test_if_table_is_projected_to_primary_keys_when_getting_primary_keys_in_restriction(
+        self, table, proxy, restriction
+    ):
+        proxy.get_primary_keys_in_restriction(restriction)
+        table.proj.assert_called_once_with()
+
+    def test_if_projected_table_is_restricted_when_getting_primary_keys_in_restriction(self, table, proxy, restriction):
+        proxy.get_primary_keys_in_restriction(restriction)
+        table.proj.return_value.__and__.assert_called_once_with(restriction)
+
+    def test_if_fetch_on_restricted_table_is_called_correctly_when_getting_primary_keys_in_restriction(
+        self, table, proxy, restriction
+    ):
+        proxy.get_primary_keys_in_restriction(restriction)
+        table.proj.return_value.__and__.return_value.fetch.assert_called_once_with(as_dict=True)
+
+    def test_if_correct_primary_keys_are_returned_when_getting_primary_keys_in_restriction(
+        self, primary_keys, table, proxy, restriction
+    ):
+        assert proxy.get_primary_keys_in_restriction(restriction) == primary_keys
 
     @pytest.mark.usefixtures("fetch")
     def test_if_table_is_restricted_when_fetching_entities(self, primary_keys, table, proxy):
