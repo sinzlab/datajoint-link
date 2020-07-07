@@ -65,18 +65,18 @@ def entities(attrs, attr_values):
 
 
 @pytest.fixture
-def table(primary_attrs, primary_keys, entities):
-    name = "table"
-    table = MagicMock(
+def table_proxy(primary_attrs, primary_keys, entities):
+    name = "table_proxy"
+    table_proxy = MagicMock(
         name=name,
         primary_attr_names=primary_attrs,
         primary_keys=primary_keys,
         deletion_requested=[primary_keys[0], primary_keys[1]],
         deletion_approved=[primary_keys[0]],
     )
-    table.fetch.return_value = entities
-    table.__repr__ = MagicMock(name=name + "__repr__", return_value=name)
-    return table
+    table_proxy.fetch.return_value = entities
+    table_proxy.__repr__ = MagicMock(name=name + "__repr__", return_value=name)
+    return table_proxy
 
 
 @pytest.fixture
@@ -100,8 +100,8 @@ def data(identifiers, secondary_attrs, secondary_attr_values):
 
 
 @pytest.fixture
-def gateway(gateway_cls, table):
-    return gateway_cls(table)
+def gateway(gateway_cls, table_proxy):
+    return gateway_cls(table_proxy)
 
 
 class TestSourceGateway:
@@ -112,21 +112,21 @@ class TestSourceGateway:
     def gateway_cls(self):
         return dj_gateway.SourceGateway
 
-    def test_if_table_is_stored_as_instance_attribute(self, gateway, table):
-        assert gateway.table is table
+    def test_if_table_proxy_is_stored_as_instance_attribute(self, gateway, table_proxy):
+        assert gateway.table_proxy is table_proxy
 
     def test_identifiers_property(self, gateway, identifiers):
         assert gateway.identifiers == identifiers
 
-    def test_if_data_is_fetched_from_table(self, primary_keys, table, gateway, identifiers):
+    def test_if_data_is_fetched_from_table_proxy(self, primary_keys, table_proxy, gateway, identifiers):
         gateway.fetch(identifiers)
-        table.fetch.assert_called_once_with(primary_keys)
+        table_proxy.fetch.assert_called_once_with(primary_keys)
 
     def test_if_data_is_returned(self, primary_keys, gateway, identifiers, data):
         assert gateway.fetch(identifiers) == data
 
     def test_repr(self, gateway):
-        assert repr(gateway) == "SourceGateway(table)"
+        assert repr(gateway) == "SourceGateway(table_proxy)"
 
 
 class TestNonSourceGateway:
@@ -143,25 +143,25 @@ class TestNonSourceGateway:
     def test_deletion_requested_identifiers(self, gateway, identifiers):
         assert gateway.deletion_requested_identifiers == [identifiers[0], identifiers[1]]
 
-    def test_delete(self, primary_keys, table, gateway, identifiers):
+    def test_delete(self, primary_keys, table_proxy, gateway, identifiers):
         gateway.delete(identifiers)
-        table.delete.assert_called_once_with(primary_keys)
+        table_proxy.delete.assert_called_once_with(primary_keys)
 
-    def test_insert(self, primary_keys, table, gateway, identifiers):
+    def test_insert(self, primary_keys, table_proxy, gateway, identifiers):
         gateway.insert(identifiers)
-        table.insert.assert_called_once_with(primary_keys)
+        table_proxy.insert.assert_called_once_with(primary_keys)
 
-    def test_if_transaction_is_started_in_table(self, table, gateway):
+    def test_if_transaction_is_started_in_table_proxy(self, table_proxy, gateway):
         gateway.start_transaction()
-        table.start_transaction.assert_called_once_with()
+        table_proxy.start_transaction.assert_called_once_with()
 
-    def test_if_transaction_is_committed_in_table(self, table, gateway):
+    def test_if_transaction_is_committed_in_table_proxy(self, table_proxy, gateway):
         gateway.commit_transaction()
-        table.commit_transaction.assert_called_once_with()
+        table_proxy.commit_transaction.assert_called_once_with()
 
-    def test_if_transaction_is_cancelled_in_table(self, table, gateway):
+    def test_if_transaction_is_cancelled_in_table_proxy(self, table_proxy, gateway):
         gateway.cancel_transaction()
-        table.cancel_transaction.assert_called_once_with()
+        table_proxy.cancel_transaction.assert_called_once_with()
 
 
 class TestOutboundGateway:
@@ -178,9 +178,9 @@ class TestOutboundGateway:
     def test_deletion_approved_identifiers(self, gateway, identifiers):
         assert gateway.deletion_approved_identifiers == [identifiers[0]]
 
-    def test_if_deletion_is_approved_in_gateway(self, table, gateway, primary_keys, identifiers):
+    def test_if_deletion_is_approved_in_gateway(self, table_proxy, gateway, primary_keys, identifiers):
         gateway.approve_deletion(identifiers)
-        table.approve_deletion.assert_called_once_with(primary_keys)
+        table_proxy.approve_deletion.assert_called_once_with(primary_keys)
 
 
 class TestLocalGateway:
