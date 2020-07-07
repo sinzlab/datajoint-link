@@ -38,10 +38,10 @@ def proxy(proxy_cls, table):
     return proxy_cls(table)
 
 
-class TestReadOnlyProxy:
+class TestSourceTableProxy:
     @pytest.fixture
     def proxy_cls(self):
-        return proxies.ReadOnlyTableProxy
+        return proxies.SourceTableProxy
 
     @pytest.fixture
     def fetch(self, primary_keys, proxy):
@@ -73,16 +73,16 @@ class TestReadOnlyProxy:
         assert proxy.fetch(primary_keys) == entities
 
     def test_repr(self, proxy):
-        assert repr(proxy) == "ReadOnlyTableProxy(table)"
+        assert repr(proxy) == "SourceTableProxy(table)"
 
 
-class TestTableProxy:
-    def test_if_subclass_of_read_only_table_proxy(self):
-        assert issubclass(proxies.TableProxy, proxies.ReadOnlyTableProxy)
+class TestNonSourceTableProxy:
+    def test_if_subclass_of_source_table_proxy(self):
+        assert issubclass(proxies.NonSourceTableProxy, proxies.SourceTableProxy)
 
     @pytest.fixture
     def proxy_cls(self):
-        return proxies.TableProxy
+        return proxies.NonSourceTableProxy
 
     @pytest.fixture
     def delete(self, primary_keys, proxy):
@@ -127,13 +127,9 @@ class TestTableProxy:
         table.connection.cancel_transaction.assert_called_once_with()
 
 
-def test_if_source_table_proxy_is_subclass_of_read_only_table_proxy():
-    assert issubclass(proxies.SourceTableProxy, proxies.ReadOnlyTableProxy)
-
-
 class TestOutboundTableProxy:
-    def test_if_subclass_of_table_proxy(self):
-        assert issubclass(proxies.OutboundTableProxy, proxies.TableProxy)
+    def test_if_subclass_of_non_source_table_proxy(self):
+        assert issubclass(proxies.OutboundTableProxy, proxies.NonSourceTableProxy)
 
     @pytest.fixture
     def proxy_cls(self):
@@ -144,5 +140,5 @@ class TestOutboundTableProxy:
         table.DeletionApproved.insert.assert_called_once_with(primary_keys)
 
 
-def test_if_local_table_proxy_is_subclass_of_table_proxy():
-    assert issubclass(proxies.LocalTableProxy, proxies.TableProxy)
+def test_if_local_table_proxy_is_subclass_of_non_source_table_proxy():
+    assert issubclass(proxies.LocalTableProxy, proxies.NonSourceTableProxy)

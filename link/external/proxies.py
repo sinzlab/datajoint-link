@@ -4,7 +4,7 @@ from typing import List, Dict, Union, Any
 PrimaryKey = Dict[str, Union[str, int, float]]
 
 
-class ReadOnlyTableProxy:
+class SourceTableProxy:
     def __init__(self, table):
         self.table = table
 
@@ -23,7 +23,7 @@ class ReadOnlyTableProxy:
         return self.__class__.__qualname__ + "(" + repr(self.table) + ")"
 
 
-class TableProxy(ReadOnlyTableProxy):
+class NonSourceTableProxy(SourceTableProxy):
     @property
     def deletion_requested(self) -> List[PrimaryKey]:
         return self.table.DeletionRequested.fetch(as_dict=True)
@@ -48,14 +48,10 @@ class TableProxy(ReadOnlyTableProxy):
         self.table.connection.cancel_transaction()
 
 
-class SourceTableProxy(ReadOnlyTableProxy):
-    pass
-
-
-class OutboundTableProxy(TableProxy):
+class OutboundTableProxy(NonSourceTableProxy):
     def approve_deletion(self, primary_keys: List[PrimaryKey]) -> None:
         self.table.DeletionApproved.insert(primary_keys)
 
 
-class LocalTableProxy(TableProxy):
+class LocalTableProxy(NonSourceTableProxy):
     pass
