@@ -3,13 +3,13 @@ import pytest
 from link.entities import repository
 
 
-def test_if_subclass_of_read_only_repository():
-    assert issubclass(repository.Repository, repository.ReadOnlyRepository)
+def test_if_subclass_of_source_repository():
+    assert issubclass(repository.NonSourceRepository, repository.SourceRepository)
 
 
 @pytest.fixture
 def repo_cls(gateway, entity_creator):
-    class Repository(repository.Repository):
+    class Repository(repository.NonSourceRepository):
         __qualname__ = "Repository"
 
     return Repository

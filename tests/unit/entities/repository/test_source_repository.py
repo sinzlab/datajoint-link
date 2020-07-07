@@ -6,23 +6,24 @@ from link.entities import repository
 
 
 def test_if_gateway_is_none_by_default():
-    assert repository.ReadOnlyRepository.gateway is None
+    assert repository.SourceRepository.gateway is None
 
 
 def test_if_entity_creator_is_none_by_default():
-    assert repository.ReadOnlyRepository.entity_creator is None
+    assert repository.SourceRepository.entity_creator is None
 
 
 def test_if_storage_is_none_by_default():
-    assert repository.ReadOnlyRepository.storage is None
+    assert repository.SourceRepository.storage is None
 
 
 @pytest.fixture
 def repo_cls(gateway, entity_creator):
-    class ReadOnlyRepository(repository.ReadOnlyRepository):
-        __qualname__ = "ReadOnlyRepository"
+    class SourceRepository(repository.SourceRepository):
+        pass
 
-    return ReadOnlyRepository
+    SourceRepository.__qualname__ = SourceRepository.__name__
+    return SourceRepository
 
 
 class TestInit:
@@ -89,7 +90,7 @@ def test_len(repo):
 
 
 def test_repr(repo):
-    assert repr(repo) == "ReadOnlyRepository()"
+    assert repr(repo) == "SourceRepository()"
 
 
 def test_iter(identifiers, repo):

@@ -1,14 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
 
-from .repository import Repository
+from .repository import NonSourceRepository
 
 if TYPE_CHECKING:
     from .link import Link
     from ..adapters.gateway import AbstractOutboundGateway
 
 
-class OutboundRepository(Repository):
+class OutboundRepository(NonSourceRepository):
     gateway: AbstractOutboundGateway
 
     def __init__(self) -> None:

@@ -6,7 +6,7 @@ from link.use_cases import pull
 from link.use_cases.base import UseCase
 from link.entities.local import LocalRepository
 from link.entities.outbound import OutboundRepository
-from link.entities.source import SourceRepository
+from link.entities.repository import SourceRepository
 
 
 def test_if_subclass_of_use_case():

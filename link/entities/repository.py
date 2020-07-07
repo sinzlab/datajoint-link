@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from ..adapters.gateway import GatewayTypeVar
 
 
-class ReadOnlyRepository:
+class SourceRepository:
     gateway: GatewayTypeVar = None
     entity_creator: EntityCreatorTypeVar = None
     storage = None
@@ -46,7 +46,7 @@ class ReadOnlyRepository:
         return self._entities[identifier]
 
 
-class Repository(ReadOnlyRepository):
+class NonSourceRepository(SourceRepository):
     entity_creator: EntityCreatorTypeVar
 
     def __init__(self) -> None:

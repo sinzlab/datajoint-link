@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
 
-from .repository import Repository
+from .repository import NonSourceRepository
 
 if TYPE_CHECKING:
     from .entity import LocalEntity
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from ..adapters.gateway import AbstractLocalGateway
 
 
-class LocalRepository(Repository):
+class LocalRepository(NonSourceRepository):
     gateway: AbstractLocalGateway
 
     def __init__(self):

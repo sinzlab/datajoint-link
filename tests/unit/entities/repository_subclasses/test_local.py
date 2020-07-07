@@ -7,7 +7,7 @@ from link.entities import repository
 
 
 def test_if_local_repository_is_subclass_of_repository():
-    assert issubclass(local.LocalRepository, repository.Repository)
+    assert issubclass(local.LocalRepository, repository.NonSourceRepository)
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ from typing import List
 from .base import UseCase
 from ..entities.local import LocalRepository
 from ..entities.outbound import OutboundRepository
-from ..entities.source import SourceRepository
+from ..entities.repository import SourceRepository
 
 
 class Pull(UseCase):
