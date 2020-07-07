@@ -19,11 +19,6 @@ class AbstractNonSourceGateway(AbstractSourceGateway, ABC):
     def deletion_requested_identifiers(self) -> List[str]:
         pass
 
-    @property
-    @abstractmethod
-    def deletion_approved_identifiers(self) -> List[str]:
-        pass
-
     @abstractmethod
     def delete(self, identifiers: List[str]) -> None:
         pass
@@ -46,6 +41,11 @@ class AbstractNonSourceGateway(AbstractSourceGateway, ABC):
 
 
 class AbstractOutboundGateway(AbstractNonSourceGateway, ABC):
+    @property
+    @abstractmethod
+    def deletion_approved_identifiers(self) -> List[str]:
+        pass
+
     @abstractmethod
     def approve_deletion(self, identifiers: List[str]) -> None:
         return
