@@ -74,6 +74,7 @@ def table_proxy(primary_attrs, primary_keys, entities):
         deletion_requested=[primary_keys[0], primary_keys[1]],
         deletion_approved=[primary_keys[0]],
     )
+    table_proxy.get_primary_keys_in_restriction.return_value = primary_keys
     table_proxy.fetch.return_value = entities
     table_proxy.__repr__ = MagicMock(name=name + "__repr__", return_value=name)
     return table_proxy
@@ -112,11 +113,24 @@ class TestSourceGateway:
     def gateway_cls(self):
         return dj_gateway.SourceGateway
 
+    @pytest.fixture
+    def restriction(self):
+        return "restriction"
+
     def test_if_table_proxy_is_stored_as_instance_attribute(self, gateway, table_proxy):
         assert gateway.table_proxy is table_proxy
 
     def test_identifiers_property(self, gateway, identifiers):
         assert gateway.identifiers == identifiers
+
+    def test_if_primary_keys_in_restriction_are_fetched_when_getting_identifiers_in_restriction(
+        self, gateway, table_proxy, restriction
+    ):
+        gateway.get_identifiers_in_restriction(restriction)
+        table_proxy.get_primary_keys_in_restriction.assert_called_once_with(restriction)
+
+    def test_if_identifiers_in_restriction_are_returned(self, gateway, identifiers, restriction):
+        assert gateway.get_identifiers_in_restriction(restriction) == identifiers
 
     def test_if_data_is_fetched_from_table_proxy(self, primary_keys, table_proxy, gateway, identifiers):
         gateway.fetch(identifiers)

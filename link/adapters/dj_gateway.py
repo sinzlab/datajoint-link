@@ -23,6 +23,10 @@ class SourceGateway(gateway.AbstractSourceGateway):
     def identifiers(self) -> List[str]:
         return [self._hash_primary_key(key) for key in self.table_proxy.primary_keys]
 
+    def get_identifiers_in_restriction(self, restriction) -> List[str]:
+        primary_keys = self.table_proxy.get_primary_keys_in_restriction(restriction)
+        return [self._hash_primary_key(primary_key) for primary_key in primary_keys]
+
     @_identifiers_to_primary_keys
     def fetch(self, identifiers: List[str]) -> Dict[str, Any]:
         data = dict()
