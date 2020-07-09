@@ -40,21 +40,24 @@ def test_if_table_name_is_none(factory):
 
 
 @pytest.mark.usefixtures("configure")
-def test_if_missing_classes_are_spawned(factory, schema, copy_call_args):
-    new_mock = copy_call_args(schema.spawn_missing_classes)
-    factory()
-    new_mock.assert_called_once_with(context=dict())
+class TestSpawnTableClass:
+    def test_if_missing_classes_are_spawned(self, factory, schema, copy_call_args):
+        new_mock = copy_call_args(schema.spawn_missing_classes)
+        factory.spawn_table_cls()
+        new_mock.assert_called_once_with(context=dict())
+
+    def test_if_table_cls_is_returned(self, factory, table_cls):
+        assert factory.spawn_table_cls() is table_cls
 
 
 @pytest.mark.usefixtures("configure")
-def test_if_source_table_cls_is_instantiated(factory, table_cls):
-    factory()
-    table_cls.assert_called_once_with()
+class TestCall:
+    def test_if_source_table_cls_is_instantiated(self, factory, table_cls):
+        factory()
+        table_cls.assert_called_once_with()
 
-
-@pytest.mark.usefixtures("configure")
-def test_if_source_table_is_returned(factory, table):
-    assert factory() == table
+    def test_if_source_table_is_returned(self, factory, table):
+        assert factory() == table
 
 
 def test_repr(factory):
