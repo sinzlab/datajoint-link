@@ -16,3 +16,6 @@ class LocalTableFactory(OutboundTableFactory):
 
     def create_table_cls(self) -> Type[Table]:
         pass
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__qualname__}({self.table_cls}, {self.source_table_factory})"

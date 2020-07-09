@@ -29,3 +29,7 @@ def test_if_subclass_of_outbound_table_factory(factory_cls):
 
 def test_if_source_table_factory_is_stored_as_instance_attribute(factory, source_table_factory):
     assert factory.source_table_factory is source_table_factory
+
+
+def test_repr(factory):
+    assert repr(factory) == "LocalTableFactory(local_table_cls, source_table_factory)"
