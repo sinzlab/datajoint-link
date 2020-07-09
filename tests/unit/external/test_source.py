@@ -109,6 +109,14 @@ class TestSourceTableFactory:
         assert repr(factory) == "SourceTableFactory()"
 
 
+@pytest.fixture
+def source_table_factory():
+    name = "source_table_factory"
+    source_table_factory = MagicMock(name=name)
+    source_table_factory.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+    return source_table_factory
+
+
 class TestOutboundTableFactory:
     @pytest.fixture
     def factory_type(self):
@@ -117,13 +125,6 @@ class TestOutboundTableFactory:
     @pytest.fixture
     def factory_cls(self):
         return source.OutboundTableFactory
-
-    @pytest.fixture
-    def source_table_factory(self):
-        name = "source_table_factory"
-        source_table_factory = MagicMock(name=name)
-        source_table_factory.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-        return source_table_factory
 
     @pytest.fixture
     def factory_args(self, source_table_factory, table_cls):
@@ -185,3 +186,46 @@ class TestOutboundTable:
 
     def test_if_definition_of_deletion_approved_part_table_is_correct(self):
         assert source.OutboundTable.DeletionApproved.definition.strip() == "-> master"
+
+
+class TestLocalTableFactory:
+    @pytest.fixture
+    def factory_type(self):
+        return "local"
+
+    @pytest.fixture
+    def factory_cls(self):
+        return source.LocalTableFactory
+
+    @pytest.fixture
+    def factory_args(self, source_table_factory, table_cls):
+        return [source_table_factory, table_cls]
+
+    @pytest.fixture
+    def mock_spawn_table(self, factory):
+        factory.spawn_table = MagicMock(name="LocalTableFactory.spawn_table")
+
+    @pytest.fixture
+    def mock_create_table(self, factory):
+        factory.create_table = MagicMock(name="LocalTableFactory.create_table")
+
+    def test_if_subclass_of_outbound_table_factory(self, factory_cls):
+        assert issubclass(factory_cls, source.OutboundTableFactory)
+
+    @pytest.mark.usefixtures("mock_spawn_table")
+    def test_if_local_table_is_spawned(self, factory):
+        factory()
+        factory.spawn_table.assert_called_once_with()
+
+    @pytest.mark.usefixtures("mock_spawn_table", "mock_create_table")
+    def test_if_local_table_is_created_if_not_already_created(self, factory):
+        factory.spawn_table.side_effect = KeyError
+        factory()
+        factory.create_table.assert_called_once_with()
+
+    @pytest.mark.usefixtures("mock_spawn_table", "mock_create_table")
+    def test_if_runtime_error_is_raised_if_local_table_can_not_be_spawned_or_created(self, factory):
+        factory.spawn_table.side_effect = KeyError
+        factory.create_table.side_effect = dj.errors.LostConnectionError
+        with pytest.raises(RuntimeError):
+            factory()
