@@ -1,10 +1,13 @@
+from typing import Type
+
+from datajoint.table import Table
 from datajoint.errors import LostConnectionError
 
 from .outbound import OutboundTableFactory
 
 
 class LocalTableFactory(OutboundTableFactory):
-    def __call__(self):
+    def __call__(self) -> Table:
         try:
             table_cls = self.spawn_table_cls()
         except KeyError:
@@ -14,8 +17,8 @@ class LocalTableFactory(OutboundTableFactory):
                 raise RuntimeError
         return table_cls()
 
-    def spawn_table_cls(self):
+    def spawn_table_cls(self) -> Type[Table]:
         pass
 
-    def create_table_cls(self):
+    def create_table_cls(self) -> Type[Table]:
         pass
