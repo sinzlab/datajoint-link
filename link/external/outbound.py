@@ -12,9 +12,12 @@ class OutboundTableFactory(SourceTableFactory):
         self.table_cls = table_cls
 
     def __call__(self) -> Table:
+        pass
+
+    def create_table_cls(self) -> Type[Table]:
         self.table_cls.__name__ = self.table_name + "Outbound"
         self.schema(self.table_cls)
-        return self.table_cls()
+        return self.table_cls
 
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({self.table_cls})"

@@ -15,30 +15,32 @@ def factory_args(table_cls):
     return [table_cls]
 
 
-class TestOutboundTableFactory:
-    def test_if_subclass_of_source_table_factory(self, factory_cls):
-        assert issubclass(factory_cls, SourceTableFactory)
+def test_if_subclass_of_source_table_factory(factory_cls):
+    assert issubclass(factory_cls, SourceTableFactory)
 
-    def test_if_table_cls_is_stored_as_instance_attribute(self, factory, table_cls):
-        assert factory.table_cls is table_cls
 
+def test_if_table_cls_is_stored_as_instance_attribute(factory, table_cls):
+    assert factory.table_cls is table_cls
+
+
+class TestCreateTableClass:
     @pytest.mark.usefixtures("configure")
     def test_if_name_attribute_of_outbound_table_cls_is_correctly_set(self, factory, table_name, table_cls):
-        factory()
+        factory.create_table_cls()
         assert table_cls.__name__ == table_name + "Outbound"
 
     @pytest.mark.usefixtures("configure")
     def test_if_outbound_schema_is_applied_to_outbound_table_class(self, factory, schema, table_cls):
-        factory()
-        print(schema)
+        factory.create_table_cls()
         schema.assert_called_once_with(table_cls)
 
     @pytest.mark.usefixtures("configure")
-    def test_if_outbound_table_is_returned(self, factory, table):
-        assert factory() is table
+    def test_if_outbound_table_cls_is_returned(self, factory, table_cls):
+        assert factory.spawn_table_cls() is table_cls
 
-    def test_repr(self, factory):
-        assert repr(factory) == "OutboundTableFactory(outbound_table_cls)"
+
+def test_repr(factory):
+    assert repr(factory) == "OutboundTableFactory(outbound_table_cls)"
 
 
 class TestOutboundTable:
