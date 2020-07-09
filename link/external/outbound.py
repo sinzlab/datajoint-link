@@ -2,6 +2,7 @@ from typing import Type
 
 from datajoint import Lookup, Part
 from datajoint.table import Table
+from datajoint.errors import LostConnectionError
 
 from .source import SourceTableFactory
 
@@ -12,7 +13,14 @@ class OutboundTableFactory(SourceTableFactory):
         self.table_cls = table_cls
 
     def __call__(self) -> Table:
-        pass
+        try:
+            table_cls = self.spawn_table_cls()
+        except KeyError:
+            try:
+                table_cls = self.create_table_cls()
+            except LostConnectionError:
+                raise RuntimeError
+        return table_cls()
 
     def create_table_cls(self) -> Type[Table]:
         self.table_cls.__name__ = self.table_name + "Outbound"
