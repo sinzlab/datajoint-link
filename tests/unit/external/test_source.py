@@ -8,6 +8,11 @@ from link.external import source
 
 
 @pytest.fixture
+def factory_cls(factory_type):
+    return getattr(source, factory_type.title() + "TableFactory")
+
+
+@pytest.fixture
 def factory_args():
     return list()
 
@@ -80,10 +85,6 @@ class TestSourceTableFactory:
     def factory_type(self):
         return "source"
 
-    @pytest.fixture
-    def factory_cls(self):
-        return source.SourceTableFactory
-
     def test_if_schema_is_none(self, factory):
         assert factory.schema is None
 
@@ -121,10 +122,6 @@ class TestOutboundTableFactory:
     @pytest.fixture
     def factory_type(self):
         return "outbound"
-
-    @pytest.fixture
-    def factory_cls(self):
-        return source.OutboundTableFactory
 
     @pytest.fixture
     def factory_args(self, source_table_factory, table_cls):
@@ -192,10 +189,6 @@ class TestLocalTableFactory:
     @pytest.fixture
     def factory_type(self):
         return "local"
-
-    @pytest.fixture
-    def factory_cls(self):
-        return source.LocalTableFactory
 
     @pytest.fixture
     def factory_args(self, source_table_factory, table_cls):
