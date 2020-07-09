@@ -46,18 +46,18 @@ class TestSpawnTableClass:
         factory.spawn_table_cls()
         new_mock.assert_called_once_with(context=dict())
 
-    def test_if_table_cls_is_returned(self, factory, table_cls):
-        assert factory.spawn_table_cls() is table_cls
+    def test_if_table_cls_is_returned(self, factory, spawned_table_cls):
+        assert factory.spawn_table_cls() is spawned_table_cls
 
 
 @pytest.mark.usefixtures("configure")
 class TestCall:
-    def test_if_source_table_cls_is_instantiated(self, factory, table_cls):
+    def test_if_source_table_cls_is_instantiated(self, factory, spawned_table_cls):
         factory()
-        table_cls.assert_called_once_with()
+        spawned_table_cls.assert_called_once_with()
 
-    def test_if_source_table_is_returned(self, factory, table):
-        assert factory() == table
+    def test_if_source_table_is_returned(self, factory, spawned_table):
+        assert factory() == spawned_table
 
 
 def test_repr(factory):

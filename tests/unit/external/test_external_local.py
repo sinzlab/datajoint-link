@@ -11,8 +11,8 @@ def factory_type():
 
 
 @pytest.fixture
-def factory_args(source_table_factory, table_cls):
-    return [table_cls, source_table_factory]
+def factory_args(source_table_factory, created_table_cls):
+    return [created_table_cls, source_table_factory]
 
 
 @pytest.fixture
@@ -32,4 +32,4 @@ def test_if_source_table_factory_is_stored_as_instance_attribute(factory, source
 
 
 def test_repr(factory):
-    assert repr(factory) == "LocalTableFactory(local_table_cls, source_table_factory)"
+    assert repr(factory) == "LocalTableFactory(local_created_table_cls, source_table_factory)"

@@ -19,16 +19,26 @@ def factory(factory_cls, factory_args):
 
 
 @pytest.fixture
-def table(factory_type):
-    return MagicMock(name=factory_type + "_table")
+def spawned_table(factory_type):
+    return MagicMock(name=factory_type + "_spawned_table")
 
 
 @pytest.fixture
-def table_cls(factory_type, table):
-    name = factory_type + "_table_cls"
-    table_cls = MagicMock(name=name, return_value=table)
-    table_cls.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return table_cls
+def spawned_table_cls(factory_type, spawned_table):
+    return MagicMock(name=factory_type + "_spawned_table_cls", return_value=spawned_table)
+
+
+@pytest.fixture
+def created_table(factory_type):
+    return MagicMock(name=factory_type + "_created_table")
+
+
+@pytest.fixture
+def created_table_cls(factory_type, created_table):
+    name = factory_type + "_created_table_cls"
+    created_table_cls = MagicMock(name=name, return_value=created_table)
+    created_table_cls.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+    return created_table_cls
 
 
 @pytest.fixture
@@ -37,14 +47,14 @@ def table_name():
 
 
 @pytest.fixture
-def schema(factory_type, table_name, table_cls):
+def schema(factory_type, table_name, spawned_table_cls, created_table_cls):
     class Schema:
         @staticmethod
         def spawn_missing_classes(context=None):
-            context[table_name] = table_cls
+            context[table_name] = spawned_table_cls
 
         def __call__(self, _):
-            return table_cls
+            return created_table_cls
 
     Schema.__name__ = factory_type.title() + Schema.__name__
     Schema.spawn_missing_classes = MagicMock(
