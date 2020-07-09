@@ -4,9 +4,14 @@ from datajoint.table import Table
 from datajoint.errors import LostConnectionError
 
 from .outbound import OutboundTableFactory
+from .source import SourceTableFactory
 
 
 class LocalTableFactory(OutboundTableFactory):
+    def __init__(self, table_cls: Type[Table], source_table_factory: SourceTableFactory) -> None:
+        super().__init__(table_cls)
+        self.source_table_factory = source_table_factory
+
     def __call__(self) -> Table:
         try:
             table_cls = self.spawn_table_cls()

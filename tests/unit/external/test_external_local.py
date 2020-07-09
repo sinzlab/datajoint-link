@@ -13,7 +13,7 @@ def factory_type():
 
 @pytest.fixture
 def factory_args(source_table_factory, table_cls):
-    return [source_table_factory, table_cls]
+    return [table_cls, source_table_factory]
 
 
 @pytest.fixture
@@ -23,6 +23,10 @@ def mock_spawn_table_cls(factory, table_cls):
 
 def test_if_subclass_of_outbound_table_factory(factory_cls):
     assert issubclass(factory_cls, OutboundTableFactory)
+
+
+def test_if_source_table_factory_is_stored_as_instance_attribute(factory, source_table_factory):
+    assert factory.source_table_factory is source_table_factory
 
 
 @pytest.mark.usefixtures("mock_spawn_table_cls")

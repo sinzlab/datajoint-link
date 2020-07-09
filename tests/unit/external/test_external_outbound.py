@@ -11,8 +11,8 @@ def factory_type():
 
 
 @pytest.fixture
-def factory_args(source_table_factory, table_cls):
-    return [source_table_factory, table_cls]
+def factory_args(table_cls):
+    return [table_cls]
 
 
 class TestOutboundTableFactory:
@@ -21,16 +21,6 @@ class TestOutboundTableFactory:
 
     def test_if_table_cls_is_stored_as_instance_attribute(self, factory, table_cls):
         assert factory.table_cls is table_cls
-
-    def test_if_source_table_is_stored_as_instance_attribute(self, factory, source_table_factory):
-        assert factory.source_table_cls is source_table_factory
-
-    @pytest.mark.usefixtures("configure")
-    def test_if_source_table_cls_attribute_of_outbound_table_cls_is_correctly_set(
-        self, factory, source_table_factory, table_cls
-    ):
-        factory()
-        assert table_cls.source_table_cls is source_table_factory
 
     @pytest.mark.usefixtures("configure")
     def test_if_name_attribute_of_outbound_table_cls_is_correctly_set(self, factory, table_name, table_cls):
@@ -48,7 +38,7 @@ class TestOutboundTableFactory:
         assert factory() is table
 
     def test_repr(self, factory):
-        assert repr(factory) == "OutboundTableFactory(source_table_factory, outbound_table_cls)"
+        assert repr(factory) == "OutboundTableFactory(outbound_table_cls)"
 
 
 class TestOutboundTable:
