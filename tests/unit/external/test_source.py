@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, DEFAULT
 from copy import deepcopy
 
 import pytest
+import datajoint as dj
 
 from link.external import source
 
@@ -161,3 +162,26 @@ class TestOutboundTableFactory:
 
     def test_repr(self, factory):
         assert repr(factory) == "OutboundTableFactory(source_table_factory, outbound_table_cls)"
+
+
+class TestOutboundTable:
+    def test_if_lookup_table(self):
+        assert issubclass(source.OutboundTable, dj.Lookup)
+
+    def test_if_source_table_cls_is_none(self):
+        assert source.OutboundTable.source_table_cls is None
+
+    def test_if_definition_is_correct(self):
+        assert source.OutboundTable.definition.strip() == "-> self.source_table_cls"
+
+    def test_if_deletion_requested_is_part_table(self):
+        assert issubclass(source.OutboundTable.DeletionRequested, dj.Part)
+
+    def test_if_definition_of_deletion_requested_part_table_is_correct(self):
+        assert source.OutboundTable.DeletionRequested.definition.strip() == "-> master"
+
+    def test_if_deletion_approved_is_part_table(self):
+        assert issubclass(source.OutboundTable.DeletionApproved, dj.Part)
+
+    def test_if_definition_of_deletion_approved_part_table_is_correct(self):
+        assert source.OutboundTable.DeletionApproved.definition.strip() == "-> master"

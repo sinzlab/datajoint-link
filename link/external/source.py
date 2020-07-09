@@ -1,4 +1,5 @@
 from datajoint.table import Table
+from datajoint import Lookup, Part
 
 
 class SourceTableFactory:
@@ -30,3 +31,20 @@ class OutboundTableFactory(SourceTableFactory):
 
     def __repr__(self):
         return f"{self.__class__.__qualname__}({self.source_table_cls}, {self.table_cls})"
+
+
+class OutboundTable(Lookup):
+    source_table_cls = None
+    definition = """
+    -> self.source_table_cls
+    """
+
+    class DeletionRequested(Part):
+        definition = """
+        -> master
+        """
+
+    class DeletionApproved(Part):
+        definition = """
+        -> master
+        """
