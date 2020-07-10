@@ -23,15 +23,13 @@ class OutboundTableFactory(SourceTableFactory):
         return table_cls()
 
     def create_table_cls(self) -> Type[Table]:
-        self.table_cls.__name__ = self.table_name + "Outbound"
-        self.schema(self.table_cls)
-        return self.table_cls
+        return self.schema(type(self.table_name, (self.table_cls, Lookup), dict()))
 
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({self.table_cls})"
 
 
-class OutboundTable(Lookup):
+class OutboundTable:
     source_table_cls = None
     definition = """
     -> self.source_table_cls

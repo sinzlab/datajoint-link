@@ -21,7 +21,7 @@ def factory(factory_cls, factory_args):
 @pytest.fixture
 def make_table_cls(factory_type):
     def _make_table_cls(kind):
-        return type(factory_type.title() + kind.title() + "Table", tuple(), dict())
+        return type(factory_type.title() + kind.title() + "Table", tuple(), dict(schema_applied=False))
 
     return _make_table_cls
 
@@ -42,20 +42,21 @@ def table_name():
 
 
 @pytest.fixture
-def schema(factory_type, table_name, spawned_table_cls, created_table_cls):
+def schema(factory_type, table_name, spawned_table_cls):
     class Schema:
         @staticmethod
         def spawn_missing_classes(context=None):
             context[table_name] = spawned_table_cls
 
-        def __call__(self, _):
-            return created_table_cls
+        def __call__(self, table_cls):
+            table_cls.schema_applied = True
+            return table_cls
 
     Schema.__name__ = factory_type.title() + Schema.__name__
     Schema.spawn_missing_classes = MagicMock(
         name=factory_type.title() + "Schema.spawn_missing_classes", wraps=Schema.spawn_missing_classes
     )
-    return MagicMock(name=Schema.__name__, wraps=Schema())
+    return Schema()
 
 
 @pytest.fixture

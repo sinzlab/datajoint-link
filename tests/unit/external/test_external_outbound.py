@@ -64,20 +64,19 @@ class TestCall:
             factory()
 
 
+@pytest.mark.usefixtures("configure")
 class TestCreateTableClass:
-    @pytest.mark.usefixtures("configure")
+    def test_if_returned_class_is_subclass_of_created_table_cls(self, factory, created_table_cls):
+        assert issubclass(factory.create_table_cls(), created_table_cls)
+
+    def test_if_returned_class_is_subclass_of_lookup_table(self, factory):
+        assert issubclass(factory.create_table_cls(), Lookup)
+
     def test_if_name_attribute_of_outbound_table_cls_is_correctly_set(self, factory, table_name, created_table_cls):
-        factory.create_table_cls()
-        assert created_table_cls.__name__ == table_name + "Outbound"
+        assert factory.create_table_cls().__name__ == table_name
 
-    @pytest.mark.usefixtures("configure")
     def test_if_outbound_schema_is_applied_to_outbound_table_class(self, factory, schema, created_table_cls):
-        factory.create_table_cls()
-        schema.assert_called_once_with(created_table_cls)
-
-    @pytest.mark.usefixtures("configure")
-    def test_if_outbound_table_cls_is_returned(self, factory, created_table_cls):
-        assert factory.create_table_cls() is created_table_cls
+        assert factory.create_table_cls().schema_applied
 
 
 def test_repr(factory, created_table_cls):
@@ -85,9 +84,6 @@ def test_repr(factory, created_table_cls):
 
 
 class TestOutboundTable:
-    def test_if_lookup_table(self):
-        assert issubclass(OutboundTable, Lookup)
-
     def test_if_source_table_cls_is_none(self):
         assert OutboundTable.source_table_cls is None
 
