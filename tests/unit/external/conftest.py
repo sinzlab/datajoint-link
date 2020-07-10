@@ -38,7 +38,7 @@ def created_table_cls(make_table_cls):
 
 @pytest.fixture
 def table_name():
-    return "source_table"
+    return "SourceTable"
 
 
 @pytest.fixture
