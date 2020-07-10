@@ -66,16 +66,16 @@ class TestCall:
 
 @pytest.mark.usefixtures("configure")
 class TestCreateTableClass:
-    def test_if_returned_class_is_subclass_of_created_table_cls(self, factory, created_table_cls):
+    def test_if_returned_class_is_subclass_of_created_table_class(self, factory, created_table_cls):
         assert issubclass(factory.create_table_cls(), created_table_cls)
 
     def test_if_returned_class_is_subclass_of_lookup_table(self, factory):
         assert issubclass(factory.create_table_cls(), Lookup)
 
-    def test_if_name_attribute_of_outbound_table_cls_is_correctly_set(self, factory, table_name, created_table_cls):
+    def test_if_name_attribute_of_returned_class_is_correctly_set(self, factory, table_name):
         assert factory.create_table_cls().__name__ == table_name
 
-    def test_if_outbound_schema_is_applied_to_outbound_table_class(self, factory, schema, created_table_cls):
+    def test_if_schema_is_applied_to_returned_class(self, factory):
         assert factory.create_table_cls().schema_applied
 
 
