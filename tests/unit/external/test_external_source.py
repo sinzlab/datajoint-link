@@ -96,9 +96,8 @@ class TestSpawnTableClass:
 
 
 @pytest.mark.usefixtures("configure")
-class TestCall:
-    def test_if_source_table_is_returned(self, factory, spawned_table_cls):
-        assert isinstance(factory(), spawned_table_cls)
+def test_if_source_table_is_returned_when_factory_is_called(factory, spawned_table_cls):
+    assert isinstance(factory(), spawned_table_cls)
 
 
 def test_repr(factory):
