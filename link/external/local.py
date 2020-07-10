@@ -13,12 +13,8 @@ class LocalTableFactory(OutboundTableFactory):
 
     def spawn_table_cls(self) -> Type[Table]:
         local_table_cls = super().spawn_table_cls()
-
-        class LocalTable(self.table_cls, local_table_cls):
-            pass
-
-        LocalTable.__name__ = self.source_table_factory().__name__
-        return LocalTable
+        # noinspection PyTypeChecker
+        return type(self.source_table_factory().__name__, (self.table_cls, local_table_cls), dict())
 
     def create_table_cls(self) -> Type[Table]:
         pass
