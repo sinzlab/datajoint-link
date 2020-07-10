@@ -31,5 +31,5 @@ def test_if_source_table_factory_is_stored_as_instance_attribute(factory, source
     assert factory.source_table_factory is source_table_factory
 
 
-def test_repr(factory):
-    assert repr(factory) == "LocalTableFactory(local_created_table_cls, source_table_factory)"
+def test_repr(factory, created_table_cls):
+    assert repr(factory) == f"LocalTableFactory({created_table_cls}, source_table_factory)"

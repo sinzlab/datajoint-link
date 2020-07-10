@@ -45,8 +45,8 @@ class TestCall:
         factory()
         factory.spawn_table_cls.assert_called_once_with()
 
-    def test_if_spawned_table_is_returned(self, factory, spawned_table):
-        assert factory() == spawned_table
+    def test_if_spawned_table_is_returned(self, factory, spawned_table_cls):
+        assert isinstance(factory(), spawned_table_cls)
 
     @pytest.mark.usefixtures("outbound_table_not_already_created", "mock_create_table_cls")
     def test_if_outbound_table_is_created_if_not_already_created(self, factory):
@@ -54,8 +54,8 @@ class TestCall:
         factory.create_table_cls.assert_called_once_with()
 
     @pytest.mark.usefixtures("outbound_table_not_already_created", "mock_create_table_cls")
-    def test_if_created_table_is_returned(self, factory, created_table):
-        assert factory() == created_table
+    def test_if_created_table_is_returned(self, factory, created_table_cls):
+        assert isinstance(factory(), created_table_cls)
 
     @pytest.mark.usefixtures("outbound_table_not_already_created", "mock_create_table_cls")
     def test_if_runtime_error_is_raised_if_outbound_table_can_not_be_spawned_or_created(self, factory):
@@ -80,8 +80,8 @@ class TestCreateTableClass:
         assert factory.create_table_cls() is created_table_cls
 
 
-def test_repr(factory):
-    assert repr(factory) == "OutboundTableFactory(outbound_created_table_cls)"
+def test_repr(factory, created_table_cls):
+    assert repr(factory) == f"OutboundTableFactory({created_table_cls})"
 
 
 class TestOutboundTable:

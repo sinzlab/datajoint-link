@@ -19,26 +19,21 @@ def factory(factory_cls, factory_args):
 
 
 @pytest.fixture
-def spawned_table(factory_type):
-    return MagicMock(name=factory_type + "_spawned_table")
+def make_table_cls(factory_type):
+    def _make_table_cls(kind):
+        return type(factory_type.title() + kind.title() + "Table", tuple(), dict())
+
+    return _make_table_cls
 
 
 @pytest.fixture
-def spawned_table_cls(factory_type, spawned_table):
-    return MagicMock(name=factory_type + "_spawned_table_cls", return_value=spawned_table)
+def spawned_table_cls(make_table_cls):
+    return make_table_cls("spawned")
 
 
 @pytest.fixture
-def created_table(factory_type):
-    return MagicMock(name=factory_type + "_created_table")
-
-
-@pytest.fixture
-def created_table_cls(factory_type, created_table):
-    name = factory_type + "_created_table_cls"
-    created_table_cls = MagicMock(name=name, return_value=created_table)
-    created_table_cls.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return created_table_cls
+def created_table_cls(make_table_cls):
+    return make_table_cls("created")
 
 
 @pytest.fixture
