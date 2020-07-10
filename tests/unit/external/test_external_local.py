@@ -16,14 +16,9 @@ def factory_args(source_table_factory, created_table_cls):
 
 
 @pytest.fixture
-def source_table(table_name):
-    return MagicMock(name="source_table", __name__=table_name)
-
-
-@pytest.fixture
-def source_table_factory(source_table):
+def source_table_factory():
     name = "source_table_factory"
-    source_table_factory = MagicMock(name=name, return_value=source_table)
+    source_table_factory = MagicMock(name=name)
     source_table_factory.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return source_table_factory
 

@@ -14,7 +14,7 @@ class LocalTableFactory(OutboundTableFactory):
     def spawn_table_cls(self) -> Type[Table]:
         local_table_cls = super().spawn_table_cls()
         # noinspection PyTypeChecker
-        return type(self.source_table_factory().__name__, (self.table_cls, local_table_cls), dict())
+        return type(self.table_name, (self.table_cls, local_table_cls), dict())
 
     def create_table_cls(self) -> Type[Table]:
         pass
