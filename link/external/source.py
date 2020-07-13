@@ -15,11 +15,14 @@ class SourceTableFactory:
         source_table_cls = self.spawn_table_cls()
         return source_table_cls()
 
+    @property
+    def parts(self):
+        return self.get_parts(self.spawn_table_cls())
+
     def spawn_table_cls(self) -> Type[Table]:
         table_classes = dict()
         self.schema.spawn_missing_classes(context=table_classes)
         table_cls = table_classes[self.table_name]
-        table_cls.parts = self.get_parts(table_cls)
         return table_cls
 
     def __repr__(self) -> str:

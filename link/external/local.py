@@ -30,13 +30,13 @@ class LocalTableFactory(OutboundTableFactory):
 
     def _create_part_definitions(self):
         part_definitions = []
-        for part in self.source_table_factory().parts.values():
+        for part in self.source_table_factory.parts.values():
             part_definitions.append("-> master\n" + self.replace_stores(str(part.heading)))
         return part_definitions
 
     def _create_part_tables(self, part_definitions):
         parts = dict()
-        for (name, part), definition in zip(self.source_table_factory().parts.items(), part_definitions):
+        for (name, part), definition in zip(self.source_table_factory.parts.items(), part_definitions):
             parts[name] = type(name, (Part,), dict(definition=definition))
         return parts
 

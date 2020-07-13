@@ -38,14 +38,14 @@ def source_table_parts(make_heading, source_table_part_names):
 
 
 @pytest.fixture
-def source_table(make_heading, source_table_parts):
-    return MagicMock(name="source_table", heading=make_heading("source_table"), parts=source_table_parts)
+def source_table(make_heading):
+    return MagicMock(name="source_table", heading=make_heading("source_table"))
 
 
 @pytest.fixture
-def source_table_factory(source_table):
+def source_table_factory(source_table, source_table_parts):
     name = "source_table_factory"
-    source_table_factory = MagicMock(name=name, return_value=source_table)
+    source_table_factory = MagicMock(name=name, return_value=source_table, parts=source_table_parts)
     source_table_factory.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return source_table_factory
 
@@ -102,7 +102,7 @@ class TestCreateTableCls:
 
     def test_if_source_table_factory_is_called_correctly(self, factory, source_table_factory):
         factory.create_table_cls()
-        assert source_table_factory.mock_calls == [call(), call(), call()]
+        source_table_factory.assert_called_once_with()
 
     def test_if_source_table_heading_with_replaced_stores_is_set_as_definition_of_created_table_cls(
         self, local_table_cls

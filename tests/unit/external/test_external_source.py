@@ -44,22 +44,24 @@ def test_if_table_name_is_none(factory):
 
 
 @pytest.mark.usefixtures("configure")
+class TestPartsProperty:
+    def test_if_get_parts_is_called_correctly(self, factory, spawned_table_cls, get_parts):
+        _ = factory.parts
+        get_parts.assert_called_once_with(spawned_table_cls)
+
+    def test_if_parts_are_returned(self, factory):
+        assert factory.parts == "parts"
+
+
+@pytest.mark.usefixtures("configure")
 class TestSpawnTableClass:
     def test_if_missing_classes_are_spawned(self, factory, schema, copy_call_args):
         new_mock = copy_call_args(schema.spawn_missing_classes)
         factory.spawn_table_cls()
         new_mock.assert_called_once_with(context=dict())
 
-    def test_if_get_parts_is_called_correctly(self, factory, spawned_table_cls, get_parts):
-        factory.spawn_table_cls()
-        get_parts.assert_called_once_with(spawned_table_cls)
-
     def test_if_table_cls_is_returned(self, factory, spawned_table_cls):
         assert factory.spawn_table_cls() is spawned_table_cls
-
-    def test_if_part_tables_attribute_is_set_correctly(self, factory, spawned_table_cls):
-        factory()
-        assert spawned_table_cls.parts == "parts"
 
 
 @pytest.mark.usefixtures("configure")
