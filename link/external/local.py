@@ -25,6 +25,7 @@ class LocalTableFactory(OutboundTableFactory):
         part_definitions = self._create_part_definitions()
         parts = self._create_part_tables(part_definitions)
         self._assign_part_tables(local_table_cls, parts)
+        local_table_cls.parts = parts
         return local_table_cls
 
     def _create_part_definitions(self):

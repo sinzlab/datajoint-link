@@ -107,6 +107,12 @@ class TestCreateTableCls:
         local_table_cls = factory.create_table_cls()
         assert all(hasattr(local_table_cls, part_name) for part_name in source_table_part_names)
 
+    def test_if_references_to_assigned_part_table_classes_is_stored_in_parts_attribute(
+        self, factory, source_table_part_names
+    ):
+        local_table_cls = factory.create_table_cls()
+        assert all(name in local_table_cls.parts for name in source_table_part_names)
+
     def test_if_part_tables_are_part_tables(self, factory, source_table_part_names):
         local_table_cls = factory.create_table_cls()
         for part_name in source_table_part_names:
