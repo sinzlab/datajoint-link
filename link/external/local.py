@@ -3,7 +3,7 @@ from typing import Type
 from datajoint import Part
 from datajoint.table import Table
 
-from .outbound import OutboundTableFactory
+from .outbound import OutboundTableFactory, DeletionRequested
 from .source import SourceTableFactory
 
 
@@ -51,11 +51,7 @@ class LocalTableFactory(OutboundTableFactory):
 
 class LocalTable:
     controller = None
-
-    class DeletionRequested(Part):
-        definition = """
-        -> master
-        """
+    DeletionRequested = DeletionRequested
 
     def pull(self, *restrictions):
         self.controller.pull(*restrictions)

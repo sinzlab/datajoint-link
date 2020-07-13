@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 from datajoint import Part
 
-from link.external.outbound import OutboundTableFactory
+from link.external.outbound import OutboundTableFactory, DeletionRequested
 from link.external.local import LocalTable
 
 
@@ -153,8 +153,5 @@ class TestLocalTable:
         LocalTable().pull(*restrictions)
         controller.pull.assert_called_once_with(*restrictions)
 
-    def test_if_deletion_requested_is_part_table(self):
-        assert issubclass(LocalTable.DeletionRequested, Part)
-
-    def test_if_definition_of_deletion_requested_part_table_is_correct(self):
-        assert LocalTable.DeletionRequested.definition.strip() == "-> master"
+    def test_if_deletion_requested_part_table_is_set(self):
+        assert LocalTable.DeletionRequested is DeletionRequested

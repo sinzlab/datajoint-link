@@ -30,16 +30,18 @@ class OutboundTableFactory(SourceTableFactory):
         return f"{self.__class__.__qualname__}({self.table_cls})"
 
 
+class DeletionRequested(Part):
+    definition = """
+    -> master
+    """
+
+
 class OutboundTable:
     source_table_cls = None
+    DeletionRequested = DeletionRequested
     definition = """
     -> self.source_table_cls
     """
-
-    class DeletionRequested(Part):
-        definition = """
-        -> master
-        """
 
     class DeletionApproved(Part):
         definition = """

@@ -4,7 +4,7 @@ import pytest
 from datajoint import Lookup, Part
 from datajoint.errors import LostConnectionError
 
-from link.external.outbound import OutboundTable
+from link.external.outbound import OutboundTable, DeletionRequested
 from link.external.source import SourceTableFactory
 
 
@@ -84,6 +84,14 @@ def test_repr(factory, created_table_cls):
     assert repr(factory) == f"OutboundTableFactory({created_table_cls})"
 
 
+class TestDeletionRequested:
+    def test_if_deletion_requested_is_part_table(self):
+        assert issubclass(DeletionRequested, Part)
+
+    def test_if_definition_of_deletion_requested_part_table_is_correct(self):
+        assert DeletionRequested.definition.strip() == "-> master"
+
+
 class TestOutboundTable:
     def test_if_source_table_cls_is_none(self):
         assert OutboundTable.source_table_cls is None
@@ -91,11 +99,8 @@ class TestOutboundTable:
     def test_if_definition_is_correct(self):
         assert OutboundTable.definition.strip() == "-> self.source_table_cls"
 
-    def test_if_deletion_requested_is_part_table(self):
-        assert issubclass(OutboundTable.DeletionRequested, Part)
-
-    def test_if_definition_of_deletion_requested_part_table_is_correct(self):
-        assert OutboundTable.DeletionRequested.definition.strip() == "-> master"
+    def test_if_deletion_requested_part_table_is_set(self):
+        assert OutboundTable.DeletionRequested is DeletionRequested
 
     def test_if_deletion_approved_is_part_table(self):
         assert issubclass(OutboundTable.DeletionApproved, Part)
