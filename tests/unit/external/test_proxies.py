@@ -169,13 +169,13 @@ class TestSourceTableProxy:
         assert repr(proxy) == "SourceTableProxy(table_factory)"
 
 
-class TestNonSourceTableProxy:
+class TestLocalTableProxy:
     def test_if_subclass_of_source_table_proxy(self):
-        assert issubclass(proxies.NonSourceTableProxy, proxies.SourceTableProxy)
+        assert issubclass(proxies.LocalTableProxy, proxies.SourceTableProxy)
 
     @pytest.fixture
     def proxy_cls(self):
-        return proxies.NonSourceTableProxy
+        return proxies.LocalTableProxy
 
     @pytest.fixture
     def delete(self, primary_keys, proxy):
@@ -244,7 +244,7 @@ class TestNonSourceTableProxy:
 
 class TestOutboundTableProxy:
     def test_if_subclass_of_non_source_table_proxy(self):
-        assert issubclass(proxies.OutboundTableProxy, proxies.NonSourceTableProxy)
+        assert issubclass(proxies.OutboundTableProxy, proxies.LocalTableProxy)
 
     @pytest.fixture
     def proxy_cls(self):
@@ -268,7 +268,3 @@ class TestOutboundTableProxy:
     def test_if_primary_keys_are_inserted_into_deletion_approved_part_table(self, primary_keys, table, proxy):
         proxy.approve_deletion(primary_keys)
         table.DeletionApproved.insert.assert_called_once_with(primary_keys)
-
-
-def test_if_local_table_proxy_is_subclass_of_non_source_table_proxy():
-    assert issubclass(proxies.LocalTableProxy, proxies.NonSourceTableProxy)

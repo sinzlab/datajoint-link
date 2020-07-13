@@ -30,7 +30,7 @@ class SourceTableProxy:
         return self.__class__.__qualname__ + "(" + repr(self.table_factory) + ")"
 
 
-class NonSourceTableProxy(SourceTableProxy):
+class LocalTableProxy(SourceTableProxy):
     @property
     def deletion_requested(self) -> List[PrimaryKey]:
         return self.table_factory().DeletionRequested.fetch(as_dict=True)
@@ -53,14 +53,10 @@ class NonSourceTableProxy(SourceTableProxy):
         self.table_factory().connection.cancel_transaction()
 
 
-class OutboundTableProxy(NonSourceTableProxy):
+class OutboundTableProxy(LocalTableProxy):
     @property
     def deletion_approved(self) -> List[PrimaryKey]:
         return self.table_factory().DeletionApproved.fetch(as_dict=True)
 
     def approve_deletion(self, primary_keys: List[PrimaryKey]) -> None:
         self.table_factory().DeletionApproved.insert(primary_keys)
-
-
-class LocalTableProxy(NonSourceTableProxy):
-    pass
