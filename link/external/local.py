@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, List, Dict
 
 from datajoint import Part
 from datajoint.table import Table
@@ -14,12 +14,11 @@ class LocalTableFactory(OutboundTableFactory):
         super().__init__(table_cls)
         self.source_table_factory = source_table_factory
 
-    def spawn_table_cls(self) -> Type[Table]:
+    def spawn_table_cls(self) -> Type:
         local_table_cls = super().spawn_table_cls()
-        # noinspection PyTypeChecker
         return type(self.table_name, (self.table_cls, local_table_cls), dict())
 
-    def create_table_cls(self) -> Type[Table]:
+    def create_table_cls(self) -> Type:
         local_table_cls = super().create_table_cls()
         local_table_cls.definition = self.replace_stores(str(self.source_table_factory().heading))
         part_definitions = self._create_part_definitions()
@@ -28,20 +27,20 @@ class LocalTableFactory(OutboundTableFactory):
         local_table_cls.parts = parts
         return local_table_cls
 
-    def _create_part_definitions(self):
+    def _create_part_definitions(self) -> List[str]:
         part_definitions = []
         for part in self.source_table_factory.parts.values():
             part_definitions.append("-> master\n" + self.replace_stores(str(part.heading)))
         return part_definitions
 
-    def _create_part_tables(self, part_definitions):
+    def _create_part_tables(self, part_definitions: List[str]) -> Dict[str, Type]:
         parts = dict()
         for (name, part), definition in zip(self.source_table_factory.parts.items(), part_definitions):
             parts[name] = type(name, (Part,), dict(definition=definition))
         return parts
 
     @staticmethod
-    def _assign_part_tables(local_table_cls, parts):
+    def _assign_part_tables(local_table_cls: Type, parts: Dict[str, Type]) -> None:
         for name, part in parts.items():
             setattr(local_table_cls, name, part)
 

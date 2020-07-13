@@ -22,8 +22,7 @@ class OutboundTableFactory(SourceTableFactory):
                 raise RuntimeError
         return table_cls()
 
-    def create_table_cls(self) -> Type[Table]:
-        # noinspection PyTypeChecker
+    def create_table_cls(self) -> Type:
         return type(self.table_name, (self.table_cls, Lookup), dict())
 
     def __repr__(self) -> str:

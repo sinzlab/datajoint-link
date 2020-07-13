@@ -1,5 +1,6 @@
-from typing import Type
+from typing import Type, Dict
 
+from datajoint import Part
 from datajoint.table import Table
 
 
@@ -16,7 +17,7 @@ class SourceTableFactory:
         return source_table_cls()
 
     @property
-    def parts(self):
+    def parts(self) -> Dict[str, Type[Part]]:
         return self.get_parts(self.spawn_table_cls())
 
     def spawn_table_cls(self) -> Type[Table]:
