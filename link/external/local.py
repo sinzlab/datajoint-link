@@ -22,10 +22,27 @@ class LocalTableFactory(OutboundTableFactory):
     def create_table_cls(self) -> Type[Table]:
         local_table_cls = super().create_table_cls()
         local_table_cls.definition = self.replace_stores(str(self.source_table_factory().heading))
-        for name, part in self.source_table_factory().parts.items():
-            part_definition = "-> master\n" + self.replace_stores(str(part.heading))
-            setattr(local_table_cls, name, type(name, (Part,), dict(definition=part_definition)))
+        part_definitions = self._create_part_definitions()
+        parts = self._create_part_tables(part_definitions)
+        self._assign_part_tables(local_table_cls, parts)
         return local_table_cls
+
+    def _create_part_definitions(self):
+        part_definitions = []
+        for part in self.source_table_factory().parts.values():
+            part_definitions.append("-> master\n" + self.replace_stores(str(part.heading)))
+        return part_definitions
+
+    def _create_part_tables(self, part_definitions):
+        parts = dict()
+        for (name, part), definition in zip(self.source_table_factory().parts.items(), part_definitions):
+            parts[name] = type(name, (Part,), dict(definition=definition))
+        return parts
+
+    @staticmethod
+    def _assign_part_tables(local_table_cls, parts):
+        for name, part in parts.items():
+            setattr(local_table_cls, name, part)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({self.table_cls}, {self.source_table_factory})"
