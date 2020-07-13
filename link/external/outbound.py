@@ -17,13 +17,14 @@ class OutboundTableFactory(SourceTableFactory):
             table_cls = self.spawn_table_cls()
         except KeyError:
             try:
-                table_cls = self.create_table_cls()
+                table_cls = self.schema(self.create_table_cls())
             except LostConnectionError:
                 raise RuntimeError
         return table_cls()
 
     def create_table_cls(self) -> Type[Table]:
-        return self.schema(type(self.table_name, (self.table_cls, Lookup), dict()))
+        # noinspection PyTypeChecker
+        return type(self.table_name, (self.table_cls, Lookup), dict())
 
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({self.table_cls})"

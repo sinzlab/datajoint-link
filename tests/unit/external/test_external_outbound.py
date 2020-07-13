@@ -31,7 +31,7 @@ def mock_spawn_table_cls(factory, spawned_table_cls):
     factory.spawn_table_cls = MagicMock(name="OutboundTableFactory.spawn_table", return_value=spawned_table_cls)
 
 
-@pytest.mark.usefixtures("mock_spawn_table_cls")
+@pytest.mark.usefixtures("configure", "mock_spawn_table_cls")
 class TestCall:
     @pytest.fixture
     def mock_create_table_cls(self, factory, created_table_cls):
@@ -52,6 +52,10 @@ class TestCall:
     def test_if_outbound_table_is_created_if_not_already_created(self, factory):
         factory()
         factory.create_table_cls.assert_called_once_with()
+
+    @pytest.mark.usefixtures("outbound_table_not_already_created")
+    def test_if_schema_is_applied_to_created_table(self, factory):
+        assert factory().schema_applied
 
     @pytest.mark.usefixtures("outbound_table_not_already_created", "mock_create_table_cls")
     def test_if_created_table_is_returned(self, factory, created_table_cls):
@@ -74,9 +78,6 @@ class TestCreateTableClass:
 
     def test_if_name_attribute_of_returned_class_is_correctly_set(self, factory, table_name):
         assert factory.create_table_cls().__name__ == table_name
-
-    def test_if_schema_is_applied_to_returned_class(self, factory):
-        assert factory.create_table_cls().schema_applied
 
 
 def test_repr(factory, created_table_cls):
