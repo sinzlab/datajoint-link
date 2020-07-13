@@ -4,6 +4,7 @@ import pytest
 from datajoint import Part
 
 from link.external.outbound import OutboundTableFactory
+from link.external.local import LocalTable
 
 
 @pytest.fixture
@@ -129,3 +130,31 @@ class TestCreateTableCls:
 
 def test_repr(factory, created_table_cls):
     assert repr(factory) == f"LocalTableFactory({created_table_cls}, source_table_factory)"
+
+
+class TestLocalTable:
+    def test_if_controller_is_none(self):
+        assert LocalTable.controller is None
+
+    @pytest.fixture
+    def controller(self):
+        return MagicMock(name="controller")
+
+    @pytest.fixture
+    def add_controller(self, controller):
+        LocalTable.controller = controller
+
+    @pytest.fixture
+    def restrictions(self):
+        return ["restriction" + str(i) for i in range(3)]
+
+    @pytest.mark.usefixtures("add_controller")
+    def test_if_controller_is_called_correctly_when_pulling(self, controller, restrictions):
+        LocalTable().pull(*restrictions)
+        controller.pull.assert_called_once_with(*restrictions)
+
+    def test_if_deletion_requested_is_part_table(self):
+        assert issubclass(LocalTable.DeletionRequested, Part)
+
+    def test_if_definition_of_deletion_requested_part_table_is_correct(self):
+        assert LocalTable.DeletionRequested.definition.strip() == "-> master"

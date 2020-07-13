@@ -47,3 +47,15 @@ class LocalTableFactory(OutboundTableFactory):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({self.table_cls}, {self.source_table_factory})"
+
+
+class LocalTable:
+    controller = None
+
+    class DeletionRequested(Part):
+        definition = """
+        -> master
+        """
+
+    def pull(self, *restrictions):
+        self.controller.pull(*restrictions)
