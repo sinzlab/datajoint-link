@@ -39,7 +39,9 @@ class NonSourceTableProxy(SourceTableProxy):
         (self.table() & primary_keys).delete()
 
     def insert(self, entities: Dict[str, Any]) -> None:
-        self.table().insert(entities)
+        self.table().insert(entities["main"])
+        for part_name, part_entities in entities["parts"].items():
+            self.table.parts[part_name].insert(part_entities)
 
     def start_transaction(self) -> None:
         self.table().connection.start_transaction()

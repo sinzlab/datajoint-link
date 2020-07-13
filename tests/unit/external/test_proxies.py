@@ -195,9 +195,14 @@ class TestNonSourceTableProxy:
         proxy.insert(entities)
         table.assert_called_once_with()
 
-    def test_if_entities_are_correctly_inserted(self, entities, table, proxy):
+    def test_if_entities_are_correctly_inserted(self, entities, main_entities, table, proxy):
         proxy.insert(entities)
-        table.return_value.insert.assert_called_once_with(entities)
+        table.return_value.insert.assert_called_once_with(main_entities)
+
+    def test_if_part_entities_are_inserted_into_part_tables(self, entities, parts, part_entities, proxy):
+        proxy.insert(entities)
+        for part, part_entities in zip(parts.values(), part_entities):
+            part.insert.assert_called_once_with(part_entities)
 
     def test_if_table_is_instantiated_when_starting_transaction(self, table, proxy):
         proxy.start_transaction()
