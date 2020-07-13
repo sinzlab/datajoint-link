@@ -20,7 +20,11 @@ class SourceTableProxy:
         return (self.table().proj() & restriction).fetch(as_dict=True)
 
     def fetch(self, primary_keys: List[PrimaryKey]) -> Dict[str, Any]:
-        return (self.table() & primary_keys).fetch(as_dict=True)
+        entities = dict(main=(self.table() & primary_keys).fetch(as_dict=True))
+        entities["parts"] = dict()
+        for name, part in self.table.parts.items():
+            entities["parts"][name] = (part & primary_keys).fetch(as_dict=True)
+        return entities
 
     def __repr__(self) -> str:
         return self.__class__.__qualname__ + "(" + repr(self.table) + ")"

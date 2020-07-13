@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+from string import ascii_uppercase
 
 import pytest
 
@@ -11,25 +12,56 @@ def primary_attr_names():
 
 
 @pytest.fixture
-def primary_keys():
-    return ["pk0", "pk1", "pk2"]
+def n_entities():
+    return 3
 
 
 @pytest.fixture
-def entities():
-    return ["entity0", "entity1", "entity2"]
+def primary_keys(n_entities):
+    return ["pk" + str(i) for i in range(n_entities)]
 
 
 @pytest.fixture
-def table(primary_attr_names, primary_keys, entities):
+def main_entities(n_entities):
+    return ["Main_entity" + str(i) for i in range(n_entities)]
+
+
+@pytest.fixture
+def part_names(n_entities):
+    return ["Part" + ascii_uppercase[i] for i in range(n_entities)]
+
+
+@pytest.fixture
+def part_entities(n_entities, part_names):
+    return [[name + "_entity" + str(i) for i in range(n_entities)] for name in part_names]
+
+
+@pytest.fixture
+def entities(main_entities, part_names, part_entities):
+    return dict(main=main_entities, parts={name: entities for name, entities in zip(part_names, part_entities)},)
+
+
+@pytest.fixture
+def parts(part_names, part_entities):
+    parts = dict()
+    for name, entities in zip(part_names, part_entities):
+        part = MagicMock(name=name)
+        part.__and__.return_value.fetch.return_value = entities
+        parts[name] = part
+    return parts
+
+
+@pytest.fixture
+def table(primary_attr_names, primary_keys, main_entities, parts):
     name = "table"
     table = MagicMock(name=name)
     table.heading.primary_key = primary_attr_names
     table.return_value.proj.return_value.fetch.return_value = primary_keys
     table.return_value.proj.return_value.__and__.return_value.fetch.return_value = primary_keys
-    table.return_value.__and__.return_value.fetch.return_value = entities
+    table.return_value.__and__.return_value.fetch.return_value = main_entities
     table.return_value.DeletionRequested.fetch.return_value = primary_keys
     table.return_value.DeletionApproved.fetch.return_value = primary_keys
+    table.parts = parts
     table.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return table
 
@@ -96,16 +128,26 @@ class TestSourceTableProxy:
         assert proxy.get_primary_keys_in_restriction(restriction) == primary_keys
 
     @pytest.mark.usefixtures("fetch")
-    def test_if_table_is_instantiated_when_fetching_entities(self, primary_keys, table, proxy):
+    def test_if_table_is_instantiated_when_fetching_entities(self, table):
         table.assert_called_once_with()
 
     @pytest.mark.usefixtures("fetch")
-    def test_if_table_is_restricted_when_fetching_entities(self, primary_keys, table, proxy):
+    def test_if_table_is_restricted_when_fetching_entities(self, primary_keys, table):
         table.return_value.__and__.assert_called_once_with(primary_keys)
 
     @pytest.mark.usefixtures("fetch")
-    def test_if_entities_are_correctly_fetched_from_restricted_table(self, primary_keys, table, proxy):
+    def test_if_entities_are_correctly_fetched_from_restricted_table(self, table):
         table.return_value.__and__.return_value.fetch.assert_called_once_with(as_dict=True)
+
+    @pytest.mark.usefixtures("fetch")
+    def test_if_part_tables_are_restricted_when_fetching_entities(self, primary_keys, parts):
+        for part in parts.values():
+            part.__and__.assert_called_once_with(primary_keys)
+
+    @pytest.mark.usefixtures("fetch")
+    def test_if_part_entities_are_correctly_fetched_from_restricted_part_tables(self, parts):
+        for part in parts.values():
+            part.__and__.return_value.fetch.assert_called_once_with(as_dict=True)
 
     def test_if_entities_are_returned_when_fetched(self, primary_keys, entities, proxy):
         assert proxy.fetch(primary_keys) == entities
