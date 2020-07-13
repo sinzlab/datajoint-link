@@ -52,8 +52,9 @@ def parts(part_names, part_entities):
 
 
 @pytest.fixture
-def table(primary_keys, main_entities):
+def table(primary_attr_names, primary_keys, main_entities):
     table = MagicMock(name="table")
+    table.heading.primary_key = primary_attr_names
     table.proj.return_value.fetch.return_value = primary_keys
     table.proj.return_value.__and__.return_value.fetch.return_value = primary_keys
     table.__and__.return_value.fetch.return_value = main_entities
@@ -91,6 +92,13 @@ class TestSourceTableProxy:
 
     def test_if_table_factory_is_stored_as_instance_attribute(self, table_factory, proxy):
         assert proxy.table_factory is table_factory
+
+    def test_if_table_is_instantiated_when_accessing_primary_attr_names(self, table_factory, proxy):
+        _ = proxy.primary_attr_names
+        table_factory.assert_called_once_with()
+
+    def test_if_primary_attr_names_are_returned(self, primary_attr_names, proxy):
+        assert proxy.primary_attr_names == primary_attr_names
 
     def test_if_table_is_instantiated_when_accessing_primary_keys_property(self, table_factory, proxy):
         _ = proxy.primary_keys

@@ -10,7 +10,7 @@ class SourceTableProxy:
 
     @property
     def primary_attr_names(self) -> List[str]:
-        return self.table_factory.heading.primary_key
+        return self.table_factory().heading.primary_key
 
     @property
     def primary_keys(self) -> List[PrimaryKey]:
