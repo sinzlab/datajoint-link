@@ -60,6 +60,16 @@ def schema(factory_type, table_name, spawned_table_cls):
 
 
 @pytest.fixture
-def configure(factory, schema, table_name):
-    factory.schema = schema
-    factory.table_name = table_name
+def get_parts():
+    return MagicMock(name="get_parts", return_value="parts")
+
+
+@pytest.fixture
+def configure_kwargs(schema, table_name, get_parts):
+    return dict(schema=schema, table_name=table_name, get_parts=get_parts)
+
+
+@pytest.fixture
+def configure(factory, configure_kwargs):
+    for name, attr in configure_kwargs.items():
+        setattr(factory, name, attr)
