@@ -96,6 +96,10 @@ class TestCreateTableCls:
             call("PartC_heading"),
         ]
 
+    def test_if_source_table_factory_is_called_correctly(self, factory, source_table_factory):
+        factory.create_table_cls()
+        assert source_table_factory.mock_calls == [call(), call(), call()]
+
     def test_if_source_table_heading_with_replaced_stores_is_set_as_definition_of_created_table_cls(self, factory):
         assert factory.create_table_cls().definition == "source_table_heading_with_replaced_stores"
 
