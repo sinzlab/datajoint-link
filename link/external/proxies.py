@@ -60,9 +60,18 @@ class LocalTableProxy(SourceTableProxy):
         (self.table_factory() & primary_keys).delete()
 
     def insert(self, entity_packet: EntityPacket) -> None:
-        self.table_factory().insert(entity_packet.master)
-        for part_name, part_entities in entity_packet.parts.items():
-            self.table_factory.parts[part_name].insert(part_entities)
+        self._insert_into_master(entity_packet.master)
+        self._insert_into_parts(entity_packet.parts)
+
+    def _insert_into_master(self, master_entities: List[TableEntity]) -> None:
+        self.table_factory().insert(master_entities)
+
+    def _insert_into_parts(self, part_entities: Dict[str, List[TableEntity]]) -> None:
+        for name, entities in part_entities.items():
+            self._insert_into_part(name, entities)
+
+    def _insert_into_part(self, name: str, entities: List[TableEntity]) -> None:
+        self.table_factory.parts[name].insert(entities)
 
     def start_transaction(self) -> None:
         self.table_factory().connection.start_transaction()
