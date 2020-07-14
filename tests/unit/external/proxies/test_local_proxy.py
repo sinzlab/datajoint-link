@@ -1,3 +1,5 @@
+from unittest.mock import call
+
 import pytest
 
 from link.external.proxies import SourceTableProxy, LocalTableProxy
@@ -44,18 +46,18 @@ class TestDelete:
 
 
 class TestInsert:
-    def test_if_table_is_instantiated_when_inserting_entities(self, entity_packet, table_factory, proxy):
-        proxy.insert(entity_packet)
-        table_factory.assert_called_once_with()
+    def test_if_table_is_instantiated_when_inserting_entities(self, n_entities, table_entities, table_factory, proxy):
+        proxy.insert(table_entities)
+        assert table_factory.call_args_list == [call() for _ in range(n_entities)]
 
-    def test_if_entities_are_correctly_inserted(self, entity_packet, main_entities, table_factory, proxy):
-        proxy.insert(entity_packet)
-        table_factory.return_value.insert.assert_called_once_with(main_entities)
+    def test_if_entities_are_correctly_inserted(self, table_entities, master_entities, table_factory, proxy):
+        proxy.insert(table_entities)
+        assert table_factory.return_value.insert1.call_args_list == [call(entity) for entity in master_entities]
 
-    def test_if_part_entities_are_inserted_into_part_tables(self, entity_packet, parts, part_entities, proxy):
-        proxy.insert(entity_packet)
-        for part, part_entities in zip(parts.values(), part_entities):
-            part.insert.assert_called_once_with(part_entities)
+    def test_if_part_entities_are_inserted_into_part_tables(self, table_entities, parts, part_entities, proxy):
+        proxy.insert(table_entities)
+        for part_name, part_entities in part_entities.items():
+            assert parts[part_name].insert.call_args_list == [call(part_entity) for part_entity in part_entities]
 
 
 class TestStartTransaction:

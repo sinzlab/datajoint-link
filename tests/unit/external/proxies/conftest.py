@@ -3,7 +3,7 @@ from string import ascii_uppercase
 
 import pytest
 
-from link.external.proxies import EntityPacket
+from link.external.proxies import TableEntity
 
 
 @pytest.fixture
@@ -22,42 +22,51 @@ def primary_keys(n_entities):
 
 
 @pytest.fixture
-def main_entities(n_entities):
+def master_entities(n_entities):
     return ["Main_entity" + str(i) for i in range(n_entities)]
 
 
 @pytest.fixture
-def part_names(n_entities):
-    return ["Part" + ascii_uppercase[i] for i in range(n_entities)]
+def n_parts():
+    return 4
+
+
+@pytest.fixture
+def part_names(n_parts):
+    return ["Part" + ascii_uppercase[i] for i in range(n_parts)]
 
 
 @pytest.fixture
 def part_entities(n_entities, part_names):
-    return [[name + "_entity" + str(i) for i in range(n_entities)] for name in part_names]
+    return {name: [name + "_entities" + str(i) for i in range(n_entities)] for name in part_names}
 
 
 @pytest.fixture
-def entity_packet(main_entities, part_names, part_entities):
-    return EntityPacket(main_entities, {name: entities for name, entities in zip(part_names, part_entities)})
+def table_entities(master_entities, part_entities):
+    table_entities = [
+        TableEntity(master=master_entity, parts={name: entities[i] for name, entities in part_entities.items()})
+        for i, master_entity in enumerate(master_entities)
+    ]
+    return table_entities
 
 
 @pytest.fixture
-def parts(part_names, part_entities):
+def parts(part_entities):
     parts = dict()
-    for name, entities in zip(part_names, part_entities):
+    for name, entities in part_entities.items():
         part = MagicMock(name=name)
-        part.__and__.return_value.fetch1.side_effect = entities
+        part.__and__.return_value.fetch.side_effect = entities
         parts[name] = part
     return parts
 
 
 @pytest.fixture
-def table(primary_attr_names, primary_keys, main_entities):
+def table(primary_attr_names, primary_keys, master_entities):
     table = MagicMock(name="table")
     table.heading.primary_key = primary_attr_names
     table.proj.return_value.fetch.return_value = primary_keys
     table.proj.return_value.__and__.return_value.fetch.return_value = primary_keys
-    table.__and__.return_value.fetch1.side_effect = main_entities
+    table.__and__.return_value.fetch1.side_effect = master_entities
     table.DeletionRequested.fetch.return_value = primary_keys
     table.DeletionApproved.fetch.return_value = primary_keys
     return table

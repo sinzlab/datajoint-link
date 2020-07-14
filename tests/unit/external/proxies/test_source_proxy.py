@@ -3,11 +3,11 @@ from dataclasses import is_dataclass
 
 import pytest
 
-from link.external.proxies import EntityPacket, SourceTableProxy
+from link.external.proxies import TableEntity, SourceTableProxy
 
 
-def test_if_entity_packet_is_dataclass():
-    assert is_dataclass(EntityPacket)
+def test_if_table_entity_is_dataclass():
+    assert is_dataclass(TableEntity)
 
 
 @pytest.fixture
@@ -82,8 +82,8 @@ class TestFetch:
         proxy.fetch(primary_keys)
 
     @pytest.mark.usefixtures("fetch")
-    def test_if_table_is_instantiated(self, table_factory):
-        table_factory.assert_called_once_with()
+    def test_if_table_is_instantiated(self, n_entities, table_factory):
+        assert table_factory.call_args_list == [call() for _ in range(n_entities)]
 
     @pytest.mark.usefixtures("fetch")
     def test_if_table_is_restricted_when_fetching_entities(self, primary_keys, table):
@@ -103,12 +103,12 @@ class TestFetch:
     @pytest.mark.usefixtures("fetch")
     def test_if_part_entities_are_correctly_fetched_from_restricted_part_tables(self, n_entities, parts, download_path):
         for part in parts.values():
-            assert part.__and__.return_value.fetch1.call_args_list == [
-                call(download_path=download_path) for _ in range(n_entities)
+            assert part.__and__.return_value.fetch.call_args_list == [
+                call(download_path=download_path, as_dict=True) for _ in range(n_entities)
             ]
 
-    def test_if_entity_packet_is_returned(self, primary_keys, entity_packet, proxy):
-        assert proxy.fetch(primary_keys) == entity_packet
+    def test_if_entity_packet_is_returned(self, primary_keys, table_entities, proxy):
+        assert proxy.fetch(primary_keys) == table_entities
 
 
 def test_repr(proxy):

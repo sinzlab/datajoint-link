@@ -1,16 +1,15 @@
-from typing import List, Dict
+from typing import List, Dict, Any, Type
 from dataclasses import dataclass
 
 from datajoint import Part
-from datajoint.table import Table
 
-from ..types import PrimaryKey, TableEntity
+from ..types import PrimaryKey
 
 
 @dataclass
-class EntityPacket:
-    master: List[TableEntity]
-    parts: Dict[str, List[TableEntity]]
+class TableEntity:
+    master: Dict[str, Any]
+    parts: Dict[str, Any]
 
 
 class SourceTableProxy:
@@ -29,23 +28,17 @@ class SourceTableProxy:
     def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
         return (self.table_factory().proj() & restriction).fetch(as_dict=True)
 
-    def fetch(self, primary_keys: List[PrimaryKey]) -> EntityPacket:
-        return EntityPacket(
-            master=self._fetch_from_master(primary_keys),
-            parts=self._fetch_from_parts(self.table_factory.parts, primary_keys),
-        )
+    def fetch(self, primary_keys: List[PrimaryKey]) -> List[TableEntity]:
+        return [TableEntity(master=self._fetch_master(key), parts=self._fetch_parts(key)) for key in primary_keys]
 
-    def _fetch_from_master(self, primary_keys: List[PrimaryKey]) -> List[TableEntity]:
-        return self._fetch_from_table(self.table_factory(), primary_keys)
+    def _fetch_master(self, primary_key: PrimaryKey) -> Dict[str, Any]:
+        return (self.table_factory() & primary_key).fetch1(download_path=self.download_path)
 
-    def _fetch_from_parts(self, parts: Dict[str, Part], primary_keys: List[PrimaryKey]) -> Dict[str, List[TableEntity]]:
-        return {name: self._fetch_from_part(part, primary_keys) for name, part in parts.items()}
+    def _fetch_parts(self, primary_key: PrimaryKey) -> Dict[str, Any]:
+        return {name: self._fetch_part(primary_key, part) for name, part in self.table_factory.parts.items()}
 
-    def _fetch_from_part(self, part: Part, primary_keys: List[PrimaryKey]) -> List[TableEntity]:
-        return self._fetch_from_table(part, primary_keys)
-
-    def _fetch_from_table(self, table: Table, primary_keys: List[PrimaryKey]) -> List[TableEntity]:
-        return [(table & key).fetch1(download_path=self.download_path) for key in primary_keys]
+    def _fetch_part(self, primary_key: PrimaryKey, part: Type[Part]) -> Dict[str, Any]:
+        return (part & primary_key).fetch(download_path=self.download_path, as_dict=True)
 
     def __repr__(self) -> str:
         return self.__class__.__qualname__ + "(" + repr(self.table_factory) + ")"
@@ -59,19 +52,20 @@ class LocalTableProxy(SourceTableProxy):
     def delete(self, primary_keys: List[PrimaryKey]) -> None:
         (self.table_factory() & primary_keys).delete()
 
-    def insert(self, entity_packet: EntityPacket) -> None:
-        self._insert_into_master(entity_packet.master)
-        self._insert_into_parts(entity_packet.parts)
+    def insert(self, table_entities: List[TableEntity]) -> None:
+        for table_entity in table_entities:
+            self._insert_master(table_entity.master)
+            self._insert_parts(table_entity.parts)
 
-    def _insert_into_master(self, master_entities: List[TableEntity]) -> None:
-        self.table_factory().insert(master_entities)
+    def _insert_master(self, master_entity: Dict[str, Any]) -> None:
+        self.table_factory().insert1(master_entity)
 
-    def _insert_into_parts(self, part_entities: Dict[str, List[TableEntity]]) -> None:
+    def _insert_parts(self, part_entities: Dict[str, Any]) -> None:
         for name, entities in part_entities.items():
-            self._insert_into_part(name, entities)
+            self._insert_part(name, entities)
 
-    def _insert_into_part(self, name: str, entities: List[TableEntity]) -> None:
-        self.table_factory.parts[name].insert(entities)
+    def _insert_part(self, part_name: str, part_entities: Any) -> None:
+        self.table_factory.parts[part_name].insert(part_entities)
 
     def start_transaction(self) -> None:
         self.table_factory().connection.start_transaction()
