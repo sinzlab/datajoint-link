@@ -1,7 +1,6 @@
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 
-
-PrimaryKey = Dict[str, Union[str, int, float]]
+from ..types import PrimaryKey
 
 
 class SourceTableProxy:
