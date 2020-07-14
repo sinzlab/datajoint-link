@@ -13,7 +13,7 @@ class AbstractSourceGateway(ABC):
         pass
 
 
-class AbstractNonSourceGateway(AbstractSourceGateway, ABC):
+class AbstractLocalGateway(AbstractSourceGateway, ABC):
     @property
     @abstractmethod
     def deletion_requested_identifiers(self) -> List[str]:
@@ -40,7 +40,7 @@ class AbstractNonSourceGateway(AbstractSourceGateway, ABC):
         pass
 
 
-class AbstractOutboundGateway(AbstractNonSourceGateway, ABC):
+class AbstractOutboundGateway(AbstractLocalGateway, ABC):
     @property
     @abstractmethod
     def deletion_approved_identifiers(self) -> List[str]:
@@ -49,10 +49,6 @@ class AbstractOutboundGateway(AbstractNonSourceGateway, ABC):
     @abstractmethod
     def approve_deletion(self, identifiers: List[str]) -> None:
         return
-
-
-class AbstractLocalGateway(AbstractNonSourceGateway, ABC):
-    pass
 
 
 GatewayTypeVar = TypeVar("GatewayTypeVar", AbstractSourceGateway, AbstractOutboundGateway, AbstractLocalGateway)

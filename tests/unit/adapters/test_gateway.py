@@ -8,12 +8,12 @@ class TestAbstractSourceGateway:
         assert issubclass(gateway.AbstractSourceGateway, ABC)
 
 
-class TestAbstractNonSourceGateway:
+class TestAbstractLocalGateway:
     def test_if_abstract_base_class(self):
-        assert issubclass(gateway.AbstractNonSourceGateway, ABC)
+        assert issubclass(gateway.AbstractLocalGateway, ABC)
 
     def test_if_subclass_of_abstract_source_gateway(self):
-        assert issubclass(gateway.AbstractNonSourceGateway, gateway.AbstractSourceGateway)
+        assert issubclass(gateway.AbstractLocalGateway, gateway.AbstractSourceGateway)
 
 
 class TestAbstractOutboundGateway:
@@ -21,12 +21,4 @@ class TestAbstractOutboundGateway:
         assert issubclass(gateway.AbstractOutboundGateway, ABC)
 
     def test_if_subclass_of_abstract_non_source_gateway(self):
-        assert issubclass(gateway.AbstractOutboundGateway, gateway.AbstractNonSourceGateway)
-
-
-class TestAbstractLocalGateway:
-    def test_if_abstract_base_class(self):
-        assert issubclass(gateway.AbstractLocalGateway, ABC)
-
-    def test_if_subclass_of_abstract_non_source_gateway(self):
-        assert issubclass(gateway.AbstractLocalGateway, gateway.AbstractNonSourceGateway)
+        assert issubclass(gateway.AbstractOutboundGateway, gateway.AbstractLocalGateway)

@@ -127,16 +127,16 @@ class TestSourceGateway:
         assert repr(gateway) == "SourceGateway(table_proxy)"
 
 
-class TestNonSourceGateway:
+class TestLocalGateway:
     def test_if_subclass_of_source_gateway(self):
-        assert issubclass(dj_gateway.NonSourceGateway, dj_gateway.SourceGateway)
+        assert issubclass(dj_gateway.LocalGateway, dj_gateway.SourceGateway)
 
-    def test_if_subclass_of_abstract_non_source_gateway(self):
-        assert issubclass(dj_gateway.NonSourceGateway, abstract_gateway.AbstractNonSourceGateway)
+    def test_if_subclass_of_abstract_local_gateway(self):
+        assert issubclass(dj_gateway.LocalGateway, abstract_gateway.AbstractLocalGateway)
 
     @pytest.fixture
     def gateway_cls(self):
-        return dj_gateway.NonSourceGateway
+        return dj_gateway.LocalGateway
 
     def test_deletion_requested_identifiers(self, gateway, identifiers):
         assert gateway.deletion_requested_identifiers == [identifiers[0], identifiers[1]]
@@ -168,7 +168,7 @@ class TestOutboundGateway:
         return dj_gateway.OutboundGateway
 
     def test_if_subclass_of_non_source_gateway(self):
-        assert issubclass(dj_gateway.OutboundGateway, dj_gateway.NonSourceGateway)
+        assert issubclass(dj_gateway.OutboundGateway, dj_gateway.LocalGateway)
 
     def test_if_subclass_of_abstract_outbound_gateway(self):
         assert issubclass(dj_gateway.OutboundGateway, abstract_gateway.AbstractOutboundGateway)
@@ -179,11 +179,3 @@ class TestOutboundGateway:
     def test_if_deletion_is_approved_in_gateway(self, table_proxy, gateway, primary_keys, identifiers):
         gateway.approve_deletion(identifiers)
         table_proxy.approve_deletion.assert_called_once_with(primary_keys)
-
-
-class TestLocalGateway:
-    def test_if_subclass_of_non_source_gateway(self):
-        assert issubclass(dj_gateway.LocalGateway, dj_gateway.NonSourceGateway)
-
-    def test_if_subclass_of_abstract_local_gateway(self):
-        assert issubclass(dj_gateway.LocalGateway, abstract_gateway.AbstractLocalGateway)

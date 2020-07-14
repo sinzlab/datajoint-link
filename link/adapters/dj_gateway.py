@@ -47,7 +47,7 @@ class SourceGateway(gateway.AbstractSourceGateway):
         return f"{self.__class__.__qualname__}({self.table_proxy})"
 
 
-class NonSourceGateway(SourceGateway, gateway.AbstractNonSourceGateway):
+class LocalGateway(SourceGateway, gateway.AbstractLocalGateway):
     @property
     def deletion_requested_identifiers(self) -> List[str]:
         return [self._hash_primary_key(key) for key in self.table_proxy.deletion_requested]
@@ -70,7 +70,7 @@ class NonSourceGateway(SourceGateway, gateway.AbstractNonSourceGateway):
         self.table_proxy.cancel_transaction()
 
 
-class OutboundGateway(NonSourceGateway, gateway.AbstractOutboundGateway):
+class OutboundGateway(LocalGateway, gateway.AbstractOutboundGateway):
     @property
     def deletion_approved_identifiers(self) -> List[str]:
         return [self._hash_primary_key(key) for key in self.table_proxy.deletion_approved]
@@ -78,7 +78,3 @@ class OutboundGateway(NonSourceGateway, gateway.AbstractOutboundGateway):
     @_identifiers_to_primary_keys
     def approve_deletion(self, identifiers: List[str]) -> None:
         self.table_proxy.approve_deletion(identifiers)
-
-
-class LocalGateway(NonSourceGateway, gateway.AbstractLocalGateway):
-    pass
