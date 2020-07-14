@@ -3,6 +3,8 @@ from string import ascii_uppercase
 
 import pytest
 
+from link.external.proxies import EntityPacket
+
 
 @pytest.fixture
 def primary_attr_names():
@@ -35,8 +37,8 @@ def part_entities(n_entities, part_names):
 
 
 @pytest.fixture
-def entities(main_entities, part_names, part_entities):
-    return dict(master=main_entities, parts={name: entities for name, entities in zip(part_names, part_entities)},)
+def entity_packet(main_entities, part_names, part_entities):
+    return EntityPacket(main_entities, {name: entities for name, entities in zip(part_names, part_entities)})
 
 
 @pytest.fixture

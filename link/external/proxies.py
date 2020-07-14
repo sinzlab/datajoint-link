@@ -1,9 +1,16 @@
-from typing import List, Dict, Any
+from typing import List, Dict
+from dataclasses import dataclass
 
 from datajoint import Part
 from datajoint.table import Table
 
 from ..types import PrimaryKey, TableEntity
+
+
+@dataclass
+class EntityPacket:
+    master: List[TableEntity]
+    parts: Dict[str, List[TableEntity]]
 
 
 class SourceTableProxy:
@@ -22,8 +29,8 @@ class SourceTableProxy:
     def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
         return (self.table_factory().proj() & restriction).fetch(as_dict=True)
 
-    def fetch(self, primary_keys: List[PrimaryKey]) -> Dict[str, Any]:
-        return dict(
+    def fetch(self, primary_keys: List[PrimaryKey]) -> EntityPacket:
+        return EntityPacket(
             master=self._fetch_from_master(primary_keys),
             parts=self._fetch_from_parts(self.table_factory.parts, primary_keys),
         )
@@ -52,9 +59,9 @@ class LocalTableProxy(SourceTableProxy):
     def delete(self, primary_keys: List[PrimaryKey]) -> None:
         (self.table_factory() & primary_keys).delete()
 
-    def insert(self, entities: Dict[str, Any]) -> None:
-        self.table_factory().insert(entities["master"])
-        for part_name, part_entities in entities["parts"].items():
+    def insert(self, entity_packet: EntityPacket) -> None:
+        self.table_factory().insert(entity_packet.master)
+        for part_name, part_entities in entity_packet.parts.items():
             self.table_factory.parts[part_name].insert(part_entities)
 
     def start_transaction(self) -> None:

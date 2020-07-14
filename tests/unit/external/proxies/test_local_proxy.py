@@ -44,16 +44,16 @@ class TestDelete:
 
 
 class TestInsert:
-    def test_if_table_is_instantiated_when_inserting_entities(self, entities, table_factory, proxy):
-        proxy.insert(entities)
+    def test_if_table_is_instantiated_when_inserting_entities(self, entity_packet, table_factory, proxy):
+        proxy.insert(entity_packet)
         table_factory.assert_called_once_with()
 
-    def test_if_entities_are_correctly_inserted(self, entities, main_entities, table_factory, proxy):
-        proxy.insert(entities)
+    def test_if_entities_are_correctly_inserted(self, entity_packet, main_entities, table_factory, proxy):
+        proxy.insert(entity_packet)
         table_factory.return_value.insert.assert_called_once_with(main_entities)
 
-    def test_if_part_entities_are_inserted_into_part_tables(self, entities, parts, part_entities, proxy):
-        proxy.insert(entities)
+    def test_if_part_entities_are_inserted_into_part_tables(self, entity_packet, parts, part_entities, proxy):
+        proxy.insert(entity_packet)
         for part, part_entities in zip(parts.values(), part_entities):
             part.insert.assert_called_once_with(part_entities)
 
