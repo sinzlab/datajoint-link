@@ -8,18 +8,13 @@ class SourceEntity:
 
 
 @dataclass
-class NonSourceEntity(SourceEntity):
+class LocalEntity(SourceEntity):
     deletion_requested: bool
 
 
 @dataclass
-class OutboundEntity(NonSourceEntity):
+class OutboundEntity(LocalEntity):
     deletion_approved: bool
-
-
-@dataclass
-class LocalEntity(NonSourceEntity):
-    pass
 
 
 EntityTypeVar = TypeVar("EntityTypeVar", SourceEntity, OutboundEntity, LocalEntity)
@@ -43,8 +38,8 @@ class SourceEntityCreator:
         return self.__class__.__qualname__ + "(" + repr(self.gateway) + ")"
 
 
-class NonSourceEntityCreator(SourceEntityCreator):
-    _entity_cls = NonSourceEntity
+class LocalEntityCreator(SourceEntityCreator):
+    _entity_cls = LocalEntity
 
     @property
     def _entities_args(self):
@@ -58,16 +53,12 @@ class NonSourceEntityCreator(SourceEntityCreator):
         return entities_args
 
 
-class OutboundEntityCreator(NonSourceEntityCreator):
+class OutboundEntityCreator(LocalEntityCreator):
     _entity_cls = OutboundEntity
 
     @property
     def _entities_args(self):
         return self._add_flags(super()._entities_args, "deletion_approved")
-
-
-class LocalEntityCreator(NonSourceEntityCreator):
-    _entity_cls = LocalEntity
 
 
 EntityCreatorTypeVar = TypeVar("EntityCreatorTypeVar", SourceEntityCreator, OutboundEntityCreator, LocalEntityCreator)

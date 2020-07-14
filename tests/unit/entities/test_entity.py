@@ -14,34 +14,26 @@ class TestSourceEntity:
         assert entity.SourceEntity("identifier").identifier == "identifier"
 
 
-class TestNonSourceEntity:
+class TestLocalEntity:
     def test_if_dataclass(self):
-        assert dataclasses.is_dataclass(entity.NonSourceEntity)
+        assert dataclasses.is_dataclass(entity.LocalEntity)
 
     def test_if_subclass_of_source_entity(self):
-        assert issubclass(entity.NonSourceEntity, entity.SourceEntity)
+        assert issubclass(entity.LocalEntity, entity.SourceEntity)
 
     def test_if_deletion_requested_attribute_is_present(self):
-        assert entity.NonSourceEntity("identifier", True).deletion_requested is True
+        assert entity.LocalEntity("identifier", True).deletion_requested is True
 
 
 class TestOutboundEntity:
     def test_if_dataclass(self):
         assert dataclasses.is_dataclass(entity.OutboundEntity)
 
-    def test_if_subclass_of_non_source_entity(self):
-        assert issubclass(entity.OutboundEntity, entity.NonSourceEntity)
+    def test_if_subclass_of_local_entity(self):
+        assert issubclass(entity.OutboundEntity, entity.LocalEntity)
 
     def test_if_deletion_approved_attribute_is_present(self):
         assert entity.OutboundEntity("identifier", True, True).deletion_approved is True
-
-
-class TestLocalEntity:
-    def test_if_dataclass(self):
-        assert dataclasses.is_dataclass(entity.LocalEntity)
-
-    def test_if_subclass_of_non_source_entity(self):
-        assert issubclass(entity.LocalEntity, entity.NonSourceEntity)
 
 
 @pytest.fixture
@@ -106,16 +98,16 @@ def add_deletion_requested_flags_to_calls(deletion_requested_identifiers, add_fl
     add_flags_to_calls("deletion_requested", deletion_requested_identifiers)
 
 
-class TestNonSourceEntityCreator:
-    def test_if_entity_cls_is_non_source_entity(self):
-        assert entity.NonSourceEntityCreator._entity_cls is entity.NonSourceEntity
+class TestLocalEntityCreator:
+    def test_if_entity_cls_is_local_entity(self):
+        assert entity.LocalEntityCreator._entity_cls is entity.LocalEntity
 
     def test_if_subclass_of_source_entity_creator(self):
-        assert issubclass(entity.NonSourceEntityCreator, entity.SourceEntityCreator)
+        assert issubclass(entity.LocalEntityCreator, entity.SourceEntityCreator)
 
     @pytest.fixture
     def entity_creator_cls(self):
-        return entity.NonSourceEntityCreator
+        return entity.LocalEntityCreator
 
     @pytest.mark.usefixtures("add_deletion_requested_flags_to_calls")
     def test_if_entities_are_correctly_initialized_when_creating_entities(self, entity_cls, entity_creator, calls):
@@ -130,8 +122,8 @@ class TestOutboundEntityCreator:
     def test_if_entity_cls_is_outbound_entity(self):
         assert entity.OutboundEntityCreator._entity_cls is entity.OutboundEntity
 
-    def test_if_subclass_of_non_source_entity_creator(self):
-        assert issubclass(entity.OutboundEntityCreator, entity.NonSourceEntityCreator)
+    def test_if_subclass_of_local_entity_creator(self):
+        assert issubclass(entity.OutboundEntityCreator, entity.LocalEntityCreator)
 
     @pytest.fixture
     def entity_creator_cls(self):
@@ -148,11 +140,3 @@ class TestOutboundEntityCreator:
 
     def test_if_entities_are_returned(self, entities, entity_creator):
         assert entity_creator.create_entities() == entities
-
-
-class TestLocalEntityCreator:
-    def test_if_entity_cls_is_local_entity(self):
-        assert entity.LocalEntityCreator._entity_cls is entity.LocalEntity
-
-    def test_if_subclass_of_non_source_entity_creator(self):
-        assert issubclass(entity.LocalEntityCreator, entity.NonSourceEntityCreator)
