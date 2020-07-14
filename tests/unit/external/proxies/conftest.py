@@ -36,7 +36,7 @@ def part_entities(n_entities, part_names):
 
 @pytest.fixture
 def entities(main_entities, part_names, part_entities):
-    return dict(main=main_entities, parts={name: entities for name, entities in zip(part_names, part_entities)},)
+    return dict(master=main_entities, parts={name: entities for name, entities in zip(part_names, part_entities)},)
 
 
 @pytest.fixture

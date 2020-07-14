@@ -24,7 +24,7 @@ class SourceTableProxy:
 
     def fetch(self, primary_keys: List[PrimaryKey]) -> Dict[str, Any]:
         return dict(
-            main=self._fetch_from_master(primary_keys),
+            master=self._fetch_from_master(primary_keys),
             parts=self._fetch_from_parts(self.table_factory.parts, primary_keys),
         )
 
@@ -53,7 +53,7 @@ class LocalTableProxy(SourceTableProxy):
         (self.table_factory() & primary_keys).delete()
 
     def insert(self, entities: Dict[str, Any]) -> None:
-        self.table_factory().insert(entities["main"])
+        self.table_factory().insert(entities["master"])
         for part_name, part_entities in entities["parts"].items():
             self.table_factory.parts[part_name].insert(part_entities)
 
