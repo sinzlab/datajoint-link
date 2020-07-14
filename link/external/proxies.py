@@ -21,11 +21,11 @@ class SourceTableProxy:
 
     def fetch(self, primary_keys: List[PrimaryKey]) -> Dict[str, Any]:
         entities = dict(
-            main=(self.table_factory() & primary_keys).fetch(as_dict=True, download_path=self.download_path)
+            main=[(self.table_factory() & key).fetch1(download_path=self.download_path) for key in primary_keys]
         )
         entities["parts"] = dict()
         for name, part in self.table_factory.parts.items():
-            entities["parts"][name] = (part & primary_keys).fetch(as_dict=True, download_path=self.download_path)
+            entities["parts"][name] = [(part & key).fetch1(download_path=self.download_path) for key in primary_keys]
         return entities
 
     def __repr__(self) -> str:

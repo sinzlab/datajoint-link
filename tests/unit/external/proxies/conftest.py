@@ -44,7 +44,7 @@ def parts(part_names, part_entities):
     parts = dict()
     for name, entities in zip(part_names, part_entities):
         part = MagicMock(name=name)
-        part.__and__.return_value.fetch.return_value = entities
+        part.__and__.return_value.fetch1.side_effect = entities
         parts[name] = part
     return parts
 
@@ -55,7 +55,7 @@ def table(primary_attr_names, primary_keys, main_entities):
     table.heading.primary_key = primary_attr_names
     table.proj.return_value.fetch.return_value = primary_keys
     table.proj.return_value.__and__.return_value.fetch.return_value = primary_keys
-    table.__and__.return_value.fetch.return_value = main_entities
+    table.__and__.return_value.fetch1.side_effect = main_entities
     table.DeletionRequested.fetch.return_value = primary_keys
     table.DeletionApproved.fetch.return_value = primary_keys
     return table
