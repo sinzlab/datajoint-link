@@ -1,6 +1,9 @@
 from typing import List, Dict, Any
 
-from ..types import PrimaryKey
+from datajoint import Part
+from datajoint.table import Table
+
+from ..types import PrimaryKey, TableEntity
 
 
 class SourceTableProxy:
@@ -20,13 +23,22 @@ class SourceTableProxy:
         return (self.table_factory().proj() & restriction).fetch(as_dict=True)
 
     def fetch(self, primary_keys: List[PrimaryKey]) -> Dict[str, Any]:
-        entities = dict(
-            main=[(self.table_factory() & key).fetch1(download_path=self.download_path) for key in primary_keys]
+        return dict(
+            main=self._fetch_from_master(primary_keys),
+            parts=self._fetch_from_parts(self.table_factory.parts, primary_keys),
         )
-        entities["parts"] = dict()
-        for name, part in self.table_factory.parts.items():
-            entities["parts"][name] = [(part & key).fetch1(download_path=self.download_path) for key in primary_keys]
-        return entities
+
+    def _fetch_from_master(self, primary_keys: List[PrimaryKey]) -> List[TableEntity]:
+        return self._fetch_from_table(self.table_factory(), primary_keys)
+
+    def _fetch_from_parts(self, parts: Dict[str, Part], primary_keys: List[PrimaryKey]) -> Dict[str, List[TableEntity]]:
+        return {name: self._fetch_from_part(part, primary_keys) for name, part in parts.items()}
+
+    def _fetch_from_part(self, part: Part, primary_keys: List[PrimaryKey]) -> List[TableEntity]:
+        return self._fetch_from_table(part, primary_keys)
+
+    def _fetch_from_table(self, table: Table, primary_keys: List[PrimaryKey]) -> List[TableEntity]:
+        return [(table & key).fetch1(download_path=self.download_path) for key in primary_keys]
 
     def __repr__(self) -> str:
         return self.__class__.__qualname__ + "(" + repr(self.table_factory) + ")"

@@ -77,8 +77,8 @@ class TestFetch:
         proxy.fetch(primary_keys)
 
     @pytest.mark.usefixtures("fetch")
-    def test_if_table_is_instantiated(self, n_entities, table_factory):
-        assert table_factory.call_args_list == [call() for _ in range(n_entities)]
+    def test_if_table_is_instantiated(self, table_factory):
+        table_factory.assert_called_once_with()
 
     @pytest.mark.usefixtures("fetch")
     def test_if_table_is_restricted_when_fetching_entities(self, primary_keys, table):
