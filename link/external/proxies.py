@@ -5,8 +5,9 @@ PrimaryKey = Dict[str, Union[str, int, float]]
 
 
 class SourceTableProxy:
-    def __init__(self, table_factory):
+    def __init__(self, table_factory, download_path):
         self.table_factory = table_factory
+        self.download_path = download_path
 
     @property
     def primary_attr_names(self) -> List[str]:
@@ -20,10 +21,12 @@ class SourceTableProxy:
         return (self.table_factory().proj() & restriction).fetch(as_dict=True)
 
     def fetch(self, primary_keys: List[PrimaryKey]) -> Dict[str, Any]:
-        entities = dict(main=(self.table_factory() & primary_keys).fetch(as_dict=True))
+        entities = dict(
+            main=(self.table_factory() & primary_keys).fetch(as_dict=True, download_path=self.download_path)
+        )
         entities["parts"] = dict()
         for name, part in self.table_factory.parts.items():
-            entities["parts"][name] = (part & primary_keys).fetch(as_dict=True)
+            entities["parts"][name] = (part & primary_keys).fetch(as_dict=True, download_path=self.download_path)
         return entities
 
     def __repr__(self) -> str:

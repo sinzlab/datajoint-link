@@ -73,8 +73,13 @@ def table_factory(primary_attr_names, parts, table):
 
 
 @pytest.fixture
-def proxy(proxy_cls, table_factory):
-    return proxy_cls(table_factory)
+def download_path():
+    return "download_path"
+
+
+@pytest.fixture
+def proxy(proxy_cls, table_factory, download_path):
+    return proxy_cls(table_factory, download_path)
 
 
 class TestSourceTableProxy:
@@ -92,6 +97,9 @@ class TestSourceTableProxy:
 
     def test_if_table_factory_is_stored_as_instance_attribute(self, table_factory, proxy):
         assert proxy.table_factory is table_factory
+
+    def test_if_download_path_is_stored_as_instance_attribute(self, download_path, proxy):
+        assert proxy.download_path == download_path
 
     def test_if_table_is_instantiated_when_accessing_primary_attr_names(self, table_factory, proxy):
         _ = proxy.primary_attr_names
@@ -149,8 +157,8 @@ class TestSourceTableProxy:
         table.__and__.assert_called_once_with(primary_keys)
 
     @pytest.mark.usefixtures("fetch")
-    def test_if_entities_are_correctly_fetched_from_restricted_table(self, table):
-        table.__and__.return_value.fetch.assert_called_once_with(as_dict=True)
+    def test_if_entities_are_correctly_fetched_from_restricted_table(self, table, download_path):
+        table.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
 
     @pytest.mark.usefixtures("fetch")
     def test_if_part_tables_are_restricted_when_fetching_entities(self, primary_keys, parts):
@@ -158,9 +166,9 @@ class TestSourceTableProxy:
             part.__and__.assert_called_once_with(primary_keys)
 
     @pytest.mark.usefixtures("fetch")
-    def test_if_part_entities_are_correctly_fetched_from_restricted_part_tables(self, parts):
+    def test_if_part_entities_are_correctly_fetched_from_restricted_part_tables(self, parts, download_path):
         for part in parts.values():
-            part.__and__.return_value.fetch.assert_called_once_with(as_dict=True)
+            part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
 
     def test_if_entities_are_returned_when_fetched(self, primary_keys, entities, proxy):
         assert proxy.fetch(primary_keys) == entities
