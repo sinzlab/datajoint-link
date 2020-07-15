@@ -14,10 +14,6 @@ class SourceTableProxy:
         self.download_path = download_path
 
     @property
-    def primary_attr_names(self) -> List[str]:
-        return self.table_factory().heading.primary_key
-
-    @property
     def primary_keys(self) -> List[PrimaryKey]:
         return self.table_factory().proj().fetch(as_dict=True)
 
@@ -26,7 +22,7 @@ class SourceTableProxy:
 
     def fetch(self, primary_keys: List[PrimaryKey]) -> EntityPacket:
         return self.entity_packet_creator.create(
-            primary_attrs=self.primary_attr_names,
+            primary_attrs=self.table_factory().heading.primary_key,
             master_entities=[self._fetch_master(key) for key in primary_keys],
             part_entities=[self._fetch_parts(key) for key in primary_keys],
         )

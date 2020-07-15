@@ -23,15 +23,6 @@ def test_if_download_path_is_stored_as_instance_attribute(download_path, proxy):
     assert proxy.download_path == download_path
 
 
-class TestPrimaryAttrNamesProperty:
-    def test_if_table_is_instantiated(self, table_factory, proxy):
-        _ = proxy.primary_attr_names
-        table_factory.assert_called_once_with()
-
-    def test_if_primary_attr_names_are_returned(self, primary_attr_names, proxy):
-        assert proxy.primary_attr_names == primary_attr_names
-
-
 class TestPrimaryKeysProperty:
     def test_if_table_is_instantiated(self, table_factory, proxy):
         _ = proxy.primary_keys
