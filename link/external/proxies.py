@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Type, Optional
+from typing import List, Dict, Any, Type
 
 from datajoint import Part
 
@@ -7,7 +7,7 @@ from ..types import PrimaryKey
 
 
 class SourceTableProxy:
-    entity_packet_creator: Optional[EntityPacketCreator] = None
+    entity_packet_creator: EntityPacketCreator = None
 
     def __init__(self, table_factory, download_path):
         self.table_factory = table_factory

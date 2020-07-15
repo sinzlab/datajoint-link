@@ -1,5 +1,6 @@
 from dataclasses import is_dataclass
 from unittest.mock import MagicMock, call
+from typing import Type
 
 import pytest
 
@@ -18,7 +19,7 @@ def n_entities():
 
 @pytest.fixture
 def entities(n_entities):
-    return tuple(MagicMock(name="entity" + str(i)) for i in range(n_entities))
+    return tuple(MagicMock(name="entity" + str(i), spec=Entity) for i in range(n_entities))
 
 
 class TestEntity:
@@ -75,11 +76,11 @@ class TestEntityPacket:
 class TestEntityPacketCreator:
     @pytest.fixture
     def entity_cls(self, entities):
-        return MagicMock(name="entity_cls", side_effect=entities)
+        return MagicMock(name="entity_cls", side_effect=entities, spec=Type[Entity])
 
     @pytest.fixture
     def entity_packet_cls(self):
-        return MagicMock(name="entity_packet_cls")
+        return MagicMock(name="entity_packet_cls", spec=Type[EntityPacket])
 
     @pytest.fixture
     def entity_packet_creator(self, entity_cls, entity_packet_cls):

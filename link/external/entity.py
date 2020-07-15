@@ -26,9 +26,10 @@ class EntityPacket:
 
 
 class EntityPacketCreator:
-    entity_cls = None
-    entity_packet_cls = None
+    entity_cls: Entity = None
+    entity_packet_cls: EntityPacket = None
 
+    # noinspection PyCallingNonCallable
     def create(
         self, primary_attrs: List[str], master_entities: List[Dict[str, Any]], part_entities: List[Dict[str, Any]]
     ) -> EntityPacket:
