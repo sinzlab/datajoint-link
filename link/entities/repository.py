@@ -4,13 +4,14 @@ from contextlib import contextmanager
 
 if TYPE_CHECKING:
     from .entity import EntityTypeVar, EntityCreatorTypeVar
+    from .data_storage import DataStorage
     from ..adapters.gateway import GatewayTypeVar
 
 
 class SourceRepository:
     gateway: GatewayTypeVar = None
     entity_creator: EntityCreatorTypeVar = None
-    storage = None
+    storage: DataStorage = None
 
     def __init__(self) -> None:
         self._entities = {entity.identifier: entity for entity in self.entity_creator.create_entities()}
