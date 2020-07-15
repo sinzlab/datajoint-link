@@ -1,13 +1,18 @@
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 
 from link.external.proxies import SourceTableProxy
+from link.external.entity import EntityPacketCreator
 
 
 @pytest.fixture
 def proxy_cls():
     return SourceTableProxy
+
+
+def test_if_entity_packet_creator_class_attribute_is_none_by_default():
+    assert SourceTableProxy.entity_packet_creator is None
 
 
 def test_if_table_factory_is_stored_as_instance_attribute(table_factory, proxy):
@@ -73,12 +78,21 @@ class TestGetPrimaryKeysInRestriction:
 
 class TestFetch:
     @pytest.fixture
+    def entity_packet_creator(self):
+        return MagicMock(name="entity_packet_creator", spec=EntityPacketCreator)
+
+    @pytest.fixture
+    def proxy_cls(self, entity_packet_creator):
+        SourceTableProxy.entity_packet_creator = entity_packet_creator
+        return SourceTableProxy
+
+    @pytest.fixture
     def fetch(self, primary_keys, proxy):
         proxy.fetch(primary_keys)
 
     @pytest.mark.usefixtures("fetch")
     def test_if_table_is_instantiated(self, n_entities, table_factory):
-        assert table_factory.call_args_list == [call() for _ in range(n_entities)]
+        assert table_factory.call_args_list == [call() for _ in range(n_entities + 1)]
 
     @pytest.mark.usefixtures("fetch")
     def test_if_table_is_restricted_when_fetching_entities(self, primary_keys, table):
@@ -102,8 +116,18 @@ class TestFetch:
                 call(download_path=download_path, as_dict=True) for _ in range(n_entities)
             ]
 
-    def test_if_entities_are_returned(self, primary_keys, entities, proxy):
-        assert proxy.fetch(primary_keys) == entities
+    @pytest.mark.usefixtures("fetch")
+    def test_if_entity_packet_creator_is_called_correctly(
+        self, n_entities, primary_attr_names, entity_packet_creator, master_entities, part_entities
+    ):
+        entity_packet_creator.create.assert_called_once_with(
+            primary_attrs=primary_attr_names,
+            master_entities=master_entities,
+            part_entities=[{name: entities[i] for name, entities in part_entities.items()} for i in range(n_entities)],
+        )
+
+    def test_if_entity_packet_is_returned(self, primary_keys, proxy, entity_packet_creator):
+        assert proxy.fetch(primary_keys) is entity_packet_creator.create()
 
 
 def test_repr(proxy):

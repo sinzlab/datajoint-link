@@ -1,12 +1,14 @@
-from typing import List, Dict, Any, Type
+from typing import List, Dict, Any, Type, Optional
 
 from datajoint import Part
 
-from .entity import Entity
+from .entity import EntityPacket, EntityPacketCreator
 from ..types import PrimaryKey
 
 
 class SourceTableProxy:
+    entity_packet_creator: Optional[EntityPacketCreator] = None
+
     def __init__(self, table_factory, download_path):
         self.table_factory = table_factory
         self.download_path = download_path
@@ -22,8 +24,12 @@ class SourceTableProxy:
     def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
         return (self.table_factory().proj() & restriction).fetch(as_dict=True)
 
-    def fetch(self, primary_keys: List[PrimaryKey]) -> List[Entity]:
-        return [Entity(master=self._fetch_master(key), parts=self._fetch_parts(key)) for key in primary_keys]
+    def fetch(self, primary_keys: List[PrimaryKey]) -> EntityPacket:
+        return self.entity_packet_creator.create(
+            primary_attrs=self.primary_attr_names,
+            master_entities=[self._fetch_master(key) for key in primary_keys],
+            part_entities=[self._fetch_parts(key) for key in primary_keys],
+        )
 
     def _fetch_master(self, primary_key: PrimaryKey) -> Dict[str, Any]:
         return (self.table_factory() & primary_key).fetch1(download_path=self.download_path)
@@ -46,7 +52,7 @@ class LocalTableProxy(SourceTableProxy):
     def delete(self, primary_keys: List[PrimaryKey]) -> None:
         (self.table_factory() & primary_keys).delete()
 
-    def insert(self, table_entities: List[Entity]) -> None:
+    def insert(self, table_entities: List) -> None:
         for table_entity in table_entities:
             self._insert_master(table_entity.master)
             self._insert_parts(table_entity.parts)
