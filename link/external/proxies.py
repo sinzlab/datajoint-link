@@ -1,15 +1,9 @@
 from typing import List, Dict, Any, Type
-from dataclasses import dataclass
 
 from datajoint import Part
 
+from .entity import TableEntity
 from ..types import PrimaryKey
-
-
-@dataclass
-class TableEntity:
-    master: Dict[str, Any]
-    parts: Dict[str, Any]
 
 
 class SourceTableProxy:

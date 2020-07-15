@@ -3,11 +3,8 @@ from dataclasses import is_dataclass
 
 import pytest
 
-from link.external.proxies import TableEntity, SourceTableProxy
-
-
-def test_if_table_entity_is_dataclass():
-    assert is_dataclass(TableEntity)
+from link.external.proxies import SourceTableProxy
+from link.external.entity import TableEntity
 
 
 @pytest.fixture

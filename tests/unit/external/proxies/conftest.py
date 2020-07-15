@@ -3,7 +3,7 @@ from string import ascii_uppercase
 
 import pytest
 
-from link.external.proxies import TableEntity
+from link.external.entity import TableEntity
 
 
 @pytest.fixture
