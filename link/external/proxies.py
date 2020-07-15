@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Type
 
 from datajoint import Part
 
-from .entity import EntityPacket, EntityPacketCreator
+from .entity import Entity, EntityPacket, EntityPacketCreator
 from ..types import PrimaryKey
 
 
@@ -52,7 +52,7 @@ class LocalTableProxy(SourceTableProxy):
     def delete(self, primary_keys: List[PrimaryKey]) -> None:
         (self.table_factory() & primary_keys).delete()
 
-    def insert(self, table_entities: List) -> None:
+    def insert(self, table_entities: List[Entity]) -> None:
         for table_entity in table_entities:
             self._insert_master(table_entity.master)
             self._insert_parts(table_entity.parts)
