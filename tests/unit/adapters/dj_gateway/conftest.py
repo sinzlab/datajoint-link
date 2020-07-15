@@ -57,8 +57,8 @@ def primary_keys(primary_attrs, primary_attr_values):
 
 
 @pytest.fixture
-def entities(attrs, attr_values):
-    return [{a: av for a, av in zip(attrs, entity_attr_values)} for entity_attr_values in attr_values]
+def entities(primary_keys):
+    return [MagicMock(name="entity" + str(i), primary_key=primary_key) for i, primary_key in enumerate(primary_keys)]
 
 
 @pytest.fixture
@@ -78,11 +78,8 @@ def table_proxy(primary_attrs, primary_keys, entities):
 
 
 @pytest.fixture
-def data(identifiers, secondary_attrs, secondary_attr_values):
-    return {
-        identifier: {k: v for k, v in zip(secondary_attrs, secondary_entity_attr_values)}
-        for identifier, secondary_entity_attr_values in zip(identifiers, secondary_attr_values)
-    }
+def data(identifiers, entities):
+    return {identifier: entity for identifier, entity in zip(identifiers, entities)}
 
 
 @pytest.fixture

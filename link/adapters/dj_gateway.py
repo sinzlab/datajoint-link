@@ -29,11 +29,7 @@ class SourceGateway(gateway.AbstractSourceGateway):
 
     @_identifiers_to_primary_keys
     def fetch(self, identifiers: List[str]) -> Dict[str, Any]:
-        data = dict()
-        for entity in self.table_proxy.fetch(identifiers):
-            primary_key = {pan: entity.pop(pan) for pan in self.table_proxy.primary_attr_names}
-            data[self._hash_primary_key(primary_key)] = entity
-        return data
+        return {self._hash_primary_key(entity.primary_key): entity for entity in self.table_proxy.fetch(identifiers)}
 
     @property
     def _identifiers_to_primary_keys_mapping(self):
