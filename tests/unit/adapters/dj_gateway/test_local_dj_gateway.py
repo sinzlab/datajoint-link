@@ -26,9 +26,9 @@ def test_delete(primary_keys, table_proxy, gateway, identifiers):
     table_proxy.delete.assert_called_once_with(primary_keys)
 
 
-def test_insert(primary_keys, table_proxy, gateway, identifiers):
-    gateway.insert(identifiers)
-    table_proxy.insert.assert_called_once_with(primary_keys)
+def test_insert(table_proxy, gateway, entities, data):
+    gateway.insert(data)
+    table_proxy.insert.assert_called_once_with(entities)
 
 
 def test_if_transaction_is_started_in_table_proxy(table_proxy, gateway):

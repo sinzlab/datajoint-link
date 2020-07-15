@@ -52,9 +52,8 @@ class LocalGateway(SourceGateway, gateway.AbstractLocalGateway):
     def delete(self, identifiers: List[str]) -> None:
         self.table_proxy.delete(identifiers)
 
-    @_identifiers_to_primary_keys
-    def insert(self, identifiers: List[str]) -> None:
-        self.table_proxy.insert(identifiers)
+    def insert(self, data: Dict[str, Any]) -> None:
+        self.table_proxy.insert(list(data.values()))
 
     def start_transaction(self) -> None:
         self.table_proxy.start_transaction()
