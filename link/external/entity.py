@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Tuple, Optional, Iterator
+from typing import Dict, Any, List, Optional, Iterator
 
 from ..types import PrimaryKey
 
@@ -18,8 +18,8 @@ class Entity:
 
 @dataclass
 class EntityPacket:
-    primary_attrs: Tuple[str]
-    entities: Tuple[Entity]
+    primary_attrs: List[str]
+    entities: List[Entity]
 
     def __iter__(self) -> Iterator:
         return iter(self.entities)
@@ -29,13 +29,26 @@ class EntityPacketCreator:
     entity_cls: Entity = None
     entity_packet_cls: EntityPacket = None
 
-    # noinspection PyCallingNonCallable
     def create(
         self, primary_attrs: List[str], master_entities: List[Dict[str, Any]], part_entities: List[Dict[str, Any]]
     ) -> EntityPacket:
-        entities = tuple(
-            self.entity_cls(master=master, parts=parts) for master, parts in zip(master_entities, part_entities)
-        )
+        entities = self._create_entities(master_entities, part_entities)
+        return self._create_packet(primary_attrs, entities)
+
+    def _create_entities(
+        self, master_entities: List[Dict[str, Any]], parts_entities: List[Dict[str, Any]]
+    ) -> List[Entity]:
+        entities = []
+        for master_entity, part_entities in zip(master_entities, parts_entities):
+            entities.append(self._create_entity(master_entity, part_entities))
+        return entities
+
+    def _create_entity(self, master_entity: Dict[str, Any], part_entities: Dict[str, Any]) -> Entity:
+        # noinspection PyCallingNonCallable
+        return self.entity_cls(master=master_entity, parts=part_entities)
+
+    def _create_packet(self, primary_attrs: List[str], entities: List[Entity]):
+        # noinspection PyCallingNonCallable
         packet = self.entity_packet_cls(primary_attrs, entities)
         for entity in entities:
             entity.packet = packet

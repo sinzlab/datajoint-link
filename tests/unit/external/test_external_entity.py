@@ -19,7 +19,7 @@ def n_entities():
 
 @pytest.fixture
 def entities(n_entities):
-    return tuple(MagicMock(name="entity" + str(i), spec=Entity) for i in range(n_entities))
+    return [MagicMock(name="entity" + str(i), spec=Entity) for i in range(n_entities)]
 
 
 class TestEntity:
