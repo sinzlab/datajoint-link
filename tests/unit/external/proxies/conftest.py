@@ -3,7 +3,7 @@ from string import ascii_uppercase
 
 import pytest
 
-from link.external.entity import TableEntity
+from link.external.entity import Entity
 
 
 @pytest.fixture
@@ -42,12 +42,12 @@ def part_entities(n_entities, part_names):
 
 
 @pytest.fixture
-def table_entities(master_entities, part_entities):
-    table_entities = [
-        TableEntity(master=master_entity, parts={name: entities[i] for name, entities in part_entities.items()})
+def entities(master_entities, part_entities):
+    entities = [
+        Entity(master=master_entity, parts={name: entities[i] for name, entities in part_entities.items()})
         for i, master_entity in enumerate(master_entities)
     ]
-    return table_entities
+    return entities
 
 
 @pytest.fixture

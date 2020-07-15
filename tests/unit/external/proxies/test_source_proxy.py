@@ -1,10 +1,8 @@
 from unittest.mock import call
-from dataclasses import is_dataclass
 
 import pytest
 
 from link.external.proxies import SourceTableProxy
-from link.external.entity import TableEntity
 
 
 @pytest.fixture
@@ -104,8 +102,8 @@ class TestFetch:
                 call(download_path=download_path, as_dict=True) for _ in range(n_entities)
             ]
 
-    def test_if_entity_packet_is_returned(self, primary_keys, table_entities, proxy):
-        assert proxy.fetch(primary_keys) == table_entities
+    def test_if_entities_are_returned(self, primary_keys, entities, proxy):
+        assert proxy.fetch(primary_keys) == entities
 
 
 def test_repr(proxy):
