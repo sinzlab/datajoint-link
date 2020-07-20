@@ -3,12 +3,12 @@ from collections.abc import Mapping, MutableMapping
 from typing import Dict, Iterator
 
 from .repository import Entity
+from .gateway import AbstractGateway
 from .representation import _represent
-from ..adapters.gateway import GatewayTypeVar
 
 
 class FlagManagerFactory(Mapping):
-    def __init__(self, entities: Dict[str, Entity], gateway: GatewayTypeVar) -> None:
+    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
         self.entities = entities
         self.gateway = gateway
 
@@ -32,7 +32,7 @@ class FlagManagerFactory(Mapping):
 class FlagManager(MutableMapping):
     __delitem__ = None
 
-    def __init__(self, entity: Entity, gateway: GatewayTypeVar) -> None:
+    def __init__(self, entity: Entity, gateway: AbstractGateway) -> None:
         self.entity = entity
         self.gateway = gateway
 

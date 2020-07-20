@@ -2,12 +2,12 @@ from typing import Dict, ContextManager
 from contextlib import contextmanager
 
 from .repository import Entity
+from .gateway import AbstractGateway
 from .representation import _represent
-from ..adapters.gateway import GatewayTypeVar
 
 
 class TransactionManager:
-    def __init__(self, entities: Dict[str, Entity], gateway: GatewayTypeVar) -> None:
+    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
         self.entities = entities
         self.gateway = gateway
         self._entities_copy = None

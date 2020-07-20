@@ -2,8 +2,8 @@ from collections.abc import MutableMapping
 from typing import Dict, Iterator, Optional
 from dataclasses import dataclass, field
 
+from .gateway import AbstractGateway
 from .representation import _represent
-from ..adapters.gateway import GatewayTypeVar
 
 
 @dataclass
@@ -13,7 +13,7 @@ class Entity:
 
 
 class Repository(MutableMapping):
-    def __init__(self, entities: Dict[str, Entity], gateway: GatewayTypeVar, storage: Dict) -> None:
+    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway, storage: Dict) -> None:
         self.entities = entities
         self.gateway = gateway
         self.storage = storage
