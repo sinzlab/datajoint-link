@@ -1,59 +1,6 @@
-from unittest.mock import MagicMock
-
 import pytest
 
 from link.entities import transaction_manager
-
-
-@pytest.fixture
-def wrap_spy_around_method():
-    def _wrap_spy_around_method(instance, method):
-        setattr(
-            instance,
-            method,
-            MagicMock(name=instance.__class__.__name__ + "." + method, wraps=getattr(instance, method)),
-        )
-
-    return _wrap_spy_around_method
-
-
-@pytest.fixture
-def gateway_spy(wrap_spy_around_method):
-    class GatewaySpy:
-        def __init__(self):
-            self.in_transaction = False
-            self.error_when_starting = False
-            self.error_when_committing = False
-            self.error_when_cancelling = False
-
-        def start_transaction(self):
-            if self.in_transaction:
-                raise Exception
-            if self.error_when_starting:
-                raise RuntimeError
-            self.in_transaction = True
-
-        def commit_transaction(self):
-            if not self.in_transaction:
-                raise Exception
-            if self.error_when_committing:
-                raise RuntimeError
-            self.in_transaction = False
-
-        def cancel_transaction(self):
-            if not self.in_transaction:
-                raise Exception
-            if self.error_when_cancelling:
-                raise RuntimeError
-            self.in_transaction = False
-
-        def __repr__(self):
-            return "gateway_spy"
-
-    gateway_spy = GatewaySpy()
-    for method in ["start_transaction", "commit_transaction", "cancel_transaction"]:
-        wrap_spy_around_method(gateway_spy, method)
-    return gateway_spy
 
 
 @pytest.fixture

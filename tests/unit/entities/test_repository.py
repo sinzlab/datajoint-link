@@ -24,10 +24,10 @@ class TestEntity:
 
 
 @pytest.fixture
-def storage_spy(data):
+def storage_spy(entity_data):
     name = "storage_spy"
     storage_spy = MagicMock(name=name)
-    storage_spy.__getitem__.return_value = data
+    storage_spy.__getitem__.return_value = entity_data
     storage_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return storage_spy
 
@@ -58,8 +58,8 @@ class TestGetItem:
         gateway_spy.fetch.assert_called_once_with(identifier)
 
     @pytest.mark.usefixtures("fetched_entity")
-    def test_if_data_is_stored_in_storage(self, identifier, data, storage_spy):
-        storage_spy.__setitem__.assert_called_once_with(identifier, data)
+    def test_if_data_is_stored_in_storage(self, identifier, entity_data, storage_spy):
+        storage_spy.__setitem__.assert_called_once_with(identifier, entity_data)
 
     def test_if_entity_is_returned(self, entity, fetched_entity):
         assert fetched_entity is entity
@@ -83,8 +83,8 @@ class TestSetItem:
         storage_spy.__getitem__.assert_called_once_with(new_identifier)
 
     @pytest.mark.usefixtures("insert_entity")
-    def test_if_data_is_inserted_into_gateway(self, new_identifier, data, gateway_spy):
-        gateway_spy.insert.assert_called_once_with(new_identifier, data)
+    def test_if_data_is_inserted_into_gateway(self, new_identifier, entity_data, gateway_spy):
+        gateway_spy.insert.assert_called_once_with(new_identifier, entity_data)
 
     @pytest.mark.usefixtures("insert_entity")
     def test_if_entity_is_added_to_repository(self, repo, new_identifier, new_entity):
