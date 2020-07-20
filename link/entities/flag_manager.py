@@ -9,16 +9,24 @@ from ..adapters.gateway import GatewayTypeVar
 
 class EntityFlagsManagerFactory(Mapping):
     def __init__(self, entities: Dict[str, Entity], gateway: GatewayTypeVar) -> None:
-        pass
+        self.entities = entities
+        self.gateway = gateway
 
     def __getitem__(self, identifier: str) -> EntityFlagsManager:
-        pass
+        """Gets the entity flags manager corresponding to the entity identified by the provided identifier."""
+        return EntityFlagsManager(self.entities[identifier], self.gateway)
 
     def __iter__(self) -> Iterator[EntityFlagsManager]:
-        pass
+        """Iterates over flag managers."""
+        for entity in self.entities.values():
+            yield EntityFlagsManager(entity, self.gateway)
 
     def __len__(self) -> int:
-        pass
+        """Returns the number of entities associated with the factory."""
+        return len(self.entities)
+
+    def __repr__(self) -> str:
+        return _represent(self, ["entities", "gateway"])
 
 
 class EntityFlagsManager(MutableMapping):
