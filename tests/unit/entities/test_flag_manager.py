@@ -29,9 +29,9 @@ class TestFlagManager:
     def test_if_flag_is_returned(self, manager, flags):
         assert all(manager[flag] is value for flag, value in flags.items())
 
-    def test_if_flag_is_set_in_gateway(self, manager, gateway_spy):
+    def test_if_flag_is_set_in_gateway(self, manager, identifier, gateway_spy):
         manager["flag3"] = True
-        gateway_spy.set_flag.assert_called_once_with("flag3", True)
+        gateway_spy.set_flag.assert_called_once_with(identifier, "flag3", True)
 
     def test_if_flag_is_set_in_entity(self, manager, entity):
         manager["flag3"] = True

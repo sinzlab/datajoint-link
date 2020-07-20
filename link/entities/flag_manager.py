@@ -42,7 +42,7 @@ class FlagManager(MutableMapping):
 
     def __setitem__(self, flag: str, value: bool) -> None:
         """Sets the value of a flag of the entity."""
-        self.gateway.set_flag(flag, value)
+        self.gateway.set_flag(self.entity.identifier, flag, value)
         self.entity.flags[flag] = value
 
     def __iter__(self) -> Iterator[str]:
