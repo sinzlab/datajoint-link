@@ -3,6 +3,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Dict, Iterator
 
 from .repository import Entity
+from .representation import _represent
 from ..adapters.gateway import GatewayTypeVar
 
 
@@ -45,5 +46,4 @@ class EntityFlagsManager(MutableMapping):
         return len(self.entity.flags)
 
     def __repr__(self) -> str:
-        attr_reprs = (name + "=" + repr(getattr(self, name)) for name in ["entity", "gateway"])
-        return self.__class__.__qualname__ + "(" + ", ".join(attr_reprs) + ")"
+        return _represent(self, ["entity", "gateway"])

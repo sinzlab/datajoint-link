@@ -2,6 +2,7 @@ from collections.abc import MutableMapping
 from typing import Dict, Iterator, Optional
 from dataclasses import dataclass, field
 
+from .representation import _represent
 from ..adapters.gateway import GatewayTypeVar
 
 
@@ -43,5 +44,4 @@ class Repository(MutableMapping):
         return len(self.entities)
 
     def __repr__(self) -> str:
-        attr_reprs = (name + "=" + repr(getattr(self, name)) for name in ["entities", "gateway", "storage"])
-        return self.__class__.__qualname__ + "(" + ", ".join(attr_reprs) + ")"
+        return _represent(self, ["entities", "gateway", "storage"])
