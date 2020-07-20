@@ -5,16 +5,6 @@ import pytest
 from link.entities.repository import Entity, Repository
 
 
-@pytest.fixture
-def identifiers():
-    return ["identifier" + str(i) for i in range(10)]
-
-
-@pytest.fixture
-def identifier(identifiers):
-    return identifiers[0]
-
-
 class TestEntity:
     @pytest.fixture
     def flags(self):
@@ -31,30 +21,6 @@ class TestEntity:
 
     def test_repr(self, identifier, flags):
         assert repr(Entity(identifier, flags=flags)) == "Entity(identifier='identifier0', flags={'flag': True})"
-
-
-@pytest.fixture
-def entities(identifiers):
-    return {identifier: Entity(identifier) for identifier in identifiers}
-
-
-@pytest.fixture
-def entity(identifier, entities):
-    return entities[identifier]
-
-
-@pytest.fixture
-def data():
-    return "data"
-
-
-@pytest.fixture
-def gateway_spy(data):
-    name = "gateway_spy"
-    gateway_spy = MagicMock(name=name)
-    gateway_spy.fetch.return_value = data
-    gateway_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return gateway_spy
 
 
 @pytest.fixture
