@@ -3,7 +3,7 @@ import pytest
 from link.entities import flag_manager
 
 
-class TestEntityFlagsManager:
+class TestFlagManager:
     @pytest.fixture
     def flags(self):
         return dict(flag1=True, flag2=False)
@@ -15,10 +15,10 @@ class TestEntityFlagsManager:
 
     @pytest.fixture
     def manager(self, entity, gateway_spy):
-        return flag_manager.EntityFlagsManager(entity, gateway_spy)
+        return flag_manager.FlagManager(entity, gateway_spy)
 
     def test_if_delitem_is_none(self):
-        assert flag_manager.EntityFlagsManager.__delitem__ is None
+        assert flag_manager.FlagManager.__delitem__ is None
 
     def test_if_entity_is_stored_as_instance_attribute(self, entity, manager):
         assert manager.entity is entity
@@ -53,13 +53,13 @@ class TestEntityFlagsManager:
         assert len(manager) == 2
 
     def test_repr(self, manager, entity):
-        assert repr(manager) == f"EntityFlagsManager(entity={entity}, gateway=gateway_spy)"
+        assert repr(manager) == f"FlagManager(entity={entity}, gateway=gateway_spy)"
 
 
-class TestEntityFlagsManagerFactory:
+class TestFlagManagerFactory:
     @pytest.fixture
     def factory(self, entities, gateway_spy):
-        return flag_manager.EntityFlagsManagerFactory(entities, gateway_spy)
+        return flag_manager.FlagManagerFactory(entities, gateway_spy)
 
     def test_if_entities_are_stored_as_instance_attribute(self, factory, entities):
         assert factory.entities is entities
@@ -68,7 +68,7 @@ class TestEntityFlagsManagerFactory:
         assert factory.gateway is gateway_spy
 
     def test_if_entity_flags_manager_is_returned(self, factory, identifier):
-        assert isinstance(factory[identifier], flag_manager.EntityFlagsManager)
+        assert isinstance(factory[identifier], flag_manager.FlagManager)
 
     def test_if_entity_of_returned_entity_flags_manager_is_correct(self, factory, identifier, entity):
         assert factory[identifier].entity is entity
@@ -77,7 +77,7 @@ class TestEntityFlagsManagerFactory:
         assert factory[identifier].gateway is gateway_spy
 
     def test_if_entity_flags_managers_are_returned_when_iterating(self, factory):
-        assert all(isinstance(manager, flag_manager.EntityFlagsManager) for manager in factory)
+        assert all(isinstance(manager, flag_manager.FlagManager) for manager in factory)
 
     def test_if_entity_of_returned_entity_flags_managers_are_correct_when_iterating(self, factory, entities):
         assert all(manager.entity is entity for manager, entity in zip(factory, entities.values()))
@@ -89,4 +89,4 @@ class TestEntityFlagsManagerFactory:
         assert len(factory) == 10
 
     def test_repr(self, factory, entities):
-        assert repr(factory) == f"EntityFlagsManagerFactory(entities={entities}, gateway=gateway_spy)"
+        assert repr(factory) == f"FlagManagerFactory(entities={entities}, gateway=gateway_spy)"

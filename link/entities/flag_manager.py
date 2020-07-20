@@ -7,19 +7,19 @@ from .representation import _represent
 from ..adapters.gateway import GatewayTypeVar
 
 
-class EntityFlagsManagerFactory(Mapping):
+class FlagManagerFactory(Mapping):
     def __init__(self, entities: Dict[str, Entity], gateway: GatewayTypeVar) -> None:
         self.entities = entities
         self.gateway = gateway
 
-    def __getitem__(self, identifier: str) -> EntityFlagsManager:
+    def __getitem__(self, identifier: str) -> FlagManager:
         """Gets the entity flags manager corresponding to the entity identified by the provided identifier."""
-        return EntityFlagsManager(self.entities[identifier], self.gateway)
+        return FlagManager(self.entities[identifier], self.gateway)
 
-    def __iter__(self) -> Iterator[EntityFlagsManager]:
+    def __iter__(self) -> Iterator[FlagManager]:
         """Iterates over flag managers."""
         for entity in self.entities.values():
-            yield EntityFlagsManager(entity, self.gateway)
+            yield FlagManager(entity, self.gateway)
 
     def __len__(self) -> int:
         """Returns the number of entities associated with the factory."""
@@ -29,7 +29,7 @@ class EntityFlagsManagerFactory(Mapping):
         return _represent(self, ["entities", "gateway"])
 
 
-class EntityFlagsManager(MutableMapping):
+class FlagManager(MutableMapping):
     __delitem__ = None
 
     def __init__(self, entity: Entity, gateway: GatewayTypeVar) -> None:
