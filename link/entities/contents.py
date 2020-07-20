@@ -12,7 +12,7 @@ class Entity:
     flags: Optional[Dict[str, bool]] = field(default_factory=dict)
 
 
-class Repository(MutableMapping):
+class Contents(MutableMapping):
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway, storage: Dict) -> None:
         self.entities = entities
         self.gateway = gateway

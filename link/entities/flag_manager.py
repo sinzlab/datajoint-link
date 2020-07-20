@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import Dict, Iterator
 
-from .repository import Entity
+from .contents import Entity
 from .gateway import AbstractGateway
 from .representation import _represent
 

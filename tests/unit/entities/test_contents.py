@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.entities.repository import Entity, Repository
+from link.entities.contents import Entity, Contents
 
 
 class TestEntity:
@@ -33,25 +33,25 @@ def storage_spy(entity_data):
 
 
 @pytest.fixture
-def repo(entities, gateway_spy, storage_spy):
-    return Repository(entities, gateway_spy, storage_spy)
+def contents(entities, gateway_spy, storage_spy):
+    return Contents(entities, gateway_spy, storage_spy)
 
 
 class TestInit:
-    def test_if_entities_are_stored_as_instance_attribute(self, repo, entities):
-        assert repo.entities is entities
+    def test_if_entities_are_stored_as_instance_attribute(self, contents, entities):
+        assert contents.entities is entities
 
-    def test_if_gateway_is_stored_as_instance_attribute(self, repo, gateway_spy):
-        assert repo.gateway is gateway_spy
+    def test_if_gateway_is_stored_as_instance_attribute(self, contents, gateway_spy):
+        assert contents.gateway is gateway_spy
 
-    def test_if_storage_is_stored_as_instance_attribute(self, repo, storage_spy):
-        assert repo.storage is storage_spy
+    def test_if_storage_is_stored_as_instance_attribute(self, contents, storage_spy):
+        assert contents.storage is storage_spy
 
 
 class TestGetItem:
     @pytest.fixture
-    def fetched_entity(self, identifier, repo):
-        return repo[identifier]
+    def fetched_entity(self, identifier, contents):
+        return contents[identifier]
 
     @pytest.mark.usefixtures("fetched_entity")
     def test_if_data_is_fetched_from_gateway(self, identifier, gateway_spy):
@@ -75,8 +75,8 @@ class TestSetItem:
         return Entity(new_identifier)
 
     @pytest.fixture
-    def insert_entity(self, new_identifier, new_entity, repo):
-        repo[new_identifier] = new_entity
+    def insert_entity(self, new_identifier, new_entity, contents):
+        contents[new_identifier] = new_entity
 
     @pytest.mark.usefixtures("insert_entity")
     def test_if_data_is_retrieved_from_storage(self, new_identifier, storage_spy):
@@ -87,53 +87,53 @@ class TestSetItem:
         gateway_spy.insert.assert_called_once_with(new_identifier, entity_data)
 
     @pytest.mark.usefixtures("insert_entity")
-    def test_if_entity_is_added_to_repository(self, repo, new_identifier, new_entity):
-        assert repo.entities[new_identifier] is new_entity
+    def test_if_entity_is_added_to_contents(self, contents, new_identifier, new_entity):
+        assert contents.entities[new_identifier] is new_entity
 
-    def test_if_data_is_inserted_into_gateway_before_entity_is_added_to_repository(
-        self, gateway_spy, repo, new_identifier, new_entity
+    def test_if_data_is_inserted_into_gateway_before_entity_is_added_to_contents(
+        self, gateway_spy, contents, new_identifier, new_entity
     ):
         gateway_spy.insert.side_effect = RuntimeError
         try:
-            repo[new_identifier] = new_entity
+            contents[new_identifier] = new_entity
         except RuntimeError:
             pass
         with pytest.raises(KeyError):
-            _ = repo[new_identifier]
+            _ = contents[new_identifier]
 
 
 class TestDelItem:
     @pytest.fixture
-    def delete_entity(self, identifier, repo):
-        del repo[identifier]
+    def delete_entity(self, identifier, contents):
+        del contents[identifier]
 
     @pytest.mark.usefixtures("delete_entity")
     def test_if_entity_is_deleted_in_gateway(self, identifier, gateway_spy):
         gateway_spy.delete.assert_called_once_with(identifier)
 
     @pytest.mark.usefixtures("delete_entity")
-    def test_if_entity_is_deleted_from_repository(self, identifier, repo):
+    def test_if_entity_is_deleted_from_contents(self, identifier, contents):
         with pytest.raises(KeyError):
-            _ = repo.entities[identifier]
+            _ = contents.entities[identifier]
 
-    def test_if_entity_is_deleted_from_gateway_before_being_deleted_from_repository(
-        self, gateway_spy, repo, identifier, entity
+    def test_if_entity_is_deleted_from_gateway_before_being_deleted_from_contents(
+        self, gateway_spy, contents, identifier, entity
     ):
         gateway_spy.delete.side_effect = RuntimeError
         try:
-            del repo[identifier]
+            del contents[identifier]
         except RuntimeError:
             pass
-        assert repo.entities[identifier] is entity
+        assert contents.entities[identifier] is entity
 
 
-def test_iter(repo, identifiers):
-    assert all(identifier0 == identifier1 for identifier0, identifier1 in zip(repo, identifiers))
+def test_iter(contents, identifiers):
+    assert all(identifier0 == identifier1 for identifier0, identifier1 in zip(contents, identifiers))
 
 
-def test_len(repo):
-    assert len(repo) == 10
+def test_len(contents):
+    assert len(contents) == 10
 
 
-def test_repr(repo, entities):
-    assert repr(repo) == f"Repository(entities={entities}, gateway=gateway_spy, storage=storage_spy)"
+def test_repr(contents, entities):
+    assert repr(contents) == f"Contents(entities={entities}, gateway=gateway_spy, storage=storage_spy)"
