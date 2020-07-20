@@ -1,9 +1,12 @@
-from typing import Dict, ContextManager
+from __future__ import annotations
+from typing import TYPE_CHECKING, Dict, ContextManager
 from contextlib import contextmanager
 
-from .repository import Entity
-from .gateway import AbstractGateway
 from .representation import _represent
+
+if TYPE_CHECKING:
+    from .repository import Entity
+    from .gateway import AbstractGateway
 
 
 class TransactionManager:

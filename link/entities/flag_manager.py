@@ -1,10 +1,12 @@
 from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
-from typing import Dict, Iterator
+from typing import TYPE_CHECKING, Dict, Iterator
 
-from .repository import Entity
-from .gateway import AbstractGateway
 from .representation import _represent
+
+if TYPE_CHECKING:
+    from .repository import Entity
+    from .gateway import AbstractGateway
 
 
 class FlagManagerFactory(Mapping):

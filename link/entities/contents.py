@@ -1,9 +1,12 @@
+from __future__ import annotations
 from collections.abc import MutableMapping
-from typing import Dict, Iterator
+from typing import TYPE_CHECKING, Dict, Iterator
 
-from .gateway import AbstractGateway
-from .repository import Entity
 from .representation import _represent
+
+if TYPE_CHECKING:
+    from .gateway import AbstractGateway
+    from .repository import Entity
 
 
 class Contents(MutableMapping):
