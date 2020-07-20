@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from link.entities.contents import Entity
+from link.entities.repository import Entity
 from link.entities.gateway import AbstractGateway
 
 

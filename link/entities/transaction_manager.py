@@ -1,7 +1,7 @@
 from typing import Dict, ContextManager
 from contextlib import contextmanager
 
-from .contents import Entity
+from .repository import Entity
 from .gateway import AbstractGateway
 from .representation import _represent
 

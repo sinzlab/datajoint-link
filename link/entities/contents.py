@@ -1,15 +1,9 @@
 from collections.abc import MutableMapping
-from typing import Dict, Iterator, Optional
-from dataclasses import dataclass, field
+from typing import Dict, Iterator
 
 from .gateway import AbstractGateway
+from .repository import Entity
 from .representation import _represent
-
-
-@dataclass
-class Entity:
-    identifier: str
-    flags: Optional[Dict[str, bool]] = field(default_factory=dict)
 
 
 class Contents(MutableMapping):
