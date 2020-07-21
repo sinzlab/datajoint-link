@@ -1,9 +1,18 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, List, Dict
 
 
 class AbstractGateway(ABC):
     """A abstract base class defining the interface for the gateway as expected by the entities."""
+
+    @property
+    @abstractmethod
+    def identifiers(self) -> List[str]:
+        """Returns the identifiers of all the entities in the gateway."""
+
+    @abstractmethod
+    def get_flags(self, identifier: str) -> Dict[str, bool]:
+        """Gets the flags associated with the entity specified by the provided identifier."""
 
     @abstractmethod
     def fetch(self, identifier: str) -> Any:
