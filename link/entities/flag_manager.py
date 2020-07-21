@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import TYPE_CHECKING, Dict, Iterator
 
-from .representation import _represent
+from .representation import represent
 
 if TYPE_CHECKING:
     from .repository import Entity
@@ -28,7 +28,7 @@ class FlagManagerFactory(Mapping):
         return len(self.entities)
 
     def __repr__(self) -> str:
-        return _represent(self, ["entities", "gateway"])
+        return represent(self, ["entities", "gateway"])
 
 
 class FlagManager(MutableMapping):
@@ -56,4 +56,4 @@ class FlagManager(MutableMapping):
         return len(self.entity.flags)
 
     def __repr__(self) -> str:
-        return _represent(self, ["entity", "gateway"])
+        return represent(self, ["entity", "gateway"])

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Any
 
-from ..entities.representation import _represent
+from ..entities.representation import represent
 
 if TYPE_CHECKING:
     from . import RepositoryLink, RepositoryLinkFactory
@@ -23,7 +23,7 @@ class UseCase(ABC):
         self.output_port(output)
 
     def __repr__(self) -> str:
-        return _represent(self, ["repo_link_factory", "output_port"])
+        return represent(self, ["repo_link_factory", "output_port"])
 
     @abstractmethod
     def execute(self, repo_link: RepositoryLink, *args, **kwargs):

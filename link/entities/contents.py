@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Dict, Iterator
 
-from .representation import _represent
+from .representation import represent
 
 if TYPE_CHECKING:
     from .gateway import AbstractGateway
@@ -41,4 +41,4 @@ class Contents(MutableMapping):
         return len(self.entities)
 
     def __repr__(self) -> str:
-        return _represent(self, ["entities", "gateway", "storage"])
+        return represent(self, ["entities", "gateway", "storage"])

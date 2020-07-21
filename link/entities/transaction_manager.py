@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, ContextManager
 from contextlib import contextmanager
 
-from .representation import _represent
+from .representation import represent
 
 if TYPE_CHECKING:
     from .repository import Entity
@@ -48,4 +48,4 @@ class TransactionManager:
             self.commit()
 
     def __repr__(self) -> str:
-        return _represent(self, ["entities", "gateway"])
+        return represent(self, ["entities", "gateway"])

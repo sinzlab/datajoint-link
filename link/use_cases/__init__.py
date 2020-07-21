@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from .base import UseCase
 from ..entities.repository import Repository, RepositoryFactory
 from ..entities.gateway import AbstractGateway
-from ..entities.representation import _represent
+from ..entities.representation import represent
 
 
 class AbstractGatewayLink(ABC):
@@ -46,4 +46,4 @@ class RepositoryLinkFactory:
         return RepositoryLink(**kwargs)
 
     def __repr__(self) -> str:
-        return _represent(self, ["gateway_link"])
+        return represent(self, ["gateway_link"])
