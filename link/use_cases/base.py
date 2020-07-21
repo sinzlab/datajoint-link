@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Any
 from ..entities.representation import represent
 
 if TYPE_CHECKING:
-    from . import RepositoryLink, RepositoryLinkFactory
+    from . import RepositoryLinkFactory
 
 
 class UseCase(ABC):
@@ -26,5 +26,5 @@ class UseCase(ABC):
         return represent(self, ["repo_link_factory", "output_port"])
 
     @abstractmethod
-    def execute(self, repo_link: RepositoryLink, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> Any:
         """Executes the use-case."""
