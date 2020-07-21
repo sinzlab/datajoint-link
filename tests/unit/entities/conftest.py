@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock
-from typing import Any
+from typing import Any, List, Dict
 
 import pytest
 
@@ -18,8 +18,13 @@ def identifier(identifiers):
 
 
 @pytest.fixture
-def entities(identifiers):
-    return {identifier: Entity(identifier) for identifier in identifiers}
+def flags(identifiers):
+    return {identifier: dict(flag1=True, flag2=False) for identifier in identifiers}
+
+
+@pytest.fixture
+def entities(flags):
+    return {identifier: Entity(identifier, entity_flags) for identifier, entity_flags in flags.items()}
 
 
 @pytest.fixture
@@ -45,16 +50,26 @@ def wrap_spy_around_method():
 
 
 @pytest.fixture
-def gateway_spy(wrap_spy_around_method, entity_data):
+def gateway_spy_cls():
     class GatewaySpy(AbstractGateway):
-        def __init__(self):
+        def __init__(self, identifiers, flags, entity_data):
+            self._identifiers = identifiers
+            self.flags = flags
+            self.entity_data = entity_data
             self.in_transaction = False
             self.error_when_starting = False
             self.error_when_committing = False
             self.error_when_cancelling = False
 
+        @property
+        def identifiers(self) -> List[str]:
+            return self._identifiers
+
+        def get_flags(self, identifier: str) -> Dict[str, bool]:
+            return self.flags[identifier]
+
         def fetch(self, identifier: str) -> Any:
-            return entity_data
+            return self.entity_data
 
         def insert(self, identifier: str, data: Any) -> None:
             pass
@@ -89,8 +104,14 @@ def gateway_spy(wrap_spy_around_method, entity_data):
         def __repr__(self) -> str:
             return "gateway_spy"
 
-    gateway_spy = GatewaySpy()
+    return GatewaySpy
+
+
+@pytest.fixture
+def gateway_spy(gateway_spy_cls, identifiers, flags, entity_data, wrap_spy_around_method):
+    gateway_spy = gateway_spy_cls(identifiers, flags, entity_data)
     for method in [
+        "get_flags",
         "fetch",
         "insert",
         "delete",

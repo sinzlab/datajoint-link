@@ -5,13 +5,8 @@ from link.entities import flag_manager
 
 class TestFlagManager:
     @pytest.fixture
-    def flags(self):
-        return dict(flag1=True, flag2=False)
-
-    @pytest.fixture
-    def entity(self, entity, flags):
-        entity.flags.update(flags)
-        return entity
+    def entity_flags(self, entity):
+        return entity.flags
 
     @pytest.fixture
     def manager(self, entity, gateway_spy):
@@ -26,8 +21,8 @@ class TestFlagManager:
     def test_if_gateway_is_stored_as_instance_attribute(self, gateway_spy, manager):
         assert manager.gateway is gateway_spy
 
-    def test_if_flag_is_returned(self, manager, flags):
-        assert all(manager[flag] is value for flag, value in flags.items())
+    def test_if_flag_is_returned(self, manager, entity_flags):
+        assert all(manager[flag] is value for flag, value in entity_flags.items())
 
     def test_if_flag_is_set_in_gateway(self, manager, identifier, gateway_spy):
         manager["flag3"] = True
@@ -46,8 +41,8 @@ class TestFlagManager:
         with pytest.raises(KeyError):
             _ = entity.flags["flag3"]
 
-    def test_iter(self, manager, flags):
-        assert all(flag1 == flag2 for flag1, flag2 in zip(manager, list(flags)))
+    def test_iter(self, manager, entity_flags):
+        assert all(flag1 == flag2 for flag1, flag2 in zip(manager, list(entity_flags)))
 
     def test_len(self, manager):
         assert len(manager) == 2
