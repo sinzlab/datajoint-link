@@ -67,7 +67,7 @@ class TestSetItem:
 
     @pytest.mark.usefixtures("insert_entity")
     def test_if_data_is_inserted_into_gateway(self, new_identifier, entity_data, gateway_spy):
-        gateway_spy.insert.assert_called_once_with(new_identifier, entity_data)
+        gateway_spy.insert.assert_called_once_with(entity_data)
 
     @pytest.mark.usefixtures("insert_entity")
     def test_if_entity_is_added_to_contents(self, contents, new_identifier, new_entity):

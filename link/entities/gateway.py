@@ -19,7 +19,7 @@ class AbstractGateway(ABC):
         """Fetches an entity."""
 
     @abstractmethod
-    def insert(self, identifier: str, data: Any) -> None:
+    def insert(self, data: Any) -> None:
         """Inserts an entity."""
 
     @abstractmethod

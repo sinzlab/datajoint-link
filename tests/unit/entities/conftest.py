@@ -71,7 +71,7 @@ def gateway_spy_cls():
         def fetch(self, identifier: str) -> Any:
             return self.entity_data
 
-        def insert(self, identifier: str, data: Any) -> None:
+        def insert(self, data: Any) -> None:
             pass
 
         def delete(self, identifier: str) -> None:

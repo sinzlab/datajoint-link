@@ -24,7 +24,7 @@ class Contents(MutableMapping):
     def __setitem__(self, identifier: str, entity: Entity) -> None:
         """Inserts an entity."""
         data = self.storage[identifier]
-        self.gateway.insert(identifier, data)
+        self.gateway.insert(data)
         self.entities[identifier] = entity
 
     def __delitem__(self, identifier: str) -> None:
