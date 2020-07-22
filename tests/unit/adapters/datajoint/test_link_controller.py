@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.adapters.link import LinkController
+from link.adapters.datajoint.link import LinkController
 
 
 @pytest.fixture

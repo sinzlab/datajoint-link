@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.adapters import local_table
+from link.adapters.datajoint import local_table
 
 
 @pytest.fixture
