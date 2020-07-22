@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Dict, Callable, Any
 
 from .base import UseCase
+from .pull import Pull
 from ..entities.repository import Repository, RepositoryFactory
 from ..entities.gateway import AbstractGateway
 from ..entities.representation import represent
@@ -47,3 +49,8 @@ class RepositoryLinkFactory:
 
     def __repr__(self) -> str:
         return represent(self, ["gateway_link"])
+
+
+def initialize(gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]]) -> Dict[str, UseCase]:
+    """Initializes the use-cases and returns them."""
+    return dict(pull=Pull(RepositoryLinkFactory(gateway_link), output_ports["pull"]))

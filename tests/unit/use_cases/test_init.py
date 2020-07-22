@@ -3,8 +3,9 @@ from typing import Type
 
 import pytest
 
-from link.entities.repository import RepositoryFactory
 from link import use_cases
+from link.use_cases.pull import Pull
+from link.entities.repository import RepositoryFactory
 
 
 @pytest.fixture
@@ -39,11 +40,11 @@ def storage():
 
 @pytest.fixture
 def factory(repo_factory_cls_spy, gateway_link_stub):
-    class LinkFactory(use_cases.RepositoryLinkFactory):
+    class RepositoryLinkFactory(use_cases.RepositoryLinkFactory):
         repo_factory_cls = repo_factory_cls_spy
 
-    LinkFactory.__qualname__ = LinkFactory.__name__
-    return LinkFactory(gateway_link_stub)
+    RepositoryLinkFactory.__qualname__ = RepositoryLinkFactory.__name__
+    return RepositoryLinkFactory(gateway_link_stub)
 
 
 class TestRepositoryLinkFactory:
@@ -78,4 +79,32 @@ class TestRepositoryLinkFactory:
         assert factory(storage).local is repos["local"]
 
     def test_repr(self, factory):
-        assert repr(factory) == "LinkFactory(gateway_link=gateway_link_stub)"
+        assert repr(factory) == "RepositoryLinkFactory(gateway_link=gateway_link_stub)"
+
+
+class TestInitialize:
+    @pytest.fixture
+    def dummy_output_ports(self):
+        return dict(pull=MagicMock(name="pull_dummy_output_port"))
+
+    @pytest.fixture
+    def returned(self, gateway_link_stub, dummy_output_ports):
+        return use_cases.initialize(gateway_link_stub, dummy_output_ports)
+
+    def test_if_dict_is_returned(self, returned):
+        assert isinstance(returned, dict)
+
+    def test_if_dict_has_correct_keys(self, returned):
+        assert list(returned.keys()) == ["pull"]
+
+    def test_if_pull_key_contains_pull_use_case(self, returned):
+        assert isinstance(returned["pull"], Pull)
+
+    def test_if_pull_use_case_is_associated_with_repo_link_factory(self, returned):
+        assert isinstance(returned["pull"].repo_link_factory, use_cases.RepositoryLinkFactory)
+
+    def test_if_repo_link_factory_is_associated_with_gateway_link(self, returned, gateway_link_stub):
+        assert returned["pull"].repo_link_factory.gateway_link is gateway_link_stub
+
+    def test_if_output_port_of_pull_use_case_is_correct(self, returned, dummy_output_ports):
+        assert returned["pull"].output_port is dummy_output_ports["pull"]
