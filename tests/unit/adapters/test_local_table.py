@@ -5,6 +5,11 @@ import pytest
 from link.adapters import local_table
 
 
+@pytest.fixture
+def restriction():
+    return "restriction"
+
+
 def test_if_pull_use_case_is_none():
     assert local_table.LocalTableController.pull_use_case is None
 
