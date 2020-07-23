@@ -31,7 +31,11 @@ class AbstractTableProxy(ABC):
         pass
 
     @abstractmethod
-    def delete(self, primary_key: PrimaryKey) -> None:
+    def delete_master(self, primary_key: PrimaryKey) -> None:
+        pass
+
+    @abstractmethod
+    def delete_parts(self, primary_key: PrimaryKey) -> None:
         pass
 
     @abstractmethod

@@ -34,7 +34,9 @@ class DataJointGateway(AbstractGateway):
 
     def delete(self, identifier: str) -> None:
         """Deletes the entity identified by the provided identifier from the table."""
-        self.table_proxy.delete(self.translator.to_primary_key(identifier))
+        primary_key = self.translator.to_primary_key(identifier)
+        self.table_proxy.delete_parts(primary_key)
+        self.table_proxy.delete_master(primary_key)
 
     def set_flag(self, identifier: str, flag: str, value: bool) -> None:
         """Sets the flag on the entity identified by the provided identifier to the provided value."""

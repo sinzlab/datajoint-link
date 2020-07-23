@@ -129,9 +129,21 @@ class TestDelete:
         gateway.delete("identifier0")
         translator_spy.to_primary_key.assert_called_once_with("identifier0")
 
-    def test_if_call_to_table_proxy_is_correct(self, gateway, table_proxy_spy):
+    def test_if_call_to_delete_parts_method_of_table_proxy_is_correct(self, gateway, table_proxy_spy):
         gateway.delete("identifier0")
-        table_proxy_spy.delete.assert_called_once_with("primary_key0")
+        table_proxy_spy.delete_parts.assert_called_once_with("primary_key0")
+
+    def test_if_call_to_delete_master_method_of_table_proxy_is_correct(self, gateway, table_proxy_spy):
+        gateway.delete("identifier0")
+        table_proxy_spy.delete_master.assert_called_once_with("primary_key0")
+
+    def test_if_call_to_delete_parts_method_is_made_first(self, gateway, table_proxy_spy):
+        table_proxy_spy.delete_parts.side_effect = RuntimeError
+        try:
+            gateway.delete("identifier0")
+        except RuntimeError:
+            pass
+        table_proxy_spy.delete_master.assert_not_called()
 
 
 class TestSetFlag:
