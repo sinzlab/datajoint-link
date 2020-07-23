@@ -95,10 +95,22 @@ class TestPrimaryKeysProperty:
         assert primary_keys == "primary_keys"
 
 
+@pytest.fixture
+def execute_method(request, table_proxy):
+    method_arg_fixtures = getattr(request.cls, "method_arg_fixtures", [])
+    method_args = [request.getfixturevalue(fixture) for fixture in method_arg_fixtures]
+    return getattr(table_proxy, request.cls.method_name)(*method_args)
+
+
+@pytest.fixture
+def method_return_value(execute_method):
+    return execute_method
+
+
+@pytest.mark.usefixtures("execute_method")
 class TestGetFlags:
-    @pytest.fixture(autouse=True)
-    def flags(self, table_proxy, primary_key):
-        return table_proxy.get_flags(primary_key)
+    method_name = "get_flags"
+    method_arg_fixtures = ["primary_key"]
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
@@ -113,14 +125,14 @@ class TestGetFlags:
         for name in flag_table_names:
             getattr(table_spy, name).__and__.return_value.__contains__.assert_called_once_with(primary_key)
 
-    def test_if_returned_flags_are_correct(self, is_present_in_flag_table, flags):
-        assert flags == is_present_in_flag_table
+    def test_if_returned_flags_are_correct(self, is_present_in_flag_table, method_return_value):
+        assert method_return_value == is_present_in_flag_table
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestFetchMaster:
-    @pytest.fixture(autouse=True)
-    def master_entity(self, table_proxy, primary_key):
-        return table_proxy.fetch_master(primary_key)
+    method_name = "fetch_master"
+    method_arg_fixtures = ["primary_key"]
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
@@ -131,14 +143,14 @@ class TestFetchMaster:
     def test_if_master_entity_is_fetched(self, table_spy, download_path):
         table_spy.__and__.return_value.fetch1.assert_called_once_with(download_path=download_path)
 
-    def test_if_master_entity_is_returned(self, master_entity):
-        assert master_entity == "master_entity"
+    def test_if_master_entity_is_returned(self, method_return_value):
+        assert method_return_value == "master_entity"
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestFetchParts:
-    @pytest.fixture(autouse=True)
-    def returned_part_table_entities(self, table_proxy, primary_key):
-        return table_proxy.fetch_parts(primary_key)
+    method_name = "fetch_parts"
+    method_arg_fixtures = ["primary_key"]
 
     def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
         for part in part_table_spies.values():
@@ -148,18 +160,18 @@ class TestFetchParts:
         for part in part_table_spies.values():
             part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
 
-    def test_if_part_entities_are_returned(self, returned_part_table_entities, part_table_entities):
-        assert returned_part_table_entities == part_table_entities
+    def test_if_part_entities_are_returned(self, method_return_value, part_table_entities):
+        assert method_return_value == part_table_entities
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestInsertMaster:
+    method_name = "insert_master"
+    method_arg_fixtures = ["master_entity"]
+
     @pytest.fixture
     def master_entity(self):
         return "master_entity"
-
-    @pytest.fixture(autouse=True)
-    def insert_master(self, table_proxy, master_entity):
-        table_proxy.insert_master(master_entity)
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
@@ -168,20 +180,20 @@ class TestInsertMaster:
         table_spy.insert1.assert_called_once_with(master_entity)
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestInsertParts:
-    @pytest.fixture(autouse=True)
-    def insert_parts(self, table_proxy, part_table_entities):
-        table_proxy.insert_parts(part_table_entities)
+    method_name = "insert_parts"
+    method_arg_fixtures = ["part_table_entities"]
 
     def test_if_part_entities_are_inserted(self, part_table_spies, part_table_entities):
         for name, part in part_table_spies.items():
             part.insert.assert_called_once_with(part_table_entities[name])
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestDeleteMaster:
-    @pytest.fixture(autouse=True)
-    def delete_master(self, table_proxy, primary_key):
-        table_proxy.delete_master(primary_key)
+    method_name = "delete_master"
+    method_arg_fixtures = ["primary_key"]
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
@@ -193,10 +205,10 @@ class TestDeleteMaster:
         table_spy.__and__.return_value.delete_quick.assert_called_once_with()
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestDeleteParts:
-    @pytest.fixture(autouse=True)
-    def delete_parts(self, table_proxy, primary_key):
-        table_proxy.delete_parts(primary_key)
+    method_name = "delete_parts"
+    method_arg_fixtures = ["primary_key"]
 
     def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
         for part in part_table_spies.values():
@@ -222,10 +234,10 @@ def test_if_flag_is_enabled(table_proxy, part_table_spy, primary_key, part_table
     part_table_spy.insert1.assert_called_once_with(primary_key)
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestDisableFlag:
-    @pytest.fixture(autouse=True)
-    def enable_flag(self, table_proxy, primary_key, part_table_name):
-        table_proxy.disable_flag(primary_key, part_table_name)
+    method_name = "disable_flag"
+    method_arg_fixtures = ["primary_key", "part_table_name"]
 
     def test_if_part_table_is_restricted(self, part_table_spy, primary_key):
         part_table_spy.__and__.assert_called_once_with(primary_key)
@@ -234,10 +246,9 @@ class TestDisableFlag:
         part_table_spy.__and__.return_value.delete_quick.assert_called_once_with()
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestStartTransaction:
-    @pytest.fixture(autouse=True)
-    def start_transaction(self, table_proxy):
-        table_proxy.start_transaction()
+    method_name = "start_transaction"
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
@@ -246,10 +257,9 @@ class TestStartTransaction:
         table_spy.connection.start_transaction.assert_called_once_with()
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestCommitTransaction:
-    @pytest.fixture(autouse=True)
-    def commit_transaction(self, table_proxy):
-        table_proxy.commit_transaction()
+    method_name = "commit_transaction"
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
@@ -258,10 +268,9 @@ class TestCommitTransaction:
         table_spy.connection.commit_transaction.assert_called_once_with()
 
 
+@pytest.mark.usefixtures("execute_method")
 class TestCancelTransaction:
-    @pytest.fixture(autouse=True)
-    def cancel_transaction(self, table_proxy):
-        table_proxy.cancel_transaction()
+    method_name = "cancel_transaction"
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
