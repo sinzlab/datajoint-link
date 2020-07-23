@@ -82,9 +82,6 @@ class TestPrimaryKeysProperty:
     def primary_keys(self, table_proxy):
         return table_proxy.primary_keys
 
-    def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
-        table_factory_spy.assert_called_once_with()
-
     def test_if_table_is_projected_to_primary_keys(self, table_spy):
         table_spy.proj.assert_called_once_with()
 
@@ -247,36 +244,19 @@ class TestDisableFlag:
 
 
 @pytest.mark.usefixtures("execute_method")
-class TestStartTransaction:
-    method_name = "start_transaction"
+class TestTransaction:
+    method_name = None
+
+    @pytest.fixture(params=["start_transaction", "commit_transaction", "cancel_transaction"], autouse=True)
+    def method_name(self, request):
+        request.cls.method_name = request.param
+        return request.param
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
-    def test_if_transaction_is_started(self, table_spy):
-        table_spy.connection.start_transaction.assert_called_once_with()
-
-
-@pytest.mark.usefixtures("execute_method")
-class TestCommitTransaction:
-    method_name = "commit_transaction"
-
-    def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
-        table_factory_spy.assert_called_once_with()
-
-    def test_if_transaction_is_committed(self, table_spy):
-        table_spy.connection.commit_transaction.assert_called_once_with()
-
-
-@pytest.mark.usefixtures("execute_method")
-class TestCancelTransaction:
-    method_name = "cancel_transaction"
-
-    def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
-        table_factory_spy.assert_called_once_with()
-
-    def test_if_transaction_is_cancelled(self, table_spy):
-        table_spy.connection.cancel_transaction.assert_called_once_with()
+    def test_if_transaction_related_method_is_executed_in_connection(self, table_spy, method_name):
+        getattr(table_spy.connection, method_name).assert_called_once_with()
 
 
 def test_repr(table_proxy):
