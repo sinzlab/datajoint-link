@@ -2,13 +2,13 @@ import hashlib
 import json
 
 from ...types import PrimaryKey
-from .proxy import AbstractTableProxy
+from .abstract_facade import AbstractTableFacade
 from ...entities.representation import represent
 
 
 class IdentificationTranslator:
-    def __init__(self, table_proxy: AbstractTableProxy) -> None:
-        self.table_proxy = table_proxy
+    def __init__(self, table_facade: AbstractTableFacade) -> None:
+        self.table_facade = table_facade
 
     @staticmethod
     def to_identifier(primary_key: PrimaryKey) -> str:
@@ -17,8 +17,8 @@ class IdentificationTranslator:
 
     def to_primary_key(self, identifier: str) -> PrimaryKey:
         """Translates the provided identifier to its corresponding primary key."""
-        mapping = {self.to_identifier(primary_key): primary_key for primary_key in self.table_proxy.primary_keys}
+        mapping = {self.to_identifier(primary_key): primary_key for primary_key in self.table_facade.primary_keys}
         return mapping[identifier]
 
     def __repr__(self) -> str:
-        return represent(self, ["table_proxy"])
+        return represent(self, ["table_facade"])

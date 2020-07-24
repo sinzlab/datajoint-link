@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.adapters.datajoint import AbstractTableProxyLink, DataJointGatewayLink, initialize
+from link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.adapters.datajoint.identification import IdentificationTranslator
 
@@ -44,12 +44,12 @@ class TestDataJointGatewayLink:
 
 class TestInitialize:
     @pytest.fixture
-    def table_proxy_link_stub(self,):
-        return MagicMock(name="table_proxy_link_stub", spec=AbstractTableProxyLink)
+    def table_facade_link_stub(self,):
+        return MagicMock(name="table_facade_link_stub", spec=AbstractTableFacadeLink)
 
     @pytest.fixture
-    def gateway_link(self, table_proxy_link_stub):
-        return initialize(table_proxy_link_stub)
+    def gateway_link(self, table_facade_link_stub):
+        return initialize(table_facade_link_stub)
 
     def test_if_gateway_link_is_returned(self, gateway_link):
         assert isinstance(gateway_link, DataJointGatewayLink)
@@ -57,11 +57,11 @@ class TestInitialize:
     def test_if_gateway_in_link_is_datajoint_gateway(self, kind, gateway_link):
         assert isinstance(getattr(gateway_link, kind), DataJointGateway)
 
-    def test_if_gateways_are_associated_with_correct_table_proxy(self, kind, gateway_link, table_proxy_link_stub):
-        assert getattr(gateway_link, kind).table_proxy is getattr(table_proxy_link_stub, kind)
+    def test_if_gateways_are_associated_with_correct_table_facade(self, kind, gateway_link, table_facade_link_stub):
+        assert getattr(gateway_link, kind).table_facade is getattr(table_facade_link_stub, kind)
 
     def test_if_translators_of_gateways_are_identification_translators(self, kind, gateway_link):
         assert isinstance(getattr(gateway_link, kind).translator, IdentificationTranslator)
 
-    def test_if_translators_are_associated_with_correct_table_proxy(self, kind, gateway_link, table_proxy_link_stub):
-        assert getattr(gateway_link, kind).translator.table_proxy is getattr(table_proxy_link_stub, kind)
+    def test_if_translators_are_associated_with_correct_table_facade(self, kind, gateway_link, table_facade_link_stub):
+        assert getattr(gateway_link, kind).translator.table_facade is getattr(table_facade_link_stub, kind)
