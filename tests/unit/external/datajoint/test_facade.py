@@ -30,6 +30,7 @@ def flag_table_spies(flag_table_names, is_present_in_flag_table):
 def table_spy(flag_table_spies):
     table_spy = MagicMock(name="table_spy", flag_table_names=flag_table_names)
     table_spy.proj.return_value.fetch.return_value = "primary_keys"
+    table_spy.proj.return_value.__and__.return_value.fetch.return_value = "primary_keys_in_restriction"
     table_spy.__and__.return_value.fetch1.return_value = "master_entity"
     for name, flag_table_spy in flag_table_spies.items():
         setattr(table_spy, name, flag_table_spy)
@@ -114,6 +115,31 @@ def execute_method(request, table_facade):
 @pytest.fixture
 def method_return_value(execute_method):
     return execute_method
+
+
+@pytest.mark.usefixtures("execute_method")
+class TestGetPrimaryKeysInRestriction:
+    method_name = "get_primary_keys_in_restriction"
+    method_arg_fixtures = ["restriction"]
+
+    @pytest.fixture
+    def restriction(self):
+        return "restriction"
+
+    def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
+        table_factory_spy.assert_called_once_with()
+
+    def test_if_table_is_projected_to_primary_keys(self, table_spy):
+        table_spy.proj.assert_called_once_with()
+
+    def test_if_projected_table_is_restricted(self, table_spy, restriction):
+        table_spy.proj.return_value.__and__.assert_called_once_with(restriction)
+
+    def test_if_primary_keys_are_fetched_from_restricted_table(self, table_spy):
+        table_spy.proj.return_value.__and__.return_value.fetch.assert_called_once_with(as_dict=True)
+
+    def test_if_primary_keys_are_returned(self, method_return_value):
+        assert method_return_value == "primary_keys_in_restriction"
 
 
 @pytest.mark.usefixtures("execute_method")

@@ -15,6 +15,10 @@ class TableFacade(AbstractTableFacade):
         """Returns all primary keys present in the table."""
         return self.table_factory().proj().fetch(as_dict=True)
 
+    def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
+        """Gets the primary keys of all entities in the restriction."""
+        return (self.table_factory().proj() & restriction).fetch(as_dict=True)
+
     def get_flags(self, primary_key: PrimaryKey) -> Dict[str, bool]:
         """Gets the flags of the entity identified by the provided primary key."""
         flags = dict()
