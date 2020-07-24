@@ -17,6 +17,11 @@ class DataJointGateway(AbstractGateway):
         """Returns the identifiers of all entities in the table."""
         return [self.translator.to_identifier(primary_key) for primary_key in self.table_facade.primary_keys]
 
+    def get_identifiers_in_restriction(self, restriction) -> List[str]:
+        """Returns the identifiers of all entities in the provided restriction."""
+        primary_keys = self.table_facade.get_primary_keys_in_restriction(restriction)
+        return [self.translator.to_identifier(primary_key) for primary_key in primary_keys]
+
     def get_flags(self, identifier: str) -> Dict[str, bool]:
         """Gets the names and values of all flags that are set on the entity identified by the provided identifier."""
         flags = self.table_facade.get_flags(self.translator.to_primary_key(identifier))
