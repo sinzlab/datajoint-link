@@ -30,7 +30,7 @@ class TableProxy(AbstractTableProxy):
     def fetch_parts(self, primary_key: PrimaryKey) -> Dict[str, Any]:
         """Fetches the entities identified by the provided primary key from the part tables."""
         part_entities = dict()
-        for part_name, part in self.table_factory.parts.items():
+        for part_name, part in self.table_factory.part_tables.items():
             part_entities[part_name] = (part & primary_key).fetch(as_dict=True, download_path=self.download_path)
         return part_entities
 
@@ -41,7 +41,7 @@ class TableProxy(AbstractTableProxy):
     def insert_parts(self, part_entities: Dict[str, Any]) -> None:
         """Inserts the part entities into the part tables."""
         for part_name, part_entity in part_entities.items():
-            self.table_factory.parts[part_name].insert(part_entity)
+            self.table_factory.part_tables[part_name].insert(part_entity)
 
     def delete_master(self, primary_key: PrimaryKey) -> None:
         """Deletes the entity identified by the provided primary key from the master table."""
@@ -49,16 +49,16 @@ class TableProxy(AbstractTableProxy):
 
     def delete_parts(self, primary_key: PrimaryKey) -> None:
         """Deletes the part entities identified by the provided primary key from the part tables."""
-        for part in self.table_factory.parts.values():
+        for part in self.table_factory.part_tables.values():
             (part & primary_key).delete_quick()
 
     def enable_flag(self, primary_key: PrimaryKey, flag_table: str) -> None:
         """Enables the provided flag on the entity identified by the provided primary key."""
-        self.table_factory.parts[flag_table].insert1(primary_key)
+        self.table_factory.part_tables[flag_table].insert1(primary_key)
 
     def disable_flag(self, primary_key: PrimaryKey, flag_table: str) -> None:
         """Disables the provided flag on the entity identified by the provided primary_key."""
-        (self.table_factory.parts[flag_table] & primary_key).delete_quick()
+        (self.table_factory.part_tables[flag_table] & primary_key).delete_quick()
 
     def start_transaction(self) -> None:
         """Starts a transaction."""

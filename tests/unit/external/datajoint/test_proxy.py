@@ -49,7 +49,7 @@ def part_table_spies(part_table_entities):
 @pytest.fixture
 def table_factory_spy(table_spy, part_table_spies):
     name = "table_factory_spy"
-    table_factory_spy = MagicMock(name=name, return_value=table_spy, parts=part_table_spies)
+    table_factory_spy = MagicMock(name=name, return_value=table_spy, part_tables=part_table_spies)
     table_factory_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return table_factory_spy
 
