@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from .contents import Contents
 from .flag_manager import FlagManagerFactory
 from .transaction_manager import TransactionManager
-from .gateway import AbstractGateway
+from .abstract_gateway import AbstractGateway
 
 
 @dataclass

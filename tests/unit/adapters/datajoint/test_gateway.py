@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from link.entities.gateway import AbstractGateway
+from link.entities.abstract_gateway import AbstractGateway
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator

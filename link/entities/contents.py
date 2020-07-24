@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, Iterator
 from .representation import represent
 
 if TYPE_CHECKING:
-    from .gateway import AbstractGateway
+    from .abstract_gateway import AbstractGateway
     from .repository import Entity
 
 

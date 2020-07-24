@@ -3,7 +3,7 @@ from itertools import tee
 
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
-from ...entities.gateway import AbstractGateway
+from ...entities.abstract_gateway import AbstractGateway
 from ...entities.representation import represent
 
 
