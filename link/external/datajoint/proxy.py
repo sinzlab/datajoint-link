@@ -17,10 +17,9 @@ class TableProxy(AbstractTableProxy):
 
     def get_flags(self, primary_key: PrimaryKey) -> Dict[str, bool]:
         """Gets the flags of the entity identified by the provided primary key."""
-        table = self.table_factory()
         flags = dict()
-        for flag_table_name in table.flag_table_names:
-            flags[flag_table_name] = primary_key in (getattr(table, flag_table_name) & primary_key)
+        for flag_table_name, flag_table in self.table_factory.flag_tables.items():
+            flags[flag_table_name] = primary_key in (flag_table & primary_key)
         return flags
 
     def fetch_master(self, primary_key: PrimaryKey) -> Dict[str, Any]:
@@ -54,11 +53,11 @@ class TableProxy(AbstractTableProxy):
 
     def enable_flag(self, primary_key: PrimaryKey, flag_table: str) -> None:
         """Enables the provided flag on the entity identified by the provided primary key."""
-        self.table_factory.part_tables[flag_table].insert1(primary_key)
+        self.table_factory.flag_tables[flag_table].insert1(primary_key)
 
     def disable_flag(self, primary_key: PrimaryKey, flag_table: str) -> None:
         """Disables the provided flag on the entity identified by the provided primary_key."""
-        (self.table_factory.part_tables[flag_table] & primary_key).delete_quick()
+        (self.table_factory.flag_tables[flag_table] & primary_key).delete_quick()
 
     def start_transaction(self) -> None:
         """Starts a transaction."""

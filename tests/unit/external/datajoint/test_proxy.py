@@ -17,12 +17,22 @@ def is_present_in_flag_table(flag_table_names):
 
 
 @pytest.fixture
-def table_spy(flag_table_names, is_present_in_flag_table):
+def flag_table_spies(flag_table_names, is_present_in_flag_table):
+    flag_table_spies = dict()
+    for name in flag_table_names:
+        spy = MagicMock(name=name + "Spy", spec=Part)
+        spy.__and__.return_value.__contains__.return_value = is_present_in_flag_table[name]
+        flag_table_spies[name] = spy
+    return flag_table_spies
+
+
+@pytest.fixture
+def table_spy(flag_table_spies):
     table_spy = MagicMock(name="table_spy", flag_table_names=flag_table_names)
     table_spy.proj.return_value.fetch.return_value = "primary_keys"
     table_spy.__and__.return_value.fetch1.return_value = "master_entity"
-    for flag_table_name, is_present in is_present_in_flag_table.items():
-        getattr(table_spy, flag_table_name).__and__.return_value.__contains__.return_value = is_present
+    for name, flag_table_spy in flag_table_spies.items():
+        setattr(table_spy, name, flag_table_spy)
     return table_spy
 
 
@@ -47,9 +57,11 @@ def part_table_spies(part_table_entities):
 
 
 @pytest.fixture
-def table_factory_spy(table_spy, part_table_spies):
+def table_factory_spy(table_spy, part_table_spies, flag_table_spies):
     name = "table_factory_spy"
-    table_factory_spy = MagicMock(name=name, return_value=table_spy, part_tables=part_table_spies)
+    table_factory_spy = MagicMock(
+        name=name, return_value=table_spy, part_tables=part_table_spies, flag_tables=flag_table_spies
+    )
     table_factory_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return table_factory_spy
 
@@ -109,18 +121,13 @@ class TestGetFlags:
     method_name = "get_flags"
     method_arg_fixtures = ["primary_key"]
 
-    def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
-        table_factory_spy.assert_called_once_with()
+    def test_if_flag_tables_are_restricted(self, flag_table_spies, primary_key):
+        for flag_table in flag_table_spies.values():
+            flag_table.__and__.assert_called_once_with(primary_key)
 
-    def test_if_flag_tables_are_restricted(self, table_spy, primary_key, flag_table_names):
-        for name in flag_table_names:
-            getattr(table_spy, name).__and__.assert_called_once_with(primary_key)
-
-    def test_if_presence_of_primary_key_in_restricted_flag_tables_is_checked(
-        self, table_spy, primary_key, flag_table_names
-    ):
-        for name in flag_table_names:
-            getattr(table_spy, name).__and__.return_value.__contains__.assert_called_once_with(primary_key)
+    def test_if_presence_of_primary_key_in_restricted_flag_tables_is_checked(self, flag_table_spies, primary_key):
+        for flag_table in flag_table_spies.values():
+            flag_table.__and__.return_value.__contains__.assert_called_once_with(primary_key)
 
     def test_if_returned_flags_are_correct(self, is_present_in_flag_table, method_return_value):
         assert method_return_value == is_present_in_flag_table
@@ -217,30 +224,30 @@ class TestDeleteParts:
 
 
 @pytest.fixture
-def part_table_name(part_table_names):
-    return part_table_names[0]
+def flag_table_name(flag_table_names):
+    return flag_table_names[0]
 
 
 @pytest.fixture
-def part_table_spy(part_table_spies, part_table_name):
-    return part_table_spies[part_table_name]
+def flag_table_spy(flag_table_spies, flag_table_name):
+    return flag_table_spies[flag_table_name]
 
 
-def test_if_flag_is_enabled(table_proxy, part_table_spy, primary_key, part_table_name):
-    table_proxy.enable_flag(primary_key, part_table_name)
-    part_table_spy.insert1.assert_called_once_with(primary_key)
+def test_if_flag_is_enabled(table_proxy, primary_key, flag_table_name, flag_table_spy):
+    table_proxy.enable_flag(primary_key, flag_table_name)
+    flag_table_spy.insert1.assert_called_once_with(primary_key)
 
 
 @pytest.mark.usefixtures("execute_method")
 class TestDisableFlag:
     method_name = "disable_flag"
-    method_arg_fixtures = ["primary_key", "part_table_name"]
+    method_arg_fixtures = ["primary_key", "flag_table_name"]
 
-    def test_if_part_table_is_restricted(self, part_table_spy, primary_key):
-        part_table_spy.__and__.assert_called_once_with(primary_key)
+    def test_if_flag_table_is_restricted(self, flag_table_spy, primary_key):
+        flag_table_spy.__and__.assert_called_once_with(primary_key)
 
-    def test_if_flag_is_deleted(self, part_table_spy):
-        part_table_spy.__and__.return_value.delete_quick.assert_called_once_with()
+    def test_if_flag_is_deleted(self, flag_table_spy):
+        flag_table_spy.__and__.return_value.delete_quick.assert_called_once_with()
 
 
 @pytest.mark.usefixtures("execute_method")
