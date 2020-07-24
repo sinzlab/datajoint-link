@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from ...types import PrimaryKey
 
 
-class AbstractTableProxy(ABC):
+class AbstractTableFacade(ABC):
     @property
     @abstractmethod
     def primary_keys(self) -> List[PrimaryKey]:

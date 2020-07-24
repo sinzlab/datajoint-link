@@ -5,7 +5,7 @@ from typing import Dict, Callable, Any
 from .base import UseCase
 from .pull import Pull
 from ..entities.repository import Repository, RepositoryFactory
-from ..entities.gateway import AbstractGateway
+from ..entities.abstract_gateway import AbstractGateway
 from ..entities.representation import represent
 
 

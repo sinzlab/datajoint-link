@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.adapters.datajoint.proxy import AbstractTableProxy
+from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
 
 
@@ -12,11 +12,11 @@ def primary_keys():
 
 
 @pytest.fixture
-def table_proxy_stub(primary_keys):
-    name = "table_proxy_stub"
-    table_proxy_stub = MagicMock(name=name, spec=AbstractTableProxy, primary_keys=primary_keys)
-    table_proxy_stub.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return table_proxy_stub
+def table_facade_stub(primary_keys):
+    name = "table_facade_stub"
+    table_facade_stub = MagicMock(name=name, spec=AbstractTableFacade, primary_keys=primary_keys)
+    table_facade_stub.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+    return table_facade_stub
 
 
 @pytest.fixture
@@ -30,12 +30,12 @@ def identifier():
 
 
 @pytest.fixture
-def translator(table_proxy_stub):
-    return IdentificationTranslator(table_proxy_stub)
+def translator(table_facade_stub):
+    return IdentificationTranslator(table_facade_stub)
 
 
-def test_if_table_proxy_is_stored_as_instance_attribute(translator, table_proxy_stub):
-    assert translator.table_proxy is table_proxy_stub
+def test_if_table_facade_is_stored_as_instance_attribute(translator, table_facade_stub):
+    assert translator.table_facade is table_facade_stub
 
 
 def test_if_correct_identifier_is_returned(translator, primary_key, identifier):
@@ -52,4 +52,4 @@ def test_if_correct_primary_key_is_returned(translator, primary_key, identifier)
 
 
 def test_repr(translator):
-    assert repr(translator) == "IdentificationTranslator(table_proxy=table_proxy_stub)"
+    assert repr(translator) == "IdentificationTranslator(table_facade=table_facade_stub)"

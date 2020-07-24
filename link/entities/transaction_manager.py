@@ -6,7 +6,7 @@ from .representation import represent
 
 if TYPE_CHECKING:
     from .repository import Entity
-    from .gateway import AbstractGateway
+    from .abstract_gateway import AbstractGateway
 
 
 class TransactionManager:

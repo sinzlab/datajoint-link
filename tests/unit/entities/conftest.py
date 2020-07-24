@@ -4,7 +4,7 @@ from typing import Any, List, Dict
 import pytest
 
 from link.entities.repository import Entity
-from link.entities.gateway import AbstractGateway
+from link.entities.abstract_gateway import AbstractGateway
 
 
 @pytest.fixture

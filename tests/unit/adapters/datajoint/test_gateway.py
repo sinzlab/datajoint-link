@@ -2,9 +2,9 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from link.entities.gateway import AbstractGateway
+from link.entities.abstract_gateway import AbstractGateway
 from link.adapters.datajoint.gateway import DataJointGateway
-from link.adapters.datajoint.proxy import AbstractTableProxy
+from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
 
 
@@ -23,14 +23,14 @@ def flags():
 
 
 @pytest.fixture
-def table_proxy_spy(primary_keys, flags):
-    name = "table_proxy_spy"
-    table_proxy_spy = MagicMock(name=name, spec=AbstractTableProxy, primary_keys=primary_keys)
-    table_proxy_spy.get_flags.return_value = flags
-    table_proxy_spy.fetch_master.return_value = "master_entity"
-    table_proxy_spy.fetch_parts.return_value = "part_entities"
-    table_proxy_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return table_proxy_spy
+def table_facade_spy(primary_keys, flags):
+    name = "table_facade_spy"
+    table_facade_spy = MagicMock(name=name, spec=AbstractTableFacade, primary_keys=primary_keys)
+    table_facade_spy.get_flags.return_value = flags
+    table_facade_spy.fetch_master.return_value = "master_entity"
+    table_facade_spy.fetch_parts.return_value = "part_entities"
+    table_facade_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+    return table_facade_spy
 
 
 @pytest.fixture
@@ -49,13 +49,13 @@ def translator_spy(identifiers):
 
 
 @pytest.fixture
-def gateway(table_proxy_spy, translator_spy):
-    return DataJointGateway(table_proxy_spy, translator_spy)
+def gateway(table_facade_spy, translator_spy):
+    return DataJointGateway(table_facade_spy, translator_spy)
 
 
 class TestInit:
-    def test_if_table_proxy_is_stored_as_instance_attribute(self, gateway, table_proxy_spy):
-        assert gateway.table_proxy is table_proxy_spy
+    def test_if_table_facade_is_stored_as_instance_attribute(self, gateway, table_facade_spy):
+        assert gateway.table_facade is table_facade_spy
 
     def test_if_translator_is_stored_as_instance_attribute(self, gateway, translator_spy):
         assert gateway.translator is translator_spy
@@ -75,9 +75,9 @@ class TestGetFlags:
         gateway.get_flags("identifier0")
         translator_spy.to_primary_key.assert_called_once_with("identifier0")
 
-    def test_if_call_to_table_proxy_is_correct(self, gateway, table_proxy_spy):
+    def test_if_call_to_table_facade_is_correct(self, gateway, table_facade_spy):
         gateway.get_flags("identifier0")
-        table_proxy_spy.get_flags.assert_called_once_with("primary_key0")
+        table_facade_spy.get_flags.assert_called_once_with("primary_key0")
 
     def test_if_correct_flags_are_returned(self, gateway):
         flags = dict(super_long_and_complex_flag=True, another_even_longer_and_more_complex_flag=False)
@@ -89,13 +89,13 @@ class TestFetch:
         gateway.fetch("identifier0")
         translator_spy.to_primary_key.assert_called_once_with("identifier0")
 
-    def test_if_call_to_fetch_master_method_of_table_proxy_is_correct(self, gateway, table_proxy_spy):
+    def test_if_call_to_fetch_master_method_of_table_facade_is_correct(self, gateway, table_facade_spy):
         gateway.fetch("identifier0")
-        table_proxy_spy.fetch_master.assert_called_once_with("primary_key0")
+        table_facade_spy.fetch_master.assert_called_once_with("primary_key0")
 
-    def test_if_call_to_fetch_parts_method_of_table_proxy_is_correct(self, gateway, table_proxy_spy):
+    def test_if_call_to_fetch_parts_method_of_table_facade_is_correct(self, gateway, table_facade_spy):
         gateway.fetch("identifier0")
-        table_proxy_spy.fetch_parts.assert_called_once_with("primary_key0")
+        table_facade_spy.fetch_parts.assert_called_once_with("primary_key0")
 
     def test_if_returned_data_is_correct(self, gateway):
         assert gateway.fetch("identifier0") == dict(master="master_entity", parts="part_entities")
@@ -107,21 +107,21 @@ def data():
 
 
 class TestInsert:
-    def test_if_master_entity_is_inserted_into_proxy(self, gateway, table_proxy_spy, data):
+    def test_if_master_entity_is_inserted_into_proxy(self, gateway, table_facade_spy, data):
         gateway.insert(data)
-        table_proxy_spy.insert_master.assert_called_once_with(data["master"])
+        table_facade_spy.insert_master.assert_called_once_with(data["master"])
 
-    def test_if_part_entities_are_inserted_into_proxy(self, gateway, table_proxy_spy, data):
+    def test_if_part_entities_are_inserted_into_proxy(self, gateway, table_facade_spy, data):
         gateway.insert(data)
-        table_proxy_spy.insert_parts.assert_called_once_with(data["parts"])
+        table_facade_spy.insert_parts.assert_called_once_with(data["parts"])
 
-    def test_if_master_entity_is_inserted_before_part_entities_are(self, gateway, table_proxy_spy, data):
-        table_proxy_spy.insert_master.side_effect = RuntimeError
+    def test_if_master_entity_is_inserted_before_part_entities_are(self, gateway, table_facade_spy, data):
+        table_facade_spy.insert_master.side_effect = RuntimeError
         try:
             gateway.insert(data)
         except RuntimeError:
             pass
-        table_proxy_spy.insert_parts.assert_not_called()
+        table_facade_spy.insert_parts.assert_not_called()
 
 
 class TestDelete:
@@ -129,21 +129,21 @@ class TestDelete:
         gateway.delete("identifier0")
         translator_spy.to_primary_key.assert_called_once_with("identifier0")
 
-    def test_if_call_to_delete_parts_method_of_table_proxy_is_correct(self, gateway, table_proxy_spy):
+    def test_if_call_to_delete_parts_method_of_table_facade_is_correct(self, gateway, table_facade_spy):
         gateway.delete("identifier0")
-        table_proxy_spy.delete_parts.assert_called_once_with("primary_key0")
+        table_facade_spy.delete_parts.assert_called_once_with("primary_key0")
 
-    def test_if_call_to_delete_master_method_of_table_proxy_is_correct(self, gateway, table_proxy_spy):
+    def test_if_call_to_delete_master_method_of_table_facade_is_correct(self, gateway, table_facade_spy):
         gateway.delete("identifier0")
-        table_proxy_spy.delete_master.assert_called_once_with("primary_key0")
+        table_facade_spy.delete_master.assert_called_once_with("primary_key0")
 
-    def test_if_call_to_delete_parts_method_is_made_first(self, gateway, table_proxy_spy):
-        table_proxy_spy.delete_parts.side_effect = RuntimeError
+    def test_if_call_to_delete_parts_method_is_made_first(self, gateway, table_facade_spy):
+        table_facade_spy.delete_parts.side_effect = RuntimeError
         try:
             gateway.delete("identifier0")
         except RuntimeError:
             pass
-        table_proxy_spy.delete_master.assert_not_called()
+        table_facade_spy.delete_master.assert_not_called()
 
 
 class TestSetFlag:
@@ -169,24 +169,24 @@ class TestSetFlag:
     def test_if_call_to_translator_is_correct(self, translator_spy):
         translator_spy.to_primary_key.assert_called_once_with("identifier0")
 
-    def test_if_call_to_table_proxy_is_correct(self, table_proxy_spy, called_method):
-        getattr(table_proxy_spy, called_method).assert_called_once_with("primary_key0", "MyAwesomeFlag")
+    def test_if_call_to_table_facade_is_correct(self, table_facade_spy, called_method):
+        getattr(table_facade_spy, called_method).assert_called_once_with("primary_key0", "MyAwesomeFlag")
 
 
-def test_if_transaction_is_started_in_proxy(gateway, table_proxy_spy):
+def test_if_transaction_is_started_in_proxy(gateway, table_facade_spy):
     gateway.start_transaction()
-    table_proxy_spy.start_transaction.assert_called_once_with()
+    table_facade_spy.start_transaction.assert_called_once_with()
 
 
-def test_if_transaction_is_committed_in_proxy(gateway, table_proxy_spy):
+def test_if_transaction_is_committed_in_proxy(gateway, table_facade_spy):
     gateway.commit_transaction()
-    table_proxy_spy.commit_transaction.assert_called_once_with()
+    table_facade_spy.commit_transaction.assert_called_once_with()
 
 
-def test_if_transaction_is_cancelled_in_proxy(gateway, table_proxy_spy):
+def test_if_transaction_is_cancelled_in_proxy(gateway, table_facade_spy):
     gateway.cancel_transaction()
-    table_proxy_spy.cancel_transaction.assert_called_once_with()
+    table_facade_spy.cancel_transaction.assert_called_once_with()
 
 
 def test_repr(gateway):
-    assert repr(gateway) == "DataJointGateway(table_proxy=table_proxy_spy, translator=translator_spy)"
+    assert repr(gateway) == "DataJointGateway(table_facade=table_facade_spy, translator=translator_spy)"
