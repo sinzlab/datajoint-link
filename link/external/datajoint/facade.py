@@ -1,11 +1,11 @@
 from typing import List, Dict, Any
 
-from ...adapters.datajoint.proxy import AbstractTableProxy
+from ...adapters.datajoint.abstract_facade import AbstractTableFacade
 from ...entities.representation import represent
 from ...types import PrimaryKey
 
 
-class TableProxy(AbstractTableProxy):
+class TableFacade(AbstractTableFacade):
     def __init__(self, table_factory, download_path: str) -> None:
         self.table_factory = table_factory
         self.download_path = download_path

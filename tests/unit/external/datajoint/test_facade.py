@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from datajoint import Part
 
-from link.external.datajoint.proxy import TableProxy
+from link.external.datajoint.facade import TableFacade
 
 
 @pytest.fixture
@@ -72,8 +72,8 @@ def download_path():
 
 
 @pytest.fixture
-def table_proxy(table_factory_spy, download_path):
-    return TableProxy(table_factory_spy, download_path)
+def table_facade(table_factory_spy, download_path):
+    return TableFacade(table_factory_spy, download_path)
 
 
 @pytest.fixture
@@ -81,18 +81,18 @@ def primary_key():
     return "primary_key"
 
 
-def test_if_table_factory_is_stored_as_instance_attribute(table_proxy, table_factory_spy):
-    assert table_proxy.table_factory is table_factory_spy
+def test_if_table_factory_is_stored_as_instance_attribute(table_facade, table_factory_spy):
+    assert table_facade.table_factory is table_factory_spy
 
 
-def test_if_download_path_is_stored_as_instance_attribute(table_proxy, download_path):
-    assert table_proxy.download_path == download_path
+def test_if_download_path_is_stored_as_instance_attribute(table_facade, download_path):
+    assert table_facade.download_path == download_path
 
 
 class TestPrimaryKeysProperty:
     @pytest.fixture(autouse=True)
-    def primary_keys(self, table_proxy):
-        return table_proxy.primary_keys
+    def primary_keys(self, table_facade):
+        return table_facade.primary_keys
 
     def test_if_table_is_projected_to_primary_keys(self, table_spy):
         table_spy.proj.assert_called_once_with()
@@ -105,10 +105,10 @@ class TestPrimaryKeysProperty:
 
 
 @pytest.fixture
-def execute_method(request, table_proxy):
+def execute_method(request, table_facade):
     method_arg_fixtures = getattr(request.cls, "method_arg_fixtures", [])
     method_args = [request.getfixturevalue(fixture) for fixture in method_arg_fixtures]
-    return getattr(table_proxy, request.cls.method_name)(*method_args)
+    return getattr(table_facade, request.cls.method_name)(*method_args)
 
 
 @pytest.fixture
@@ -233,8 +233,8 @@ def flag_table_spy(flag_table_spies, flag_table_name):
     return flag_table_spies[flag_table_name]
 
 
-def test_if_flag_is_enabled(table_proxy, primary_key, flag_table_name, flag_table_spy):
-    table_proxy.enable_flag(primary_key, flag_table_name)
+def test_if_flag_is_enabled(table_facade, primary_key, flag_table_name, flag_table_spy):
+    table_facade.enable_flag(primary_key, flag_table_name)
     flag_table_spy.insert1.assert_called_once_with(primary_key)
 
 
@@ -266,5 +266,5 @@ class TestTransaction:
         getattr(table_spy.connection, method_name).assert_called_once_with()
 
 
-def test_repr(table_proxy):
-    assert repr(table_proxy) == "TableProxy(table_factory=table_factory_spy, download_path='download_path')"
+def test_repr(table_facade):
+    assert repr(table_facade) == "TableFacade(table_factory=table_factory_spy, download_path='download_path')"
