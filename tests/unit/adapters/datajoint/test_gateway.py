@@ -26,6 +26,7 @@ def flags():
 def table_facade_spy(primary_keys, flags):
     name = "table_facade_spy"
     table_facade_spy = MagicMock(name=name, spec=AbstractTableFacade, primary_keys=primary_keys)
+    table_facade_spy.get_primary_keys_in_restriction.return_value = primary_keys
     table_facade_spy.get_flags.return_value = flags
     table_facade_spy.fetch_master.return_value = "master_entity"
     table_facade_spy.fetch_parts.return_value = "part_entities"
@@ -68,6 +69,25 @@ class TestIdentifiersProperty:
 
     def test_if_identifiers_are_returned(self, gateway, identifiers):
         assert gateway.identifiers == identifiers
+
+
+class TestGetIdentifiersInRestriction:
+    @pytest.fixture
+    def restriction(self):
+        return "restriction"
+
+    def test_if_call_to_get_primary_keys_in_restriction_method_in_table_facade_is_correct(
+        self, gateway, table_facade_spy, restriction
+    ):
+        gateway.get_identifiers_in_restriction(restriction)
+        table_facade_spy.get_primary_keys_in_restriction.assert_called_once_with(restriction)
+
+    def test_if_call_to_translator_is_correct(self, gateway, translator_spy, primary_keys, restriction):
+        gateway.get_identifiers_in_restriction(restriction)
+        assert translator_spy.to_identifier.call_args_list == [call(primary_key) for primary_key in primary_keys]
+
+    def test_if_identifiers_in_restriction_are_returned(self, gateway, identifiers, restriction):
+        assert gateway.get_identifiers_in_restriction(restriction) == identifiers
 
 
 class TestGetFlags:

@@ -11,6 +11,10 @@ class AbstractTableFacade(ABC):
         pass
 
     @abstractmethod
+    def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
+        pass
+
+    @abstractmethod
     def get_flags(self, primary_key: PrimaryKey) -> Dict[str, bool]:
         pass
 

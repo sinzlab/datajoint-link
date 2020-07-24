@@ -1,8 +1,12 @@
+from .gateway import DataJointGateway
+from ...use_cases.pull import Pull
+
+
 class LocalTableController:
     """Controls the execution of local-table-related use-cases."""
 
-    pull_use_case = None
-    source_gateway = None
+    pull_use_case: Pull = None
+    source_gateway: DataJointGateway = None
 
     def pull(self, restriction) -> None:
         """Pulls the requested entries from the source_repo_cls table into the local table."""
