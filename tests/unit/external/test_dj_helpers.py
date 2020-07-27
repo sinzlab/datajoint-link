@@ -69,13 +69,13 @@ class TestGetPartTableClasses:
         return {**part_table_classes, **other_attrs}
 
     @pytest.fixture
-    def table_cls(self, attrs):
+    def table(self, attrs):
         class Table:
             pass
 
         for name, attr in attrs.items():
             setattr(Table, name, attr)
-        return Table
+        return Table()
 
     @pytest.fixture
     def add_part_table_class(self, part_table_classes):
@@ -101,8 +101,8 @@ class TestGetPartTableClasses:
         other_attrs["NotAClass"] = "NotAClass"
 
     @pytest.fixture
-    def correct_part_tables_returned(self, table_cls, part_table_classes, ignored_parts):
-        return dj_helpers.get_part_table_classes(table_cls, ignored_parts=ignored_parts) == part_table_classes
+    def correct_part_tables_returned(self, table, part_table_classes, ignored_parts):
+        return dj_helpers.get_part_table_classes(table, ignored_parts=ignored_parts) == part_table_classes
 
     @pytest.fixture
     def add_lowercase_part_table_class(self, other_attrs):

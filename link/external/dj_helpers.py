@@ -14,13 +14,13 @@ def replace_stores(definition: str, stores: Dict[str, str]) -> str:
     return re.sub(pattern, replace_store, definition)
 
 
-def get_part_table_classes(table_cls: Type[Table], ignored_parts: Optional[List[str]] = None) -> Dict[str, Type[Part]]:
+def get_part_table_classes(table: Table, ignored_parts: Optional[List[str]] = None) -> Dict[str, Type[Part]]:
     if ignored_parts is None:
         ignored_parts = []
     part_table_classes = dict()
-    for name in dir(table_cls):
+    for name in dir(table):
         if name[0].isupper() and name not in ignored_parts:
-            attr = getattr(table_cls, name)
+            attr = getattr(table, name)
             if isclass(attr) and issubclass(attr, Part):
                 part_table_classes[name] = attr
     return part_table_classes
