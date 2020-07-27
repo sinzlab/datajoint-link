@@ -48,13 +48,13 @@ def table_cls_attrs():
 
 
 @pytest.fixture
-def flag_table_names():
+def flag_part_table_names():
     return ["SomeFlagTable", "AnotherFlagTable"]
 
 
 @pytest.fixture
-def spawn_table_config(fake_schema, table_name, table_cls_attrs, flag_table_names):
-    return SpawnTableConfig(fake_schema, table_name, table_cls_attrs, flag_table_names)
+def spawn_table_config(fake_schema, table_name, table_cls_attrs, flag_part_table_names):
+    return SpawnTableConfig(fake_schema, table_name, table_cls_attrs, flag_part_table_names)
 
 
 @pytest.fixture
@@ -158,16 +158,16 @@ class TestCall:
         assert factory().definition == table_definition
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_flag_tables_are_part_tables(self, factory, flag_table_names):
-        assert all(issubclass(getattr(factory(), name), Part) for name in flag_table_names)
+    def test_if_flag_tables_are_part_tables(self, factory, flag_part_table_names):
+        assert all(issubclass(getattr(factory(), name), Part) for name in flag_part_table_names)
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_names_of_flag_tables_are_correct(self, factory, flag_table_names):
-        assert all(getattr(factory(), name).__name__ == name for name in flag_table_names)
+    def test_if_names_of_flag_tables_are_correct(self, factory, flag_part_table_names):
+        assert all(getattr(factory(), name).__name__ == name for name in flag_part_table_names)
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_definitions_of_flag_tables_are_correct(self, factory, flag_table_names):
-        assert all(getattr(factory(), name).definition == "-> master" for name in flag_table_names)
+    def test_if_definitions_of_flag_tables_are_correct(self, factory, flag_part_table_names):
+        assert all(getattr(factory(), name).definition == "-> master" for name in flag_part_table_names)
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
     def test_if_part_tables_are_part_tables(self, part_tables):
