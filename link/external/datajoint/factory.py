@@ -26,7 +26,7 @@ class TableFactory:
         self.spawn_table_config: Optional[SpawnTableConfig] = None
         self.create_table_config: Optional[CreateTableConfig] = None
 
-    def __call__(self) -> Lookup:
+    def __call__(self) -> Type:
         if self.spawn_table_config is None:
             raise RuntimeError
         try:
@@ -35,7 +35,7 @@ class TableFactory:
             if self.create_table_config is None:
                 raise RuntimeError
             table_cls = self._create_table_cls()
-        return table_cls()
+        return table_cls
 
     @property
     def part_tables(self) -> Dict[Part]:
