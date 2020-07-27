@@ -68,7 +68,7 @@ def table_definition():
 
 
 @pytest.fixture
-def part_table_definitions():
+def non_flag_part_table_definitions():
     return dict(SomePartTable="some part table definition", AnotherPartTable="another part table definition")
 
 
@@ -82,8 +82,8 @@ def dummy_spawned_table_cls():
 
 
 @pytest.fixture
-def create_table_config(table_definition, part_table_definitions):
-    return CreateTableConfig(table_definition, part_table_definitions)
+def create_table_config(table_definition, non_flag_part_table_definitions):
+    return CreateTableConfig(table_definition, non_flag_part_table_definitions)
 
 
 @pytest.fixture
@@ -114,8 +114,8 @@ def copy_call_args():
 
 
 @pytest.fixture
-def part_tables(factory, part_table_definitions):
-    return {name: getattr(factory(), name) for name in part_table_definitions}
+def part_tables(factory, non_flag_part_table_definitions):
+    return {name: getattr(factory(), name) for name in non_flag_part_table_definitions}
 
 
 class TestCall:
@@ -178,8 +178,8 @@ class TestCall:
         assert all(part.__name__ == name for name, part in part_tables.items())
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_definitions_of_part_tables_are_correct(self, part_tables, part_table_definitions):
-        assert all(part.definition == part_table_definitions[name] for name, part in part_tables.items())
+    def test_if_definitions_of_part_tables_are_correct(self, part_tables, non_flag_part_table_definitions):
+        assert all(part.definition == non_flag_part_table_definitions[name] for name, part in part_tables.items())
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
     def test_if_class_attributes_are_set_on_created_table_class(self, factory, table_cls_attrs):
