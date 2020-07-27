@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from datajoint import Schema, Lookup, Part
 
+from ..dj_helpers import get_part_table_classes
+
 
 @dataclass(frozen=True)
 class SpawnTableConfig:
@@ -37,19 +39,16 @@ class TableFactory:
 
     @property
     def part_tables(self) -> Dict[Part]:
-        # 1. Access table
-        # 2. Get part tables from table
-        # 3. Filter out flag tables
-        # 4. Return remaining part tables
-        pass
+        return {
+            name: part_table
+            for name, part_table in get_part_table_classes(
+                self(), ignored_parts=self.spawn_table_config.flag_table_names
+            ).items()
+        }
 
     @property
     def flag_tables(self) -> Dict[Part]:
-        # 1. Access table
-        # 2. Get part tables from table
-        # 3. Filter out non-flag tables
-        # 4. Return flag tables
-        pass
+        return {name: getattr(self(), name) for name in self.spawn_table_config.flag_table_names}
 
     def _spawn_table_cls(self) -> Type[Lookup]:
         spawned_table_classes = dict()

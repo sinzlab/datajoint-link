@@ -53,6 +53,11 @@ def flag_part_table_names():
 
 
 @pytest.fixture
+def flag_part_tables(flag_part_table_names):
+    return {name: type(name, (Part,), dict(definition="-> master")) for name in flag_part_table_names}
+
+
+@pytest.fixture
 def spawn_table_config(fake_schema, table_name, table_cls_attrs, flag_part_table_names):
     return SpawnTableConfig(fake_schema, table_name, table_cls_attrs, flag_part_table_names)
 
@@ -68,16 +73,36 @@ def table_definition():
 
 
 @pytest.fixture
-def non_flag_part_table_definitions():
-    return dict(SomePartTable="some part table definition", AnotherPartTable="another part table definition")
+def non_flag_part_table_names():
+    return ["SomePartTable", "AnotherPartTable"]
 
 
 @pytest.fixture
-def dummy_spawned_table_cls():
+def non_flag_part_table_definitions(non_flag_part_table_names):
+    return {name: name + "_definition" for name in non_flag_part_table_names}
+
+
+@pytest.fixture
+def non_flag_part_tables(non_flag_part_table_definitions):
+    return {
+        name: type(name, (Part,), dict(definition=definition))
+        for name, definition in non_flag_part_table_definitions.items()
+    }
+
+
+@pytest.fixture
+def part_tables(flag_part_tables, non_flag_part_tables):
+    return {**flag_part_tables, **non_flag_part_tables}
+
+
+@pytest.fixture
+def dummy_spawned_table_cls(part_tables):
     class DummySpawnedTable:
         def __eq__(self, other):
             return isinstance(other, self.__class__)
 
+    for name, part in part_tables.items():
+        setattr(DummySpawnedTable, name, part)
     return DummySpawnedTable
 
 
@@ -114,7 +139,7 @@ def copy_call_args():
 
 
 @pytest.fixture
-def part_tables(factory, non_flag_part_table_definitions):
+def returned_non_flag_part_tables(factory, non_flag_part_table_definitions):
     return {name: getattr(factory(), name) for name in non_flag_part_table_definitions}
 
 
@@ -170,16 +195,21 @@ class TestCall:
         assert all(getattr(factory(), name).definition == "-> master" for name in flag_part_table_names)
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_part_tables_are_part_tables(self, part_tables):
-        assert all(issubclass(part, Part) for part in part_tables.values())
+    def test_if_part_tables_are_part_tables(self, returned_non_flag_part_tables):
+        assert all(issubclass(part, Part) for part in returned_non_flag_part_tables.values())
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_names_of_flag_tables_are_correct(self, part_tables):
-        assert all(part.__name__ == name for name, part in part_tables.items())
+    def test_if_names_of_flag_tables_are_correct(self, returned_non_flag_part_tables):
+        assert all(part.__name__ == name for name, part in returned_non_flag_part_tables.items())
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_definitions_of_part_tables_are_correct(self, part_tables, non_flag_part_table_definitions):
-        assert all(part.definition == non_flag_part_table_definitions[name] for name, part in part_tables.items())
+    def test_if_definitions_of_part_tables_are_correct(
+        self, returned_non_flag_part_tables, non_flag_part_table_definitions
+    ):
+        assert all(
+            part.definition == non_flag_part_table_definitions[name]
+            for name, part in returned_non_flag_part_tables.items()
+        )
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
     def test_if_class_attributes_are_set_on_created_table_class(self, factory, table_cls_attrs):
@@ -188,3 +218,13 @@ class TestCall:
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
     def test_if_schema_is_applied_to_created_table_class(self, factory):
         assert factory().schema_applied
+
+
+@pytest.mark.usefixtures("add_spawn_table_config")
+def test_if_part_tables_attribute_is_correct(factory, non_flag_part_tables):
+    assert factory.part_tables == non_flag_part_tables
+
+
+@pytest.mark.usefixtures("add_spawn_table_config")
+def test_if_flag_tables_attribute_is_correct(factory, flag_part_tables):
+    assert factory.flag_tables == flag_part_tables
