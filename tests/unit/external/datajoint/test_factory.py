@@ -74,7 +74,11 @@ def part_table_definitions():
 
 @pytest.fixture
 def dummy_spawned_table_cls():
-    return MagicMock(name="dummy_spawned_table_cls")
+    class DummySpawnedTable:
+        def __eq__(self, other):
+            return isinstance(other, self.__class__)
+
+    return DummySpawnedTable
 
 
 @pytest.fixture
