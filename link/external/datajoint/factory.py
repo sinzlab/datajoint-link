@@ -40,12 +40,7 @@ class TableFactory:
 
     @property
     def part_tables(self) -> Dict[str, Type[Part]]:
-        return {
-            name: part_table
-            for name, part_table in get_part_table_classes(
-                self(), ignored_parts=self.spawn_table_config.flag_table_names
-            ).items()
-        }
+        return get_part_table_classes(self(), ignored_parts=self.spawn_table_config.flag_table_names)
 
     @property
     def flag_tables(self) -> Dict[str, Type[Part]]:
