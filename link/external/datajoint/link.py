@@ -1,9 +1,9 @@
-from typing import Type, Dict, Optional, Union
+from typing import Type, Dict, Optional
 
 from datajoint import Schema, Lookup
 from datajoint.table import Table
 
-from .factory import TableFactory, SpawnTableConfig, CreateTableConfig
+from .factory import TableFactory
 from .dj_helpers import replace_stores
 from ...adapters.datajoint.local_table import LocalTableController
 from ...entities.representation import represent
@@ -34,24 +34,22 @@ class Link:
         self._run_basic_setup_for_local_table_factory(table_cls)
 
     def _run_basic_setup_for_source_table_factory(self, table_cls: Type) -> None:
-        self._table_cls_factories["source"].spawn_table_config = SpawnTableConfig(
-            self.source_schema, table_cls.__name__
-        )
+        source_factory = self._table_cls_factories["source"]
+        source_factory.schema = self.source_schema
+        source_factory.table_name = table_cls.__name__
 
     def _run_basic_setup_for_outbound_table_factory(self, table_cls: Type) -> None:
-        self._table_cls_factories["outbound"].spawn_table_config = SpawnTableConfig(
-            self._schema_cls("datajoint_outbound__" + self.source_schema.database),
-            table_cls.__name__ + "Outbound",
-            flag_table_names=["DeletionRequested", "DeletionApproved"],
-        )
+        outbound_factory = self._table_cls_factories["outbound"]
+        outbound_factory.schema = self._schema_cls("datajoint_outbound__" + self.source_schema.database)
+        outbound_factory.table_name = table_cls.__name__ + "Outbound"
+        outbound_factory.flag_table_names = ["DeletionRequested", "DeletionApproved"]
 
     def _run_basic_setup_for_local_table_factory(self, table_cls: Type) -> None:
-        self._table_cls_factories["local"].spawn_table_config = SpawnTableConfig(
-            self.local_schema,
-            table_cls.__name__,
-            dict(controller=self._local_table_controller, pull=pull),
-            ["DeletionRequested"],
-        )
+        local_factory = self._table_cls_factories["local"]
+        local_factory.schema = self.local_schema
+        local_factory.table_name = table_cls.__name__
+        local_factory.table_cls_attrs = dict(controller=self._local_table_controller, pull=pull)
+        local_factory.flag_table_names = ["DeletionRequested"]
 
     def _run_initial_setup(self) -> None:
         source_table_cls = self._table_cls_factories["source"]()
@@ -59,20 +57,15 @@ class Link:
         self._run_initial_setup_for_local_table_factory(source_table_cls)
 
     def _run_initial_setup_for_outbound_table_factory(self, source_table_cls: Type[Table]) -> None:
-        self._table_cls_factories["outbound"].spawn_table_config.table_cls_attrs["source_table"] = source_table_cls
-        self._table_cls_factories["outbound"].create_table_config = CreateTableConfig("-> self.source_table")
-        self._table_cls_factories["outbound"]()
+        outbound_factory = self._table_cls_factories["outbound"]
+        outbound_factory.table_cls_attrs["source_table"] = source_table_cls
+        outbound_factory.table_definition = "-> self.source_table"
+        outbound_factory()
 
     def _run_initial_setup_for_local_table_factory(self, source_table_cls: Type[Table]) -> None:
-        self._table_cls_factories["local"].create_table_config = CreateTableConfig(
-            **self._create_local_table_definitions(source_table_cls)
-        )
-
-    def _create_local_table_definitions(self, source_table_cls: Type[Table]) -> Dict[str, Union[str, Dict[str, str]]]:
-        return dict(
-            table_definition=self._create_definition(source_table_cls),
-            part_table_definitions=self._create_local_part_table_definitions(),
-        )
+        local_factory = self._table_cls_factories["local"]
+        local_factory.table_definition = self._create_definition(source_table_cls)
+        local_factory.part_table_definitions = self._create_local_part_table_definitions()
 
     def _create_local_part_table_definitions(self) -> Dict[str, str]:
         part_table_definitions = dict()

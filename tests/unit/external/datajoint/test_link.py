@@ -5,7 +5,7 @@ import datajoint as dj
 
 from link.external.datajoint.dj_helpers import replace_stores
 from link.external.datajoint.link import Link, pull
-from link.external.datajoint.factory import SpawnTableConfig, CreateTableConfig
+from link.external.datajoint.factory import TableFactory
 
 
 @pytest.fixture
@@ -66,10 +66,12 @@ def source_part_stubs():
 @pytest.fixture
 def table_cls_factory_spies(source_table_cls_stub, source_part_stubs):
     table_cls_factory_spies = {
-        kind: MagicMock(name=kind + "_dummy_table_cls_factory") for kind in ("source", "outbound", "local")
+        kind: MagicMock(name=kind + "_dummy_table_cls_factory", spec=TableFactory)
+        for kind in ("source", "outbound", "local")
     }
     table_cls_factory_spies["source"].return_value = source_table_cls_stub
     table_cls_factory_spies["source"].part_tables = source_part_stubs
+    table_cls_factory_spies["outbound"].table_cls_attrs = dict()
     table_cls_factory_spies["local"].return_value = "local_table_cls"
     return table_cls_factory_spies
 
@@ -141,10 +143,13 @@ def linked_table(link, dummy_table_cls):
 
 @pytest.mark.usefixtures("linked_table")
 class TestCallWithoutInitialSetup:
-    def test_if_spawn_table_config_attribute_on_source_table_cls_factory_is_set(
+    def test_if_configuration_of_source_table_cls_factory_is_correct(
         self, table_cls_factory_spies, source_schema_stub, table_name
     ):
-        assert table_cls_factory_spies["source"].spawn_table_config == SpawnTableConfig(source_schema_stub, table_name)
+        assert (
+            table_cls_factory_spies["source"].schema is source_schema_stub
+            and table_cls_factory_spies["source"].table_name == table_name
+        )
 
     def test_if_call_to_schema_class_is_correct(self, source_schema_stub, schema_cls_spy):
         schema_cls_spy.assert_called_once_with("datajoint_outbound__" + source_schema_stub.database)
@@ -152,21 +157,19 @@ class TestCallWithoutInitialSetup:
     def test_if_spawn_table_config_attribute_on_outbound_table_cls_factory_is_set(
         self, table_cls_factory_spies, source_schema_stub, table_name, schema_cls_spy
     ):
-        assert table_cls_factory_spies["outbound"].spawn_table_config == SpawnTableConfig(
-            schema_cls_spy.return_value,
-            table_name + "Outbound",
-            flag_table_names=["DeletionRequested", "DeletionApproved"],
-        )
+        assert table_cls_factory_spies["outbound"].schema is schema_cls_spy.return_value
+        assert table_cls_factory_spies["outbound"].table_name == table_name + "Outbound"
+        assert table_cls_factory_spies["outbound"].flag_table_names == ["DeletionRequested", "DeletionApproved"]
 
     def test_if_spawn_table_config_attribute_on_local_table_cls_factory_is_set(
         self, table_cls_factory_spies, local_schema_stub, table_name, dummy_local_table_controller
     ):
-        assert table_cls_factory_spies["local"].spawn_table_config == SpawnTableConfig(
-            local_schema_stub,
-            table_name,
-            dict(controller=dummy_local_table_controller, pull=pull),
-            ["DeletionRequested"],
+        assert table_cls_factory_spies["local"].schema is local_schema_stub
+        assert table_cls_factory_spies["local"].table_name == table_name
+        assert table_cls_factory_spies["local"].table_cls_attrs == dict(
+            controller=dummy_local_table_controller, pull=pull
         )
+        assert table_cls_factory_spies["local"].flag_table_names == ["DeletionRequested"]
 
     def test_if_call_to_local_table_cls_factory_is_correct(self, table_cls_factory_spies):
         table_cls_factory_spies["local"].assert_called_once_with()
@@ -185,16 +188,13 @@ class TestCallWithInitialSetup:
     def test_if_source_table_cls_factory_is_called(self, table_cls_factory_spies):
         table_cls_factory_spies["source"].assert_called_once_with()
 
-    def test_if_source_table_is_added_to_table_class_attributes_of_spawn_table_config_in_outbound_table_cls_factory(
+    def test_if_source_table_is_added_to_table_class_attributes_attribute_of_outbound_table_cls_factory(
         self, table_cls_factory_spies, source_table_cls_stub
     ):
-        assert (
-            table_cls_factory_spies["outbound"].spawn_table_config.table_cls_attrs["source_table"]
-            is source_table_cls_stub
-        )
+        assert table_cls_factory_spies["outbound"].table_cls_attrs["source_table"] is source_table_cls_stub
 
     def test_if_create_table_config_on_outbound_table_cls_factory_is_set(self, table_cls_factory_spies):
-        assert table_cls_factory_spies["outbound"].create_table_config == CreateTableConfig("-> self.source_table")
+        assert table_cls_factory_spies["outbound"].table_definition == "-> self.source_table"
 
     def test_if_outbound_table_cls_factory_is_called(self, table_cls_factory_spies):
         table_cls_factory_spies["outbound"].assert_called_once_with()
@@ -208,8 +208,9 @@ class TestCallWithInitialSetup:
         ]
 
     def test_if_create_table_config_on_local_table_cls_factory_is_set(self, table_cls_factory_spies):
-        assert table_cls_factory_spies["local"].create_table_config == CreateTableConfig(
-            "replaced_heading", dict(PartA="replaced_heading", PartB="replaced_heading", PartC="replaced_heading")
+        assert table_cls_factory_spies["local"].table_definition == "replaced_heading"
+        assert table_cls_factory_spies["local"].part_table_definitions == dict(
+            PartA="replaced_heading", PartB="replaced_heading", PartC="replaced_heading"
         )
 
     def test_if_calls_to_local_table_cls_factory_are_correct(self, table_cls_factory_spies):
