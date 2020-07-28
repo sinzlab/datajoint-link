@@ -1,7 +1,7 @@
 import pytest
 from datajoint import Part
 
-from link.external import dj_helpers
+from link.external.datajoint import dj_helpers
 
 
 class TestReplaceStores:

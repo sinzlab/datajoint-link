@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from datajoint import Schema, Lookup, Part, Table
 
-from ..dj_helpers import get_part_table_classes
+from .dj_helpers import get_part_table_classes
 
 
 @dataclass(frozen=True)

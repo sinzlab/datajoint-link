@@ -4,7 +4,7 @@ from datajoint import Schema, Lookup
 from datajoint.table import Table
 
 from .factory import TableFactory, SpawnTableConfig, CreateTableConfig
-from ..dj_helpers import replace_stores
+from .dj_helpers import replace_stores
 from ...adapters.datajoint.local_table import LocalTableController
 from ...entities.representation import represent
 

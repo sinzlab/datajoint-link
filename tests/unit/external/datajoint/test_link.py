@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 import datajoint as dj
 
-from link.external.dj_helpers import replace_stores
+from link.external.datajoint.dj_helpers import replace_stores
 from link.external.datajoint.link import Link, pull
 from link.external.datajoint.factory import SpawnTableConfig, CreateTableConfig
 
