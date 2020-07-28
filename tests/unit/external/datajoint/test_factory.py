@@ -214,7 +214,7 @@ class TestCall:
         assert all(issubclass(part, Part) for part in returned_non_flag_part_tables.values())
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
-    def test_if_names_of_flag_tables_are_correct(self, returned_non_flag_part_tables):
+    def test_if_names_of_non_flag_tables_are_correct(self, returned_non_flag_part_tables):
         assert all(part.__name__ == name for name, part in returned_non_flag_part_tables.items())
 
     @pytest.mark.usefixtures("add_create_table_config", "table_can_not_be_spawned")
