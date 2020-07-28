@@ -114,8 +114,7 @@ def part_tables(flag_part_tables, non_flag_part_tables):
 @pytest.fixture
 def dummy_spawned_table_cls(part_tables):
     class DummySpawnedTable:
-        def __eq__(self, other):
-            return isinstance(other, self.__class__)
+        pass
 
     for name, part in part_tables.items():
         setattr(DummySpawnedTable, name, part)
