@@ -109,6 +109,9 @@ class TestGetPartTableClasses:
         name = "lowercase_part"
         other_attrs[name] = type(name, (Part,), dict())
 
+    def test_if_ignored_parts_argument_is_optional(self, table_cls, part_table_classes):
+        assert dj_helpers.get_part_table_classes(table_cls) == part_table_classes
+
     def test_if_single_part_table_is_found(self, correct_part_tables_returned):
         assert correct_part_tables_returned
 
