@@ -144,9 +144,7 @@ class TestCallWithoutInitialSetup:
     def test_if_spawn_table_config_attribute_on_source_table_cls_factory_is_set(
         self, table_cls_factory_spies, source_schema_stub, table_name
     ):
-        assert table_cls_factory_spies["source"].spawn_table_config == SpawnTableConfig(
-            source_schema_stub, table_name, dict(), list()
-        )
+        assert table_cls_factory_spies["source"].spawn_table_config == SpawnTableConfig(source_schema_stub, table_name)
 
     def test_if_call_to_schema_class_is_correct(self, source_schema_stub, schema_cls_spy):
         schema_cls_spy.assert_called_once_with("datajoint_outbound__" + source_schema_stub.database)
@@ -155,7 +153,9 @@ class TestCallWithoutInitialSetup:
         self, table_cls_factory_spies, source_schema_stub, table_name, schema_cls_spy
     ):
         assert table_cls_factory_spies["outbound"].spawn_table_config == SpawnTableConfig(
-            schema_cls_spy.return_value, table_name + "Outbound", dict(), ["DeletionRequested", "DeletionApproved"]
+            schema_cls_spy.return_value,
+            table_name + "Outbound",
+            flag_table_names=["DeletionRequested", "DeletionApproved"],
         )
 
     def test_if_spawn_table_config_attribute_on_local_table_cls_factory_is_set(
@@ -194,9 +194,7 @@ class TestCallWithInitialSetup:
         )
 
     def test_if_create_table_config_on_outbound_table_cls_factory_is_set(self, table_cls_factory_spies):
-        assert table_cls_factory_spies["outbound"].create_table_config == CreateTableConfig(
-            "-> self.source_table", dict()
-        )
+        assert table_cls_factory_spies["outbound"].create_table_config == CreateTableConfig("-> self.source_table")
 
     def test_if_outbound_table_cls_factory_is_called(self, table_cls_factory_spies):
         table_cls_factory_spies["outbound"].assert_called_once_with()

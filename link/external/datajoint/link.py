@@ -35,15 +35,14 @@ class Link:
 
     def _run_basic_setup_for_source_table_factory(self, table_cls: Type) -> None:
         self._table_cls_factories["source"].spawn_table_config = SpawnTableConfig(
-            self.source_schema, table_cls.__name__, dict(), list()
+            self.source_schema, table_cls.__name__
         )
 
     def _run_basic_setup_for_outbound_table_factory(self, table_cls: Type) -> None:
         self._table_cls_factories["outbound"].spawn_table_config = SpawnTableConfig(
             self._schema_cls("datajoint_outbound__" + self.source_schema.database),
             table_cls.__name__ + "Outbound",
-            dict(),
-            ["DeletionRequested", "DeletionApproved"],
+            flag_table_names=["DeletionRequested", "DeletionApproved"],
         )
 
     def _run_basic_setup_for_local_table_factory(self, table_cls: Type) -> None:
@@ -61,7 +60,7 @@ class Link:
 
     def _run_initial_setup_for_outbound_table_factory(self, source_table_cls: Type[Table]) -> None:
         self._table_cls_factories["outbound"].spawn_table_config.table_cls_attrs["source_table"] = source_table_cls
-        self._table_cls_factories["outbound"].create_table_config = CreateTableConfig("-> self.source_table", dict())
+        self._table_cls_factories["outbound"].create_table_config = CreateTableConfig("-> self.source_table")
         self._table_cls_factories["outbound"]()
 
     def _run_initial_setup_for_local_table_factory(self, source_table_cls: Type[Table]) -> None:
