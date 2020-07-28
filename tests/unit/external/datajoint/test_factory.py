@@ -7,6 +7,22 @@ from datajoint import Lookup, Part
 from link.external.datajoint.factory import TableFactory, SpawnTableConfig, CreateTableConfig
 
 
+class TestSpawnTableConfig:
+    @pytest.fixture
+    def dummy_schema(self):
+        return MagicMock(name="dummy_schema")
+
+    def test_if_table_class_attributes_argument_is_optional(self, dummy_schema):
+        SpawnTableConfig(dummy_schema, "table_name", flag_table_names=[])
+
+    def test_if_flag_table_names_attribute_is_optional(self, dummy_schema):
+        SpawnTableConfig(dummy_schema, "table_name", table_cls_attrs=dict())
+
+
+def test_if_part_table_definitions_argument_in_create_table_config_is_optional():
+    CreateTableConfig("definition")
+
+
 @pytest.fixture
 def factory():
     return TableFactory()

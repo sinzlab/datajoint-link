@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional, List, Dict, Type, Any, Union
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from datajoint import Schema, Lookup, Part, Table
 
@@ -11,14 +11,14 @@ from .dj_helpers import get_part_table_classes
 class SpawnTableConfig:
     schema: Schema
     table_name: str
-    table_cls_attrs: Dict[str, Any]
-    flag_table_names: List[str]
+    table_cls_attrs: Optional[Dict[str, Any]] = field(default_factory=dict)
+    flag_table_names: Optional[List[str]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
 class CreateTableConfig:
     table_definition: str
-    part_table_definitions: Dict[str, str]
+    part_table_definitions: Optional[Dict[str, str]] = field(default_factory=dict)
 
 
 class TableFactory:
