@@ -244,3 +244,7 @@ def test_if_part_tables_attribute_is_correct(factory, non_flag_part_tables):
 @pytest.mark.usefixtures("add_spawn_table_config")
 def test_if_flag_tables_attribute_is_correct(factory, flag_part_tables):
     assert factory.flag_tables == flag_part_tables
+
+
+def test_repr(factory):
+    assert repr(factory) == "TableFactory()"

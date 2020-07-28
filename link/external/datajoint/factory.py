@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datajoint import Schema, Lookup, Part, Table
 
 from .dj_helpers import get_part_table_classes
+from ...entities.representation import represent
 
 
 @dataclass(frozen=True)
@@ -100,3 +101,6 @@ class TableFactory:
             table_cls_attrs = {**table_cls_attrs, **additional_table_cls_attrs}
         for attr_name, attr_value in table_cls_attrs.items():
             setattr(table_cls, attr_name, attr_value)
+
+    def __repr__(self) -> str:
+        return represent(self, [])
