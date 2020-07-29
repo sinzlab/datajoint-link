@@ -40,7 +40,9 @@ class Link:
 
     def _run_basic_setup_for_outbound_table_factory(self, table_cls: Type) -> None:
         outbound_factory = self._table_cls_factories["outbound"]
-        outbound_factory.schema = self._schema_cls("datajoint_outbound__" + self.source_schema.database)
+        outbound_factory.schema = self._schema_cls(
+            "datajoint_outbound__" + self.source_schema.database, connection=self.source_schema.connection
+        )
         outbound_factory.table_name = table_cls.__name__ + "Outbound"
         outbound_factory.flag_table_names = ["DeletionRequested", "DeletionApproved"]
 
