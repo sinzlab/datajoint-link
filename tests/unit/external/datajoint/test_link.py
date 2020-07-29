@@ -236,3 +236,7 @@ class TestPull:
     def test_if_call_to_controller_is_correct(self, fake_local_table):
         fake_local_table.pull("restriction1", "restriction2")
         fake_local_table.controller.pull.assert_called_once_with(("restriction1", "restriction2"))
+
+    def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_local_table):
+        fake_local_table.pull()
+        fake_local_table.controller.pull.assert_called_once_with(dj.AndList())

@@ -1,6 +1,6 @@
 from typing import Type, Dict, Optional
 
-from datajoint import Schema, Lookup
+from datajoint import Schema, Lookup, AndList
 from datajoint.table import Table
 
 from .factory import TableFactory
@@ -81,4 +81,6 @@ class Link:
 
 
 def pull(self, *restrictions) -> None:
+    if not restrictions:
+        restrictions = AndList()
     self.controller.pull(restrictions)
