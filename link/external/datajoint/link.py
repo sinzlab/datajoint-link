@@ -11,7 +11,7 @@ from ...entities.representation import represent
 
 class Link:
     _schema_cls = Schema
-    _replace_stores_func = replace_stores
+    _replace_stores_func = staticmethod(replace_stores)
     _table_cls_factories: Dict[str, TableFactory] = None
     _local_table_controller: LocalTableController = None
 
