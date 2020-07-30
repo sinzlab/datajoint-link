@@ -2,13 +2,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.use_cases import RepositoryLink, RepositoryLinkFactory, base
+from link.use_cases import RepositoryLink, base
 
 
 @pytest.fixture
 def repo_link_factory_spy():
     name = "repo_link_factory_spy"
-    link_factory_spy = MagicMock(name=name, return_value="link", spec=RepositoryLinkFactory)
+    link_factory_spy = MagicMock(name=name, return_value="link")
     link_factory_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return link_factory_spy
 
@@ -43,7 +43,7 @@ class TestInit:
 class TestCall:
     def test_if_repo_link_factory_is_called_correctly(self, use_case, repo_link_factory_spy):
         use_case()
-        repo_link_factory_spy.assert_called_once_with(dict())
+        repo_link_factory_spy.assert_called_once_with()
 
     def test_if_call_to_execute_method_is_correct(self, use_case):
         use_case("arg", kwarg="kwarg")

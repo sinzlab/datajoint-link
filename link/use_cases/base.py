@@ -19,7 +19,7 @@ class UseCase(ABC):
 
     def __call__(self, *args, **kwargs) -> None:
         """Executes the use-case and passes its output to the output port."""
-        output = self.execute(self.repo_link_factory(dict()), *args, **kwargs)
+        output = self.execute(self.repo_link_factory(), *args, **kwargs)
         self.output_port(output)
 
     def __repr__(self) -> str:
