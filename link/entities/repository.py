@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 
 from .contents import Contents
@@ -11,6 +11,7 @@ from .abstract_gateway import AbstractGateway
 class Entity:
     identifier: str
     flags: Optional[Dict[str, bool]] = field(default_factory=dict)
+    data: Optional[Any] = field(default=None, repr=False, init=False)
 
 
 @dataclass

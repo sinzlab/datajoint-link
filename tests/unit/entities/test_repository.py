@@ -16,6 +16,9 @@ class TestEntity:
     def test_if_identifier_is_set_as_instance_attribute(self, identifier):
         assert Entity(identifier).identifier == identifier
 
+    def test_if_data_instance_attribute_is_initialized_to_none(self, identifier):
+        assert Entity(identifier).data is None
+
     def test_if_flags_are_set_as_instance_attribute(self, identifier, flags):
         assert Entity(identifier, flags=flags).flags == flags
 
