@@ -94,23 +94,22 @@ def test_if_transaction_is_started_in_outbound_repo_first(repo_link_spy, pull_wi
     repo_link_spy.local.transaction.transaction.assert_not_called()
 
 
-@pytest.fixture
-def test_if_entities_are_inserted_into_repo(use_case, identifiers, repo_link_spy, valid_identifiers, fetched_entities):
-    def _test_if_entities_are_inserted_into_repo(repo):
-        use_case(identifiers)
-        assert getattr(repo_link_spy, repo).contents.__setitem__.call_args_list == [
-            call(identifier, entity) for identifier, entity in zip(valid_identifiers, fetched_entities)
-        ]
-
-    return _test_if_entities_are_inserted_into_repo
+def test_if_entities_are_inserted_into_outbound_repo(
+    use_case, identifiers, repo_link_spy, valid_identifiers, fetched_entities
+):
+    use_case(identifiers)
+    assert repo_link_spy.outbound.contents.__setitem__.call_args_list == [
+        call(identifier, entity) for identifier, entity in zip(valid_identifiers, fetched_entities)
+    ]
 
 
-def test_if_entities_are_inserted_into_outbound_repo(test_if_entities_are_inserted_into_repo):
-    test_if_entities_are_inserted_into_repo("outbound")
-
-
-def test_if_entities_are_inserted_into_local_repo(test_if_entities_are_inserted_into_repo):
-    test_if_entities_are_inserted_into_repo("local")
+def test_if_entities_are_inserted_into_local_repo(
+    use_case, identifiers, repo_link_spy, valid_identifiers, fetched_entities
+):
+    use_case(identifiers)
+    assert repo_link_spy.local.contents.__setitem__.call_args_list == [
+        call(identifier, entity) for identifier, entity in zip(valid_identifiers, fetched_entities)
+    ]
 
 
 def test_if_entities_are_inserted_into_outbound_repo_first(repo_link_spy, pull_with_error):
