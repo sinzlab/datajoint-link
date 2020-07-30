@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 from ..entities.abstract_gateway import AbstractEntityGateway as AbstractEntityGateway
 
@@ -14,7 +14,7 @@ class AbstractEntityDTO(ABC):
 
     @property
     @abstractmethod
-    def non_identifier_data(self) -> Any:
+    def non_identifier_data(self) -> Optional[Any]:
         """Contains all the data not used to compute the unique identifier of the entity."""
 
 
