@@ -6,11 +6,11 @@ from .representation import represent
 
 if TYPE_CHECKING:
     from .repository import Entity
-    from .abstract_gateway import AbstractGateway
+    from .abstract_gateway import AbstractEntityGateway
 
 
 class TransactionManager:
-    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
+    def __init__(self, entities: Dict[str, Entity], gateway: AbstractEntityGateway) -> None:
         self.entities = entities
         self.gateway = gateway
         self._entities_copy = None

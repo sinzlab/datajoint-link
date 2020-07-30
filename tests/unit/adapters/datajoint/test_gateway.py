@@ -2,14 +2,14 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from link.entities.abstract_gateway import AbstractGateway
+from link.entities.abstract_gateway import AbstractEntityGateway
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
 
 
 def test_if_datajoint_gateway_is_subclass_of_abstract_gateway():
-    assert issubclass(DataJointGateway, AbstractGateway)
+    assert issubclass(DataJointGateway, AbstractEntityGateway)
 
 
 @pytest.fixture

@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict
 
 
-class AbstractGateway(ABC):
-    """A abstract base class defining the interface for the gateway as expected by the entities."""
+class AbstractEntityGateway(ABC):
+    """Defines the interface of the gateway as expected by the entities."""
 
     @property
     @abstractmethod

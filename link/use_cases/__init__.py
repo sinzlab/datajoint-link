@@ -5,24 +5,24 @@ from typing import Dict, Callable, Any
 from .base import UseCase
 from .pull import Pull
 from ..entities.repository import Repository, RepositoryFactory
-from ..entities.abstract_gateway import AbstractGateway
+from ..entities.abstract_gateway import AbstractEntityGateway
 from ..entities.representation import represent
 
 
 class AbstractGatewayLink(ABC):
     @property
     @abstractmethod
-    def source(self) -> AbstractGateway:
+    def source(self) -> AbstractEntityGateway:
         pass
 
     @property
     @abstractmethod
-    def outbound(self) -> AbstractGateway:
+    def outbound(self) -> AbstractEntityGateway:
         pass
 
     @property
     @abstractmethod
-    def local(self) -> AbstractGateway:
+    def local(self) -> AbstractEntityGateway:
         pass
 
 

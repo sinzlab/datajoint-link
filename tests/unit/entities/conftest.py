@@ -4,7 +4,7 @@ from typing import Any, List, Dict
 import pytest
 
 from link.entities.repository import Entity
-from link.entities.abstract_gateway import AbstractGateway
+from link.entities.abstract_gateway import AbstractEntityGateway
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def wrap_spy_around_method():
 
 @pytest.fixture
 def gateway_spy_cls():
-    class GatewaySpy(AbstractGateway):
+    class GatewaySpy(AbstractEntityGateway):
         def __init__(self, identifiers, flags, entity_data):
             self._identifiers = identifiers
             self.flags = flags

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from .contents import Contents
 from .flag_manager import FlagManagerFactory
 from .transaction_manager import TransactionManager
-from .abstract_gateway import AbstractGateway
+from .abstract_gateway import AbstractEntityGateway
 
 
 @dataclass
@@ -22,7 +22,7 @@ class Repository:
 
 
 class RepositoryFactory:
-    def __init__(self, gateway: AbstractGateway) -> None:
+    def __init__(self, gateway: AbstractEntityGateway) -> None:
         self.gateway = gateway
 
     def __call__(self) -> Repository:

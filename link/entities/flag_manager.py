@@ -6,11 +6,11 @@ from .representation import represent
 
 if TYPE_CHECKING:
     from .repository import Entity
-    from .abstract_gateway import AbstractGateway
+    from .abstract_gateway import AbstractEntityGateway
 
 
 class FlagManagerFactory(Mapping):
-    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
+    def __init__(self, entities: Dict[str, Entity], gateway: AbstractEntityGateway) -> None:
         self.entities = entities
         self.gateway = gateway
 
@@ -34,7 +34,7 @@ class FlagManagerFactory(Mapping):
 class FlagManager(MutableMapping):
     __delitem__ = None
 
-    def __init__(self, entity: Entity, gateway: AbstractGateway) -> None:
+    def __init__(self, entity: Entity, gateway: AbstractEntityGateway) -> None:
         self.entity = entity
         self.gateway = gateway
 
