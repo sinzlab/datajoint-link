@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 
 
 class TransactionManager:
+    represent_func = represent
+
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractEntityGateway) -> None:
         self.entities = entities
         self.gateway = gateway
@@ -48,4 +50,4 @@ class TransactionManager:
             self.commit()
 
     def __repr__(self) -> str:
-        return represent(self, ["entities", "gateway"])
+        return self.represent_func(self, ["entities", "gateway"])

@@ -1,11 +1,27 @@
+from unittest.mock import create_autospec
+
 import pytest
 
-from link.entities import transaction_manager
+from link.entities.transaction_manager import TransactionManager
+from link.entities.abstract_gateway import AbstractEntityGateway
+from link.entities.representation import represent
 
 
 @pytest.fixture
-def manager(entities, gateway_spy):
-    return transaction_manager.TransactionManager(entities, gateway_spy)
+def gateway_spy():
+    return create_autospec(AbstractEntityGateway, instance=True)
+
+
+@pytest.fixture
+def represent_spy():
+    return create_autospec(represent, return_value="representation")
+
+
+@pytest.fixture
+def manager(entities, gateway_spy, represent_spy):
+    manager = TransactionManager(entities, gateway_spy)
+    manager.represent_func = represent_spy
+    return manager
 
 
 class TestInit:
@@ -49,7 +65,7 @@ class TestCommit:
         assert manager.in_transaction is False
 
     def test_if_manager_is_still_in_transaction_after_it_is_committed_but_fails_in_gateway(self, manager, gateway_spy):
-        gateway_spy.error_when_committing = True
+        gateway_spy.commit_transaction.side_effect = RuntimeError
         manager.start()
         try:
             manager.commit()
@@ -77,7 +93,7 @@ class TestCancel:
         assert manager.in_transaction is False
 
     def test_if_manager_is_still_in_transaction_after_it_is_cancelled_but_errors_in_gateway(self, manager, gateway_spy):
-        gateway_spy.error_when_cancelling = True
+        gateway_spy.cancel_transaction.side_effect = RuntimeError
         manager.start()
         try:
             manager.cancel()
@@ -106,5 +122,13 @@ class TestTransaction:
         manager.cancel.assert_called_once_with()
 
 
-def test_repr(manager, entities):
-    assert repr(manager) == f"TransactionManager(entities={entities}, gateway=gateway_spy)"
+class TestRepr:
+    def test_if_represent_function_class_attribute_is_correct(self):
+        assert TransactionManager.represent_func is represent
+
+    def test_if_call_to_represent_is_correct(self, manager, represent_spy):
+        repr(manager)
+        represent_spy.assert_called_once_with(manager, ["entities", "gateway"])
+
+    def test_if_representation_is_returned(self, manager):
+        assert repr(manager) == "representation"
