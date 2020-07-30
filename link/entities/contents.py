@@ -10,21 +10,19 @@ if TYPE_CHECKING:
 
 
 class Contents(MutableMapping):
-    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway, storage: Dict) -> None:
+    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
         self.entities = entities
         self.gateway = gateway
-        self.storage = storage
 
     def __getitem__(self, identifier: str) -> Entity:
         """Fetches an entity."""
-        data = self.gateway.fetch(identifier)
-        self.storage[identifier] = data
-        return self.entities[identifier]
+        entity = self.entities[identifier]
+        entity.data = self.gateway.fetch(identifier)
+        return entity
 
     def __setitem__(self, identifier: str, entity: Entity) -> None:
         """Inserts an entity."""
-        data = self.storage[identifier]
-        self.gateway.insert(data)
+        self.gateway.insert(entity.data)
         self.entities[identifier] = entity
 
     def __delitem__(self, identifier: str) -> None:
@@ -41,4 +39,4 @@ class Contents(MutableMapping):
         return len(self.entities)
 
     def __repr__(self) -> str:
-        return represent(self, ["entities", "gateway", "storage"])
+        return represent(self, ["entities", "gateway"])

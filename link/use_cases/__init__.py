@@ -39,11 +39,10 @@ class RepositoryLinkFactory:
     def __init__(self, gateway_link: AbstractGatewayLink) -> None:
         self.gateway_link = gateway_link
 
-    def __call__(self, storage) -> RepositoryLink:
+    def __call__(self) -> RepositoryLink:
         """Creates a link."""
         kwargs = {
-            kind: self.repo_factory_cls(getattr(self.gateway_link, kind), storage)()
-            for kind in ("source", "outbound", "local")
+            kind: self.repo_factory_cls(getattr(self.gateway_link, kind))() for kind in ("source", "outbound", "local")
         }
         return RepositoryLink(**kwargs)
 

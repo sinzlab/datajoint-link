@@ -36,13 +36,10 @@ class TestRepositoryFactory:
 
     @pytest.fixture
     def factory(self, gateway_spy, storage):
-        return RepositoryFactory(gateway_spy, storage)
+        return RepositoryFactory(gateway_spy)
 
     def test_if_gateway_is_stored_as_instance_attribute(self, factory, gateway_spy):
         assert factory.gateway is gateway_spy
-
-    def test_if_storage_is_stored_as_instance_attribute(self, factory, storage):
-        assert factory.storage is storage
 
     def test_if_flags_are_retrieved_from_gateway(self, identifiers, factory, gateway_spy):
         _ = factory()
@@ -59,9 +56,6 @@ class TestRepositoryFactory:
 
     def test_if_gateway_of_contents_is_correct(self, factory, gateway_spy):
         assert factory().contents.gateway is gateway_spy
-
-    def test_if_storage_of_contents_is_correct(self, factory, storage):
-        assert factory().contents.storage is storage
 
     def test_if_flag_manager_factory_is_assigned_to_flags_attribute_of_returned_repository(self, factory):
         assert isinstance(factory().flags, FlagManagerFactory)

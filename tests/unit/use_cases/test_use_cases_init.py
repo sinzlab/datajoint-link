@@ -34,11 +34,6 @@ def gateway_link_stub():
 
 
 @pytest.fixture
-def storage():
-    return dict()
-
-
-@pytest.fixture
 def factory(repo_factory_cls_spy, gateway_link_stub):
     class RepositoryLinkFactory(use_cases.RepositoryLinkFactory):
         repo_factory_cls = repo_factory_cls_spy
@@ -55,28 +50,28 @@ class TestRepositoryLinkFactory:
         assert factory.gateway_link is gateway_link_stub
 
     def test_if_repo_factory_classes_are_correctly_initialized(
-        self, factory, gateway_link_stub, repo_factory_cls_spy, storage, kinds
+        self, factory, gateway_link_stub, repo_factory_cls_spy, kinds
     ):
-        factory(storage)
-        assert repo_factory_cls_spy.call_args_list == [
-            call(getattr(gateway_link_stub, kind), storage) for kind in kinds
-        ]
+        factory()
+        assert repo_factory_cls_spy.call_args_list == [call(getattr(gateway_link_stub, kind)) for kind in kinds]
 
-    def test_if_repo_factories_are_correctly_called(self, factory, repo_factory_cls_spy, storage):
-        factory(storage)
+    def test_if_repo_factories_are_correctly_called(self, factory, repo_factory_cls_spy):
+        factory()
         assert repo_factory_cls_spy.return_value.call_args_list == [call() for _ in range(3)]
 
-    def test_if_repo_link_is_returned(self, factory, storage):
-        assert isinstance(factory(storage), use_cases.RepositoryLink)
+    def test_if_repo_link_is_returned(
+        self, factory,
+    ):
+        assert isinstance(factory(), use_cases.RepositoryLink)
 
-    def test_if_source_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos, storage):
-        assert factory(storage).source is repos["source"]
+    def test_if_source_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos):
+        assert factory().source is repos["source"]
 
-    def test_if_outbound_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos, storage):
-        assert factory(storage).outbound is repos["outbound"]
+    def test_if_outbound_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos):
+        assert factory().outbound is repos["outbound"]
 
-    def test_if_local_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos, storage):
-        assert factory(storage).local is repos["local"]
+    def test_if_local_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos):
+        assert factory().local is repos["local"]
 
     def test_repr(self, factory):
         assert repr(factory) == "RepositoryLinkFactory(gateway_link=gateway_link_stub)"

@@ -22,9 +22,8 @@ class Repository:
 
 
 class RepositoryFactory:
-    def __init__(self, gateway: AbstractGateway, storage: Dict) -> None:
+    def __init__(self, gateway: AbstractGateway) -> None:
         self.gateway = gateway
-        self.storage = storage
 
     def __call__(self) -> Repository:
         """Creates a repository."""
@@ -33,7 +32,7 @@ class RepositoryFactory:
             for identifier in self.gateway.identifiers
         }
         return Repository(
-            contents=Contents(entities, self.gateway, self.storage),
+            contents=Contents(entities, self.gateway),
             flags=FlagManagerFactory(entities, self.gateway),
             transaction=TransactionManager(entities, self.gateway),
         )
