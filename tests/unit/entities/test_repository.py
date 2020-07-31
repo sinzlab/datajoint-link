@@ -98,7 +98,7 @@ class TestRepositoryFactory:
 
     def test_if_entities_associated_with_contents_and_flag_manager_factory_are_identical(self, factory):
         repo = factory()
-        assert all(entity is repo.flags.entities[identifier] for identifier, entity in repo.contents.items())
+        assert all(entity is repo.flags.entities[identifier] for identifier, entity in repo.contents.entities.items())
 
     def test_if_gateway_of_flag_manager_factory_is_correct(self, factory, gateway_spy):
         assert factory().flags.gateway is gateway_spy
@@ -108,7 +108,9 @@ class TestRepositoryFactory:
 
     def test_if_entities_associated_with_contents_and_transaction_manager_are_identical(self, factory):
         repo = factory()
-        assert all(entity is repo.transaction.entities[identifier] for identifier, entity in repo.contents.items())
+        assert all(
+            entity is repo.transaction.entities[identifier] for identifier, entity in repo.contents.entities.items()
+        )
 
     def test_if_gateway_of_transaction_manager_is_correct(self, factory, gateway_spy):
         assert factory().transaction.gateway is gateway_spy
