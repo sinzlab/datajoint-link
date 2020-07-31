@@ -1,9 +1,10 @@
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, create_autospec, call
 from itertools import compress
 
 import pytest
 
-from link.use_cases import RepositoryLinkFactory
+from link.entities.repository import TransferEntity
+from link.use_cases import RepositoryLinkFactory, RepositoryLink
 from link.use_cases.pull import Pull
 from link.use_cases.base import UseCase
 
@@ -25,12 +26,12 @@ def valid_identifiers(identifiers, is_valid):
 
 @pytest.fixture
 def fetched_entities(valid_identifiers):
-    return [MagicMock(name="entity", identifier=identifier) for identifier in valid_identifiers]
+    return [create_autospec(TransferEntity, instance=True, identifier=identifier) for identifier in valid_identifiers]
 
 
 @pytest.fixture
 def repo_link_spy(is_valid, fetched_entities):
-    repo_link_spy = MagicMock(name="repo_link_spy")
+    repo_link_spy = create_autospec(RepositoryLink, instance=True)
     repo_link_spy.local.contents.__contains__.side_effect = [not flag for flag in is_valid]
     repo_link_spy.source.contents.__getitem__.side_effect = fetched_entities
     return repo_link_spy
@@ -38,7 +39,7 @@ def repo_link_spy(is_valid, fetched_entities):
 
 @pytest.fixture
 def repo_link_factory_stub(repo_link_spy):
-    return MagicMock(name="repo_link_factory", spec=RepositoryLinkFactory, return_value=repo_link_spy)
+    return create_autospec(RepositoryLinkFactory, instance=True, return_value=repo_link_spy)
 
 
 @pytest.fixture

@@ -28,9 +28,9 @@ class AbstractGatewayLink(ABC):
 
 @dataclass
 class RepositoryLink:
-    source: Repository
-    outbound: Repository
-    local: Repository
+    source: Repository = None
+    outbound: Repository = None
+    local: Repository = None
 
 
 class RepositoryLinkFactory(Base):
