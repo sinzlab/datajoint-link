@@ -1,33 +1,62 @@
-from unittest.mock import call
+from unittest.mock import create_autospec, call
+from dataclasses import is_dataclass
 
 import pytest
 
-from link.entities.repository import Entity, Repository, RepositoryFactory
+from link.entities.abstract_gateway import AbstractEntityDTO
+from link.entities.repository import Entity, EntityTransferObject, Repository, RepositoryFactory
 from link.entities.contents import Contents
 from link.entities.flag_manager import FlagManagerFactory
 from link.entities.transaction_manager import TransactionManager
 from link.base import Base
 
 
+@pytest.fixture
+def entity_dto_spy():
+    return create_autospec(AbstractEntityDTO, instance=True)
+
+
 class TestEntity:
     @pytest.fixture
-    def flags(self):
-        return dict(flag=True)
+    def entity(self, identifier, flags):
+        return Entity(identifier, flags)
 
-    def test_if_identifier_is_set_as_instance_attribute(self, identifier):
-        assert Entity(identifier).identifier == identifier
+    def test_if_dataclass(self):
+        assert is_dataclass(Entity)
 
-    def test_if_data_instance_attribute_is_initialized_to_none(self, identifier):
-        assert Entity(identifier).data is None
+    def test_if_identifier_is_set_as_instance_attribute(self, identifier, entity):
+        assert entity.identifier == identifier
 
-    def test_if_flags_are_set_as_instance_attribute(self, identifier, flags):
-        assert Entity(identifier, flags=flags).flags == flags
+    def test_if_flags_are_set_as_instance_attribute(self, entity, flags):
+        assert entity.flags is flags
 
-    def test_if_flags_instance_attribute_is_set_to_empty_dict_if_no_flags_are_provided(self, identifier):
-        assert Entity(identifier).flags == dict()
+    def test_if_create_transfer_object_method_returns_correct_value(self, identifier, flags, entity_dto_spy, entity):
+        assert entity.create_transfer_object(entity_dto_spy) == EntityTransferObject(identifier, flags, entity_dto_spy)
 
-    def test_repr(self, identifier, flags):
-        assert repr(Entity(identifier, flags=flags)) == "Entity(identifier='identifier0', flags={'flag': True})"
+
+class TestEntityDTO:
+    @pytest.fixture
+    def entity_transfer_object(self, identifier, flags, entity_dto_spy):
+        return EntityTransferObject(identifier, flags, entity_dto_spy)
+
+    def test_if_subclass_of_entity(self):
+        assert issubclass(EntityTransferObject, Entity)
+
+    def test_if_data_is_stored_as_instance_attribute(self, entity_transfer_object, entity_dto_spy):
+        assert entity_transfer_object.data == entity_dto_spy
+
+    def test_if_call_to_create_identifier_only_copy_method_of_entity_dto_is_correct(
+        self, entity_transfer_object, entity_dto_spy
+    ):
+        entity_transfer_object.create_identifier_only_copy()
+        entity_dto_spy.create_identifier_only_copy.assert_called_once_with()
+
+    def test_if_create_identifier_only_copy_method_returns_correct_value(
+        self, identifier, flags, entity_dto_spy, entity_transfer_object
+    ):
+        assert entity_transfer_object.create_identifier_only_copy() == EntityTransferObject(
+            identifier, flags, entity_dto_spy.create_identifier_only_copy.return_value
+        )
 
 
 class TestRepositoryFactory:

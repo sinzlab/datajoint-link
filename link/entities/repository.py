@@ -1,18 +1,32 @@
-from typing import Optional, Dict, Any
-from dataclasses import dataclass, field
+from __future__ import annotations
+from typing import Dict
+from dataclasses import dataclass
 
 from .contents import Contents
 from .flag_manager import FlagManagerFactory
 from .transaction_manager import TransactionManager
-from .abstract_gateway import AbstractGateway
+from .abstract_gateway import AbstractEntityDTO, AbstractGateway
 from ..base import Base
 
 
 @dataclass
 class Entity:
     identifier: str
-    flags: Optional[Dict[str, bool]] = field(default_factory=dict)
-    data: Optional[Any] = field(default=None, repr=False, init=False)
+    flags: Dict[str, bool]
+
+    def create_transfer_object(self, data: AbstractEntityDTO) -> EntityTransferObject:
+        """Creates a entity transfer object given some data."""
+        return EntityTransferObject(self.identifier, self.flags, data)
+
+
+@dataclass
+class EntityTransferObject(Entity):
+    data: AbstractEntityDTO
+
+    def create_identifier_only_copy(self):
+        """Creates a copy of the instance that only contains the data pertaining to the unique identifier."""
+        # noinspection PyArgumentList
+        return self.__class__(self.identifier, self.flags, self.data.create_identifier_only_copy())
 
 
 @dataclass
