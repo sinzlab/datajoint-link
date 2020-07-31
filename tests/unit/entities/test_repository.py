@@ -34,27 +34,30 @@ class TestEntity:
         assert entity.create_transfer_entity(entity_dto_spy) == TransferEntity(identifier, flags, entity_dto_spy)
 
 
-class TestEntityDTO:
+class TestTransferEntity:
     @pytest.fixture
-    def entity_transfer_object(self, identifier, flags, entity_dto_spy):
+    def transfer_entity(self, identifier, flags, entity_dto_spy):
         return TransferEntity(identifier, flags, entity_dto_spy)
 
     def test_if_subclass_of_entity(self):
         assert issubclass(TransferEntity, Entity)
 
-    def test_if_data_is_stored_as_instance_attribute(self, entity_transfer_object, entity_dto_spy):
-        assert entity_transfer_object.data == entity_dto_spy
+    def test_if_data_is_stored_as_instance_attribute(self, transfer_entity, entity_dto_spy):
+        assert transfer_entity.data == entity_dto_spy
+
+    def test_if_create_entity_returns_correct_value(self, identifier, flags, transfer_entity):
+        assert transfer_entity.create_entity() == Entity(identifier, flags)
 
     def test_if_call_to_create_identifier_only_copy_method_of_entity_dto_is_correct(
-        self, entity_transfer_object, entity_dto_spy
+        self, transfer_entity, entity_dto_spy
     ):
-        entity_transfer_object.create_identifier_only_copy()
+        transfer_entity.create_identifier_only_copy()
         entity_dto_spy.create_identifier_only_copy.assert_called_once_with()
 
     def test_if_create_identifier_only_copy_method_returns_correct_value(
-        self, identifier, flags, entity_dto_spy, entity_transfer_object
+        self, identifier, flags, entity_dto_spy, transfer_entity
     ):
-        assert entity_transfer_object.create_identifier_only_copy() == TransferEntity(
+        assert transfer_entity.create_identifier_only_copy() == TransferEntity(
             identifier, flags, entity_dto_spy.create_identifier_only_copy.return_value
         )
 
