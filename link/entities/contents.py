@@ -6,7 +6,7 @@ from ..base import Base
 
 if TYPE_CHECKING:
     from .abstract_gateway import AbstractGateway
-    from .repository import Entity
+    from .repository import Entity, TransferEntity
 
 
 class Contents(MutableMapping, Base):
@@ -14,16 +14,16 @@ class Contents(MutableMapping, Base):
         self.entities = entities
         self.gateway = gateway
 
-    def __getitem__(self, identifier: str) -> Entity:
+    def __getitem__(self, identifier: str) -> TransferEntity:
         """Fetches an entity."""
         entity = self.entities[identifier]
-        entity.data = self.gateway.fetch(identifier)
-        return entity
+        transfer_entity = entity.create_transfer_entity(self.gateway.fetch(identifier))
+        return transfer_entity
 
-    def __setitem__(self, identifier: str, entity: Entity) -> None:
+    def __setitem__(self, identifier: str, transfer_entity: TransferEntity) -> None:
         """Inserts an entity."""
-        self.gateway.insert(entity.data)
-        self.entities[identifier] = entity
+        self.gateway.insert(transfer_entity.data)
+        self.entities[identifier] = transfer_entity.create_entity()
 
     def __delitem__(self, identifier: str) -> None:
         """Deletes an entity."""
