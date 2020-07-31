@@ -14,5 +14,5 @@ class Pull(UseCase):
         entities = [repo_link.source.contents[identifier] for identifier in valid_identifiers]
         with repo_link.outbound.transaction.transaction(), repo_link.local.transaction.transaction():
             for entity in entities:
-                repo_link.outbound.contents[entity.identifier] = entity
+                repo_link.outbound.contents[entity.identifier] = entity.create_identifier_only_copy()
                 repo_link.local.contents[entity.identifier] = entity
