@@ -16,7 +16,7 @@ class AbstractEntityDTO(ABC):
         """Contains all the data not used to compute the unique identifier of the entity."""
 
 
-class AbstractEntityGateway(ABC):
+class AbstractGateway(ABC):
     """Defines the interface of the gateway as expected by the entities."""
 
     @property

@@ -3,11 +3,11 @@ from itertools import tee
 
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
-from ...entities.abstract_gateway import AbstractEntityGateway
+from ...entities.abstract_gateway import AbstractGateway
 from ...base import Base
 
 
-class DataJointGateway(AbstractEntityGateway, Base):
+class DataJointGateway(AbstractGateway, Base):
     def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
         self.table_facade = table_facade
         self.translator = translator

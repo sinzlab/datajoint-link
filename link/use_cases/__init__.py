@@ -4,7 +4,7 @@ from typing import Dict, Callable, Any
 
 from .base import UseCase
 from .pull import Pull
-from ..entities.abstract_gateway import AbstractEntityGateway
+from ..entities.abstract_gateway import AbstractGateway
 from ..entities.repository import Repository, RepositoryFactory
 from ..base import Base
 
@@ -12,17 +12,17 @@ from ..base import Base
 class AbstractGatewayLink(ABC):
     @property
     @abstractmethod
-    def source(self) -> AbstractEntityGateway:
+    def source(self) -> AbstractGateway:
         pass
 
     @property
     @abstractmethod
-    def outbound(self) -> AbstractEntityGateway:
+    def outbound(self) -> AbstractGateway:
         pass
 
     @property
     @abstractmethod
-    def local(self) -> AbstractEntityGateway:
+    def local(self) -> AbstractGateway:
         pass
 
 

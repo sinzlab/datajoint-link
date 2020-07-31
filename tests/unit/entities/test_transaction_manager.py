@@ -3,13 +3,13 @@ from unittest.mock import create_autospec
 import pytest
 
 from link.entities.transaction_manager import TransactionManager
-from link.entities.abstract_gateway import AbstractEntityGateway
+from link.entities.abstract_gateway import AbstractGateway
 from link.base import Base
 
 
 @pytest.fixture
 def gateway_spy():
-    return create_autospec(AbstractEntityGateway, instance=True)
+    return create_autospec(AbstractGateway, instance=True)
 
 
 @pytest.fixture

@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING, Dict, Iterator
 from ..base import Base
 
 if TYPE_CHECKING:
-    from .abstract_gateway import AbstractEntityGateway
+    from .abstract_gateway import AbstractGateway
     from .repository import Entity
 
 
 class Contents(MutableMapping, Base):
-    def __init__(self, entities: Dict[str, Entity], gateway: AbstractEntityGateway) -> None:
+    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
         self.entities = entities
         self.gateway = gateway
 
