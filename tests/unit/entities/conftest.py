@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, create_autospec
 from typing import Any, List, Dict
 
 import pytest
@@ -24,7 +24,10 @@ def flags(identifiers):
 
 @pytest.fixture
 def entities(flags):
-    return {identifier: Entity(identifier, entity_flags) for identifier, entity_flags in flags.items()}
+    return {
+        identifier: create_autospec(Entity, instance=True, identifier=identifier, flags=entity_flags)
+        for identifier, entity_flags in flags.items()
+    }
 
 
 @pytest.fixture
