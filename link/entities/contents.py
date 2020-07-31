@@ -2,14 +2,14 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Dict, Iterator
 
-from .representation import represent
+from .representation import Base
 
 if TYPE_CHECKING:
     from .abstract_gateway import AbstractEntityGateway
     from .repository import Entity
 
 
-class Contents(MutableMapping):
+class Contents(MutableMapping, Base):
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractEntityGateway) -> None:
         self.entities = entities
         self.gateway = gateway
@@ -37,6 +37,3 @@ class Contents(MutableMapping):
     def __len__(self) -> int:
         """Returns the number of entities in the repository."""
         return len(self.entities)
-
-    def __repr__(self) -> str:
-        return represent(self, ["entities", "gateway"])

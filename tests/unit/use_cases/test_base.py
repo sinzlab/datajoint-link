@@ -3,22 +3,17 @@ from unittest.mock import MagicMock
 import pytest
 
 from link.use_cases import RepositoryLink, base
+from link.entities.representation import Base
 
 
 @pytest.fixture
 def repo_link_factory_spy():
-    name = "repo_link_factory_spy"
-    link_factory_spy = MagicMock(name=name, return_value="link")
-    link_factory_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return link_factory_spy
+    return MagicMock(name="repo_link_factory_spy", return_value="link")
 
 
 @pytest.fixture
 def output_port_spy():
-    name = "output_port_spy"
-    output_port_spy = MagicMock(name=name)
-    output_port_spy.__repr__ = MagicMock(name=name + ".__repr", return_value=name)
-    return output_port_spy
+    return MagicMock(name="output_port_spy")
 
 
 @pytest.fixture
@@ -27,9 +22,12 @@ def use_case(repo_link_factory_spy, output_port_spy):
         def execute(self, repo_link: RepositoryLink, *args, **kwargs):
             pass
 
-    UseCase.__qualname__ = UseCase.__name__
     UseCase.execute = MagicMock(name=UseCase.__name__ + ".execute", return_value="output")
     return UseCase(repo_link_factory_spy, output_port_spy)
+
+
+def test_if_subclass_of_base():
+    assert issubclass(base.UseCase, Base)
 
 
 class TestInit:
@@ -52,7 +50,3 @@ class TestCall:
     def test_if_call_to_output_port_is_correct(self, use_case, output_port_spy):
         use_case()
         output_port_spy.assert_called_once_with("output")
-
-
-def test_repr(use_case):
-    assert repr(use_case) == "UseCase(repo_link_factory=repo_link_factory_spy, output_port=output_port_spy)"

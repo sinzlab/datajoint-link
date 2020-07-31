@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from datajoint import Part
 
+from link.entities.representation import Base
 from link.external.datajoint.facade import TableFacade
 
 
@@ -59,12 +60,9 @@ def part_table_spies(part_table_entities):
 
 @pytest.fixture
 def table_factory_spy(table_spy, part_table_spies, flag_table_spies):
-    name = "table_factory_spy"
-    table_factory_spy = MagicMock(
-        name=name, return_value=table_spy, part_tables=part_table_spies, flag_tables=flag_table_spies
+    return MagicMock(
+        name="table_factory_spy", return_value=table_spy, part_tables=part_table_spies, flag_tables=flag_table_spies
     )
-    table_factory_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return table_factory_spy
 
 
 @pytest.fixture
@@ -80,6 +78,10 @@ def table_facade(table_factory_spy, download_path):
 @pytest.fixture
 def primary_key():
     return "primary_key"
+
+
+def test_if_table_facade_is_subclass_of_base():
+    assert issubclass(TableFacade, Base)
 
 
 def test_if_table_factory_is_stored_as_instance_attribute(table_facade, table_factory_spy):
@@ -290,7 +292,3 @@ class TestTransaction:
 
     def test_if_transaction_related_method_is_executed_in_connection(self, table_spy, method_name):
         getattr(table_spy.connection, method_name).assert_called_once_with()
-
-
-def test_repr(table_facade):
-    assert repr(table_facade) == "TableFacade(table_factory=table_factory_spy, download_path='download_path')"

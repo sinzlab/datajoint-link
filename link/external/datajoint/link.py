@@ -6,10 +6,10 @@ from datajoint.table import Table
 from .factory import TableFactory
 from .dj_helpers import replace_stores
 from ...adapters.datajoint.local_table import LocalTableController
-from ...entities.representation import represent
+from ...entities.representation import Base
 
 
-class Link:
+class Link(Base):
     _schema_cls = Schema
     _replace_stores_func = staticmethod(replace_stores)
     _table_cls_factories: Dict[str, TableFactory] = None
@@ -77,9 +77,6 @@ class Link:
 
     def _create_definition(self, table_cls: Type[Table]) -> str:
         return self._replace_stores_func(str(table_cls().heading), self.stores)
-
-    def __repr__(self) -> str:
-        return represent(self, ["local_schema", "source_schema", "stores"])
 
 
 def pull(self, *restrictions) -> None:

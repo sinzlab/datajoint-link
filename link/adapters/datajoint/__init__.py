@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from .gateway import DataJointGateway
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
-from ...entities.representation import represent
+from ...entities.representation import Base
 from ...use_cases import AbstractGatewayLink
 
 
@@ -24,7 +24,7 @@ class AbstractTableFacadeLink(ABC):
         pass
 
 
-class DataJointGatewayLink(AbstractGatewayLink):
+class DataJointGatewayLink(AbstractGatewayLink, Base):
     def __init__(
         self, source_gateway: DataJointGateway, outbound_gateway: DataJointGateway, local_gateway: DataJointGateway
     ):
@@ -43,9 +43,6 @@ class DataJointGatewayLink(AbstractGatewayLink):
     @property
     def local(self) -> DataJointGateway:
         return self.local_gateway
-
-    def __repr__(self) -> str:
-        return represent(self, ["source_gateway", "outbound_gateway", "local_gateway"])
 
 
 def initialize(table_facade_link: AbstractTableFacadeLink) -> DataJointGatewayLink:

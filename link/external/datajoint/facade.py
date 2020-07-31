@@ -1,11 +1,11 @@
 from typing import List, Dict, Any
 
 from ...adapters.datajoint.abstract_facade import AbstractTableFacade
-from ...entities.representation import represent
+from ...entities.representation import Base
 from ...types import PrimaryKey
 
 
-class TableFacade(AbstractTableFacade):
+class TableFacade(AbstractTableFacade, Base):
     def __init__(self, table_factory, download_path: str) -> None:
         self.table_factory = table_factory
         self.download_path = download_path
@@ -74,6 +74,3 @@ class TableFacade(AbstractTableFacade):
     def cancel_transaction(self) -> None:
         """Cancels a transaction."""
         self.table_factory().connection.cancel_transaction()
-
-    def __repr__(self) -> str:
-        return represent(self, ["table_factory", "download_path"])

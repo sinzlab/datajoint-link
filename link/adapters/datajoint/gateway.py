@@ -4,10 +4,10 @@ from itertools import tee
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
 from ...entities.abstract_gateway import AbstractEntityGateway
-from ...entities.representation import represent
+from ...entities.representation import Base
 
 
-class DataJointGateway(AbstractEntityGateway):
+class DataJointGateway(AbstractEntityGateway, Base):
     def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
         self.table_facade = table_facade
         self.translator = translator
@@ -83,6 +83,3 @@ class DataJointGateway(AbstractEntityGateway):
     def _to_flag_table_name(flag_name: str) -> str:
         """Translates the provided flag name to the corresponding flag table name."""
         return "".join(part.title() for part in flag_name.split("_"))
-
-    def __repr__(self) -> str:
-        return represent(self, ["table_facade", "translator"])

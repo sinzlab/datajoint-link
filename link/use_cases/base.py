@@ -3,13 +3,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Any
 
-from ..entities.representation import represent
+from ..entities.representation import Base
 
 if TYPE_CHECKING:
     from . import RepositoryLinkFactory
 
 
-class UseCase(ABC):
+class UseCase(ABC, Base):
     """Specifies the interface for use-cases."""
 
     def __init__(self, repo_link_factory: RepositoryLinkFactory, output_port: Callable[[Any], None]) -> None:
@@ -21,9 +21,6 @@ class UseCase(ABC):
         """Executes the use-case and passes its output to the output port."""
         output = self.execute(self.repo_link_factory(), *args, **kwargs)
         self.output_port(output)
-
-    def __repr__(self) -> str:
-        return represent(self, ["repo_link_factory", "output_port"])
 
     @abstractmethod
     def execute(self, *args, **kwargs) -> Any:

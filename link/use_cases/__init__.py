@@ -6,7 +6,7 @@ from .base import UseCase
 from .pull import Pull
 from ..entities.repository import Repository, RepositoryFactory
 from .abstract_gateway import AbstractUseCaseGateway
-from ..entities.representation import represent
+from ..entities.representation import Base
 
 
 class AbstractGatewayLink(ABC):
@@ -33,7 +33,7 @@ class RepositoryLink:
     local: Repository
 
 
-class RepositoryLinkFactory:
+class RepositoryLinkFactory(Base):
     repo_factory_cls = RepositoryFactory
 
     def __init__(self, gateway_link: AbstractGatewayLink) -> None:
@@ -45,9 +45,6 @@ class RepositoryLinkFactory:
             kind: self.repo_factory_cls(getattr(self.gateway_link, kind))() for kind in ("source", "outbound", "local")
         }
         return RepositoryLink(**kwargs)
-
-    def __repr__(self) -> str:
-        return represent(self, ["gateway_link"])
 
 
 def initialize(gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]]) -> Dict[str, UseCase]:

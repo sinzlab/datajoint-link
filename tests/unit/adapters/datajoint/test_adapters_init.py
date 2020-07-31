@@ -5,6 +5,7 @@ import pytest
 from link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.adapters.datajoint.identification import IdentificationTranslator
+from link.entities.representation import Base
 
 
 @pytest.fixture(params=["source", "outbound", "local"])
@@ -17,9 +18,7 @@ class TestDataJointGatewayLink:
     def gateway_stubs(self):
         gateway_stubs = dict()
         for kind in ("source", "outbound", "local"):
-            name = kind + "_gateway_stub"
-            gateway_stub = MagicMock(name=name, spec=DataJointGateway)
-            gateway_stub.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+            gateway_stub = MagicMock(name=kind + "_gateway_stub", spec=DataJointGateway)
             gateway_stubs[kind] = gateway_stub
         return gateway_stubs
 
@@ -27,19 +26,14 @@ class TestDataJointGatewayLink:
     def gateway_link(self, gateway_stubs):
         return DataJointGatewayLink(**{kind + "_gateway": gateway for kind, gateway in gateway_stubs.items()})
 
+    def test_if_subclass_of_base(self):
+        assert issubclass(DataJointGatewayLink, Base)
+
     def test_if_gateway_is_stored_as_instance_attribute(self, kind, gateway_link, gateway_stubs):
         assert getattr(gateway_link, kind + "_gateway") is gateway_stubs[kind]
 
     def test_if_correct_gateway_is_returned(self, kind, gateway_link, gateway_stubs):
         assert getattr(gateway_link, kind) is gateway_stubs[kind]
-
-    def test_repr(self, gateway_link):
-        assert repr(gateway_link) == (
-            "DataJointGatewayLink("
-            "source_gateway=source_gateway_stub, "
-            "outbound_gateway=outbound_gateway_stub, "
-            "local_gateway=local_gateway_stub)"
-        )
 
 
 class TestInitialize:

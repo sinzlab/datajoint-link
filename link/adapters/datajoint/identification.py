@@ -3,10 +3,10 @@ import json
 
 from ...types import PrimaryKey
 from .abstract_facade import AbstractTableFacade
-from ...entities.representation import represent
+from ...entities.representation import Base
 
 
-class IdentificationTranslator:
+class IdentificationTranslator(Base):
     def __init__(self, table_facade: AbstractTableFacade) -> None:
         self.table_facade = table_facade
 
@@ -19,6 +19,3 @@ class IdentificationTranslator:
         """Translates the provided identifier to its corresponding primary key."""
         mapping = {self.to_identifier(primary_key): primary_key for primary_key in self.table_facade.primary_keys}
         return mapping[identifier]
-
-    def __repr__(self) -> str:
-        return represent(self, ["table_facade"])

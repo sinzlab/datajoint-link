@@ -2,14 +2,14 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import TYPE_CHECKING, Dict, Iterator
 
-from .representation import represent
+from .representation import Base
 
 if TYPE_CHECKING:
     from .repository import Entity
     from .abstract_gateway import AbstractEntityGateway
 
 
-class FlagManagerFactory(Mapping):
+class FlagManagerFactory(Mapping, Base):
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractEntityGateway) -> None:
         self.entities = entities
         self.gateway = gateway
@@ -27,11 +27,8 @@ class FlagManagerFactory(Mapping):
         """Returns the number of entities associated with the factory."""
         return len(self.entities)
 
-    def __repr__(self) -> str:
-        return represent(self, ["entities", "gateway"])
 
-
-class FlagManager(MutableMapping):
+class FlagManager(MutableMapping, Base):
     __delitem__ = None
 
     def __init__(self, entity: Entity, gateway: AbstractEntityGateway) -> None:
@@ -54,6 +51,3 @@ class FlagManager(MutableMapping):
     def __len__(self) -> int:
         """Returns the number of flags the entity has."""
         return len(self.entity.flags)
-
-    def __repr__(self) -> str:
-        return represent(self, ["entity", "gateway"])

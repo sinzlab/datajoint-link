@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from link.entities.representation import Base
 from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
 
@@ -13,9 +14,7 @@ def primary_keys():
 
 @pytest.fixture
 def table_facade_stub(primary_keys):
-    name = "table_facade_stub"
-    table_facade_stub = MagicMock(name=name, spec=AbstractTableFacade, primary_keys=primary_keys)
-    table_facade_stub.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
+    table_facade_stub = MagicMock(name="table_facade_stub", spec=AbstractTableFacade, primary_keys=primary_keys)
     return table_facade_stub
 
 
@@ -34,6 +33,10 @@ def translator(table_facade_stub):
     return IdentificationTranslator(table_facade_stub)
 
 
+def test_if_identification_translator_is_subclass_of_base():
+    assert issubclass(IdentificationTranslator, Base)
+
+
 def test_if_table_facade_is_stored_as_instance_attribute(translator, table_facade_stub):
     assert translator.table_facade is table_facade_stub
 
@@ -49,7 +52,3 @@ def test_if_returned_identifier_is_key_order_independent(translator, primary_key
 
 def test_if_correct_primary_key_is_returned(translator, primary_key, identifier):
     assert translator.to_primary_key(identifier) == primary_key
-
-
-def test_repr(translator):
-    assert repr(translator) == "IdentificationTranslator(table_facade=table_facade_stub)"

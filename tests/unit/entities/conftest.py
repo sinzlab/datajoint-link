@@ -101,9 +101,6 @@ def gateway_spy_cls():
                 raise RuntimeError
             self.in_transaction = False
 
-        def __repr__(self) -> str:
-            return "gateway_spy"
-
     return GatewaySpy
 
 

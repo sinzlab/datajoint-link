@@ -1,6 +1,7 @@
 import pytest
 
 from link.entities import flag_manager
+from link.entities.representation import Base
 
 
 class TestFlagManager:
@@ -11,6 +12,9 @@ class TestFlagManager:
     @pytest.fixture
     def manager(self, entity, gateway_spy):
         return flag_manager.FlagManager(entity, gateway_spy)
+
+    def test_if_subclass_of_base(self):
+        assert issubclass(flag_manager.FlagManager, Base)
 
     def test_if_delitem_is_none(self):
         assert flag_manager.FlagManager.__delitem__ is None
@@ -47,14 +51,14 @@ class TestFlagManager:
     def test_len(self, manager):
         assert len(manager) == 2
 
-    def test_repr(self, manager, entity):
-        assert repr(manager) == f"FlagManager(entity={entity}, gateway=gateway_spy)"
-
 
 class TestFlagManagerFactory:
     @pytest.fixture
     def factory(self, entities, gateway_spy):
         return flag_manager.FlagManagerFactory(entities, gateway_spy)
+
+    def test_if_subclass_of_base(self):
+        assert issubclass(flag_manager.FlagManagerFactory, Base)
 
     def test_if_entities_are_stored_as_instance_attribute(self, factory, entities):
         assert factory.entities is entities
@@ -82,6 +86,3 @@ class TestFlagManagerFactory:
 
     def test_len(self, factory):
         assert len(factory) == 10
-
-    def test_repr(self, factory, entities):
-        assert repr(factory) == f"FlagManagerFactory(entities={entities}, gateway=gateway_spy)"

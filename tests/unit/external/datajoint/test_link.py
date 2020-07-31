@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 import datajoint as dj
 
+from link.entities.representation import Base
 from link.external.datajoint.dj_helpers import replace_stores
 from link.external.datajoint.link import Link, pull
 from link.external.datajoint.factory import TableFactory
@@ -14,9 +15,6 @@ def schema_cls_stub():
         def __init__(self, schema_name, connection):
             self.database = schema_name
             self.connection = connection
-
-        def __repr__(self):
-            return self.database
 
     return SchemaStub
 
@@ -107,6 +105,10 @@ def table_name():
 @pytest.fixture
 def dummy_table_cls(table_name):
     return MagicMock(name="dummy_table_cls", __name__=table_name)
+
+
+def test_if_link_is_subclass_of_base():
+    assert issubclass(Link, Base)
 
 
 def test_if_table_factories_class_attribute_is_none():
@@ -220,10 +222,6 @@ class TestCallWithInitialSetup:
 
     def test_if_local_table_class_is_returned(self, linked_table):
         assert linked_table is "local_table_cls"
-
-
-def test_repr(link, stores):
-    assert repr(link) == f"Link(local_schema=local_schema, source_schema=source_schema, stores={stores})"
 
 
 class TestPull:

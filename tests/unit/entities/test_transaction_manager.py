@@ -4,7 +4,7 @@ import pytest
 
 from link.entities.transaction_manager import TransactionManager
 from link.entities.abstract_gateway import AbstractEntityGateway
-from link.entities.representation import represent
+from link.entities.representation import Base
 
 
 @pytest.fixture
@@ -13,15 +13,12 @@ def gateway_spy():
 
 
 @pytest.fixture
-def represent_spy():
-    return create_autospec(represent, return_value="representation")
+def manager(entities, gateway_spy):
+    return TransactionManager(entities, gateway_spy)
 
 
-@pytest.fixture
-def manager(entities, gateway_spy, represent_spy):
-    manager = TransactionManager(entities, gateway_spy)
-    manager.represent_func = represent_spy
-    return manager
+def test_if_transaction_manager_inherits_from_base():
+    assert issubclass(TransactionManager, Base)
 
 
 class TestInit:
@@ -120,15 +117,3 @@ class TestTransaction:
         with manager.transaction():
             raise RuntimeError
         manager.cancel.assert_called_once_with()
-
-
-class TestRepr:
-    def test_if_represent_function_class_attribute_is_correct(self):
-        assert TransactionManager.represent_func is represent
-
-    def test_if_call_to_represent_is_correct(self, manager, represent_spy):
-        repr(manager)
-        represent_spy.assert_called_once_with(manager, ["entities", "gateway"])
-
-    def test_if_representation_is_returned(self, manager):
-        assert repr(manager) == "representation"

@@ -2,16 +2,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, ContextManager
 from contextlib import contextmanager
 
-from .representation import represent
+from .representation import Base
 
 if TYPE_CHECKING:
     from .repository import Entity
     from .abstract_gateway import AbstractEntityGateway
 
 
-class TransactionManager:
-    represent_func = represent
-
+class TransactionManager(Base):
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractEntityGateway) -> None:
         self.entities = entities
         self.gateway = gateway
@@ -48,6 +46,3 @@ class TransactionManager:
             self.cancel()
         else:
             self.commit()
-
-    def __repr__(self) -> str:
-        return self.represent_func(self, ["entities", "gateway"])

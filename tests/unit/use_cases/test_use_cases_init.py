@@ -6,6 +6,7 @@ import pytest
 from link import use_cases
 from link.use_cases.pull import Pull
 from link.entities.repository import RepositoryFactory
+from link.entities.representation import Base
 
 
 @pytest.fixture
@@ -27,10 +28,7 @@ def repo_factory_cls_spy(repos):
 
 @pytest.fixture
 def gateway_link_stub():
-    name = "gateway_link_stub"
-    gateway_link_stub = MagicMock(name=name, spec=use_cases.AbstractGatewayLink)
-    gateway_link_stub.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
-    return gateway_link_stub
+    return MagicMock(name="gateway_link_stub", spec=use_cases.AbstractGatewayLink)
 
 
 @pytest.fixture
@@ -38,11 +36,13 @@ def factory(repo_factory_cls_spy, gateway_link_stub):
     class RepositoryLinkFactory(use_cases.RepositoryLinkFactory):
         repo_factory_cls = repo_factory_cls_spy
 
-    RepositoryLinkFactory.__qualname__ = RepositoryLinkFactory.__name__
     return RepositoryLinkFactory(gateway_link_stub)
 
 
 class TestRepositoryLinkFactory:
+    def test_if_subclass_of_base(self):
+        assert issubclass(use_cases.RepositoryLinkFactory, Base)
+
     def test_if_repo_factory_cls_is_correct(self):
         assert use_cases.RepositoryLinkFactory.repo_factory_cls is RepositoryFactory
 
@@ -72,9 +72,6 @@ class TestRepositoryLinkFactory:
 
     def test_if_local_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos):
         assert factory().local is repos["local"]
-
-    def test_repr(self, factory):
-        assert repr(factory) == "RepositoryLinkFactory(gateway_link=gateway_link_stub)"
 
 
 class TestInitialize:

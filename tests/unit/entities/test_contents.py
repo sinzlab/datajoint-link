@@ -2,11 +2,16 @@ import pytest
 
 from link.entities.contents import Contents
 from link.entities.repository import Entity
+from link.entities.representation import Base
 
 
 @pytest.fixture
 def contents(entities, gateway_spy):
     return Contents(entities, gateway_spy)
+
+
+def test_if_contents_is_subclass_of_base():
+    assert issubclass(Contents, Base)
 
 
 class TestInit:
@@ -99,7 +104,3 @@ def test_iter(contents, identifiers):
 
 def test_len(contents):
     assert len(contents) == 10
-
-
-def test_repr(contents, entities):
-    assert repr(contents) == f"Contents(entities={entities}, gateway=gateway_spy)"

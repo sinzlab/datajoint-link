@@ -6,6 +6,7 @@ from link.entities.repository import Entity, Repository, RepositoryFactory
 from link.entities.contents import Contents
 from link.entities.flag_manager import FlagManagerFactory
 from link.entities.transaction_manager import TransactionManager
+from link.entities.representation import Base
 
 
 class TestEntity:
@@ -37,6 +38,9 @@ class TestRepositoryFactory:
     @pytest.fixture
     def factory(self, gateway_spy, storage):
         return RepositoryFactory(gateway_spy)
+
+    def test_if_subclass_of_base(self):
+        assert issubclass(RepositoryFactory, Base)
 
     def test_if_gateway_is_stored_as_instance_attribute(self, factory, gateway_spy):
         assert factory.gateway is gateway_spy

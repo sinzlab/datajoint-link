@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from link.entities.abstract_gateway import AbstractEntityGateway
+from link.entities.representation import Base
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
@@ -24,13 +25,11 @@ def flags():
 
 @pytest.fixture
 def table_facade_spy(primary_keys, flags):
-    name = "table_facade_spy"
-    table_facade_spy = MagicMock(name=name, spec=AbstractTableFacade, primary_keys=primary_keys)
+    table_facade_spy = MagicMock(name="table_facade_spy", spec=AbstractTableFacade, primary_keys=primary_keys)
     table_facade_spy.get_primary_keys_in_restriction.return_value = primary_keys
     table_facade_spy.get_flags.return_value = flags
     table_facade_spy.fetch_master.return_value = "master_entity"
     table_facade_spy.fetch_parts.return_value = "part_entities"
-    table_facade_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return table_facade_spy
 
 
@@ -41,17 +40,19 @@ def identifiers():
 
 @pytest.fixture
 def translator_spy(identifiers):
-    name = "translator_spy"
     translator_spy = MagicMock(name="translator_spy", spec=IdentificationTranslator)
     translator_spy.to_identifier.side_effect = identifiers
     translator_spy.to_primary_key.return_value = "primary_key0"
-    translator_spy.__repr__ = MagicMock(name=name + ".__repr__", return_value=name)
     return translator_spy
 
 
 @pytest.fixture
 def gateway(table_facade_spy, translator_spy):
     return DataJointGateway(table_facade_spy, translator_spy)
+
+
+def test_if_gateway_is_subclass_of_base():
+    assert issubclass(DataJointGateway, Base)
 
 
 class TestInit:
@@ -206,7 +207,3 @@ def test_if_transaction_is_committed_in_proxy(gateway, table_facade_spy):
 def test_if_transaction_is_cancelled_in_proxy(gateway, table_facade_spy):
     gateway.cancel_transaction()
     table_facade_spy.cancel_transaction.assert_called_once_with()
-
-
-def test_repr(gateway):
-    assert repr(gateway) == "DataJointGateway(table_facade=table_facade_spy, translator=translator_spy)"
