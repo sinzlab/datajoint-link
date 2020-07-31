@@ -1,5 +1,6 @@
-from unittest.mock import create_autospec, call
+from unittest.mock import MagicMock, create_autospec, call
 from dataclasses import is_dataclass
+from collections.abc import MutableMapping
 
 import pytest
 
@@ -60,6 +61,84 @@ class TestTransferEntity:
         assert transfer_entity.create_identifier_only_copy() == TransferEntity(
             identifier, flags, entity_dto_spy.create_identifier_only_copy.return_value
         )
+
+
+class TestRepository:
+    @pytest.fixture
+    def contents_spy(self):
+        spy = create_autospec(Contents, instance=True)
+        spy.__iter__.return_value = "iterator"
+        spy.__len__.return_value = 10
+        return spy
+
+    @pytest.fixture
+    def flag_manager_factory_spy(self):
+        return create_autospec(FlagManagerFactory, instance=True)
+
+    @pytest.fixture
+    def transaction_manager_spy(self):
+        return create_autospec(TransactionManager, instance=True)
+
+    @pytest.fixture
+    def repo(self, contents_spy, flag_manager_factory_spy, transaction_manager_spy):
+        return Repository(contents_spy, flag_manager_factory_spy, transaction_manager_spy)
+
+    def test_if_subclass_of_mutable_mapping(self):
+        assert issubclass(Repository, MutableMapping)
+
+    def test_if_subclass_of_base(self):
+        assert issubclass(Repository, Base)
+
+    def test_if_contents_are_stored_as_instance_attribute(self, repo, contents_spy):
+        assert repo.contents is contents_spy
+
+    def test_if_flag_manager_factory_is_stored_as_instance_attribute(self, repo, flag_manager_factory_spy):
+        assert repo.flags is flag_manager_factory_spy
+
+    def test_if_transaction_manager_is_stored_as_instance_attribute(self, repo, transaction_manager_spy):
+        assert repo.transaction is transaction_manager_spy
+
+    def test_if_entity_is_retrieved_from_contents(self, identifier, repo, contents_spy):
+        _ = repo[identifier]
+        contents_spy.__getitem__.assert_called_once_with(identifier)
+
+    def test_if_entity_is_returned(self, identifier, repo, contents_spy):
+        assert repo[identifier] is contents_spy.__getitem__.return_value
+
+    def test_if_entity_is_added_to_contents(self, identifier, repo, contents_spy):
+        dummy_transfer_entity = MagicMock()
+        repo[identifier] = dummy_transfer_entity
+        contents_spy.__setitem__.assert_called_once_with(identifier, dummy_transfer_entity)
+
+    def test_if_entity_is_deleted_from_contents(self, identifier, repo, contents_spy):
+        del repo[identifier]
+        contents_spy.__delitem__.assert_called_once_with(identifier)
+
+    def test_iterator_is_created_from_contents(self, repo, contents_spy):
+        iter(repo)
+        contents_spy.__iter__.assert_called_once_with()
+
+    def test_if_iterator_is_returned(self, repo, contents_spy):
+        assert "".join(iter(repo)) == "iterator"
+
+    def test_if_length_of_contents_is_checked(self, repo, contents_spy):
+        len(repo)
+        contents_spy.__len__.assert_called_once_with()
+
+    def test_if_length_of_contents_is_returned(self, repo, contents_spy):
+        assert len(repo) == 10
+
+    def test_if_transaction_is_started_in_manager(self, repo, transaction_manager_spy):
+        repo.start_transaction()
+        transaction_manager_spy.start.assert_called_once_with()
+
+    def test_if_transaction_is_committed_in_manager(self, repo, transaction_manager_spy):
+        repo.commit_transaction()
+        transaction_manager_spy.commit.assert_called_once_with()
+
+    def test_if_transaction_is_cancelled_in_manager(self, repo, transaction_manager_spy):
+        repo.cancel_transaction()
+        transaction_manager_spy.cancel.assert_called_once_with()
 
 
 class TestRepositoryFactory:

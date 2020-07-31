@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Dict
+from typing import Dict, Iterator
 from dataclasses import dataclass
+from collections.abc import MutableMapping
 
 from .contents import Contents
 from .flag_manager import FlagManagerFactory
@@ -33,11 +34,40 @@ class TransferEntity(Entity):
         return self.__class__(self.identifier, self.flags, self.data.create_identifier_only_copy())
 
 
-@dataclass
-class Repository:
-    contents: Contents
-    flags: FlagManagerFactory
-    transaction: TransactionManager
+class Repository(MutableMapping, Base):
+    def __init__(self, contents: Contents, flags: FlagManagerFactory, transaction: TransactionManager):
+        self.contents = contents
+        self.flags = flags
+        self.transaction = transaction
+
+    def __getitem__(self, identifier: str) -> TransferEntity:
+        """Gets an entity from the repository."""
+        return self.contents[identifier]
+
+    def __setitem__(self, identifier: str, transfer_entity: TransferEntity) -> None:
+        """Adds an entity to the repository."""
+        self.contents[identifier] = transfer_entity
+
+    def __delitem__(self, identifier: str) -> None:
+        """Deletes an entity from the repository."""
+        del self.contents[identifier]
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterates over identifiers in the repository."""
+        return iter(self.contents)
+
+    def __len__(self) -> int:
+        """Returns the number of identifiers in the repository."""
+        return len(self.contents)
+
+    def start_transaction(self) -> None:
+        self.transaction.start()
+
+    def commit_transaction(self) -> None:
+        self.transaction.commit()
+
+    def cancel_transaction(self) -> None:
+        self.transaction.cancel()
 
 
 class RepositoryFactory(Base):
@@ -45,7 +75,7 @@ class RepositoryFactory(Base):
         self.gateway = gateway
 
     def __call__(self) -> Repository:
-        """Creates a repository."""
+        """Creates a repo."""
         entities = {
             identifier: Entity(identifier, self.gateway.get_flags(identifier))
             for identifier in self.gateway.identifiers
