@@ -1,9 +1,10 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional
 
 
 class AbstractEntityDTO(ABC):
-    """Defines the interface of the data transfer object that is passed between the gateway and the use-cases."""
+    """Defines the interface of the data transfer object containing an entity's data."""
 
     @property
     @abstractmethod
@@ -14,6 +15,10 @@ class AbstractEntityDTO(ABC):
     @abstractmethod
     def non_identifier_data(self) -> Optional[Any]:
         """Contains all the data not used to compute the unique identifier of the entity."""
+
+    @abstractmethod
+    def create_identifier_only_copy(self) -> AbstractEntityDTO:
+        """Creates a copy of the instance containing only the data used to compute the unique identifier."""
 
 
 class AbstractGateway(ABC):
