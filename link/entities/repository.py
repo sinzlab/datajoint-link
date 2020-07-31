@@ -14,13 +14,13 @@ class Entity:
     identifier: str
     flags: Dict[str, bool]
 
-    def create_transfer_object(self, data: AbstractEntityDTO) -> EntityTransferObject:
+    def create_transfer_entity(self, data: AbstractEntityDTO) -> TransferEntity:
         """Creates a entity transfer object given some data."""
-        return EntityTransferObject(self.identifier, self.flags, data)
+        return TransferEntity(self.identifier, self.flags, data)
 
 
 @dataclass
-class EntityTransferObject(Entity):
+class TransferEntity(Entity):
     data: AbstractEntityDTO
 
     def create_identifier_only_copy(self):
