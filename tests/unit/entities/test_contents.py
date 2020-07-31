@@ -45,7 +45,7 @@ class TestSetItem:
 
     @pytest.fixture
     def new_entity(self, new_identifier):
-        new_entity = Entity(new_identifier)
+        new_entity = Entity(new_identifier, dict())
         new_entity.data = "data"
         return new_entity
 
