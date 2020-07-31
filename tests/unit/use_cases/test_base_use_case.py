@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from link.use_cases import RepositoryLink, base
-from link.entities.representation import Base
+from link.base import Base
 
 
 @pytest.fixture

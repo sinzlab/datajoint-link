@@ -1,7 +1,7 @@
 import pytest
 
 from link.entities import flag_manager
-from link.entities.representation import Base
+from link.base import Base
 
 
 class TestFlagManager:

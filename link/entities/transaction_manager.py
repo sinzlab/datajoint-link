@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, ContextManager
 from contextlib import contextmanager
 
-from .representation import Base
+from ..base import Base
 
 if TYPE_CHECKING:
     from .repository import Entity

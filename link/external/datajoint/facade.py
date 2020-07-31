@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 
 from ...adapters.datajoint.abstract_facade import AbstractTableFacade
-from ...entities.representation import Base
+from ...base import Base
 from ...types import PrimaryKey
 
 

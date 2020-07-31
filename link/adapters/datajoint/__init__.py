@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from .gateway import DataJointGateway
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
-from ...entities.representation import Base
+from ...base import Base
 from ...use_cases import AbstractGatewayLink
 
 

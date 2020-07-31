@@ -6,7 +6,7 @@ from link.entities.repository import Entity, Repository, RepositoryFactory
 from link.entities.contents import Contents
 from link.entities.flag_manager import FlagManagerFactory
 from link.entities.transaction_manager import TransactionManager
-from link.entities.representation import Base
+from link.base import Base
 
 
 class TestEntity:

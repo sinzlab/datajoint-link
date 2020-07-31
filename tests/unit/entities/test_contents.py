@@ -2,7 +2,7 @@ import pytest
 
 from link.entities.contents import Contents
 from link.entities.repository import Entity
-from link.entities.representation import Base
+from link.base import Base
 
 
 @pytest.fixture

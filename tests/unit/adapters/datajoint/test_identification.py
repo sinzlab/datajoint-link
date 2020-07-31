@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.entities.representation import Base
+from link.base import Base
 from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
 

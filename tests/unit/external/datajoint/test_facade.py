@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from datajoint import Part
 
-from link.entities.representation import Base
+from link.base import Base
 from link.external.datajoint.facade import TableFacade
 
 

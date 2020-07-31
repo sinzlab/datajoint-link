@@ -5,7 +5,7 @@ import pytest
 from link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.adapters.datajoint.identification import IdentificationTranslator
-from link.entities.representation import Base
+from link.base import Base
 
 
 @pytest.fixture(params=["source", "outbound", "local"])

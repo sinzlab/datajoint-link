@@ -6,7 +6,7 @@ import pytest
 from link import use_cases
 from link.use_cases.pull import Pull
 from link.entities.repository import RepositoryFactory
-from link.entities.representation import Base
+from link.base import Base
 
 
 @pytest.fixture

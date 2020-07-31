@@ -6,7 +6,7 @@ from .base import UseCase
 from .pull import Pull
 from ..entities.repository import Repository, RepositoryFactory
 from .abstract_gateway import AbstractUseCaseGateway
-from ..entities.representation import Base
+from ..base import Base
 
 
 class AbstractGatewayLink(ABC):

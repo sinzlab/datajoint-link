@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Any
 
-from ..entities.representation import Base
+from ..base import Base
 
 if TYPE_CHECKING:
     from . import RepositoryLinkFactory

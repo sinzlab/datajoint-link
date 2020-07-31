@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import TYPE_CHECKING, Dict, Iterator
 
-from .representation import Base
+from ..base import Base
 
 if TYPE_CHECKING:
     from .repository import Entity

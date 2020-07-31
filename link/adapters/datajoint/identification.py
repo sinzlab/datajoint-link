@@ -3,7 +3,7 @@ import json
 
 from ...types import PrimaryKey
 from .abstract_facade import AbstractTableFacade
-from ...entities.representation import Base
+from ...base import Base
 
 
 class IdentificationTranslator(Base):

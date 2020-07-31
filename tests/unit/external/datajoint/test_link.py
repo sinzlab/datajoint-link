@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 import datajoint as dj
 
-from link.entities.representation import Base
+from link.base import Base
 from link.external.datajoint.dj_helpers import replace_stores
 from link.external.datajoint.link import Link, pull
 from link.external.datajoint.factory import TableFactory

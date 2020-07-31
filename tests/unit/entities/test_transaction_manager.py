@@ -4,7 +4,7 @@ import pytest
 
 from link.entities.transaction_manager import TransactionManager
 from link.entities.abstract_gateway import AbstractEntityGateway
-from link.entities.representation import Base
+from link.base import Base
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-from link.entities.representation import Base
+from link.base import Base
 
 
 def test_repr():

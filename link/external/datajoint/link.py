@@ -6,7 +6,7 @@ from datajoint.table import Table
 from .factory import TableFactory
 from .dj_helpers import replace_stores
 from ...adapters.datajoint.local_table import LocalTableController
-from ...entities.representation import Base
+from ...base import Base
 
 
 class Link(Base):

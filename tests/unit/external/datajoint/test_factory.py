@@ -4,7 +4,7 @@ from copy import deepcopy
 import pytest
 from datajoint import Lookup, Part
 
-from link.entities.representation import Base
+from link.base import Base
 from link.external.datajoint.factory import TableFactory
 
 

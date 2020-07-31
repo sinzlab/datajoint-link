@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Type, Any, Union
 from datajoint import Schema, Lookup, Part, Table
 
 from .dj_helpers import get_part_table_classes
-from ...entities.representation import Base
+from ...base import Base
 
 
 class TableFactory(Base):

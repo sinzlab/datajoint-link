@@ -5,7 +5,7 @@ from .contents import Contents
 from .flag_manager import FlagManagerFactory
 from .transaction_manager import TransactionManager
 from .abstract_gateway import AbstractEntityGateway
-from .representation import Base
+from ..base import Base
 
 
 @dataclass

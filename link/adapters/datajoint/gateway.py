@@ -4,7 +4,7 @@ from itertools import tee
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
 from ...entities.abstract_gateway import AbstractEntityGateway
-from ...entities.representation import Base
+from ...base import Base
 
 
 class DataJointGateway(AbstractEntityGateway, Base):
