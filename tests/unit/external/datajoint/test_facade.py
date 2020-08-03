@@ -1,10 +1,12 @@
 from unittest.mock import MagicMock
+from dataclasses import is_dataclass
 
 import pytest
 from datajoint import Part
 
 from link.base import Base
-from link.external.datajoint.facade import TableFacade
+from link.external.datajoint.facade import TableEntityDTO, TableFacade
+from link.adapters.datajoint.abstract_facade import AbstractTableEntityDTO
 
 
 @pytest.fixture
@@ -28,11 +30,21 @@ def flag_table_spies(flag_table_names, is_present_in_flag_table):
 
 
 @pytest.fixture
-def table_spy(flag_table_spies):
+def primary_key():
+    return dict(primary_attr1=0, primary_attr2=1)
+
+
+@pytest.fixture
+def master_entity(primary_key):
+    return dict(primary_key, non_primary_attr1=0, non_primary_attr2=1)
+
+
+@pytest.fixture
+def table_spy(flag_table_spies, master_entity):
     table_spy = MagicMock(name="table_spy", flag_table_names=flag_table_names)
     table_spy.proj.return_value.fetch.return_value = "primary_keys"
     table_spy.proj.return_value.__and__.return_value.fetch.return_value = "primary_keys_in_restriction"
-    table_spy.__and__.return_value.fetch1.return_value = "master_entity"
+    table_spy.__and__.return_value.fetch1.return_value = master_entity
     for name, flag_table_spy in flag_table_spies.items():
         setattr(table_spy, name, flag_table_spy)
     return table_spy
@@ -75,9 +87,12 @@ def table_facade(table_factory_spy, download_path):
     return TableFacade(table_factory_spy, download_path)
 
 
-@pytest.fixture
-def primary_key():
-    return "primary_key"
+class TestTableEntityDTO:
+    def test_if_subclass_of_abstract_table_entity_dto(self):
+        assert issubclass(TableEntityDTO, AbstractTableEntityDTO)
+
+    def test_if_dataclass(self):
+        assert is_dataclass(TableEntityDTO)
 
 
 def test_if_table_facade_is_subclass_of_base():
@@ -162,8 +177,8 @@ class TestGetFlags:
 
 
 @pytest.mark.usefixtures("execute_method")
-class TestFetchMaster:
-    method_name = "fetch_master"
+class TestFetch:
+    method_name = "fetch"
     method_arg_fixtures = ["primary_key"]
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
@@ -175,15 +190,6 @@ class TestFetchMaster:
     def test_if_master_entity_is_fetched(self, table_spy, download_path):
         table_spy.__and__.return_value.fetch1.assert_called_once_with(download_path=download_path)
 
-    def test_if_master_entity_is_returned(self, method_return_value):
-        assert method_return_value == "master_entity"
-
-
-@pytest.mark.usefixtures("execute_method")
-class TestFetchParts:
-    method_name = "fetch_parts"
-    method_arg_fixtures = ["primary_key"]
-
     def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
         for part in part_table_spies.values():
             part.__and__.assert_called_once_with(primary_key)
@@ -192,18 +198,22 @@ class TestFetchParts:
         for part in part_table_spies.values():
             part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
 
-    def test_if_part_entities_are_returned(self, method_return_value, part_table_entities):
-        assert method_return_value == part_table_entities
+    def test_if_table_entity_dto_is_returned(
+        self, method_return_value, primary_key, master_entity, part_table_entities
+    ):
+        assert method_return_value == TableEntityDTO(
+            primary_key=primary_key, master_entity=master_entity, part_entities=part_table_entities
+        )
 
 
 @pytest.mark.usefixtures("execute_method")
-class TestInsertMaster:
-    method_name = "insert_master"
-    method_arg_fixtures = ["master_entity"]
+class TestInsert:
+    method_name = "insert"
+    method_arg_fixtures = ["table_entity_dto"]
 
     @pytest.fixture
-    def master_entity(self):
-        return "master_entity"
+    def table_entity_dto(self, primary_key, master_entity, part_table_entities):
+        return TableEntityDTO(primary_key=primary_key, master_entity=master_entity, part_entities=part_table_entities)
 
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
@@ -211,35 +221,14 @@ class TestInsertMaster:
     def test_if_master_entity_is_inserted(self, table_spy, master_entity):
         table_spy.insert1.assert_called_once_with(master_entity)
 
-
-@pytest.mark.usefixtures("execute_method")
-class TestInsertParts:
-    method_name = "insert_parts"
-    method_arg_fixtures = ["part_table_entities"]
-
     def test_if_part_entities_are_inserted(self, part_table_spies, part_table_entities):
         for name, part in part_table_spies.items():
             part.insert.assert_called_once_with(part_table_entities[name])
 
 
 @pytest.mark.usefixtures("execute_method")
-class TestDeleteMaster:
-    method_name = "delete_master"
-    method_arg_fixtures = ["primary_key"]
-
-    def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
-        table_factory_spy.assert_called_once_with()
-
-    def test_if_table_is_restricted(self, table_spy, primary_key):
-        table_spy.__and__.assert_called_once_with(primary_key)
-
-    def test_if_master_table_entity_is_deleted(self, table_spy):
-        table_spy.__and__.return_value.delete_quick.assert_called_once_with()
-
-
-@pytest.mark.usefixtures("execute_method")
-class TestDeleteParts:
-    method_name = "delete_parts"
+class TestDelete:
+    method_name = "delete"
     method_arg_fixtures = ["primary_key"]
 
     def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
@@ -249,6 +238,15 @@ class TestDeleteParts:
     def test_if_part_table_entities_are_deleted(self, part_table_spies):
         for part in part_table_spies.values():
             part.__and__.return_value.delete_quick.assert_called_once_with()
+
+    def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
+        table_factory_spy.assert_called_once_with()
+
+    def test_if_table_is_restricted(self, table_spy, primary_key):
+        table_spy.__and__.assert_called_once_with(primary_key)
+
+    def test_if_master_table_entity_is_deleted(self, table_spy):
+        table_spy.__and__.return_value.delete_quick.assert_called_once_with()
 
 
 @pytest.fixture

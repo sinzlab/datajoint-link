@@ -1,8 +1,16 @@
 from typing import List, Dict, Any
+from dataclasses import dataclass
 
-from ...adapters.datajoint.abstract_facade import AbstractTableFacade
+from ...adapters.datajoint.abstract_facade import AbstractTableEntityDTO, AbstractTableFacade
 from ...base import Base
 from ...types import PrimaryKey
+
+
+@dataclass
+class TableEntityDTO(AbstractTableEntityDTO):
+    primary_key: PrimaryKey = None
+    master_entity: Dict[str, Any] = None
+    part_entities: Dict[str, Any] = None
 
 
 class TableFacade(AbstractTableFacade, Base):
@@ -26,34 +34,25 @@ class TableFacade(AbstractTableFacade, Base):
             flags[flag_table_name] = primary_key in (flag_table & primary_key)
         return flags
 
-    def fetch_master(self, primary_key: PrimaryKey) -> Dict[str, Any]:
-        """Fetches the entity identified by the provided primary key from the master table."""
-        return (self.table_factory() & primary_key).fetch1(download_path=self.download_path)
-
-    def fetch_parts(self, primary_key: PrimaryKey) -> Dict[str, Any]:
-        """Fetches the entities identified by the provided primary key from the part tables."""
+    def fetch(self, primary_key: PrimaryKey) -> TableEntityDTO:
+        """Fetches the entity identified by the provided primary key from the table."""
+        master_entity = (self.table_factory() & primary_key).fetch1(download_path=self.download_path)
         part_entities = dict()
         for part_name, part in self.table_factory.part_tables.items():
             part_entities[part_name] = (part & primary_key).fetch(as_dict=True, download_path=self.download_path)
-        return part_entities
+        return TableEntityDTO(primary_key=primary_key, master_entity=master_entity, part_entities=part_entities)
 
-    def insert_master(self, master_entity: Dict[str, Any]) -> None:
-        """Inserts the master entity into the master table."""
-        self.table_factory().insert1(master_entity)
-
-    def insert_parts(self, part_entities: Dict[str, Any]) -> None:
-        """Inserts the part entities into the part tables."""
-        for part_name, part_entity in part_entities.items():
+    def insert(self, table_entity_dto: TableEntityDTO) -> None:
+        """Inserts the entity into the table."""
+        self.table_factory().insert1(table_entity_dto.master_entity)
+        for part_name, part_entity in table_entity_dto.part_entities.items():
             self.table_factory.part_tables[part_name].insert(part_entity)
 
-    def delete_master(self, primary_key: PrimaryKey) -> None:
-        """Deletes the entity identified by the provided primary key from the master table."""
-        (self.table_factory() & primary_key).delete_quick()
-
-    def delete_parts(self, primary_key: PrimaryKey) -> None:
-        """Deletes the part entities identified by the provided primary key from the part tables."""
+    def delete(self, primary_key: PrimaryKey) -> None:
+        """Deletes the entity identified by the provided primary key from the table."""
         for part in self.table_factory.part_tables.values():
             (part & primary_key).delete_quick()
+        (self.table_factory() & primary_key).delete_quick()
 
     def enable_flag(self, primary_key: PrimaryKey, flag_table: str) -> None:
         """Enables the provided flag on the entity identified by the provided primary key."""
