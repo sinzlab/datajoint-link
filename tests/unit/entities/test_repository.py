@@ -140,6 +140,13 @@ class TestRepository:
         repo.cancel_transaction()
         transaction_manager_spy.cancel.assert_called_once_with()
 
+    def test_if_transaction_is_called_in_manager(self, repo, transaction_manager_spy):
+        repo.transaction()
+        transaction_manager_spy.transaction.assert_called_once_with()
+
+    def test_if_transaction_context_manager_is_returned(self, repo, transaction_manager_spy):
+        assert repo.transaction() is transaction_manager_spy.transaction.return_value
+
 
 class TestRepositoryFactory:
     @pytest.fixture

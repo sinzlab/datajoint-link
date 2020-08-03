@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Iterator
+from typing import Dict, Iterator, ContextManager
 from dataclasses import dataclass
 from collections.abc import MutableMapping
 
@@ -68,6 +68,10 @@ class Repository(MutableMapping, Base):
 
     def cancel_transaction(self) -> None:
         self.transaction_manager.cancel()
+
+    def transaction(self) -> ContextManager:
+        """Context manager that handles the starting, committing and cancelling of transactions."""
+        return self.transaction_manager.transaction()
 
 
 class RepositoryFactory(Base):
