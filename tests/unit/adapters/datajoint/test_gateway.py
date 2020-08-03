@@ -1,12 +1,35 @@
 from unittest.mock import MagicMock, call
+from dataclasses import is_dataclass
 
 import pytest
 
-from link.entities.abstract_gateway import AbstractGateway
+from link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
 from link.base import Base
-from link.adapters.datajoint.gateway import DataJointGateway
+from link.adapters.datajoint.gateway import EntityDTO, DataJointGateway
 from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
+
+
+class TestEntityDTO:
+    def test_if_subclass_of_abstract_entity_dto(self):
+        assert issubclass(EntityDTO, AbstractEntityDTO)
+
+    def test_if_dataclass(self):
+        assert is_dataclass(EntityDTO)
+
+    def test_if_identifier_data_is_stored_as_instance_attribute(self):
+        assert EntityDTO("identifier_data").identifier_data == "identifier_data"
+
+    def test_if_non_identifier_data_is_stored_as_instance_attribute(self):
+        assert EntityDTO("identifier_data", "non_identifier_data").non_identifier_data == "non_identifier_data"
+
+    def test_if_non_identifier_data_is_none_if_not_provided(self):
+        assert EntityDTO("identifier_data").non_identifier_data is None
+
+    def test_if_created_identifier_only_copy_is_correct(self):
+        assert EntityDTO("identifier_data", "non_identifier_data").create_identifier_only_copy() == EntityDTO(
+            "identifier_data"
+        )
 
 
 def test_if_datajoint_gateway_is_subclass_of_abstract_gateway():

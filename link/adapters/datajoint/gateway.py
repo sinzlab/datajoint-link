@@ -1,10 +1,27 @@
-from typing import List, Dict, Any
+from __future__ import annotations
+from typing import List, Dict, Any, Optional
 from itertools import tee
+from dataclasses import dataclass
 
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
-from ...entities.abstract_gateway import AbstractGateway
+from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
 from ...base import Base
+
+
+@dataclass
+class EntityDTO(AbstractEntityDTO):
+    """Data transfer object representing a table entity."""
+
+    identifier_data = non_identifier_data = None
+
+    def __init__(self, identifier_data: Any, non_identifier_data: Optional[Any] = None) -> None:
+        self.identifier_data = identifier_data
+        self.non_identifier_data = non_identifier_data
+
+    def create_identifier_only_copy(self) -> EntityDTO:
+        """Creates a new instance of the class containing only the data used to compute the identifier."""
+        return self.__class__(self.identifier_data)
 
 
 class DataJointGateway(AbstractGateway, Base):
