@@ -13,8 +13,11 @@ from ...base import Base
 class EntityDTO(AbstractEntityDTO):
     """Data transfer object representing a table entity."""
 
-    identifier_data: Any = None
-    non_identifier_data: Optional[Any] = None
+    identifier_data = non_identifier_data = None
+
+    def __init__(self, identifier_data: Any, non_identifier_data: Optional[Any] = None) -> None:
+        self.identifier_data = identifier_data
+        self.non_identifier_data = non_identifier_data if non_identifier_data is not None else dict()
 
     def create_identifier_only_copy(self) -> EntityDTO:
         """Creates a new instance of the class containing only the data used to compute the identifier."""

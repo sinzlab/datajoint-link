@@ -17,6 +17,18 @@ class TestEntityDTO:
     def test_if_dataclass(self):
         assert is_dataclass(EntityDTO)
 
+    def test_if_identifier_data_is_stored_as_instance_attribute(self):
+        assert EntityDTO("identifier_data").identifier_data == "identifier_data"
+
+    def test_if_non_identifier_data_is_stored_as_instance_attribute(self):
+        assert (
+            EntityDTO("identifier_data", non_identifier_data="non_identifier_data").non_identifier_data
+            == "non_identifier_data"
+        )
+
+    def test_if_non_identifier_data_is_empty_dict_if_not_provided(self):
+        assert EntityDTO("identifier_data").non_identifier_data == dict()
+
     def test_if_created_identifier_only_copy_is_correct(self):
         assert EntityDTO("identifier_data", "non_identifier_data").create_identifier_only_copy() == EntityDTO(
             "identifier_data"

@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from ...adapters.datajoint.abstract_facade import AbstractTableEntityDTO, AbstractTableFacade
@@ -8,9 +8,14 @@ from ...types import PrimaryKey
 
 @dataclass
 class TableEntityDTO(AbstractTableEntityDTO):
-    primary_key: PrimaryKey = None
-    master_entity: Dict[str, Any] = None
-    part_entities: Dict[str, Any] = None
+    primary_key = master_entity = part_entities = None
+
+    def __init__(
+        self, primary_key: PrimaryKey, master_entity: Dict[str, Any], part_entities: Optional[Dict[str, Any]] = None,
+    ):
+        self.primary_key = primary_key
+        self.master_entity = master_entity
+        self.part_entities = part_entities if part_entities is not None else dict()
 
 
 class TableFacade(AbstractTableFacade, Base):

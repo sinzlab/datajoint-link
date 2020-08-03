@@ -89,6 +89,18 @@ class TestTableEntityDTO:
     def test_if_dataclass(self):
         assert is_dataclass(TableEntityDTO)
 
+    def test_if_primary_key_is_stored_as_instance_attribute(self, primary_key, master_entity):
+        assert TableEntityDTO(primary_key, master_entity).primary_key is primary_key
+
+    def test_if_master_entity_is_stored_as_instance_attribute(self, primary_key, master_entity):
+        assert TableEntityDTO(primary_key, master_entity).master_entity is master_entity
+
+    def test_if_part_entities_are_stored_as_instance_attribute(self, primary_key, master_entity, part_entities):
+        assert TableEntityDTO(primary_key, master_entity, part_entities=part_entities).part_entities is part_entities
+
+    def test_if_part_entities_are_empty_dict_if_not_provided(self, primary_key, master_entity):
+        assert TableEntityDTO(primary_key, master_entity).part_entities == dict()
+
 
 def test_if_table_facade_is_subclass_of_base():
     assert issubclass(TableFacade, Base)
