@@ -60,15 +60,6 @@ class Repository(MutableMapping, Base):
         """Returns the number of identifiers in the repository."""
         return len(self.contents)
 
-    def start_transaction(self) -> None:
-        self.transaction_manager.start()
-
-    def commit_transaction(self) -> None:
-        self.transaction_manager.commit()
-
-    def cancel_transaction(self) -> None:
-        self.transaction_manager.cancel()
-
     def transaction(self) -> ContextManager:
         """Context manager that handles the starting, committing and cancelling of transactions."""
         return self.transaction_manager.transaction()

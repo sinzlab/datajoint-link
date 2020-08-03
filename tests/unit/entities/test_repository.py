@@ -128,18 +128,6 @@ class TestRepository:
     def test_if_length_of_contents_is_returned(self, repo, contents_spy):
         assert len(repo) == 10
 
-    def test_if_transaction_is_started_in_manager(self, repo, transaction_manager_spy):
-        repo.start_transaction()
-        transaction_manager_spy.start.assert_called_once_with()
-
-    def test_if_transaction_is_committed_in_manager(self, repo, transaction_manager_spy):
-        repo.commit_transaction()
-        transaction_manager_spy.commit.assert_called_once_with()
-
-    def test_if_transaction_is_cancelled_in_manager(self, repo, transaction_manager_spy):
-        repo.cancel_transaction()
-        transaction_manager_spy.cancel.assert_called_once_with()
-
     def test_if_transaction_is_called_in_manager(self, repo, transaction_manager_spy):
         repo.transaction()
         transaction_manager_spy.transaction.assert_called_once_with()
