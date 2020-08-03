@@ -4,6 +4,23 @@ from typing import List, Dict, Any
 from ...types import PrimaryKey
 
 
+class AbstractTableEntityDTO(ABC):
+    @property
+    @abstractmethod
+    def primary_key(self) -> PrimaryKey:
+        pass
+
+    @property
+    @abstractmethod
+    def master_entity(self) -> Dict[str, Any]:
+        pass
+
+    @property
+    @abstractmethod
+    def part_entities(self) -> Dict[str, Any]:
+        pass
+
+
 class AbstractTableFacade(ABC):
     @property
     @abstractmethod
@@ -19,27 +36,15 @@ class AbstractTableFacade(ABC):
         pass
 
     @abstractmethod
-    def fetch_master(self, primary_key: PrimaryKey) -> Dict[str, Any]:
+    def fetch(self, primary_key: PrimaryKey) -> AbstractTableEntityDTO:
         pass
 
     @abstractmethod
-    def fetch_parts(self, primary_key: PrimaryKey) -> Dict[str, Any]:
+    def insert(self, entity_dto: AbstractTableEntityDTO) -> None:
         pass
 
     @abstractmethod
-    def insert_master(self, master_entity: Dict[str, Any]) -> None:
-        pass
-
-    @abstractmethod
-    def insert_parts(self, part_entities: Dict[str, Any]) -> None:
-        pass
-
-    @abstractmethod
-    def delete_master(self, primary_key: PrimaryKey) -> None:
-        pass
-
-    @abstractmethod
-    def delete_parts(self, primary_key: PrimaryKey) -> None:
+    def delete(self, primary_key: PrimaryKey) -> None:
         pass
 
     @abstractmethod
