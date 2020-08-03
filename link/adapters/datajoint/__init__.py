@@ -25,29 +25,17 @@ class AbstractTableFacadeLink(ABC):
 
 
 class DataJointGatewayLink(AbstractGatewayLink, Base):
-    def __init__(
-        self, source_gateway: DataJointGateway, outbound_gateway: DataJointGateway, local_gateway: DataJointGateway
-    ):
-        self.source_gateway = source_gateway
-        self.outbound_gateway = outbound_gateway
-        self.local_gateway = local_gateway
+    source = outbound = local = None
 
-    @property
-    def source(self) -> DataJointGateway:
-        return self.source_gateway
-
-    @property
-    def outbound(self) -> DataJointGateway:
-        return self.outbound_gateway
-
-    @property
-    def local(self) -> DataJointGateway:
-        return self.local_gateway
+    def __init__(self, source: DataJointGateway, outbound: DataJointGateway, local: DataJointGateway):
+        self.source = source
+        self.outbound = outbound
+        self.local = local
 
 
 def initialize(table_facade_link: AbstractTableFacadeLink) -> DataJointGatewayLink:
     gateways = dict()
     for kind in ("source", "outbound", "local"):
         table_facade = getattr(table_facade_link, kind)
-        gateways[kind + "_gateway"] = DataJointGateway(table_facade, IdentificationTranslator(table_facade))
+        gateways[kind] = DataJointGateway(table_facade, IdentificationTranslator(table_facade))
     return DataJointGatewayLink(**gateways)

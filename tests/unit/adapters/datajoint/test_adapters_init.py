@@ -24,13 +24,13 @@ class TestDataJointGatewayLink:
 
     @pytest.fixture
     def gateway_link(self, gateway_stubs):
-        return DataJointGatewayLink(**{kind + "_gateway": gateway for kind, gateway in gateway_stubs.items()})
+        return DataJointGatewayLink(**{kind: gateway for kind, gateway in gateway_stubs.items()})
 
     def test_if_subclass_of_base(self):
         assert issubclass(DataJointGatewayLink, Base)
 
     def test_if_gateway_is_stored_as_instance_attribute(self, kind, gateway_link, gateway_stubs):
-        assert getattr(gateway_link, kind + "_gateway") is gateway_stubs[kind]
+        assert getattr(gateway_link, kind) is gateway_stubs[kind]
 
     def test_if_correct_gateway_is_returned(self, kind, gateway_link, gateway_stubs):
         assert getattr(gateway_link, kind) is gateway_stubs[kind]
