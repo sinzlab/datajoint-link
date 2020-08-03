@@ -51,19 +51,14 @@ def table_spy(flag_table_spies, master_entity):
 
 
 @pytest.fixture
-def part_table_names():
-    return ["MyPart", "MyOtherPart"]
+def part_entities():
+    return {name: name + "_entities" for name in ["MyPart", "MyOtherPart"]}
 
 
 @pytest.fixture
-def part_table_entities(part_table_names):
-    return {name: name + "_entities" for name in part_table_names}
-
-
-@pytest.fixture
-def part_table_spies(part_table_entities):
+def part_table_spies(part_entities):
     part_table_spies = dict()
-    for name, entities in part_table_entities.items():
+    for name, entities in part_entities.items():
         spy = MagicMock(name=name + "Spy", spec=Part)
         spy.__and__.return_value.fetch.return_value = entities
         part_table_spies[name] = spy
@@ -188,9 +183,9 @@ class TestFetch:
         for part in part_table_spies.values():
             part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
 
-    def test_if_table_entity_dto_is_returned(self, fetched_entity, primary_key, master_entity, part_table_entities):
+    def test_if_table_entity_dto_is_returned(self, fetched_entity, primary_key, master_entity, part_entities):
         assert fetched_entity == TableEntityDTO(
-            primary_key=primary_key, master_entity=master_entity, part_entities=part_table_entities
+            primary_key=primary_key, master_entity=master_entity, part_entities=part_entities
         )
 
 
@@ -200,8 +195,8 @@ class TestInsert:
         table_facade.insert(table_entity_dto)
 
     @pytest.fixture
-    def table_entity_dto(self, primary_key, master_entity, part_table_entities):
-        return TableEntityDTO(primary_key=primary_key, master_entity=master_entity, part_entities=part_table_entities)
+    def table_entity_dto(self, primary_key, master_entity, part_entities):
+        return TableEntityDTO(primary_key=primary_key, master_entity=master_entity, part_entities=part_entities)
 
     @pytest.mark.usefixtures("insert")
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
@@ -212,9 +207,9 @@ class TestInsert:
         table_spy.insert1.assert_called_once_with(master_entity)
 
     @pytest.mark.usefixtures("insert")
-    def test_if_part_entities_are_inserted(self, part_table_spies, part_table_entities):
+    def test_if_part_entities_are_inserted(self, part_table_spies, part_entities):
         for name, part in part_table_spies.items():
-            part.insert.assert_called_once_with(part_table_entities[name])
+            part.insert.assert_called_once_with(part_entities[name])
 
     def test_if_master_entity_is_inserted_before_part_entities(
         self, table_facade, table_entity_dto, table_spy, part_table_spies
@@ -239,7 +234,7 @@ class TestDelete:
             part.__and__.assert_called_once_with(primary_key)
 
     @pytest.mark.usefixtures("delete")
-    def test_if_part_table_entities_are_deleted(self, part_table_spies):
+    def test_if_part_entities_are_deleted(self, part_table_spies):
         for part in part_table_spies.values():
             part.__and__.return_value.delete_quick.assert_called_once_with()
 
