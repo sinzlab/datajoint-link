@@ -123,47 +123,35 @@ class TestPrimaryKeysProperty:
 
 
 @pytest.fixture
-def execute_method(request, table_facade):
-    method_arg_fixtures = getattr(request.cls, "method_arg_fixtures", [])
-    method_args = [request.getfixturevalue(fixture) for fixture in method_arg_fixtures]
-    return getattr(table_facade, request.cls.method_name)(*method_args)
+def primary_keys_in_restriction(table_facade):
+    return table_facade.get_primary_keys_in_restriction("restriction")
 
 
-@pytest.fixture
-def method_return_value(execute_method):
-    return execute_method
-
-
-@pytest.mark.usefixtures("execute_method")
+@pytest.mark.usefixtures("primary_keys_in_restriction")
 class TestGetPrimaryKeysInRestriction:
-    method_name = "get_primary_keys_in_restriction"
-    method_arg_fixtures = ["restriction"]
-
-    @pytest.fixture
-    def restriction(self):
-        return "restriction"
-
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
     def test_if_table_is_projected_to_primary_keys(self, table_spy):
         table_spy.proj.assert_called_once_with()
 
-    def test_if_projected_table_is_restricted(self, table_spy, restriction):
-        table_spy.proj.return_value.__and__.assert_called_once_with(restriction)
+    def test_if_projected_table_is_restricted(self, table_spy):
+        table_spy.proj.return_value.__and__.assert_called_once_with("restriction")
 
     def test_if_primary_keys_are_fetched_from_restricted_table(self, table_spy):
         table_spy.proj.return_value.__and__.return_value.fetch.assert_called_once_with(as_dict=True)
 
-    def test_if_primary_keys_are_returned(self, method_return_value):
-        assert method_return_value == "primary_keys_in_restriction"
+    def test_if_primary_keys_are_returned(self, primary_keys_in_restriction):
+        assert primary_keys_in_restriction == "primary_keys_in_restriction"
 
 
-@pytest.mark.usefixtures("execute_method")
+@pytest.fixture
+def flags(table_facade, primary_key):
+    return table_facade.get_flags(primary_key)
+
+
+@pytest.mark.usefixtures("flags")
 class TestGetFlags:
-    method_name = "get_flags"
-    method_arg_fixtures = ["primary_key"]
-
     def test_if_flag_tables_are_restricted(self, flag_table_spies, primary_key):
         for flag_table in flag_table_spies.values():
             flag_table.__and__.assert_called_once_with(primary_key)
@@ -172,15 +160,17 @@ class TestGetFlags:
         for flag_table in flag_table_spies.values():
             flag_table.__and__.return_value.__contains__.assert_called_once_with(primary_key)
 
-    def test_if_returned_flags_are_correct(self, is_present_in_flag_table, method_return_value):
-        assert method_return_value == is_present_in_flag_table
+    def test_if_returned_flags_are_correct(self, is_present_in_flag_table, flags):
+        assert flags == is_present_in_flag_table
 
 
-@pytest.mark.usefixtures("execute_method")
+@pytest.fixture
+def fetched_entity(table_facade, primary_key):
+    return table_facade.fetch(primary_key)
+
+
+@pytest.mark.usefixtures("fetched_entity")
 class TestFetch:
-    method_name = "fetch"
-    method_arg_fixtures = ["primary_key"]
-
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
@@ -198,10 +188,8 @@ class TestFetch:
         for part in part_table_spies.values():
             part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
 
-    def test_if_table_entity_dto_is_returned(
-        self, method_return_value, primary_key, master_entity, part_table_entities
-    ):
-        assert method_return_value == TableEntityDTO(
+    def test_if_table_entity_dto_is_returned(self, fetched_entity, primary_key, master_entity, part_table_entities):
+        assert fetched_entity == TableEntityDTO(
             primary_key=primary_key, master_entity=master_entity, part_entities=part_table_entities
         )
 
@@ -294,11 +282,13 @@ def test_if_flag_is_enabled(table_facade, primary_key, flag_table_name, flag_tab
     flag_table_spy.insert1.assert_called_once_with(primary_key)
 
 
-@pytest.mark.usefixtures("execute_method")
-class TestDisableFlag:
-    method_name = "disable_flag"
-    method_arg_fixtures = ["primary_key", "flag_table_name"]
+@pytest.fixture
+def disable_flag(table_facade, primary_key, flag_table_name):
+    table_facade.disable_flag(primary_key, flag_table_name)
 
+
+@pytest.mark.usefixtures("disable_flag")
+class TestDisableFlag:
     def test_if_flag_table_is_restricted(self, flag_table_spy, primary_key):
         flag_table_spy.__and__.assert_called_once_with(primary_key)
 
@@ -306,7 +296,12 @@ class TestDisableFlag:
         flag_table_spy.__and__.return_value.delete_quick.assert_called_once_with()
 
 
-@pytest.mark.usefixtures("execute_method")
+@pytest.fixture
+def execute(request, table_facade):
+    getattr(table_facade, request.cls.method_name)()
+
+
+@pytest.mark.usefixtures("execute")
 class TestTransaction:
     method_name = None
 
