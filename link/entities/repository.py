@@ -35,10 +35,10 @@ class TransferEntity(Entity):
 
 
 class Repository(MutableMapping, Base):
-    def __init__(self, contents: Contents, flags: FlagManagerFactory, transaction: TransactionManager):
+    def __init__(self, contents: Contents, flags: FlagManagerFactory, transaction_manager: TransactionManager):
         self.contents = contents
         self.flags = flags
-        self.transaction = transaction
+        self.transaction_manager = transaction_manager
 
     def __getitem__(self, identifier: str) -> TransferEntity:
         """Gets an entity from the repository."""
@@ -61,13 +61,13 @@ class Repository(MutableMapping, Base):
         return len(self.contents)
 
     def start_transaction(self) -> None:
-        self.transaction.start()
+        self.transaction_manager.start()
 
     def commit_transaction(self) -> None:
-        self.transaction.commit()
+        self.transaction_manager.commit()
 
     def cancel_transaction(self) -> None:
-        self.transaction.cancel()
+        self.transaction_manager.cancel()
 
 
 class RepositoryFactory(Base):
@@ -83,5 +83,5 @@ class RepositoryFactory(Base):
         return Repository(
             contents=Contents(entities, self.gateway),
             flags=FlagManagerFactory(entities, self.gateway),
-            transaction=TransactionManager(entities, self.gateway),
+            transaction_manager=TransactionManager(entities, self.gateway),
         )

@@ -75,12 +75,12 @@ def test_if_entities_are_fetched(use_case, repo_link_spy, identifiers, valid_ide
 
 def test_if_transaction_is_started_in_outbound_repo(use_case, repo_link_spy, identifiers):
     use_case(identifiers)
-    repo_link_spy.outbound.transaction.transaction.assert_called_once_with()
+    repo_link_spy.outbound.transaction_manager.transaction.assert_called_once_with()
 
 
 def test_if_transaction_is_started_in_local_repo(use_case, repo_link_spy, identifiers):
     use_case(identifiers)
-    repo_link_spy.local.transaction.transaction.assert_called_once_with()
+    repo_link_spy.local.transaction_manager.transaction.assert_called_once_with()
 
 
 @pytest.fixture
@@ -95,9 +95,9 @@ def pull_with_error(use_case, identifiers):
 
 
 def test_if_transaction_is_started_in_outbound_repo_first(repo_link_spy, pull_with_error):
-    repo_link_spy.outbound.transaction.transaction.side_effect = RuntimeError
+    repo_link_spy.outbound.transaction_manager.transaction.side_effect = RuntimeError
     pull_with_error()
-    repo_link_spy.local.transaction.transaction.assert_not_called()
+    repo_link_spy.local.transaction_manager.transaction.assert_not_called()
 
 
 def test_if_entities_are_inserted_into_outbound_repo(
@@ -127,7 +127,7 @@ def test_if_entities_are_inserted_into_outbound_repo_first(repo_link_spy, pull_w
 def test_if_entities_are_inserted_into_outbound_repo_after_transaction_in_outbound_repo_is_started(
     repo_link_spy, pull_with_error
 ):
-    repo_link_spy.outbound.transaction.transaction.side_effect = RuntimeError
+    repo_link_spy.outbound.transaction_manager.transaction.side_effect = RuntimeError
     pull_with_error()
     repo_link_spy.outbound.contents.__setitem__.assert_not_called()
 
@@ -135,6 +135,6 @@ def test_if_entities_are_inserted_into_outbound_repo_after_transaction_in_outbou
 def test_if_entities_are_inserted_into_local_repo_after_transaction_in_local_repo_is_started(
     repo_link_spy, pull_with_error
 ):
-    repo_link_spy.local.transaction.transaction.side_effect = RuntimeError
+    repo_link_spy.local.transaction_manager.transaction.side_effect = RuntimeError
     pull_with_error()
     repo_link_spy.local.contents.__setitem__.assert_not_called()

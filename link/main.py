@@ -36,7 +36,7 @@ class Host:
 
     @property
     def transaction(self):
-        return self.conn.transaction
+        return self.conn.transaction_manager
 
     @property
     def is_connected(self):

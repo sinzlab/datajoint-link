@@ -96,7 +96,7 @@ class TestRepository:
         assert repo.flags is flag_manager_factory_spy
 
     def test_if_transaction_manager_is_stored_as_instance_attribute(self, repo, transaction_manager_spy):
-        assert repo.transaction is transaction_manager_spy
+        assert repo.transaction_manager is transaction_manager_spy
 
     def test_if_entity_is_retrieved_from_contents(self, identifier, repo, contents_spy):
         _ = repo[identifier]
@@ -183,13 +183,14 @@ class TestRepositoryFactory:
         assert factory().flags.gateway is gateway_spy
 
     def test_if_transaction_manager_is_assigned_to_transaction_attribute_of_returned_repository(self, factory):
-        assert isinstance(factory().transaction, TransactionManager)
+        assert isinstance(factory().transaction_manager, TransactionManager)
 
     def test_if_entities_associated_with_contents_and_transaction_manager_are_identical(self, factory):
         repo = factory()
         assert all(
-            entity is repo.transaction.entities[identifier] for identifier, entity in repo.contents.entities.items()
+            entity is repo.transaction_manager.entities[identifier]
+            for identifier, entity in repo.contents.entities.items()
         )
 
     def test_if_gateway_of_transaction_manager_is_correct(self, factory, gateway_spy):
-        assert factory().transaction.gateway is gateway_spy
+        assert factory().transaction_manager.gateway is gateway_spy
