@@ -206,47 +206,77 @@ class TestFetch:
         )
 
 
-@pytest.mark.usefixtures("execute_method")
 class TestInsert:
-    method_name = "insert"
-    method_arg_fixtures = ["table_entity_dto"]
+    @pytest.fixture
+    def insert(self, table_facade, table_entity_dto):
+        table_facade.insert(table_entity_dto)
 
     @pytest.fixture
     def table_entity_dto(self, primary_key, master_entity, part_table_entities):
         return TableEntityDTO(primary_key=primary_key, master_entity=master_entity, part_entities=part_table_entities)
 
+    @pytest.mark.usefixtures("insert")
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
+    @pytest.mark.usefixtures("insert")
     def test_if_master_entity_is_inserted(self, table_spy, master_entity):
         table_spy.insert1.assert_called_once_with(master_entity)
 
+    @pytest.mark.usefixtures("insert")
     def test_if_part_entities_are_inserted(self, part_table_spies, part_table_entities):
         for name, part in part_table_spies.items():
             part.insert.assert_called_once_with(part_table_entities[name])
 
+    def test_if_master_entity_is_inserted_before_part_entities(
+        self, table_facade, table_entity_dto, table_spy, part_table_spies
+    ):
+        table_spy.insert1.side_effect = RuntimeError
+        try:
+            table_facade.insert(table_entity_dto)
+        except RuntimeError:
+            pass
+        for part in part_table_spies.values():
+            part.insert.assert_not_called()
 
-@pytest.mark.usefixtures("execute_method")
+
 class TestDelete:
-    method_name = "delete"
-    method_arg_fixtures = ["primary_key"]
+    @pytest.fixture
+    def delete(self, table_facade, primary_key):
+        table_facade.delete(primary_key)
 
+    @pytest.mark.usefixtures("delete")
     def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
         for part in part_table_spies.values():
             part.__and__.assert_called_once_with(primary_key)
 
+    @pytest.mark.usefixtures("delete")
     def test_if_part_table_entities_are_deleted(self, part_table_spies):
         for part in part_table_spies.values():
             part.__and__.return_value.delete_quick.assert_called_once_with()
 
+    @pytest.mark.usefixtures("delete")
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
+    @pytest.mark.usefixtures("delete")
     def test_if_table_is_restricted(self, table_spy, primary_key):
         table_spy.__and__.assert_called_once_with(primary_key)
 
+    @pytest.mark.usefixtures("delete")
     def test_if_master_table_entity_is_deleted(self, table_spy):
         table_spy.__and__.return_value.delete_quick.assert_called_once_with()
+
+    def test_if_part_entities_are_deleted_before_master_entity(
+        self, table_facade, primary_key, table_spy, part_table_spies
+    ):
+        table_spy.__and__.return_value.delete_quick.side_effect = RuntimeError
+        try:
+            table_facade.delete(primary_key)
+        except RuntimeError:
+            pass
+        for part in part_table_spies.values():
+            part.__and__.return_value.delete_quick.assert_called_once_with()
 
 
 @pytest.fixture
