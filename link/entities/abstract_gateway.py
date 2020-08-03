@@ -13,8 +13,8 @@ class AbstractEntityDTO(ABC):
 
     @property
     @abstractmethod
-    def non_identifier_data(self) -> Optional[Any]:
-        """Contains all the data not used to compute the unique identifier of the entity."""
+    def all_data(self) -> Optional[Any]:
+        """Contains all the data of the entity."""
 
     @abstractmethod
     def create_identifier_only_copy(self) -> AbstractEntityDTO:

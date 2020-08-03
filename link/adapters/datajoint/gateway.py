@@ -13,11 +13,11 @@ from ...base import Base
 class EntityDTO(AbstractEntityDTO):
     """Data transfer object representing a table entity."""
 
-    identifier_data = non_identifier_data = None
+    identifier_data = all_data = None
 
-    def __init__(self, identifier_data: Any, non_identifier_data: Optional[Any] = None) -> None:
+    def __init__(self, identifier_data: Any, all_data: Optional[Any] = None) -> None:
         self.identifier_data = identifier_data
-        self.non_identifier_data = non_identifier_data if non_identifier_data is not None else dict()
+        self.all_data = all_data if all_data is not None else dict()
 
     def create_identifier_only_copy(self) -> EntityDTO:
         """Creates a new instance of the class containing only the data used to compute the identifier."""
@@ -53,9 +53,7 @@ class DataJointGateway(AbstractGateway, Base):
         table_entity_dto = self.table_facade.fetch(primary_key)
         return EntityDTO(
             identifier_data=table_entity_dto.primary_key,
-            non_identifier_data=dict(
-                master_entity=table_entity_dto.master_entity, part_entities=table_entity_dto.part_entities
-            ),
+            all_data=dict(master_entity=table_entity_dto.master_entity, part_entities=table_entity_dto.part_entities),
         )
 
     def insert(self, entity_dto: EntityDTO) -> None:
@@ -63,8 +61,8 @@ class DataJointGateway(AbstractGateway, Base):
         # noinspection PyArgumentList
         table_entity_dto = self.table_entity_dto_cls(
             primary_key=entity_dto.identifier_data,
-            master_entity=entity_dto.non_identifier_data["master_entity"],
-            part_entities=entity_dto.non_identifier_data["part_entities"],
+            master_entity=entity_dto.all_data["master_entity"],
+            part_entities=entity_dto.all_data["part_entities"],
         )
         self.table_facade.insert(table_entity_dto)
 

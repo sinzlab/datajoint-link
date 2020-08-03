@@ -20,19 +20,14 @@ class TestEntityDTO:
     def test_if_identifier_data_is_stored_as_instance_attribute(self):
         assert EntityDTO("identifier_data").identifier_data == "identifier_data"
 
-    def test_if_non_identifier_data_is_stored_as_instance_attribute(self):
-        assert (
-            EntityDTO("identifier_data", non_identifier_data="non_identifier_data").non_identifier_data
-            == "non_identifier_data"
-        )
+    def test_if_all_data_is_stored_as_instance_attribute(self):
+        assert EntityDTO("identifier_data", all_data="all_data").all_data == "all_data"
 
-    def test_if_non_identifier_data_is_empty_dict_if_not_provided(self):
-        assert EntityDTO("identifier_data").non_identifier_data == dict()
+    def test_if_all_data_is_empty_dict_if_not_provided(self):
+        assert EntityDTO("identifier_data").all_data == dict()
 
     def test_if_created_identifier_only_copy_is_correct(self):
-        assert EntityDTO("identifier_data", "non_identifier_data").create_identifier_only_copy() == EntityDTO(
-            "identifier_data"
-        )
+        assert EntityDTO("identifier_data", "all_data").create_identifier_only_copy() == EntityDTO("identifier_data")
 
 
 def test_if_datajoint_gateway_is_subclass_of_abstract_gateway():
@@ -155,8 +150,7 @@ class TestGetFlags:
 @pytest.fixture
 def entity_dto():
     return EntityDTO(
-        identifier_data="primary_key",
-        non_identifier_data=dict(master_entity="master_entity", part_entities="part_entities"),
+        identifier_data="primary_key", all_data=dict(master_entity="master_entity", part_entities="part_entities"),
     )
 
 
