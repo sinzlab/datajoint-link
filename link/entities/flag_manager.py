@@ -3,10 +3,10 @@ from collections.abc import Mapping, MutableMapping
 from typing import TYPE_CHECKING, Dict, Iterator
 
 from ..base import Base
+from .abstract_gateway import AbstractGateway
 
 if TYPE_CHECKING:
     from .repository import Entity
-    from .abstract_gateway import AbstractGateway
 
 
 class FlagManagerFactory(Mapping, Base):

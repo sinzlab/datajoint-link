@@ -3,9 +3,9 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Dict, Iterator
 
 from ..base import Base
+from .abstract_gateway import AbstractGateway
 
 if TYPE_CHECKING:
-    from .abstract_gateway import AbstractGateway
     from .repository import Entity, TransferEntity
 
 

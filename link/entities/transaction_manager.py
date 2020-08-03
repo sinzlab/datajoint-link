@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Dict, ContextManager
 from contextlib import contextmanager
 
 from ..base import Base
+from .abstract_gateway import AbstractGateway
 
 if TYPE_CHECKING:
     from .repository import Entity
-    from .abstract_gateway import AbstractGateway
 
 
 class TransactionManager(Base):
