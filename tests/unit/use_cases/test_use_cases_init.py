@@ -76,27 +76,21 @@ class TestRepositoryLinkFactory:
 
 class TestInitialize:
     @pytest.fixture
-    def dummy_output_ports(self):
-        return dict(pull=MagicMock(name="pull_dummy_output_port"))
+    def dummy_pull_output_port(self):
+        return MagicMock(name="dummy_pull_output_port")
 
     @pytest.fixture
-    def returned(self, gateway_link_stub, dummy_output_ports):
-        return use_cases.initialize(gateway_link_stub, dummy_output_ports)
+    def returned(self, gateway_link_stub, dummy_pull_output_port):
+        return use_cases.initialize(gateway_link_stub, dummy_pull_output_port)
 
-    def test_if_dict_is_returned(self, returned):
-        assert isinstance(returned, dict)
-
-    def test_if_dict_has_correct_keys(self, returned):
-        assert list(returned.keys()) == ["pull"]
-
-    def test_if_pull_key_contains_pull_use_case(self, returned):
-        assert isinstance(returned["pull"], Pull)
+    def test_if_pull_use_case_is_returned(self, returned):
+        assert isinstance(returned, Pull)
 
     def test_if_pull_use_case_is_associated_with_repo_link_factory(self, returned):
-        assert isinstance(returned["pull"].repo_link_factory, use_cases.RepositoryLinkFactory)
+        assert isinstance(returned.repo_link_factory, use_cases.RepositoryLinkFactory)
 
     def test_if_repo_link_factory_is_associated_with_gateway_link(self, returned, gateway_link_stub):
-        assert returned["pull"].repo_link_factory.gateway_link is gateway_link_stub
+        assert returned.repo_link_factory.gateway_link is gateway_link_stub
 
-    def test_if_output_port_of_pull_use_case_is_correct(self, returned, dummy_output_ports):
-        assert returned["pull"].output_port is dummy_output_ports["pull"]
+    def test_if_output_port_of_pull_use_case_is_correct(self, returned, dummy_pull_output_port):
+        assert returned.output_port is dummy_pull_output_port

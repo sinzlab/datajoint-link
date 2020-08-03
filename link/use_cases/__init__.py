@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Callable, Any
+from typing import Callable, Any
 
 from .base import UseCase
 from .pull import Pull
@@ -47,6 +47,6 @@ class RepositoryLinkFactory(Base):
         return RepositoryLink(**kwargs)
 
 
-def initialize(gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]]) -> Dict[str, UseCase]:
+def initialize(gateway_link: AbstractGatewayLink, pull_output_port: Callable[[Any], None]) -> Pull:
     """Initializes the use-cases and returns them."""
-    return dict(pull=Pull(RepositoryLinkFactory(gateway_link), output_ports["pull"]))
+    return Pull(RepositoryLinkFactory(gateway_link), pull_output_port)
