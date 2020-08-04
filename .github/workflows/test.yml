@@ -19,7 +19,6 @@ jobs:
       run: docker run 
         --network link_network 
         --volume /var/run/docker.sock:/var/run/docker.sock
-        --volume $GITHUB_WORKSPACE/link:/src/link 
         link pytest --cov=./ --cov-report=xml
     - name: Upload coverage report to Codecov
       run:  bash <(curl -s https://codecov.io/bash) 
