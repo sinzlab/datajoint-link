@@ -14,11 +14,10 @@ jobs:
     - name: Build Docker image
       run: docker build -t link .
     - name: Create Docker network for running functional tests
-      run: docker network create link_network
+      run: docker network create test_runner_network
     - name: Run tests and generate coverage report
       run: docker run 
-        --network link_network 
-        --dns 172.0.0.10
+        --network test_runner_network 
         --volume /var/run/docker.sock:/var/run/docker.sock
         link pytest --cov=./ --cov-report=xml
     - name: Upload coverage report to Codecov
