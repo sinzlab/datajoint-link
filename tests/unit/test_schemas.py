@@ -35,8 +35,10 @@ def schema():
 
 
 @pytest.fixture
-def schema_cls(schema):
-    return MagicMock(name="schema_cls", spec=Type[Schema], return_value=schema)
+def schema_cls(schema, connection):
+    schema_cls = MagicMock(name="schema_cls", spec=Type[Schema], return_value=schema)
+    schema_cls.return_value.connection = connection
+    return schema_cls
 
 
 @pytest.fixture
@@ -149,6 +151,13 @@ class TestInitialize:
         schema_cls.assert_called_once_with(
             schema_name=schema_name, context=None, connection=None, create_schema=True, create_tables=True
         )
+
+    def test_if_connection_of_regular_schema_is_stored_as_instance_attribute_if_no_connection_or_host_are_provided(
+        self, lazy_schema_cls, schema_name, connection
+    ):
+        lazy_schema = lazy_schema_cls(schema_name)
+        lazy_schema.initialize()
+        assert lazy_schema.connection is connection
 
     def test_if_schema_is_not_initialized_again_if_initialize_is_called_twice(
         self, lazy_schema_cls, schema_name, schema_cls

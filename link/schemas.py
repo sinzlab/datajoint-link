@@ -105,6 +105,7 @@ class LazySchema:
             create_schema=self.create_schema,
             create_tables=self.create_tables,
         )
+        self._connection = self._schema.connection
         self._is_initialized = True
 
     @property
