@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import List, Dict, Any, Optional, Type
+from typing import List, Dict, Any
 from itertools import tee
 from dataclasses import dataclass
 
-from .abstract_facade import AbstractTableEntityDTO, AbstractTableFacade
+from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
 from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
 from ...base import Base
@@ -11,23 +11,18 @@ from ...base import Base
 
 @dataclass
 class EntityDTO(AbstractEntityDTO):
-    """Data transfer object representing a table entity."""
+    """Data transfer object representing a entity."""
 
-    identifier_data = all_data = None
-
-    def __init__(self, identifier_data: Any, all_data: Optional[Any] = None) -> None:
-        self.identifier_data = identifier_data
-        self.all_data = all_data if all_data is not None else dict()
+    primary_key: List[str]
+    master: Dict[str, Any]
 
     def create_identifier_only_copy(self) -> EntityDTO:
         """Creates a new instance of the class containing only the data used to compute the identifier."""
         # noinspection PyArgumentList
-        return self.__class__(self.identifier_data)
+        return self.__class__(self.primary_key, {k: v for k, v in self.master.items() if k in self.primary_key})
 
 
 class DataJointGateway(AbstractGateway, Base):
-    table_entity_dto_cls: Type[AbstractTableEntityDTO] = None
-
     def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
         self.table_facade = table_facade
         self.translator = translator
@@ -50,21 +45,11 @@ class DataJointGateway(AbstractGateway, Base):
     def fetch(self, identifier: str) -> EntityDTO:
         """Fetches the entity identified by the provided identifier."""
         primary_key = self.translator.to_primary_key(identifier)
-        table_entity_dto = self.table_facade.fetch(primary_key)
-        return EntityDTO(
-            identifier_data=table_entity_dto.primary_key,
-            all_data=dict(master_entity=table_entity_dto.master_entity, part_entities=table_entity_dto.part_entities),
-        )
+        return self.table_facade.fetch(primary_key)
 
     def insert(self, entity_dto: EntityDTO) -> None:
         """Inserts the provided entity into the table."""
-        # noinspection PyArgumentList
-        table_entity_dto = self.table_entity_dto_cls(
-            primary_key=entity_dto.identifier_data,
-            master_entity=entity_dto.all_data["master_entity"],
-            part_entities=entity_dto.all_data["part_entities"],
-        )
-        self.table_facade.insert(table_entity_dto)
+        self.table_facade.insert(entity_dto)
 
     def delete(self, identifier: str) -> None:
         """Deletes the entity identified by the provided identifier from the table."""

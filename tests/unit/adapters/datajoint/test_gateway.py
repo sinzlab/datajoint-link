@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, create_autospec, call
+from unittest.mock import create_autospec, call
 from dataclasses import is_dataclass
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 from link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
 from link.base import Base
 from link.adapters.datajoint.gateway import EntityDTO, DataJointGateway
-from link.adapters.datajoint.abstract_facade import AbstractTableEntityDTO, AbstractTableFacade
+from link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from link.adapters.datajoint.identification import IdentificationTranslator
 
 
@@ -17,25 +17,14 @@ class TestEntityDTO:
     def test_if_dataclass(self):
         assert is_dataclass(EntityDTO)
 
-    def test_if_identifier_data_is_stored_as_instance_attribute(self):
-        assert EntityDTO("identifier_data").identifier_data == "identifier_data"
-
-    def test_if_all_data_is_stored_as_instance_attribute(self):
-        assert EntityDTO("identifier_data", all_data="all_data").all_data == "all_data"
-
-    def test_if_all_data_is_empty_dict_if_not_provided(self):
-        assert EntityDTO("identifier_data").all_data == dict()
-
     def test_if_created_identifier_only_copy_is_correct(self):
-        assert EntityDTO("identifier_data", "all_data").create_identifier_only_copy() == EntityDTO("identifier_data")
+        assert EntityDTO(["a", "b"], dict(a=0, b=1, c=2)).create_identifier_only_copy() == EntityDTO(
+            ["a", "b"], dict(a=0, b=1)
+        )
 
 
 def test_if_datajoint_gateway_is_subclass_of_abstract_gateway():
     assert issubclass(DataJointGateway, AbstractGateway)
-
-
-def test_if_table_entity_dto_cls_class_attribute_is_none():
-    assert DataJointGateway.table_entity_dto_cls is None
 
 
 @pytest.fixture
@@ -49,22 +38,16 @@ def flags():
 
 
 @pytest.fixture
-def table_entity_dto_stub():
-    return create_autospec(
-        AbstractTableEntityDTO,
-        instance=True,
-        primary_key="primary_key",
-        master_entity="master_entity",
-        part_entities="part_entities",
-    )
+def entity_dto():
+    return EntityDTO(["a", "b"], dict(a=0, b=1, c=2))
 
 
 @pytest.fixture
-def table_facade_spy(primary_keys, flags, table_entity_dto_stub):
-    table_facade_spy = MagicMock(name="table_facade_spy", spec=AbstractTableFacade, primary_keys=primary_keys)
+def table_facade_spy(primary_keys, flags, entity_dto):
+    table_facade_spy = create_autospec(AbstractTableFacade, instance=True, primary_keys=primary_keys)
     table_facade_spy.get_primary_keys_in_restriction.return_value = primary_keys
     table_facade_spy.get_flags.return_value = flags
-    table_facade_spy.fetch.return_value = table_entity_dto_stub
+    table_facade_spy.fetch.return_value = entity_dto
     return table_facade_spy
 
 
@@ -75,22 +58,15 @@ def identifiers():
 
 @pytest.fixture
 def translator_spy(identifiers):
-    translator_spy = MagicMock(name="translator_spy", spec=IdentificationTranslator)
+    translator_spy = create_autospec(IdentificationTranslator, instance=True)
     translator_spy.to_identifier.side_effect = identifiers
     translator_spy.to_primary_key.return_value = "primary_key0"
     return translator_spy
 
 
 @pytest.fixture
-def table_entity_dto_cls_spy():
-    return create_autospec(AbstractTableEntityDTO)
-
-
-@pytest.fixture
-def gateway(table_facade_spy, translator_spy, table_entity_dto_cls_spy):
-    gateway = DataJointGateway(table_facade_spy, translator_spy)
-    gateway.table_entity_dto_cls = table_entity_dto_cls_spy
-    return gateway
+def gateway(table_facade_spy, translator_spy):
+    return DataJointGateway(table_facade_spy, translator_spy)
 
 
 def test_if_gateway_is_subclass_of_base():
@@ -147,13 +123,6 @@ class TestGetFlags:
         assert gateway.get_flags("identifier0") == flags
 
 
-@pytest.fixture
-def entity_dto():
-    return EntityDTO(
-        identifier_data="primary_key", all_data=dict(master_entity="master_entity", part_entities="part_entities"),
-    )
-
-
 class TestFetch:
     def test_if_call_to_translator_is_correct(self, gateway, translator_spy):
         gateway.fetch("identifier0")
@@ -163,22 +132,14 @@ class TestFetch:
         gateway.fetch("identifier0")
         table_facade_spy.fetch.assert_called_once_with("primary_key0")
 
-    def test_if_returned_data_is_correct(self, gateway, entity_dto):
+    def test_if_return_value_is_correct(self, gateway, entity_dto):
         assert gateway.fetch("identifier0") == entity_dto
 
 
 class TestInsert:
-    def test_if_table_entity_is_created(self, gateway, entity_dto, table_entity_dto_cls_spy):
+    def test_if_entity_dto_is_inserted_into_table_facade(self, gateway, table_facade_spy, entity_dto):
         gateway.insert(entity_dto)
-        table_entity_dto_cls_spy.assert_called_once_with(
-            primary_key="primary_key", master_entity="master_entity", part_entities="part_entities"
-        )
-
-    def test_if_table_entity_dto_is_inserted_into_table_facade(
-        self, gateway, table_facade_spy, entity_dto, table_entity_dto_cls_spy
-    ):
-        gateway.insert(entity_dto)
-        table_facade_spy.insert.assert_called_once_with(table_entity_dto_cls_spy.return_value)
+        table_facade_spy.insert.assert_called_once_with(entity_dto)
 
 
 class TestDelete:

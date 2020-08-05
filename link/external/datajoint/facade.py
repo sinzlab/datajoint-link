@@ -1,21 +1,15 @@
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
+from typing import List, Dict, Any
+from dataclasses import dataclass, field
 
-from ...adapters.datajoint.abstract_facade import AbstractTableEntityDTO, AbstractTableFacade
+from ...adapters.datajoint.gateway import EntityDTO
+from ...adapters.datajoint.abstract_facade import AbstractTableFacade
 from ...base import Base
 from ...types import PrimaryKey
 
 
 @dataclass
-class TableEntityDTO(AbstractTableEntityDTO):
-    primary_key = master_entity = part_entities = None
-
-    def __init__(
-        self, primary_key: PrimaryKey, master_entity: Dict[str, Any], part_entities: Optional[Dict[str, Any]] = None,
-    ):
-        self.primary_key = primary_key
-        self.master_entity = master_entity
-        self.part_entities = part_entities if part_entities is not None else dict()
+class EntityDTO(EntityDTO):
+    parts: Dict[str, Any] = field(default_factory=dict)
 
 
 class TableFacade(AbstractTableFacade, Base):
@@ -39,18 +33,19 @@ class TableFacade(AbstractTableFacade, Base):
             flags[flag_table_name] = primary_key in (flag_table & primary_key)
         return flags
 
-    def fetch(self, primary_key: PrimaryKey) -> TableEntityDTO:
+    def fetch(self, primary_key: PrimaryKey) -> EntityDTO:
         """Fetches the entity identified by the provided primary key from the table."""
-        master_entity = (self.table_factory() & primary_key).fetch1(download_path=self.download_path)
+        table = self.table_factory()
+        master_entity = (table & primary_key).fetch1(download_path=self.download_path)
         part_entities = dict()
         for part_name, part in self.table_factory.part_tables.items():
             part_entities[part_name] = (part & primary_key).fetch(as_dict=True, download_path=self.download_path)
-        return TableEntityDTO(primary_key=primary_key, master_entity=master_entity, part_entities=part_entities)
+        return EntityDTO(table.primary_key, master_entity, parts=part_entities)
 
-    def insert(self, table_entity_dto: TableEntityDTO) -> None:
+    def insert(self, entity_dto: EntityDTO) -> None:
         """Inserts the entity into the table."""
-        self.table_factory().insert1(table_entity_dto.master_entity)
-        for part_name, part_entity in table_entity_dto.part_entities.items():
+        self.table_factory().insert1(entity_dto.master)
+        for part_name, part_entity in entity_dto.parts.items():
             self.table_factory.part_tables[part_name].insert(part_entity)
 
     def delete(self, primary_key: PrimaryKey) -> None:

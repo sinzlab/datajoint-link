@@ -1,24 +1,11 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import TYPE_CHECKING, List, Dict
 
 from ...types import PrimaryKey
 
-
-class AbstractTableEntityDTO(ABC):
-    @property
-    @abstractmethod
-    def primary_key(self) -> PrimaryKey:
-        pass
-
-    @property
-    @abstractmethod
-    def master_entity(self) -> Dict[str, Any]:
-        pass
-
-    @property
-    @abstractmethod
-    def part_entities(self) -> Dict[str, Any]:
-        pass
+if TYPE_CHECKING:
+    from .gateway import EntityDTO
 
 
 class AbstractTableFacade(ABC):
@@ -36,11 +23,11 @@ class AbstractTableFacade(ABC):
         pass
 
     @abstractmethod
-    def fetch(self, primary_key: PrimaryKey) -> AbstractTableEntityDTO:
+    def fetch(self, primary_key: PrimaryKey) -> EntityDTO:
         pass
 
     @abstractmethod
-    def insert(self, entity_dto: AbstractTableEntityDTO) -> None:
+    def insert(self, entity_dto: EntityDTO) -> None:
         pass
 
     @abstractmethod

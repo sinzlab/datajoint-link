@@ -1,12 +1,40 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, create_autospec
 from dataclasses import is_dataclass
 
 import pytest
-from datajoint import Part
+from datajoint import Part, Table
 
 from link.base import Base
-from link.external.datajoint.facade import TableEntityDTO, TableFacade
-from link.adapters.datajoint.abstract_facade import AbstractTableEntityDTO
+from link.adapters.datajoint.gateway import EntityDTO as GatewayEntityDTO
+from link.external.datajoint.facade import EntityDTO, TableFacade
+from link.external.datajoint.factory import TableFactory
+
+
+@pytest.fixture
+def primary_key_names():
+    return ["a", "b"]
+
+
+@pytest.fixture
+def primary_key(primary_key_names):
+    return {name: i for i, name in enumerate(primary_key_names)}
+
+
+@pytest.fixture
+def master_entity(primary_key):
+    return dict(primary_key, non_primary_attr1=0, non_primary_attr2=1)
+
+
+class TestEntityDTO:
+    def test_if_subclass_of_gateway_entity_dto(self):
+        assert issubclass(EntityDTO, GatewayEntityDTO)
+
+    def test_if_dataclass(self):
+        assert is_dataclass(EntityDTO)
+
+    def test_if_parts_are_empty_dict_if_not_provided(self, primary_key_names, master_entity):
+        # noinspection PyArgumentList
+        assert EntityDTO(primary_key_names, master_entity).parts == dict()
 
 
 @pytest.fixture
@@ -30,18 +58,8 @@ def flag_table_spies(flag_table_names, is_present_in_flag_table):
 
 
 @pytest.fixture
-def primary_key():
-    return dict(primary_attr1=0, primary_attr2=1)
-
-
-@pytest.fixture
-def master_entity(primary_key):
-    return dict(primary_key, non_primary_attr1=0, non_primary_attr2=1)
-
-
-@pytest.fixture
-def table_spy(flag_table_spies, master_entity):
-    table_spy = MagicMock(name="table_spy", flag_table_names=flag_table_names)
+def table_spy(primary_key_names, flag_table_spies, master_entity):
+    table_spy = create_autospec(Table, flag_table_names=flag_table_names, primary_key=primary_key_names)
     table_spy.proj.return_value.fetch.return_value = "primary_keys"
     table_spy.proj.return_value.__and__.return_value.fetch.return_value = "primary_keys_in_restriction"
     table_spy.__and__.return_value.fetch1.return_value = master_entity
@@ -68,7 +86,11 @@ def part_table_spies(part_entities):
 @pytest.fixture
 def table_factory_spy(table_spy, part_table_spies, flag_table_spies):
     return MagicMock(
-        name="table_factory_spy", return_value=table_spy, part_tables=part_table_spies, flag_tables=flag_table_spies
+        name="table_factory_spy",
+        spec=TableFactory,
+        return_value=table_spy,
+        part_tables=part_table_spies,
+        flag_tables=flag_table_spies,
     )
 
 
@@ -80,26 +102,6 @@ def download_path():
 @pytest.fixture
 def table_facade(table_factory_spy, download_path):
     return TableFacade(table_factory_spy, download_path)
-
-
-class TestTableEntityDTO:
-    def test_if_subclass_of_abstract_table_entity_dto(self):
-        assert issubclass(TableEntityDTO, AbstractTableEntityDTO)
-
-    def test_if_dataclass(self):
-        assert is_dataclass(TableEntityDTO)
-
-    def test_if_primary_key_is_stored_as_instance_attribute(self, primary_key, master_entity):
-        assert TableEntityDTO(primary_key, master_entity).primary_key is primary_key
-
-    def test_if_master_entity_is_stored_as_instance_attribute(self, primary_key, master_entity):
-        assert TableEntityDTO(primary_key, master_entity).master_entity is master_entity
-
-    def test_if_part_entities_are_stored_as_instance_attribute(self, primary_key, master_entity, part_entities):
-        assert TableEntityDTO(primary_key, master_entity, part_entities=part_entities).part_entities is part_entities
-
-    def test_if_part_entities_are_empty_dict_if_not_provided(self, primary_key, master_entity):
-        assert TableEntityDTO(primary_key, master_entity).part_entities == dict()
 
 
 def test_if_table_facade_is_subclass_of_base():
@@ -195,20 +197,20 @@ class TestFetch:
         for part in part_table_spies.values():
             part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
 
-    def test_if_table_entity_dto_is_returned(self, fetched_entity, primary_key, master_entity, part_entities):
-        assert fetched_entity == TableEntityDTO(
-            primary_key=primary_key, master_entity=master_entity, part_entities=part_entities
-        )
+    def test_if_entity_dto_is_returned(self, fetched_entity, primary_key_names, master_entity, part_entities):
+        # noinspection PyArgumentList
+        assert fetched_entity == EntityDTO(primary_key_names, master_entity, parts=part_entities)
 
 
 class TestInsert:
     @pytest.fixture
-    def insert(self, table_facade, table_entity_dto):
-        table_facade.insert(table_entity_dto)
+    def insert(self, table_facade, entity_dto):
+        table_facade.insert(entity_dto)
 
     @pytest.fixture
-    def table_entity_dto(self, primary_key, master_entity, part_entities):
-        return TableEntityDTO(primary_key=primary_key, master_entity=master_entity, part_entities=part_entities)
+    def entity_dto(self, primary_key_names, master_entity, part_entities):
+        # noinspection PyArgumentList
+        return EntityDTO(primary_key_names, master_entity, parts=part_entities)
 
     @pytest.mark.usefixtures("insert")
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
@@ -224,11 +226,11 @@ class TestInsert:
             part.insert.assert_called_once_with(part_entities[name])
 
     def test_if_master_entity_is_inserted_before_part_entities(
-        self, table_facade, table_entity_dto, table_spy, part_table_spies
+        self, table_facade, entity_dto, table_spy, part_table_spies
     ):
         table_spy.insert1.side_effect = RuntimeError
         try:
-            table_facade.insert(table_entity_dto)
+            table_facade.insert(entity_dto)
         except RuntimeError:
             pass
         for part in part_table_spies.values():
