@@ -1,20 +1,10 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict, Optional
+from typing import List, Dict
 
 
 class AbstractEntityDTO(ABC):
     """Defines the interface of the data transfer object containing an entity's data."""
-
-    @property
-    @abstractmethod
-    def identifier_data(self) -> Any:
-        """Contains all the data used to compute the unique identifier of the entity."""
-
-    @property
-    @abstractmethod
-    def all_data(self) -> Optional[Any]:
-        """Contains all the data of the entity."""
 
     @abstractmethod
     def create_identifier_only_copy(self) -> AbstractEntityDTO:
