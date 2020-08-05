@@ -101,7 +101,7 @@ class LazySchema:
         self._schema = self._schema_cls(
             schema_name=self.database,
             context=self.context,
-            connection=self.connection,
+            connection=self._connection,
             create_schema=self.create_schema,
             create_tables=self.create_tables,
         )
