@@ -68,9 +68,6 @@ class TestInit:
     def test_if_connection_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name, connection):
         assert lazy_schema_cls(schema_name, connection=connection).connection is connection
 
-    def test_if_connection_is_none_if_not_provided(self, lazy_schema_cls, schema_name):
-        assert lazy_schema_cls(schema_name).connection is None
-
     def test_if_create_schema_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name):
         assert lazy_schema_cls(schema_name, create_schema=False).create_schema is False
 
@@ -82,40 +79,6 @@ class TestInit:
 
     def test_if_create_tables_is_true_if_not_provided(self, lazy_schema_cls, schema_name):
         assert lazy_schema_cls(schema_name).create_tables is True
-
-    def test_if_host_is_stored_as_instance_attribute_if_provided(self, lazy_schema_cls, schema_name):
-        assert lazy_schema_cls(schema_name, host="host").host == "host"
-
-    def test_if_host_is_none_if_not_provided(self, lazy_schema_cls, schema_name):
-        assert lazy_schema_cls(schema_name).host is None
-
-
-class TestConnectionProperty:
-    def test_if_trying_to_set_connection_raises_runtime_error_if_host_is_set(
-        self, lazy_schema_cls, schema_name, connection
-    ):
-        lazy_schema = lazy_schema_cls(schema_name, host="host")
-        with pytest.raises(RuntimeError):
-            lazy_schema.connection = connection
-
-    def test_if_setter_sets_property(self, lazy_schema_cls, schema_name, connection):
-        lazy_schema = lazy_schema_cls(schema_name)
-        lazy_schema.connection = connection
-        assert lazy_schema.connection is connection
-
-
-class TestHostProperty:
-    def test_if_trying_to_set_host_raises_runtime_error_if_connection_is_set(
-        self, lazy_schema_cls, schema_name, connection
-    ):
-        lazy_schema = lazy_schema_cls(schema_name, connection=connection)
-        with pytest.raises(RuntimeError):
-            lazy_schema.host = "host"
-
-    def test_if_setter_sets_property(self, lazy_schema_cls, schema_name):
-        lazy_schema = lazy_schema_cls(schema_name)
-        lazy_schema.host = "host"
-        assert lazy_schema.host is "host"
 
 
 class TestInitialize:
@@ -173,6 +136,15 @@ def lazy_schema(lazy_schema_cls, schema_name):
     return lazy_schema_cls(schema_name)
 
 
+class TestConnectionProperty:
+    def test_if_lazy_schema_gets_initialized(self, lazy_schema):
+        _ = lazy_schema.connection
+        assert lazy_schema.is_initialized
+
+    def test_if_connection_is_returned(self, lazy_schema, connection):
+        assert lazy_schema.connection is connection
+
+
 class TestSchemaProperty:
     def test_if_lazy_schema_gets_initialized(self, lazy_schema):
         _ = lazy_schema.schema
@@ -223,7 +195,7 @@ class TestCall:
 
 def test_if_repr_returns_correct_value(lazy_schema):
     assert repr(lazy_schema) == (
-        "LazySchema(schema_name, context=None, connection=None, create_schema=True, create_tables=True, host=None)"
+        "LazySchema(schema_name, context=None, connection=None, create_schema=True, create_tables=True)"
     )
 
 

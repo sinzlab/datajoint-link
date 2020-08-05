@@ -67,23 +67,8 @@ class LazySchema:
 
     @property
     def connection(self) -> Optional[Connection]:
+        self.initialize()
         return self._connection
-
-    @connection.setter
-    def connection(self, connection: Connection) -> None:
-        if self.host is not None:
-            raise RuntimeError("Can't set 'connection' while 'host' is set")
-        self._connection = connection
-
-    @property
-    def host(self) -> Optional[str]:
-        return self._host
-
-    @host.setter
-    def host(self, host: str) -> None:
-        if self.connection is not None:
-            raise RuntimeError("Can't set 'host' while 'connection' is set")
-        self._host = host
 
     @property
     def schema(self) -> Schema:
@@ -96,8 +81,8 @@ class LazySchema:
             self._initialize()
 
     def _initialize(self) -> None:
-        if self.host is not None:
-            self._connection = self._conn_cls(self.host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
+        if self._host is not None:
+            self._connection = self._conn_cls(self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
         self._schema = self._schema_cls(
             schema_name=self.database,
             context=self.context,
@@ -123,6 +108,6 @@ class LazySchema:
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__qualname__}"
-            f"({self.database}, context={self.context}, connection={self.connection}, "
-            f"create_schema={self.create_schema}, create_tables={self.create_tables}, host={self.host})"
+            f"({self.database}, context={self.context}, connection={self._connection}, "
+            f"create_schema={self.create_schema}, create_tables={self.create_tables})"
         )
