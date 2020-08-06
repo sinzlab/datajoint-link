@@ -31,7 +31,7 @@ def source_schema_stub(schema_cls_stub):
 
 @pytest.fixture
 def stores():
-    return dict(source_store="local_store")
+    return dict(local_store="source_store")
 
 
 @pytest.fixture
@@ -196,11 +196,12 @@ class TestCallWithInitialSetup:
         table_cls_factory_spies["outbound"].assert_called_once_with()
 
     def test_if_calls_to_replace_stores_func_are_correct(self, replace_stores_spy, stores):
+        inverted_stores = {source: local for local, source in stores.items()}
         assert replace_stores_spy.call_args_list == [
-            call("source_master_heading", stores),
-            call("source_part_a_heading", stores),
-            call("source_part_b_heading", stores),
-            call("source_part_c_heading", stores),
+            call("source_master_heading", inverted_stores),
+            call("source_part_a_heading", inverted_stores),
+            call("source_part_b_heading", inverted_stores),
+            call("source_part_c_heading", inverted_stores),
         ]
 
     def test_if_create_table_config_on_local_table_cls_factory_is_set(self, table_cls_factory_spies):
