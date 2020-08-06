@@ -129,6 +129,9 @@ class TestInit:
     def test_if_stores_is_stored_as_instance_attribute(self, link, stores):
         assert link.stores is stores
 
+    def test_if_stores_is_empty_dict_if_not_provided(self, local_schema_stub, source_schema_stub):
+        assert Link(local_schema_stub, source_schema_stub).stores == dict()
+
 
 @pytest.fixture
 def linked_table(link, dummy_table_cls):

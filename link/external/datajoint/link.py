@@ -16,6 +16,8 @@ class Link(Base):
     _local_table_controller: LocalTableController = None
 
     def __init__(self, local_schema: Schema, source_schema: Schema, stores: Optional[Dict[str, str]] = None) -> None:
+        if stores is None:
+            stores = dict()
         self.local_schema = local_schema
         self.source_schema = source_schema
         self.stores = stores
