@@ -111,20 +111,12 @@ def test_if_link_is_subclass_of_base():
     assert issubclass(Link, Base)
 
 
-def test_if_table_factories_class_attribute_is_none():
-    assert Link._table_cls_factories is None
-
-
 def test_if_schema_class_class_attribute_is_datajoint_schema_class():
     assert Link._schema_cls is dj.schema
 
 
 def test_if_replace_stores_func_class_attribute_is_replace_stores():
     assert Link._replace_stores_func is replace_stores
-
-
-def test_if_local_table_controller_class_attribute_is_none():
-    assert Link._local_table_controller is None
 
 
 class TestInit:
