@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -134,11 +135,16 @@ class TestInit:
 
 
 @pytest.fixture
+def prepare_env():
+    os.environ["REMOTE_OUTBOUND_SCHEMA"] = "outbound_schema"
+
+
+@pytest.fixture
 def linked_table(link, dummy_table_cls):
     return link(dummy_table_cls)
 
 
-@pytest.mark.usefixtures("linked_table")
+@pytest.mark.usefixtures("prepare_env", "linked_table")
 class TestCallWithoutInitialSetup:
     def test_if_configuration_of_source_table_cls_factory_is_correct(
         self, table_cls_factory_spies, source_schema_stub, table_name
@@ -149,9 +155,7 @@ class TestCallWithoutInitialSetup:
         )
 
     def test_if_call_to_schema_class_is_correct(self, source_schema_stub, schema_cls_spy):
-        schema_cls_spy.assert_called_once_with(
-            "datajoint_outbound__" + source_schema_stub.database, connection=source_schema_stub.connection
-        )
+        schema_cls_spy.assert_called_once_with("outbound_schema", connection=source_schema_stub.connection)
 
     def test_if_spawn_table_config_attribute_on_outbound_table_cls_factory_is_set(
         self, table_cls_factory_spies, source_schema_stub, table_name, schema_cls_spy
