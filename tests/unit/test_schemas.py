@@ -84,7 +84,7 @@ class TestInit:
 class TestInitialize:
     @pytest.fixture
     def setup_env(self):
-        os.environ.update(REMOTE_DJ_USER="user", REMOTE_DJ_PASS="pass")
+        os.environ.update(LINK_USER="user", LINK_PASS="pass")
 
     @pytest.fixture
     def conn_cls(self, connection):

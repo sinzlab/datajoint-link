@@ -136,7 +136,7 @@ class TestInit:
 
 @pytest.fixture
 def prepare_env():
-    os.environ["REMOTE_OUTBOUND_SCHEMA"] = "outbound_schema"
+    os.environ["LINK_OUTBOUND"] = "outbound_schema"
 
 
 @pytest.fixture
