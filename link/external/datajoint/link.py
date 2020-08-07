@@ -79,8 +79,7 @@ class Link(Base):
         return part_table_definitions
 
     def _create_definition(self, table_cls: Type[Table]) -> str:
-        inverted_stores = {source: local for local, source in self.stores.items()}
-        return self._replace_stores_func(str(table_cls().heading), inverted_stores)
+        return self._replace_stores_func(str(table_cls().heading), self.stores)
 
 
 def pull(self, *restrictions) -> None:
