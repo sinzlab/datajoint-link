@@ -50,7 +50,7 @@ class TableFactory(Base):
 
     def _create_master_table_cls(self) -> Type[Lookup]:
         # noinspection PyTypeChecker
-        return type(self.table_name, (Lookup,), dict(definition=self.table_definition),)
+        return type(self.table_name, (Lookup,), dict(definition=self.table_definition))
 
     def _create_table_cls_attrs(self) -> Dict[str, Type[Part]]:
         table_cls_attrs = dict()
