@@ -51,6 +51,12 @@ class TestReplaceStores:
 
         return _replacement_matches_expectation
 
+    @pytest.fixture
+    def recorded_warnings(self, original_definition, stores):
+        with pytest.warns(UserWarning) as record:
+            dj_helpers.replace_stores(original_definition, stores)
+        return record
+
     def test_if_single_store_is_replaced(self, replacement_matches_expectation):
         assert replacement_matches_expectation()
 
@@ -67,18 +73,18 @@ class TestReplaceStores:
         assert replacement_matches_expectation()
 
     @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
-    def test_if_warning_is_raised_if_stores_missing_in_stores_mapping_are_encountered(
-        self, replacement_matches_expectation
-    ):
-        with pytest.warns(UserWarning) as record:
-            replacement_matches_expectation()
-        assert len(record) == 1
+    def test_if_user_warning_is_raised_if_stores_missing_in_stores_mapping_are_encountered(self, recorded_warnings):
+        pass
 
     @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
-    def test_if_warning_message_is_correct(self, replacement_matches_expectation):
-        with pytest.warns(UserWarning) as record:
-            replacement_matches_expectation()
-        assert record[0].message.args[0] == "No replacement for store 'original_pc_store' specified. Skipping!"
+    def test_if_only_one_warning_is_raised(self, recorded_warnings):
+        assert len(recorded_warnings) == 1
+
+    @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
+    def test_if_warning_message_is_correct(self, recorded_warnings):
+        assert (
+            recorded_warnings[0].message.args[0] == "No replacement for store 'original_pc_store' specified. Skipping!"
+        )
 
 
 class TestGetPartTableClasses:
