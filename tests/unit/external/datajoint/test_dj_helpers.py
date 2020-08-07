@@ -40,6 +40,11 @@ class TestReplaceStores:
         stores["original_pc_store"] = "replacement_pc_store"
 
     @pytest.fixture
+    def add_store_not_present_in_stores_mapping(self, original_definition_lines, expected_definition_lines):
+        original_definition_lines.append("pc: attach@original_pc_store")
+        expected_definition_lines.append("pc: attach@original_pc_store")
+
+    @pytest.fixture
     def replacement_matches_expectation(self, original_definition, expected_definition, stores):
         return dj_helpers.replace_stores(original_definition, stores) == expected_definition
 
@@ -52,6 +57,10 @@ class TestReplaceStores:
 
     @pytest.mark.usefixtures("add_store_name_outside_of_attached_attribute")
     def test_if_store_names_outside_of_attached_attributes_are_ignored(self, replacement_matches_expectation):
+        assert replacement_matches_expectation
+
+    @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
+    def test_if_stores_not_present_in_stores_mapping_are_ignored(self, replacement_matches_expectation):
         assert replacement_matches_expectation
 
 

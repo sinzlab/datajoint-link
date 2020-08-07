@@ -11,7 +11,10 @@ def replace_stores(definition: str, stores: Dict[str, str]) -> str:
     stores = {original: replacement for replacement, original in stores.items()}
 
     def replace_store(match):
-        return match.groups()[0] + stores[match.groups()[1]]
+        try:
+            return match.groups()[0] + stores[match.groups()[1]]
+        except KeyError:
+            return match.group(0)
 
     pattern = re.compile(r"(attach@)(\S+)")
     return re.sub(pattern, replace_store, definition)
