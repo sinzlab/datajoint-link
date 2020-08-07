@@ -46,22 +46,39 @@ class TestReplaceStores:
 
     @pytest.fixture
     def replacement_matches_expectation(self, original_definition, expected_definition, stores):
-        return dj_helpers.replace_stores(original_definition, stores) == expected_definition
+        def _replacement_matches_expectation():
+            return dj_helpers.replace_stores(original_definition, stores) == expected_definition
+
+        return _replacement_matches_expectation
 
     def test_if_single_store_is_replaced(self, replacement_matches_expectation):
-        assert replacement_matches_expectation
+        assert replacement_matches_expectation()
 
     @pytest.mark.usefixtures("add_store")
     def test_if_multiple_stores_are_replaced(self, replacement_matches_expectation):
-        assert replacement_matches_expectation
+        assert replacement_matches_expectation()
 
     @pytest.mark.usefixtures("add_store_name_outside_of_attached_attribute")
     def test_if_store_names_outside_of_attached_attributes_are_ignored(self, replacement_matches_expectation):
-        assert replacement_matches_expectation
+        assert replacement_matches_expectation()
 
     @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
     def test_if_stores_not_present_in_stores_mapping_are_ignored(self, replacement_matches_expectation):
-        assert replacement_matches_expectation
+        assert replacement_matches_expectation()
+
+    @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
+    def test_if_warning_is_raised_if_stores_missing_in_stores_mapping_are_encountered(
+        self, replacement_matches_expectation
+    ):
+        with pytest.warns(UserWarning) as record:
+            replacement_matches_expectation()
+        assert len(record) == 1
+
+    @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
+    def test_if_warning_message_is_correct(self, replacement_matches_expectation):
+        with pytest.warns(UserWarning) as record:
+            replacement_matches_expectation()
+        assert record[0].message.args[0] == "No replacement for store 'original_pc_store' specified. Skipping!"
 
 
 class TestGetPartTableClasses:
