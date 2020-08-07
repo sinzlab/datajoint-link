@@ -23,13 +23,13 @@ class TestReplaceStores:
 
     @pytest.fixture
     def stores(self):
-        return dict(original_pa_store="replacement_pa_store")
+        return dict(replacement_pa_store="original_pa_store")
 
     @pytest.fixture
     def add_store(self, original_definition_lines, expected_definition_lines, stores):
         original_definition_lines.append("pb: attach@original_pb_store")
         expected_definition_lines.append("pb: attach@replacement_pb_store")
-        stores["original_pb_store"] = "replacement_pb_store"
+        stores["replacement_pb_store"] = "original_pb_store"
 
     @pytest.fixture
     def add_store_name_outside_of_attached_attribute(
