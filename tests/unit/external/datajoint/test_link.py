@@ -144,6 +144,25 @@ def linked_table(link, dummy_table_cls):
     return link(dummy_table_cls)
 
 
+@pytest.fixture
+def basic_outbound_config(table_name, schema_cls_spy):
+    return dict(
+        schema=schema_cls_spy.return_value,
+        table_name=table_name + "Outbound",
+        flag_table_names=["DeletionRequested", "DeletionApproved"],
+    )
+
+
+@pytest.fixture
+def basic_local_config(local_schema_stub, table_name, dummy_local_table_controller):
+    return dict(
+        schema=local_schema_stub,
+        table_name=table_name,
+        table_cls_attrs=dict(controller=dummy_local_table_controller, pull=pull),
+        flag_table_names=["DeletionRequested"],
+    )
+
+
 @pytest.mark.usefixtures("prepare_env", "linked_table")
 class TestCallWithoutInitialSetup:
     def test_if_configuration_of_source_table_cls_factory_is_correct(
@@ -155,23 +174,12 @@ class TestCallWithoutInitialSetup:
         schema_cls_spy.assert_called_once_with("outbound_schema", connection=source_schema_stub.connection)
 
     def test_if_configuration_of_outbound_table_cls_factory_is_correct(
-        self, table_cls_factory_spies, table_name, schema_cls_spy
+        self, table_cls_factory_spies, basic_outbound_config
     ):
-        assert table_cls_factory_spies["outbound"].config == TableFactoryConfig(
-            schema_cls_spy.return_value,
-            table_name + "Outbound",
-            flag_table_names=["DeletionRequested", "DeletionApproved"],
-        )
+        assert table_cls_factory_spies["outbound"].config == TableFactoryConfig(**basic_outbound_config)
 
-    def test_if_configuration_of_local_table_cls_factory_is_correct(
-        self, table_cls_factory_spies, local_schema_stub, table_name, dummy_local_table_controller
-    ):
-        assert table_cls_factory_spies["local"].config == TableFactoryConfig(
-            local_schema_stub,
-            table_name,
-            table_cls_attrs=dict(controller=dummy_local_table_controller, pull=pull),
-            flag_table_names=["DeletionRequested"],
-        )
+    def test_if_configuration_of_local_table_cls_factory_is_correct(self, table_cls_factory_spies, basic_local_config):
+        assert table_cls_factory_spies["local"].config == TableFactoryConfig(**basic_local_config)
 
     def test_if_call_to_local_table_cls_factory_is_correct(self, table_cls_factory_spies):
         table_cls_factory_spies["local"].assert_called_once_with()
@@ -188,16 +196,14 @@ def initial_setup_required(table_cls_factory_spies):
 @pytest.mark.usefixtures("initial_setup_required", "linked_table")
 class TestCallWithInitialSetup:
     def test_if_source_table_cls_factory_is_called(self, table_cls_factory_spies):
-        table_cls_factory_spies["source"].assert_called_once_with()
+        assert table_cls_factory_spies["source"].call_args_list == [call(), call()]
 
     def test_if_configuration_of_outbound_table_cls_factory_is_correct(
-        self, table_cls_factory_spies, schema_cls_spy, table_name, source_table_cls_stub
+        self, table_cls_factory_spies, basic_outbound_config, source_table_cls_stub
     ):
         assert table_cls_factory_spies["outbound"].config == TableFactoryConfig(
-            schema_cls_spy.return_value,
-            table_name + "Outbound",
+            **basic_outbound_config,
             table_cls_attrs=dict(source_table=source_table_cls_stub),
-            flag_table_names=["DeletionRequested", "DeletionApproved"],
             table_definition="-> self.source_table",
         )
 
@@ -212,14 +218,9 @@ class TestCallWithInitialSetup:
             call("source_part_c_heading", stores),
         ]
 
-    def test_if_configuration_of_local_table_cls_factory_is_correct(
-        self, table_cls_factory_spies, local_schema_stub, table_name, dummy_local_table_controller
-    ):
+    def test_if_configuration_of_local_table_cls_factory_is_correct(self, table_cls_factory_spies, basic_local_config):
         assert table_cls_factory_spies["local"].config == TableFactoryConfig(
-            local_schema_stub,
-            table_name,
-            table_cls_attrs=dict(controller=dummy_local_table_controller, pull=pull),
-            flag_table_names=["DeletionRequested"],
+            **basic_local_config,
             table_definition="replaced_heading",
             part_table_definitions=dict(PartA="replaced_heading", PartB="replaced_heading", PartC="replaced_heading"),
         )
