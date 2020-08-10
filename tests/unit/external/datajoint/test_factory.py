@@ -1,11 +1,34 @@
 from unittest.mock import MagicMock, DEFAULT
 from copy import deepcopy
+from dataclasses import is_dataclass
+from functools import partial
 
 import pytest
 from datajoint import Lookup, Part
 
 from link.base import Base
-from link.external.datajoint.factory import TableFactory
+from link.external.datajoint.factory import TableFactoryConfig, TableFactory
+
+
+class TestTableFactoryConfig:
+    def test_if_dataclass(self):
+        assert is_dataclass(TableFactoryConfig)
+
+    @pytest.fixture
+    def partial_config_cls(self):
+        return partial(TableFactoryConfig, MagicMock(name="dummy_schema"), "table_name")
+
+    def test_if_table_class_attributes_are_empty_dict_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().table_cls_attrs == dict()
+
+    def test_if_flag_table_names_are_empty_list_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().flag_table_names == list()
+
+    def test_if_table_definition_is_none_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().table_definition is None
+
+    def test_if_part_table_definitions_are_empty_dict_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().part_table_definitions == dict()
 
 
 @pytest.fixture
@@ -17,24 +40,8 @@ def test_if_table_factory_is_subclass_of_base():
     assert issubclass(TableFactory, Base)
 
 
-class TestInit:
-    def test_if_schema_is_none(self, factory):
-        assert factory.schema is None
-
-    def test_if_table_name_is_none(self, factory):
-        assert factory.table_name is None
-
-    def test_if_table_cls_attrs_are_empty_dict(self, factory):
-        assert factory.table_cls_attrs == dict()
-
-    def test_if_flag_table_names_are_empty_list(self, factory):
-        assert factory.flag_table_names == list()
-
-    def test_if_table_definition_is_none(self, factory):
-        assert factory.table_definition is None
-
-    def test_if_part_table_definitions_are_empty_dict(self, factory):
-        assert factory.part_table_definitions == dict()
+def test_if_config_is_none(factory):
+    assert factory.config is None
 
 
 @pytest.fixture
@@ -76,10 +83,9 @@ def flag_part_tables(flag_part_table_names):
 
 @pytest.fixture
 def configure_for_spawning(factory, fake_schema, table_name, table_cls_attrs, flag_part_table_names):
-    factory.schema = fake_schema
-    factory.table_name = table_name
-    factory.table_cls_attrs = table_cls_attrs
-    factory.flag_table_names = flag_part_table_names
+    factory.config = TableFactoryConfig(
+        fake_schema, table_name, table_cls_attrs=table_cls_attrs, flag_table_names=flag_part_table_names
+    )
 
 
 @pytest.fixture
@@ -121,9 +127,23 @@ def dummy_spawned_table_cls(part_tables):
 
 
 @pytest.fixture
-def configure_for_creating(factory, configure_for_spawning, table_definition, non_flag_part_table_definitions):
-    factory.table_definition = table_definition
-    factory.part_table_definitions = non_flag_part_table_definitions
+def configure_for_creating(
+    factory,
+    fake_schema,
+    table_name,
+    table_cls_attrs,
+    flag_part_table_names,
+    table_definition,
+    non_flag_part_table_definitions,
+):
+    factory.config = TableFactoryConfig(
+        fake_schema,
+        table_name,
+        table_cls_attrs=table_cls_attrs,
+        flag_table_names=flag_part_table_names,
+        table_definition=table_definition,
+        part_table_definitions=non_flag_part_table_definitions,
+    )
 
 
 @pytest.fixture
@@ -158,13 +178,7 @@ class TestCall:
         with pytest.raises(RuntimeError):
             factory()
 
-    def test_if_runtime_error_is_raised_if_schema_attribute_is_not_set(self, factory, table_name):
-        factory.table_name = table_name
-        with pytest.raises(RuntimeError):
-            factory()
-
-    def test_if_runtime_error_is_raised_if_table_name_attribute_is_not_set(self, factory, fake_schema):
-        factory.schema = fake_schema
+    def test_if_runtime_error_is_raised_if_config_attribute_is_none(self, factory):
         with pytest.raises(RuntimeError):
             factory()
 
