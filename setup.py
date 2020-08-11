@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/cblessing24/link",
     packages=setuptools.find_packages(),
-    classifiers=["Programming Language :: Python :: 3", "Operating System :: OS Independent",],
+    classifiers=["Programming Language :: Python :: 3", "Operating System :: OS Independent"],
     python_requires=">=3.8",
     install_requires=["datajoint"],
 )
