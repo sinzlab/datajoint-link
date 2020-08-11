@@ -1,4 +1,5 @@
 import re
+import warnings
 from typing import Dict, Type, List, Optional
 from inspect import isclass
 
@@ -7,8 +8,15 @@ from datajoint.table import Table
 
 
 def replace_stores(definition: str, stores: Dict[str, str]) -> str:
+    """Replaces the stores in the definition according to a mapping of replacement to original stores."""
+    stores = {original: replacement for replacement, original in stores.items()}
+
     def replace_store(match):
-        return match.groups()[0] + stores[match.groups()[1]]
+        try:
+            return match.groups()[0] + stores[match.groups()[1]]
+        except KeyError:
+            warnings.warn(f"No replacement for store '{match.groups()[1]}' specified. Skipping!", category=UserWarning)
+            return match.group(0)
 
     pattern = re.compile(r"(attach@)(\S+)")
     return re.sub(pattern, replace_store, definition)

@@ -82,7 +82,7 @@ class LazySchema:
 
     def _initialize(self) -> None:
         if self._host is not None:
-            self._connection = self._conn_cls(self._host, os.environ["REMOTE_DJ_USER"], os.environ["REMOTE_DJ_PASS"])
+            self._connection = self._conn_cls(self._host, os.environ["LINK_USER"], os.environ["LINK_PASS"])
         self._schema = self._schema_cls(
             schema_name=self.database,
             context=self.context,

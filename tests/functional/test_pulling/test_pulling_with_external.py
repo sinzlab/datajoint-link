@@ -30,6 +30,6 @@ def expected_data(expected_data, local_dir):
     return expected_data
 
 
-@pytest.mark.usefixtures("src_db", "local_db", "cleanup_buckets", "src_minio", "local_minio", "src_table_with_data")
+@pytest.mark.usefixtures("cleanup_buckets", "src_table_with_data")
 def test_pulling(pulled_data, expected_data):
     assert pulled_data == expected_data
