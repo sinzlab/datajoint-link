@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build Docker image
+      run: docker build -t link .
+    - name: Create Docker network for running functional tests
+      run: docker network create test_runner_network
+    - name: Run tests and generate coverage report
+      run: docker run 
+        --network test_runner_network 
+        --volume /var/run/docker.sock:/var/run/docker.sock
+        --volume $GITHUB_WORKSPACE:/src/link
+        link pytest --cov=./ --cov-report=xml
+    - name: Upload coverage report to Codecov
+      run:  bash <(curl -s https://codecov.io/bash) 
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
