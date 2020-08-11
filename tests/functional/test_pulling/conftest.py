@@ -38,5 +38,5 @@ def pulled_data(local_table_cls_with_pulled_data):
 
 
 @pytest.fixture
-def expected_data(src_data, src_db_config):
-    return [dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name) for e in src_data]
+def expected_data(src_data):
+    return src_data

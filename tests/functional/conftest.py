@@ -13,8 +13,7 @@ import pymysql
 import minio
 import datajoint as dj
 
-from link import main, schemas
-
+from link import Link, LazySchema
 
 SCOPE = os.environ.get("SCOPE", "session")
 
@@ -75,7 +74,7 @@ def minio_config_cls(container_config_cls):
     return MinIOConfig
 
 
-@pytest.fixture()
+@pytest.fixture(scope=SCOPE)
 def store_config():
     @dataclass
     class StoreConfig:
@@ -201,7 +200,9 @@ def local_minio_config(get_minio_config, network_config, health_check_config):
 
 @pytest.fixture(scope=SCOPE)
 def outbound_schema_name(src_db_config):
-    return "datajoint_outbound__" + src_db_config.schema_name
+    name = "outbound_schema"
+    os.environ["LINK_OUTBOUND"] = name
+    return name
 
 
 @pytest.fixture(scope=SCOPE)
@@ -334,7 +335,7 @@ def local_minio(create_container, local_minio_config, docker_client):
 
 
 @pytest.fixture
-def src_minio_client(src_minio_config):
+def src_minio_client(src_minio, src_minio_config):
     return get_minio_client(src_minio_config)
 
 
@@ -348,7 +349,7 @@ def get_minio_client(minio_config):
 
 
 @pytest.fixture
-def local_minio_client(local_minio_config):
+def local_minio_client(local_minio, local_minio_config):
     return get_minio_client(local_minio_config)
 
 
@@ -412,13 +413,13 @@ def get_conn():
 
 
 @pytest.fixture
-def src_conn(src_db_config, src_store_config, get_conn):
+def src_conn(src_db, src_db_config, src_store_config, get_conn):
     with get_conn(src_db_config, "end", stores=[src_store_config]) as conn:
         yield conn
 
 
 @pytest.fixture
-def local_conn(local_db_config, local_store_config, src_store_config, get_conn):
+def local_conn(local_db, local_db_config, local_store_config, src_store_config, get_conn):
     with get_conn(local_db_config, "end", stores=[local_store_config, src_store_config]) as conn:
         yield conn
 
@@ -439,14 +440,14 @@ def cleanup_buckets(src_minio_client, local_minio_client, src_store_config, loca
 
 
 @pytest.fixture
-def test_session(src_db_config, local_db_config, src_conn, local_conn):
-    src_schema = schemas.LazySchema(src_db_config.schema_name, connection=src_conn)
-    local_schema = schemas.LazySchema(local_db_config.schema_name, connection=local_conn)
+def test_session(src_db_config, local_db_config, src_conn, local_conn, outbound_schema_name):
+    src_schema = LazySchema(src_db_config.schema_name, connection=src_conn)
+    local_schema = LazySchema(local_db_config.schema_name, connection=local_conn)
     yield dict(src=src_schema, local=local_schema)
     local_schema.drop(force=True)
     with mysql_conn(src_db_config) as conn:
         with conn.cursor() as cursor:
-            cursor.execute(f"DROP DATABASE IF EXISTS {'datajoint_outbound__' + src_db_config.schema_name};")
+            cursor.execute(f"DROP DATABASE IF EXISTS {outbound_schema_name};")
         conn.commit()
     src_schema.drop(force=True)
 
@@ -497,15 +498,15 @@ def src_data(n_entities):
 @pytest.fixture
 def src_table_with_data(src_schema, src_table_cls, src_data):
     src_table = src_schema(src_table_cls)
-    src_table.insert(src_data)
+    src_table().insert(src_data)
     return src_table
 
 
 @pytest.fixture
 def remote_schema(src_db_config):
-    os.environ["REMOTE_DJ_USER"] = src_db_config.users["dj_user"].name
-    os.environ["REMOTE_DJ_PASS"] = src_db_config.users["dj_user"].password
-    return schemas.LazySchema(src_db_config.schema_name, host=src_db_config.name)
+    os.environ["LINK_USER"] = src_db_config.users["dj_user"].name
+    os.environ["LINK_PASS"] = src_db_config.users["dj_user"].password
+    return LazySchema(src_db_config.schema_name, host=src_db_config.name)
 
 
 @pytest.fixture
@@ -516,7 +517,7 @@ def stores(request, local_store_name, src_store_name):
 
 @pytest.fixture
 def local_table_cls(local_schema, remote_schema, stores):
-    @main.Link(local_schema, remote_schema, stores=stores)
+    @Link(local_schema, remote_schema, stores=stores)
     class Table:
         """Local table."""
 
