@@ -242,17 +242,40 @@ class TestCallWithInitialSetup:
 
 class TestPull:
     @pytest.fixture
-    def fake_local_table(self):
+    def fake_controller(self):
+        class FakeController:
+            is_in_with_clause = False
+
+            # noinspection PyUnusedLocal
+            def pull(self, *restrictions):
+                if not self.is_in_with_clause:
+                    raise RuntimeError("Pull method must be called inside with clause")
+
+        fake_controller = FakeController()
+        fake_controller.pull = MagicMock(wraps=fake_controller.pull)
+        return fake_controller
+
+    @pytest.fixture
+    def fake_temp_dir(self, fake_controller):
+        class FakeTemporaryDirectory:
+            controller = fake_controller
+
+            def __enter__(self):
+                self.controller.is_in_with_clause = True
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                self.controller.is_in_with_clause = False
+
+        return FakeTemporaryDirectory()
+
+    @pytest.fixture
+    def fake_local_table(self, fake_controller, fake_temp_dir):
         class FakeLocalTable:
-            controller = MagicMock(name="controller_spy")
-            temp_dir = create_autospec(ReusableTemporaryDirectory, instance=True)
+            controller = fake_controller
+            temp_dir = fake_temp_dir
 
-        setattr(FakeLocalTable, "pull", pull)
+        FakeLocalTable.pull = pull
         return FakeLocalTable()
-
-    def test_if_temporary_directory_is_created(self, fake_local_table):
-        fake_local_table.pull()
-        fake_local_table.temp_dir.__enter__.assert_called_once_with()
 
     def test_if_call_to_controller_is_correct(self, fake_local_table):
         fake_local_table.pull("restriction1", "restriction2")
@@ -261,7 +284,3 @@ class TestPull:
     def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_local_table):
         fake_local_table.pull()
         fake_local_table.controller.pull.assert_called_once_with(dj.AndList())
-
-    def test_if_temporary_directory_is_cleaned_up(self, fake_local_table):
-        fake_local_table.pull()
-        fake_local_table.temp_dir.__exit__.assert_called_once()
