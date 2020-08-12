@@ -6,7 +6,7 @@ import pytest
 
 @pytest.fixture
 def src_dir():
-    with TemporaryDirectory() as temp_dir:
+    with TemporaryDirectory(prefix="link_test_src_") as temp_dir:
         yield temp_dir
 
 
@@ -28,7 +28,7 @@ def file_paths(n_entities, file_size, src_dir):
 
 @pytest.fixture
 def local_dir():
-    with TemporaryDirectory() as temp_dir:
+    with TemporaryDirectory(prefix="link_test_local_") as temp_dir:
         yield temp_dir
 
 
