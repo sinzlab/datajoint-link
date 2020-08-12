@@ -5,6 +5,7 @@ from datajoint import Schema, Lookup, AndList
 from datajoint.table import Table
 
 from .factory import TableFactoryConfig, TableFactory
+from .file import ReusableTemporaryDirectory
 from .dj_helpers import replace_stores
 from ...adapters.datajoint.local_table import LocalTableController
 from ...base import Base
@@ -15,6 +16,7 @@ class Link(Base):
     _replace_stores_func = staticmethod(replace_stores)
     _table_cls_factories: Dict[str, TableFactory] = None
     _local_table_controller: LocalTableController = None
+    _temp_dir: ReusableTemporaryDirectory = None
 
     def __init__(self, local_schema: Schema, source_schema: Schema, stores: Optional[Dict[str, str]] = None) -> None:
         if stores is None:
@@ -54,7 +56,7 @@ class Link(Base):
             return dict(
                 schema=self.local_schema,
                 table_name=table_cls.__name__,
-                table_cls_attrs=dict(controller=self._local_table_controller, pull=pull),
+                table_cls_attrs=dict(controller=self._local_table_controller, pull=pull, temp_dir=self._temp_dir),
                 flag_table_names=["DeletionRequested"],
             )
 
@@ -86,4 +88,5 @@ class Link(Base):
 def pull(self, *restrictions) -> None:
     if not restrictions:
         restrictions = AndList()
-    self.controller.pull(restrictions)
+    with self.temp_dir:
+        self.controller.pull(restrictions)

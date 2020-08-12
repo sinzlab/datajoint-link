@@ -8,6 +8,7 @@ from link.base import Base
 from link.adapters.datajoint.gateway import EntityDTO as GatewayEntityDTO
 from link.external.datajoint.facade import EntityDTO, TableFacade
 from link.external.datajoint.factory import TableFactory
+from link.external.datajoint.file import ReusableTemporaryDirectory
 
 
 @pytest.fixture
@@ -95,13 +96,15 @@ def table_factory_spy(table_spy, part_table_spies, flag_table_spies):
 
 
 @pytest.fixture
-def download_path():
-    return "download_path"
+def temp_dir_stub():
+    stub = create_autospec(ReusableTemporaryDirectory, instance=True)
+    stub.name = "temp_dir"
+    return stub
 
 
 @pytest.fixture
-def table_facade(table_factory_spy, download_path):
-    return TableFacade(table_factory_spy, download_path)
+def table_facade(table_factory_spy, temp_dir_stub):
+    return TableFacade(table_factory_spy, temp_dir_stub)
 
 
 def test_if_table_facade_is_subclass_of_base():
@@ -112,8 +115,8 @@ def test_if_table_factory_is_stored_as_instance_attribute(table_facade, table_fa
     assert table_facade.table_factory is table_factory_spy
 
 
-def test_if_download_path_is_stored_as_instance_attribute(table_facade, download_path):
-    assert table_facade.download_path == download_path
+def test_if_temp_dir_is_stored_as_instance_attribute(table_facade, temp_dir_stub):
+    assert table_facade.temp_dir == temp_dir_stub
 
 
 class TestPrimaryKeysProperty:
@@ -186,16 +189,16 @@ class TestFetch:
     def test_if_table_is_restricted(self, table_spy, primary_key):
         table_spy.__and__.assert_called_once_with(primary_key)
 
-    def test_if_master_entity_is_fetched(self, table_spy, download_path):
-        table_spy.__and__.return_value.fetch1.assert_called_once_with(download_path=download_path)
+    def test_if_master_entity_is_fetched(self, table_spy, temp_dir_stub):
+        table_spy.__and__.return_value.fetch1.assert_called_once_with(download_path=temp_dir_stub.name)
 
     def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
         for part in part_table_spies.values():
             part.__and__.assert_called_once_with(primary_key)
 
-    def test_if_part_entities_are_fetched_from_part_tables(self, part_table_spies, download_path):
+    def test_if_part_entities_are_fetched_from_part_tables(self, part_table_spies, temp_dir_stub):
         for part in part_table_spies.values():
-            part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=download_path)
+            part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=temp_dir_stub.name)
 
     def test_if_entity_dto_is_returned(self, fetched_entity, primary_key_names, master_entity, part_entities):
         # noinspection PyArgumentList

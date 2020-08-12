@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, create_autospec
 
 import pytest
 import datajoint as dj
@@ -8,6 +8,7 @@ from link.base import Base
 from link.external.datajoint.dj_helpers import replace_stores
 from link.external.datajoint.link import Link, pull
 from link.external.datajoint.factory import TableFactoryConfig, TableFactory
+from link.external.datajoint.file import ReusableTemporaryDirectory
 
 
 @pytest.fixture
@@ -81,6 +82,11 @@ def dummy_local_table_controller():
 
 
 @pytest.fixture
+def dummy_temp_dir():
+    return create_autospec(ReusableTemporaryDirectory, instance=True)
+
+
+@pytest.fixture
 def link(
     local_schema_stub,
     source_schema_stub,
@@ -89,12 +95,14 @@ def link(
     schema_cls_spy,
     replace_stores_spy,
     dummy_local_table_controller,
+    dummy_temp_dir,
 ):
     link = Link(local_schema_stub, source_schema_stub, stores=stores)
     link._table_cls_factories = table_cls_factory_spies
     link._schema_cls = schema_cls_spy
     link._replace_stores_func = replace_stores_spy
     link._local_table_controller = dummy_local_table_controller
+    link._temp_dir = dummy_temp_dir
     return link
 
 
@@ -154,11 +162,11 @@ def basic_outbound_config(table_name, schema_cls_spy):
 
 
 @pytest.fixture
-def basic_local_config(local_schema_stub, table_name, dummy_local_table_controller):
+def basic_local_config(local_schema_stub, table_name, dummy_local_table_controller, dummy_temp_dir):
     return dict(
         schema=local_schema_stub,
         table_name=table_name,
-        table_cls_attrs=dict(controller=dummy_local_table_controller, pull=pull),
+        table_cls_attrs=dict(controller=dummy_local_table_controller, pull=pull, temp_dir=dummy_temp_dir),
         flag_table_names=["DeletionRequested"],
     )
 
@@ -237,9 +245,14 @@ class TestPull:
     def fake_local_table(self):
         class FakeLocalTable:
             controller = MagicMock(name="controller_spy")
+            temp_dir = create_autospec(ReusableTemporaryDirectory, instance=True)
 
         setattr(FakeLocalTable, "pull", pull)
         return FakeLocalTable()
+
+    def test_if_temporary_directory_is_created(self, fake_local_table):
+        fake_local_table.pull()
+        fake_local_table.temp_dir.__enter__.assert_called_once_with()
 
     def test_if_call_to_controller_is_correct(self, fake_local_table):
         fake_local_table.pull("restriction1", "restriction2")
@@ -248,3 +261,7 @@ class TestPull:
     def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_local_table):
         fake_local_table.pull()
         fake_local_table.controller.pull.assert_called_once_with(dj.AndList())
+
+    def test_if_temporary_directory_is_cleaned_up(self, fake_local_table):
+        fake_local_table.pull()
+        fake_local_table.temp_dir.__exit__.assert_called_once()

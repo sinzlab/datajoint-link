@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
 
+from .file import ReusableTemporaryDirectory
 from ...adapters.datajoint.gateway import EntityDTO
 from ...adapters.datajoint.abstract_facade import AbstractTableFacade
 from ...base import Base
@@ -13,9 +14,9 @@ class EntityDTO(EntityDTO):
 
 
 class TableFacade(AbstractTableFacade, Base):
-    def __init__(self, table_factory, download_path: str) -> None:
+    def __init__(self, table_factory, temp_dir: ReusableTemporaryDirectory) -> None:
         self.table_factory = table_factory
-        self.download_path = download_path
+        self.temp_dir = temp_dir
 
     @property
     def primary_keys(self) -> List[PrimaryKey]:
@@ -36,10 +37,10 @@ class TableFacade(AbstractTableFacade, Base):
     def fetch(self, primary_key: PrimaryKey) -> EntityDTO:
         """Fetches the entity identified by the provided primary key from the table."""
         table = self.table_factory()
-        master_entity = (table & primary_key).fetch1(download_path=self.download_path)
+        master_entity = (table & primary_key).fetch1(download_path=self.temp_dir.name)
         part_entities = dict()
         for part_name, part in self.table_factory.part_tables.items():
-            part_entities[part_name] = (part & primary_key).fetch(as_dict=True, download_path=self.download_path)
+            part_entities[part_name] = (part & primary_key).fetch(as_dict=True, download_path=self.temp_dir.name)
         return EntityDTO(table.primary_key, master_entity, parts=part_entities)
 
     def insert(self, entity_dto: EntityDTO) -> None:
