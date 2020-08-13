@@ -1,14 +1,13 @@
 import os
-from unittest.mock import MagicMock, call, create_autospec
+from unittest.mock import MagicMock, call
 
 import pytest
 import datajoint as dj
 
 from link.base import Base
 from link.external.datajoint.dj_helpers import replace_stores
-from link.external.datajoint.link import Link, pull
+from link.external.datajoint.link import Link, LocalTableMixin
 from link.external.datajoint.factory import TableFactoryConfig, TableFactory
-from link.external.datajoint.file import ReusableTemporaryDirectory
 
 
 @pytest.fixture
@@ -77,32 +76,13 @@ def table_cls_factory_spies(source_table_cls_stub, source_part_stubs):
 
 
 @pytest.fixture
-def dummy_local_table_controller():
-    return MagicMock(name="local_table_controller")
-
-
-@pytest.fixture
-def dummy_temp_dir():
-    return create_autospec(ReusableTemporaryDirectory, instance=True)
-
-
-@pytest.fixture
 def link(
-    local_schema_stub,
-    source_schema_stub,
-    stores,
-    table_cls_factory_spies,
-    schema_cls_spy,
-    replace_stores_spy,
-    dummy_local_table_controller,
-    dummy_temp_dir,
+    local_schema_stub, source_schema_stub, stores, table_cls_factory_spies, schema_cls_spy, replace_stores_spy,
 ):
     link = Link(local_schema_stub, source_schema_stub, stores=stores)
     link._table_cls_factories = table_cls_factory_spies
     link._schema_cls = schema_cls_spy
     link._replace_stores_func = replace_stores_spy
-    link._local_table_controller = dummy_local_table_controller
-    link._temp_dir = dummy_temp_dir
     return link
 
 
@@ -162,11 +142,11 @@ def basic_outbound_config(table_name, schema_cls_spy):
 
 
 @pytest.fixture
-def basic_local_config(local_schema_stub, table_name, dummy_local_table_controller, dummy_temp_dir):
+def basic_local_config(local_schema_stub, table_name):
     return dict(
         schema=local_schema_stub,
         table_name=table_name,
-        table_cls_attrs=dict(controller=dummy_local_table_controller, pull=pull, temp_dir=dummy_temp_dir),
+        table_bases=(LocalTableMixin,),
         flag_table_names=["DeletionRequested"],
     )
 
@@ -242,7 +222,7 @@ class TestCallWithInitialSetup:
         assert linked_table is "local_table_cls"
 
 
-class TestPull:
+class TestLocalTableMixin:
     @pytest.fixture
     def fake_controller(self):
         class FakeController:
@@ -270,19 +250,15 @@ class TestPull:
 
         return FakeTemporaryDirectory()
 
-    @pytest.fixture
-    def fake_local_table(self, fake_controller, fake_temp_dir):
-        class FakeLocalTable:
-            controller = fake_controller
-            temp_dir = fake_temp_dir
+    @pytest.fixture(autouse=True)
+    def configure_mixin(self, fake_controller, fake_temp_dir):
+        LocalTableMixin._controller = fake_controller
+        LocalTableMixin._temp_dir = fake_temp_dir
 
-        FakeLocalTable.pull = pull
-        return FakeLocalTable()
+    def test_if_call_to_controller_is_correct(self, fake_controller):
+        LocalTableMixin().pull("restriction1", "restriction2")
+        fake_controller.pull.assert_called_once_with(("restriction1", "restriction2"))
 
-    def test_if_call_to_controller_is_correct(self, fake_local_table):
-        fake_local_table.pull("restriction1", "restriction2")
-        fake_local_table.controller.pull.assert_called_once_with(("restriction1", "restriction2"))
-
-    def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_local_table):
-        fake_local_table.pull()
-        fake_local_table.controller.pull.assert_called_once_with(dj.AndList())
+    def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_controller):
+        LocalTableMixin().pull()
+        fake_controller.pull.assert_called_once_with(dj.AndList())

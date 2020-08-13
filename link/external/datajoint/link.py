@@ -15,8 +15,6 @@ class Link(Base):
     _schema_cls = Schema
     _replace_stores_func = staticmethod(replace_stores)
     _table_cls_factories: Dict[str, TableFactory] = None
-    _local_table_controller: LocalTableController = None
-    _temp_dir: ReusableTemporaryDirectory = None
 
     def __init__(self, local_schema: Schema, source_schema: Schema, stores: Optional[Dict[str, str]] = None) -> None:
         if stores is None:
@@ -56,7 +54,7 @@ class Link(Base):
             return dict(
                 schema=self.local_schema,
                 table_name=table_cls.__name__,
-                table_cls_attrs=dict(controller=self._local_table_controller, pull=pull, temp_dir=self._temp_dir),
+                table_bases=(LocalTableMixin,),
                 flag_table_names=["DeletionRequested"],
             )
 
@@ -87,8 +85,15 @@ class Link(Base):
         return self._replace_stores_func(str(table_cls().heading), self.stores)
 
 
-def pull(self, *restrictions) -> None:
-    if not restrictions:
-        restrictions = AndList()
-    with self.temp_dir:
-        self.controller.pull(restrictions)
+class LocalTableMixin:
+    """Mixin class for adding additional functionality to the local table class."""
+
+    _controller: LocalTableController = None
+    _temp_dir: ReusableTemporaryDirectory = None
+
+    def pull(self, *restrictions) -> None:
+        """Pull entities present in the (restricted) source table into the local table."""
+        if not restrictions:
+            restrictions = AndList()
+        with self._temp_dir:
+            self._controller.pull(restrictions)

@@ -6,7 +6,7 @@ from link.adapters.datajoint.local_table import LocalTablePresenter, LocalTableC
 from link.external.datajoint.file import ReusableTemporaryDirectory
 from link.external.datajoint.factory import TableFactory
 from link.external.datajoint.facade import TableFacade
-from link.external.datajoint.link import Link
+from link.external.datajoint.link import Link, LocalTableMixin
 from link.schemas import LazySchema
 
 
@@ -23,5 +23,5 @@ pull_use_case = initialize(dj_gateway_link, local_table_presenter.pull)
 local_table_controller = LocalTableController()
 local_table_controller.pull_use_case = pull_use_case
 local_table_controller.source_gateway = dj_gateways["source"]
-Link._local_table_controller = local_table_controller
-Link._temp_dir = temp_dir
+LocalTableMixin._controller = local_table_controller
+LocalTableMixin._temp_dir = temp_dir
