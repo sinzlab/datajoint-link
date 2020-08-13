@@ -4,7 +4,7 @@ from dataclasses import is_dataclass
 from functools import partial
 
 import pytest
-from datajoint import Lookup, Part
+from datajoint import Part
 
 from link.base import Base
 from link.external.datajoint.factory import TableFactoryConfig, TableFactory
@@ -26,6 +26,9 @@ class TestTableFactoryConfig:
 
     def test_if_flag_table_names_are_empty_list_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().flag_table_names == list()
+
+    def test_if_table_cls_is_none_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().table_cls is None
 
     def test_if_table_definition_is_none_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().table_definition is None
@@ -101,6 +104,14 @@ def configure_for_spawning(factory, fake_schema, table_name, table_bases, table_
 
 
 @pytest.fixture
+def dummy_table_cls():
+    class DummyTable:
+        pass
+
+    return DummyTable
+
+
+@pytest.fixture
 def table_definition():
     return "some definition"
 
@@ -146,6 +157,7 @@ def configure_for_creating(
     table_bases,
     table_cls_attrs,
     flag_part_table_names,
+    dummy_table_cls,
     table_definition,
     non_flag_part_table_definitions,
 ):
@@ -155,6 +167,7 @@ def configure_for_creating(
         table_bases=table_bases,
         table_cls_attrs=table_cls_attrs,
         flag_table_names=flag_part_table_names,
+        table_cls=dummy_table_cls,
         table_definition=table_definition,
         part_table_definitions=non_flag_part_table_definitions,
     )
@@ -226,8 +239,10 @@ class TestCall:
             factory()
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
-    def test_if_created_table_class_is_subclass_of_lookup_table_and_table_bases(self, factory, table_bases):
-        for cls in (Lookup,) + table_bases:
+    def test_if_created_table_class_is_subclass_of_table_class_and_table_bases(
+        self, factory, dummy_table_cls, table_bases
+    ):
+        for cls in (dummy_table_cls,) + table_bases:
             assert issubclass(factory(), cls)
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")

@@ -25,7 +25,7 @@ class Link(Base):
         self.source_schema = source_schema
         self.stores = stores
 
-    def __call__(self, table_cls: Type) -> Type[Lookup]:
+    def __call__(self, table_cls: Type) -> Type[Table]:
         self._configure(table_cls, "source")
         self._configure(table_cls, "outbound")
         self._configure(table_cls, "local")
@@ -65,12 +65,14 @@ class Link(Base):
         if factory_type == "outbound":
             return dict(
                 config,
+                table_cls=Lookup,
                 table_cls_attrs=dict(source_table=self._table_cls_factories["source"]()),
                 table_definition="-> self.source_table",
             )
         else:
             return dict(
                 config,
+                table_cls=Lookup,
                 table_definition=self._create_definition(self._table_cls_factories["source"]()),
                 part_table_definitions=self._create_local_part_table_definitions(),
             )
