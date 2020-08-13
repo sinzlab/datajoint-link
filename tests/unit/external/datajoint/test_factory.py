@@ -18,6 +18,9 @@ class TestTableFactoryConfig:
     def partial_config_cls(self):
         return partial(TableFactoryConfig, MagicMock(name="dummy_schema"), "table_name")
 
+    def test_if_table_bases_are_empty_tuple_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().table_bases == tuple()
+
     def test_if_table_class_attributes_are_empty_dict_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().table_cls_attrs == dict()
 
@@ -67,6 +70,11 @@ def table_name():
 
 
 @pytest.fixture
+def table_bases():
+    return tuple(type(name, tuple(), dict()) for name in ("BaseClass", "AnotherBaseClass"))
+
+
+@pytest.fixture
 def table_cls_attrs():
     return dict(some_attr=10, another_attr="Hello!")
 
@@ -82,9 +90,13 @@ def flag_part_tables(flag_part_table_names):
 
 
 @pytest.fixture
-def configure_for_spawning(factory, fake_schema, table_name, table_cls_attrs, flag_part_table_names):
+def configure_for_spawning(factory, fake_schema, table_name, table_bases, table_cls_attrs, flag_part_table_names):
     factory.config = TableFactoryConfig(
-        fake_schema, table_name, table_cls_attrs=table_cls_attrs, flag_table_names=flag_part_table_names
+        fake_schema,
+        table_name,
+        table_bases=table_bases,
+        table_cls_attrs=table_cls_attrs,
+        flag_table_names=flag_part_table_names,
     )
 
 
@@ -131,6 +143,7 @@ def configure_for_creating(
     factory,
     fake_schema,
     table_name,
+    table_bases,
     table_cls_attrs,
     flag_part_table_names,
     table_definition,
@@ -139,6 +152,7 @@ def configure_for_creating(
     factory.config = TableFactoryConfig(
         fake_schema,
         table_name,
+        table_bases=table_bases,
         table_cls_attrs=table_cls_attrs,
         flag_table_names=flag_part_table_names,
         table_definition=table_definition,
@@ -189,15 +203,22 @@ class TestCall:
         copied_call_args_mock.assert_called_once_with(context=dict())
 
     @pytest.mark.usefixtures("configure_for_spawning")
+    def test_if_name_of_spawned_table_class_is_correct(self, factory, table_name):
+        assert factory().__name__ == table_name
+
+    @pytest.mark.usefixtures("configure_for_spawning")
+    def test_if_spawned_table_class_is_subclass_of_spawned_table_class_table_bases(
+        self, factory, dummy_spawned_table_cls, table_bases
+    ):
+        for cls in (dummy_spawned_table_cls,) + table_bases:
+            assert issubclass(factory(), cls)
+
+    @pytest.mark.usefixtures("configure_for_spawning")
     def test_if_class_attributes_are_set_on_spawned_table_class(
         self, factory, dummy_spawned_table_cls, table_cls_attrs
     ):
-        factory()
-        assert all(getattr(dummy_spawned_table_cls, name) == value for name, value in table_cls_attrs.items())
-
-    @pytest.mark.usefixtures("configure_for_spawning")
-    def test_if_spawned_table_class_is_returned(self, factory, dummy_spawned_table_cls):
-        assert factory() == dummy_spawned_table_cls
+        for name, value in table_cls_attrs.items():
+            assert getattr(factory(), name) == value
 
     @pytest.mark.usefixtures("configure_for_spawning", "table_can_not_be_spawned")
     def test_if_runtime_error_is_raised_if_spawning_fails_and_table_definition_attribute_is_not_set(self, factory):
@@ -205,8 +226,9 @@ class TestCall:
             factory()
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
-    def test_if_created_table_class_is_lookup_table(self, factory):
-        assert issubclass(factory(), Lookup)
+    def test_if_created_table_class_is_subclass_of_lookup_table_and_table_bases(self, factory, table_bases):
+        for cls in (Lookup,) + table_bases:
+            assert issubclass(factory(), cls)
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
     def test_if_name_of_created_table_class_is_correct(self, factory, table_name):
