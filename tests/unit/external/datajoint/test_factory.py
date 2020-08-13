@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, DEFAULT
+from unittest.mock import MagicMock, DEFAULT, create_autospec
 from copy import deepcopy
 from dataclasses import is_dataclass
 from functools import partial
@@ -35,6 +35,29 @@ class TestTableFactoryConfig:
 
     def test_if_part_table_definitions_are_empty_dict_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().part_table_definitions == dict()
+
+    @pytest.fixture
+    def dummy_table_cls(self):
+        return MagicMock(name="dummy_table_cls")
+
+    def test_if_table_creation_is_possible_if_table_class_and_definition_are_provided(
+        self, partial_config_cls, dummy_table_cls
+    ):
+        assert (
+            partial_config_cls(table_cls=dummy_table_cls, table_definition="definition").is_table_creation_possible
+            is True
+        )
+
+    def test_if_table_creation_is_not_possible_if_table_class_is_not_provided(self, partial_config_cls):
+        assert partial_config_cls(table_definition="definition").is_table_creation_possible is False
+
+    def test_if_table_creation_is_not_possible_if_table_definition_is_not_provided(
+        self, partial_config_cls, dummy_table_cls
+    ):
+        assert partial_config_cls(table_cls=dummy_table_cls).is_table_creation_possible is False
+
+    def test_if_table_creation_is_not_possible_if_table_class_and_definition_are_not_provided(self, partial_config_cls):
+        assert partial_config_cls().is_table_creation_possible is False
 
 
 @pytest.fixture
@@ -94,13 +117,17 @@ def flag_part_tables(flag_part_table_names):
 
 @pytest.fixture
 def configure_for_spawning(factory, fake_schema, table_name, table_bases, table_cls_attrs, flag_part_table_names):
-    factory.config = TableFactoryConfig(
-        fake_schema,
-        table_name,
-        table_bases=table_bases,
-        table_cls_attrs=table_cls_attrs,
-        flag_table_names=flag_part_table_names,
-    )
+    config = create_autospec(TableFactoryConfig, instance=True)
+    config.schema = fake_schema
+    config.table_name = table_name
+    config.table_bases = table_bases
+    config.table_cls_attrs = table_cls_attrs
+    config.flag_table_names = flag_part_table_names
+    config.table_cls = None
+    config.table_definition = None
+    config.part_table_definitions = dict()
+    config.is_table_creation_possible = False
+    factory.config = config
 
 
 @pytest.fixture
@@ -161,16 +188,17 @@ def configure_for_creating(
     table_definition,
     non_flag_part_table_definitions,
 ):
-    factory.config = TableFactoryConfig(
-        fake_schema,
-        table_name,
-        table_bases=table_bases,
-        table_cls_attrs=table_cls_attrs,
-        flag_table_names=flag_part_table_names,
-        table_cls=dummy_table_cls,
-        table_definition=table_definition,
-        part_table_definitions=non_flag_part_table_definitions,
-    )
+    config = create_autospec(TableFactoryConfig, instance=True)
+    config.schema = fake_schema
+    config.table_name = table_name
+    config.table_bases = table_bases
+    config.table_cls_attrs = table_cls_attrs
+    config.flag_table_names = flag_part_table_names
+    config.table_cls = dummy_table_cls
+    config.table_definition = table_definition
+    config.part_table_definitions = non_flag_part_table_definitions
+    config.is_table_creation_possible = True
+    factory.config = config
 
 
 @pytest.fixture
@@ -201,10 +229,6 @@ def returned_non_flag_part_tables(factory, non_flag_part_table_definitions):
 
 
 class TestCall:
-    def test_if_runtime_error_is_raised_if_schema_and_table_name_attributes_are_not_set(self, factory):
-        with pytest.raises(RuntimeError):
-            factory()
-
     def test_if_runtime_error_is_raised_if_config_attribute_is_none(self, factory):
         with pytest.raises(RuntimeError):
             factory()
@@ -234,7 +258,7 @@ class TestCall:
             assert getattr(factory(), name) == value
 
     @pytest.mark.usefixtures("configure_for_spawning", "table_can_not_be_spawned")
-    def test_if_runtime_error_is_raised_if_spawning_fails_and_table_definition_attribute_is_not_set(self, factory):
+    def test_if_runtime_error_is_raised_if_spawning_fails_and_table_creation_is_not_possible(self, factory):
         with pytest.raises(RuntimeError):
             factory()
 

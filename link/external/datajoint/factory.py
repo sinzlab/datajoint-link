@@ -19,6 +19,10 @@ class TableFactoryConfig:
     table_definition: Optional[str] = None
     part_table_definitions: Dict[str, str] = field(default_factory=dict)
 
+    @property
+    def is_table_creation_possible(self) -> bool:
+        return bool(self.table_cls) and bool(self.table_definition)
+
 
 class TableFactory(Base):
     def __init__(self) -> None:
@@ -30,7 +34,7 @@ class TableFactory(Base):
         try:
             table_cls = self._spawn_table_cls()
         except KeyError:
-            if self.config.table_definition is None:
+            if not self.config.is_table_creation_possible:
                 raise RuntimeError
             table_cls = self._create_table_cls()
         return table_cls
