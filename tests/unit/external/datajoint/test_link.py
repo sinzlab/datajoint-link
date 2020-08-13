@@ -2,7 +2,7 @@ import os
 from unittest.mock import MagicMock, call
 
 import pytest
-import datajoint as dj
+from datajoint import Lookup, Schema, AndList
 
 from link.base import Base
 from link.external.datajoint.dj_helpers import replace_stores
@@ -76,13 +76,25 @@ def table_cls_factory_spies(source_table_cls_stub, source_part_stubs):
 
 
 @pytest.fixture
+def dummy_base_table_cls():
+    return MagicMock(name="dummy_base_table_cls")
+
+
+@pytest.fixture
 def link(
-    local_schema_stub, source_schema_stub, stores, table_cls_factory_spies, schema_cls_spy, replace_stores_spy,
+    local_schema_stub,
+    source_schema_stub,
+    stores,
+    table_cls_factory_spies,
+    schema_cls_spy,
+    replace_stores_spy,
+    dummy_base_table_cls,
 ):
     link = Link(local_schema_stub, source_schema_stub, stores=stores)
     link._table_cls_factories = table_cls_factory_spies
     link._schema_cls = schema_cls_spy
     link._replace_stores_func = replace_stores_spy
+    link._base_table_cls = dummy_base_table_cls
     return link
 
 
@@ -92,8 +104,8 @@ def table_name():
 
 
 @pytest.fixture
-def dummy_table_cls(table_name):
-    return MagicMock(name="dummy_table_cls", __name__=table_name)
+def dummy_cls(table_name):
+    return MagicMock(name="dummy_cls", __name__=table_name)
 
 
 def test_if_link_is_subclass_of_base():
@@ -101,11 +113,15 @@ def test_if_link_is_subclass_of_base():
 
 
 def test_if_schema_class_class_attribute_is_datajoint_schema_class():
-    assert Link._schema_cls is dj.schema
+    assert Link._schema_cls is Schema
 
 
 def test_if_replace_stores_func_class_attribute_is_replace_stores():
     assert Link._replace_stores_func is replace_stores
+
+
+def test_if_base_table_class_is_lookup_table():
+    assert Link._base_table_cls is Lookup
 
 
 class TestInit:
@@ -128,8 +144,8 @@ def prepare_env():
 
 
 @pytest.fixture
-def linked_table(link, dummy_table_cls):
-    return link(dummy_table_cls)
+def linked_table(link, dummy_cls):
+    return link(dummy_cls)
 
 
 @pytest.fixture
@@ -187,11 +203,11 @@ class TestCallWithInitialSetup:
         assert table_cls_factory_spies["source"].call_args_list == [call(), call()]
 
     def test_if_configuration_of_outbound_table_cls_factory_is_correct(
-        self, table_cls_factory_spies, basic_outbound_config, source_table_cls_stub
+        self, table_cls_factory_spies, basic_outbound_config, dummy_base_table_cls, source_table_cls_stub
     ):
         assert table_cls_factory_spies["outbound"].config == TableFactoryConfig(
             **basic_outbound_config,
-            table_cls=dj.Lookup,
+            table_cls=dummy_base_table_cls,
             table_cls_attrs=dict(source_table=source_table_cls_stub),
             table_definition="-> self.source_table",
         )
@@ -207,10 +223,12 @@ class TestCallWithInitialSetup:
             call("source_part_c_heading", stores),
         ]
 
-    def test_if_configuration_of_local_table_cls_factory_is_correct(self, table_cls_factory_spies, basic_local_config):
+    def test_if_configuration_of_local_table_cls_factory_is_correct(
+        self, table_cls_factory_spies, basic_local_config, dummy_base_table_cls
+    ):
         assert table_cls_factory_spies["local"].config == TableFactoryConfig(
             **basic_local_config,
-            table_cls=dj.Lookup,
+            table_cls=dummy_base_table_cls,
             table_definition="replaced_heading",
             part_table_definitions=dict(PartA="replaced_heading", PartB="replaced_heading", PartC="replaced_heading"),
         )
@@ -261,4 +279,4 @@ class TestLocalTableMixin:
 
     def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_controller):
         LocalTableMixin().pull()
-        fake_controller.pull.assert_called_once_with(dj.AndList())
+        fake_controller.pull.assert_called_once_with(AndList())
