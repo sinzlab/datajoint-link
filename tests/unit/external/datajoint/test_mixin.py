@@ -1,9 +1,10 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 from datajoint import AndList
 
 from link.external.datajoint.mixin import LocalTableMixin
+from link.external.datajoint.factory import TableFactory
 
 
 @pytest.fixture
@@ -35,10 +36,16 @@ def fake_temp_dir(fake_controller):
     return FakeTemporaryDirectory()
 
 
+@pytest.fixture
+def source_table_factory_spy():
+    return create_autospec(TableFactory, instance=True)()
+
+
 @pytest.fixture(autouse=True)
-def configure_mixin(fake_controller, fake_temp_dir):
+def configure_mixin(fake_controller, fake_temp_dir, source_table_factory_spy):
     LocalTableMixin._controller = fake_controller
     LocalTableMixin._temp_dir = fake_temp_dir
+    LocalTableMixin._source_table_factory = source_table_factory_spy
 
 
 class TestPull:
@@ -49,3 +56,12 @@ class TestPull:
     def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_controller):
         LocalTableMixin().pull()
         fake_controller.pull.assert_called_once_with(AndList())
+
+
+class TestSourceProperty:
+    def test_if_call_to_source_table_factory_is_correct(self, source_table_factory_spy):
+        _ = LocalTableMixin().source
+        source_table_factory_spy.assert_called_once_with()
+
+    def test_if_source_table_class_is_returned(self, source_table_factory_spy):
+        assert LocalTableMixin().source is source_table_factory_spy.return_value
