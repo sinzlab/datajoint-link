@@ -31,12 +31,12 @@ class TableFactory(Base):
 
     def __call__(self) -> Type[UserTable]:
         if self.config is None:
-            raise RuntimeError
+            raise RuntimeError("Config is not set")
         try:
             table_cls = self._spawn_table_cls()
         except KeyError:
             if not self.config.is_table_creation_possible:
-                raise RuntimeError
+                raise RuntimeError("Table could neither be spawned nor created")
             table_cls = self._create_table_cls()
         return table_cls
 

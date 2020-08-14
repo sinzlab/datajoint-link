@@ -230,8 +230,9 @@ def returned_non_flag_part_tables(factory, non_flag_part_table_definitions):
 
 class TestCall:
     def test_if_runtime_error_is_raised_if_config_attribute_is_none(self, factory):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError) as exc_info:
             factory()
+        assert str(exc_info.value) == "Config is not set"
 
     @pytest.mark.usefixtures("configure_for_spawning")
     def test_if_call_to_spawn_missing_classes_method_of_schema_is_correct(self, factory, fake_schema, copy_call_args):
@@ -260,8 +261,9 @@ class TestCall:
 
     @pytest.mark.usefixtures("configure_for_spawning", "table_can_not_be_spawned")
     def test_if_runtime_error_is_raised_if_spawning_fails_and_table_creation_is_not_possible(self, factory):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError) as exc_info:
             factory()
+        assert str(exc_info.value) == "Table could neither be spawned nor created"
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
     def test_if_created_table_class_is_subclass_of_table_class_and_table_bases(
