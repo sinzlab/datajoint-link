@@ -25,3 +25,4 @@ local_table_controller.pull_use_case = pull_use_case
 local_table_controller.source_gateway = dj_gateways["source"]
 LocalTableMixin._controller = local_table_controller
 LocalTableMixin._temp_dir = temp_dir
+LocalTableMixin._source_table_factory = table_factories["source"]
