@@ -2,7 +2,7 @@ import os
 from unittest.mock import MagicMock, call
 
 import pytest
-from datajoint import Lookup, Schema, AndList
+from datajoint import Lookup, Schema
 
 from link.base import Base
 from link.external.datajoint.dj_helpers import replace_stores
@@ -238,45 +238,3 @@ class TestCallWithInitialSetup:
 
     def test_if_local_table_class_is_returned(self, linked_table):
         assert linked_table is "local_table_cls"
-
-
-class TestLocalTableMixin:
-    @pytest.fixture
-    def fake_controller(self):
-        class FakeController:
-            is_in_with_clause = False
-
-            # noinspection PyUnusedLocal
-            def pull(self, *restrictions):
-                if not self.is_in_with_clause:
-                    raise RuntimeError("Pull method must be called inside with clause")
-
-        fake_controller = FakeController()
-        fake_controller.pull = MagicMock(wraps=fake_controller.pull)
-        return fake_controller
-
-    @pytest.fixture
-    def fake_temp_dir(self, fake_controller):
-        class FakeTemporaryDirectory:
-            controller = fake_controller
-
-            def __enter__(self):
-                self.controller.is_in_with_clause = True
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                self.controller.is_in_with_clause = False
-
-        return FakeTemporaryDirectory()
-
-    @pytest.fixture(autouse=True)
-    def configure_mixin(self, fake_controller, fake_temp_dir):
-        LocalTableMixin._controller = fake_controller
-        LocalTableMixin._temp_dir = fake_temp_dir
-
-    def test_if_call_to_controller_is_correct(self, fake_controller):
-        LocalTableMixin().pull("restriction1", "restriction2")
-        fake_controller.pull.assert_called_once_with(("restriction1", "restriction2"))
-
-    def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_controller):
-        LocalTableMixin().pull()
-        fake_controller.pull.assert_called_once_with(AndList())

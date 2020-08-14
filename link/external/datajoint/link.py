@@ -1,13 +1,12 @@
 import os
 from typing import Type, Dict, Optional, Any
 
-from datajoint import Schema, Lookup, AndList
+from datajoint import Schema, Lookup
 from datajoint.table import Table
 
 from .factory import TableFactoryConfig, TableFactory
-from .file import ReusableTemporaryDirectory
 from .dj_helpers import replace_stores
-from ...adapters.datajoint.local_table import LocalTableController
+from .mixin import LocalTableMixin
 from ...base import Base
 
 
@@ -84,17 +83,3 @@ class Link(Base):
 
     def _create_definition(self, table_cls: Type[Table]) -> str:
         return self._replace_stores_func(str(table_cls().heading), self.stores)
-
-
-class LocalTableMixin:
-    """Mixin class for adding additional functionality to the local table class."""
-
-    _controller: LocalTableController = None
-    _temp_dir: ReusableTemporaryDirectory = None
-
-    def pull(self, *restrictions) -> None:
-        """Pull entities present in the (restricted) source table into the local table."""
-        if not restrictions:
-            restrictions = AndList()
-        with self._temp_dir:
-            self._controller.pull(restrictions)
