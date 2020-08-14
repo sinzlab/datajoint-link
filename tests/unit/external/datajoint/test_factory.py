@@ -235,6 +235,7 @@ class TestCall:
 
     @pytest.mark.usefixtures("configure_for_spawning")
     def test_if_call_to_spawn_missing_classes_method_of_schema_is_correct(self, factory, fake_schema, copy_call_args):
+        # noinspection PyTypeChecker
         copied_call_args_mock = copy_call_args(fake_schema.spawn_missing_classes)
         factory()
         copied_call_args_mock.assert_called_once_with(context=dict())
@@ -312,6 +313,7 @@ class TestCall:
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
     def test_if_schema_is_applied_to_created_table_class(self, factory):
+        # noinspection PyUnresolvedReferences
         assert factory().schema_applied
 
 

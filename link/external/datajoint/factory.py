@@ -2,7 +2,8 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Type, Any, Tuple
 from dataclasses import dataclass, field
 
-from datajoint import Schema, Part, Table
+from datajoint import Schema, Part
+from datajoint.user_tables import UserTable
 
 from .dj_helpers import get_part_table_classes
 from ...base import Base
@@ -15,7 +16,7 @@ class TableFactoryConfig:
     table_bases: Tuple[Type] = field(default_factory=tuple)
     table_cls_attrs: Dict[str, Any] = field(default_factory=dict)
     flag_table_names: List[str] = field(default_factory=list)
-    table_cls: Optional[Type[Table]] = None
+    table_cls: Optional[Type[UserTable]] = None
     table_definition: Optional[str] = None
     part_table_definitions: Dict[str, str] = field(default_factory=dict)
 
@@ -28,7 +29,7 @@ class TableFactory(Base):
     def __init__(self) -> None:
         self.config: Optional[TableFactoryConfig] = None
 
-    def __call__(self) -> Type[Table]:
+    def __call__(self) -> Type[UserTable]:
         if self.config is None:
             raise RuntimeError
         try:
@@ -47,15 +48,15 @@ class TableFactory(Base):
     def flag_tables(self) -> Dict[str, Type[Part]]:
         return {name: getattr(self(), name) for name in self.config.flag_table_names}
 
-    def _spawn_table_cls(self) -> Type[Table]:
+    def _spawn_table_cls(self) -> Type[UserTable]:
         spawned_table_classes = dict()
         self.config.schema.spawn_missing_classes(context=spawned_table_classes)
         table_cls = spawned_table_classes[self.config.table_name]
         return self._extend_table_cls(table_cls)
 
     def _extend_table_cls(
-        self, table_cls: Type[Table], part_table_classes: Optional[Dict[str, Type[Part]]] = None
-    ) -> Type[Table]:
+        self, table_cls: Type[UserTable], part_table_classes: Optional[Dict[str, Type[Part]]] = None
+    ) -> Type[UserTable]:
         if part_table_classes is None:
             part_table_classes = dict()
         if self.config.table_definition:
@@ -67,7 +68,7 @@ class TableFactory(Base):
             self.config.table_name, self.config.table_bases + (table_cls,), {**table_cls_attrs, **part_table_classes},
         )
 
-    def _create_table_cls(self) -> Type[Table]:
+    def _create_table_cls(self) -> Type[UserTable]:
         part_table_classes = dict()
         self._create_flag_part_table_classes(part_table_classes)
         self._create_non_flag_part_table_classes(part_table_classes)

@@ -1,4 +1,7 @@
+from typing import Type
+
 from datajoint import AndList
+from datajoint.user_tables import UserTable
 
 from ...adapters.datajoint.local_table import LocalTableController
 from .file import ReusableTemporaryDirectory
@@ -20,6 +23,6 @@ class LocalTableMixin:
             self._controller.pull(restrictions)
 
     @property
-    def source(self):
+    def source(self) -> Type[UserTable]:
         """Returns the source table class."""
         return self._source_table_factory()

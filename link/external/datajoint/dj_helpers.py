@@ -4,7 +4,7 @@ from typing import Dict, Type, List, Optional
 from inspect import isclass
 
 from datajoint import Part
-from datajoint.table import Table
+from datajoint.user_tables import UserTable
 
 
 def replace_stores(definition: str, stores: Dict[str, str]) -> str:
@@ -22,7 +22,9 @@ def replace_stores(definition: str, stores: Dict[str, str]) -> str:
     return re.sub(pattern, replace_store, definition)
 
 
-def get_part_table_classes(table_cls: Type[Table], ignored_parts: Optional[List[str]] = None) -> Dict[str, Type[Part]]:
+def get_part_table_classes(
+    table_cls: Type[UserTable], ignored_parts: Optional[List[str]] = None
+) -> Dict[str, Type[Part]]:
     if ignored_parts is None:
         ignored_parts = []
     part_table_classes = dict()

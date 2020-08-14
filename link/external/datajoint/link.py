@@ -2,7 +2,7 @@ import os
 from typing import Type, Dict, Optional, Any
 
 from datajoint import Schema, Lookup
-from datajoint.table import Table
+from datajoint.user_tables import UserTable
 
 from .factory import TableFactoryConfig, TableFactory
 from .dj_helpers import replace_stores
@@ -14,7 +14,7 @@ class Link(Base):
     _schema_cls = Schema
     _replace_stores_func = staticmethod(replace_stores)
     _table_cls_factories: Dict[str, TableFactory] = None
-    _base_table_cls: Type[Table] = Lookup
+    _base_table_cls: Type[UserTable] = Lookup
 
     def __init__(self, local_schema: Schema, source_schema: Schema, stores: Optional[Dict[str, str]] = None) -> None:
         if stores is None:
@@ -23,7 +23,7 @@ class Link(Base):
         self.source_schema = source_schema
         self.stores = stores
 
-    def __call__(self, cls: Type) -> Type[Table]:
+    def __call__(self, cls: Type) -> Type[UserTable]:
         self._configure(cls, "source")
         self._configure(cls, "outbound")
         self._configure(cls, "local")
@@ -81,5 +81,5 @@ class Link(Base):
             part_table_definitions[name] = self._create_definition(part)
         return part_table_definitions
 
-    def _create_definition(self, table_cls: Type[Table]) -> str:
+    def _create_definition(self, table_cls: Type[UserTable]) -> str:
         return self._replace_stores_func(str(table_cls().heading), self.stores)
