@@ -6,6 +6,7 @@ class LocalTableController:
     """Controls the execution of local-table-related use-cases."""
 
     pull_use_case: Pull = None
+    delete_use_case = None
     source_gateway: DataJointGateway = None
 
     def pull(self, restriction) -> None:
@@ -24,3 +25,6 @@ class LocalTablePresenter:
         """Presents information about the finished pull to the user."""
         # TODO: Transform info to output format
         # TODO: Print transformed info
+
+    def delete(self, info):
+        """Presents information about the finished deletion process to the user."""
