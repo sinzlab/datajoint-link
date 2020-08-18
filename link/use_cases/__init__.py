@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Any
+from typing import Callable, Any, Dict
 
 from .base import UseCase
 from .pull import Pull
+from .delete import Delete
 from ..entities.abstract_gateway import AbstractGateway
 from ..entities.repository import Repository, RepositoryFactory
 from ..base import Base
@@ -47,6 +48,12 @@ class RepositoryLinkFactory(Base):
         return RepositoryLink(**kwargs)
 
 
-def initialize(gateway_link: AbstractGatewayLink, pull_output_port: Callable[[Any], None]) -> Pull:
+USE_CASES = dict(pull=Pull, delete=Delete)
+
+
+def initialize_use_cases(
+    gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]],
+) -> Dict[str, UseCase]:
     """Initializes the use-cases and returns them."""
-    return Pull(RepositoryLinkFactory(gateway_link), pull_output_port)
+    factory = RepositoryLinkFactory(gateway_link)
+    return {n: uc(factory, output_ports[n]) for n, uc in USE_CASES.items()}

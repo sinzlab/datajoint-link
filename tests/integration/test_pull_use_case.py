@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, create_autospec, call
 import pytest
 
 from link.entities.abstract_gateway import AbstractEntityDTO
-from link.use_cases import AbstractGatewayLink, initialize
+from link.use_cases import AbstractGatewayLink, initialize_use_cases
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def pull_output_port_spy():
 
 @pytest.fixture
 def pull_use_case(gateway_link_spy, pull_output_port_spy):
-    return initialize(gateway_link_spy, pull_output_port_spy)
+    return initialize_use_cases(gateway_link_spy, pull_output_port_spy)["pull"]
 
 
 @pytest.fixture(autouse=True)
