@@ -1,17 +1,19 @@
-from unittest.mock import MagicMock, create_autospec, call
+from unittest.mock import create_autospec, call
 from itertools import compress
 
 import pytest
 
 from link.entities.repository import TransferEntity
-from link.use_cases import RepositoryLinkFactory, RepositoryLink
+from link.use_cases import RepositoryLink
 from link.use_cases.pull import Pull
 from link.use_cases.base import UseCase
 
 
-@pytest.fixture
-def identifiers():
-    return ["identifier" + str(i) for i in range(3)]
+USE_CASE = Pull
+
+
+def test_if_subclass_of_use_case():
+    assert issubclass(Pull, UseCase)
 
 
 @pytest.fixture
@@ -40,25 +42,6 @@ def repo_link_spy(is_valid, transfer_entities):
     repo_link_spy.local.__contains__.side_effect = [not flag for flag in is_valid]
     repo_link_spy.source.__getitem__.side_effect = transfer_entities
     return repo_link_spy
-
-
-@pytest.fixture
-def repo_link_factory_stub(repo_link_spy):
-    return create_autospec(RepositoryLinkFactory, instance=True, return_value=repo_link_spy)
-
-
-@pytest.fixture
-def dummy_output_port():
-    return MagicMock(name="dummy_output_port")
-
-
-@pytest.fixture
-def use_case(repo_link_factory_stub, dummy_output_port):
-    return Pull(repo_link_factory_stub, dummy_output_port)
-
-
-def test_if_pull_is_use_case():
-    assert issubclass(Pull, UseCase)
 
 
 def test_if_presence_of_entities_in_local_repo_is_checked(use_case, repo_link_spy, identifiers):

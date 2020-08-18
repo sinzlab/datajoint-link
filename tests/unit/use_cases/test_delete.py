@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, create_autospec, call
+from unittest.mock import create_autospec, call
 from itertools import compress
 
 import pytest
@@ -6,16 +6,14 @@ import pytest
 from link.entities.flag_manager import FlagManager
 from link.use_cases.delete import Delete
 from link.use_cases.base import UseCase
-from link.use_cases import RepositoryLink, RepositoryLinkFactory
+from link.use_cases import RepositoryLink
+
+
+USE_CASE = Delete
 
 
 def test_if_subclass_of_use_case():
     assert issubclass(Delete, UseCase)
-
-
-@pytest.fixture
-def identifiers():
-    return ["identifier" + str(i) for i in range(3)]
 
 
 @pytest.fixture
@@ -38,21 +36,6 @@ def repo_link_spy(identifiers, flag_manager_spies):
     repo_link_spy = create_autospec(RepositoryLink, instance=True)
     repo_link_spy.outbound.flags = {i: fms for i, fms in zip(identifiers, flag_manager_spies)}
     return repo_link_spy
-
-
-@pytest.fixture
-def repo_link_factory_stub(repo_link_spy):
-    return create_autospec(RepositoryLinkFactory, instance=True, return_value=repo_link_spy)
-
-
-@pytest.fixture
-def dummy_output_port():
-    return MagicMock(name="dummy_output_port")
-
-
-@pytest.fixture
-def use_case(repo_link_factory_stub, dummy_output_port):
-    return Delete(repo_link_factory_stub, dummy_output_port)
 
 
 def test_if_deletion_requested_flag_is_checked_in_flag_managers(use_case, identifiers, flag_manager_spies):
