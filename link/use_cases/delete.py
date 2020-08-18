@@ -1,7 +1,10 @@
-from typing import List, Tuple, Set
+from __future__ import annotations
+from typing import TYPE_CHECKING, List, Tuple, Set
 
 from .base import UseCase
-from . import RepositoryLink
+
+if TYPE_CHECKING:
+    from . import RepositoryLink
 
 
 class Delete(UseCase):
