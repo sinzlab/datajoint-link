@@ -1,28 +1,15 @@
-from unittest.mock import MagicMock, create_autospec, call
+from unittest.mock import create_autospec, call
 
 import pytest
 
 from link.entities.abstract_gateway import AbstractEntityDTO
-from link.use_cases import AbstractGatewayLink, initialize_use_cases
+
+
+USE_CASE = "pull"
 
 
 @pytest.fixture
-def identifiers():
-    return ["identifier" + str(i) for i in range(10)]
-
-
-@pytest.fixture
-def source_identifiers(identifiers):
-    return identifiers
-
-
-@pytest.fixture
-def local_identifiers(identifiers):
-    return identifiers[:5]
-
-
-@pytest.fixture
-def requested_identifiers(identifiers):
+def to_be_pulled_identifiers(identifiers):
     return identifiers[2:7]
 
 
@@ -42,27 +29,14 @@ def pulled_outbound_data(pulled_data):
 
 
 @pytest.fixture
-def gateway_link_spy(source_identifiers, local_identifiers, pulled_data):
-    spy = create_autospec(AbstractGatewayLink, instance=True)
-    spy.source.identifiers = source_identifiers
-    spy.local.identifiers = local_identifiers
-    spy.source.fetch.side_effect = pulled_data.values()
-    return spy
-
-
-@pytest.fixture
-def pull_output_port_spy():
-    return MagicMock(name="pull_output_port_spy")
-
-
-@pytest.fixture
-def pull_use_case(gateway_link_spy, pull_output_port_spy):
-    return initialize_use_cases(gateway_link_spy, pull_output_port_spy)["pull"]
+def gateway_link_spy(gateway_link_spy, pulled_data):
+    gateway_link_spy.source.fetch.side_effect = pulled_data.values()
+    return gateway_link_spy
 
 
 @pytest.fixture(autouse=True)
-def execute_pull(pull_use_case, requested_identifiers):
-    pull_use_case(requested_identifiers)
+def execute_pull(use_case, to_be_pulled_identifiers):
+    use_case(to_be_pulled_identifiers)
 
 
 def test_if_correct_data_is_fetched_from_source_gateway(gateway_link_spy, pulled_identifiers):
