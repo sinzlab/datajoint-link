@@ -40,10 +40,12 @@ def to_be_deleted_identifiers(local_identifiers):
     return local_identifiers[:3]
 
 
-def test_if_entities_that_had_their_deletion_requested_have_it_approved(
-    use_case, to_be_deleted_identifiers, gateway_link_spy, outbound_identifiers
-):
+@pytest.fixture(autouse=True)
+def execute_delete(use_case, to_be_deleted_identifiers):
     use_case(to_be_deleted_identifiers)
+
+
+def test_if_entities_that_had_their_deletion_requested_have_it_approved(gateway_link_spy, outbound_identifiers):
     gateway_link_spy.outbound.set_flag.assert_has_calls(
         [
             call(outbound_identifiers[0], "deletion_approved", True),
@@ -54,12 +56,10 @@ def test_if_entities_that_had_their_deletion_requested_have_it_approved(
 
 
 def test_if_entities_that_had_their_deletion_not_requested_are_deleted_from_outbound_repository(
-    use_case, to_be_deleted_identifiers, gateway_link_spy, outbound_identifiers
+    gateway_link_spy, outbound_identifiers
 ):
-    use_case(to_be_deleted_identifiers)
     gateway_link_spy.outbound.delete.assert_has_calls([call(outbound_identifiers[1])], any_order=True)
 
 
-def test_if_entities_are_deleted_from_local_repository(use_case, to_be_deleted_identifiers, gateway_link_spy):
-    use_case(to_be_deleted_identifiers)
+def test_if_entities_are_deleted_from_local_repository(to_be_deleted_identifiers, gateway_link_spy):
     gateway_link_spy.local.delete.assert_has_calls([call(i) for i in to_be_deleted_identifiers], any_order=True)
