@@ -17,7 +17,7 @@ class Delete(UseCase):
 
     @staticmethod
     def _group_by_deletion_requested(repo_link: RepositoryLink, identifiers: List[str]) -> Tuple[Set[str], Set[str]]:
-        deletion_requested = set(i for i in identifiers if repo_link.outbound.flags[i]["deletion_requested"])
+        deletion_requested = {i for i in identifiers if repo_link.outbound.flags[i]["deletion_requested"]}
         deletion_not_requested = set(identifiers) - deletion_requested
         return deletion_requested, deletion_not_requested
 
