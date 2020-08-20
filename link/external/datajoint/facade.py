@@ -29,16 +29,16 @@ class TableFacade(AbstractTableFacade, Base):
 
     def get_flags(self, primary_key: PrimaryKey) -> Dict[str, bool]:
         """Gets the flags of the entity identified by the provided primary key."""
-        flags = dict()
-        for flag_table_name, flag_table in self.table_factory.flag_tables.items():
-            flags[flag_table_name] = primary_key in (flag_table & primary_key)
-        return flags
+        return {
+            flag_table_name: primary_key in (flag_table & primary_key)
+            for flag_table_name, flag_table in self.table_factory.flag_tables.items()
+        }
 
     def fetch(self, primary_key: PrimaryKey) -> EntityDTO:
         """Fetches the entity identified by the provided primary key from the table."""
         table = self.table_factory()
         master_entity = (table & primary_key).fetch1(download_path=self.temp_dir.name)
-        part_entities = dict()
+        part_entities = {}
         for part_name, part in self.table_factory.part_tables.items():
             part_entities[part_name] = (part & primary_key).fetch(as_dict=True, download_path=self.temp_dir.name)
         return EntityDTO(table.primary_key, master_entity, parts=part_entities)
