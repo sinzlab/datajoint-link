@@ -4,7 +4,6 @@ from itertools import compress
 import pytest
 
 from link.entities.repository import TransferEntity
-from link.use_cases import RepositoryLink
 from link.use_cases.pull import Pull
 from link.use_cases.base import UseCase
 
@@ -37,8 +36,7 @@ def identifier_only_transfer_entities(transfer_entities):
 
 
 @pytest.fixture
-def repo_link_spy(is_valid, transfer_entities):
-    repo_link_spy = create_autospec(RepositoryLink, instance=True)
+def repo_link_spy(repo_link_spy, is_valid, transfer_entities):
     repo_link_spy.local.__contains__.side_effect = [not flag for flag in is_valid]
     repo_link_spy.source.__getitem__.side_effect = transfer_entities
     return repo_link_spy

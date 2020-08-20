@@ -1,12 +1,10 @@
-from unittest.mock import create_autospec, call
+from unittest.mock import call
 from itertools import compress
 
 import pytest
 
-from link.entities.flag_manager import FlagManager
 from link.use_cases.delete import Delete
 from link.use_cases.base import UseCase
-from link.use_cases import RepositoryLink
 
 
 USE_CASE = Delete
@@ -22,25 +20,19 @@ def deletion_requested():
 
 
 @pytest.fixture
-def flag_manager_spies(deletion_requested):
-    spies = []
-    for flag in deletion_requested:
-        spy = create_autospec(FlagManager, instance=True)
-        spy.__getitem__.return_value = flag
-        spies.append(spy)
-    return spies
+def flag_manager_spies(create_flag_manager_spies, identifiers, deletion_requested):
+    return create_flag_manager_spies(identifiers, deletion_requested)
 
 
 @pytest.fixture
-def repo_link_spy(identifiers, flag_manager_spies):
-    repo_link_spy = create_autospec(RepositoryLink, instance=True)
-    repo_link_spy.outbound.flags = {i: fms for i, fms in zip(identifiers, flag_manager_spies)}
+def repo_link_spy(repo_link_spy, flag_manager_spies):
+    repo_link_spy.outbound.flags = flag_manager_spies
     return repo_link_spy
 
 
 def test_if_deletion_requested_flag_is_checked_in_flag_managers(use_case, identifiers, flag_manager_spies):
     use_case(identifiers)
-    for spy in flag_manager_spies:
+    for spy in flag_manager_spies.values():
         spy.__getitem__.assert_called_once_with("deletion_requested")
 
 
@@ -48,7 +40,7 @@ def test_if_deletion_is_approved_on_entities_that_had_it_requested(
     use_case, identifiers, deletion_requested, flag_manager_spies
 ):
     use_case(identifiers)
-    for spy in compress(flag_manager_spies, deletion_requested):
+    for spy in compress(flag_manager_spies.values(), deletion_requested):
         spy.__setitem__.assert_called_once_with("deletion_approved", True)
 
 
