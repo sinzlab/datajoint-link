@@ -14,13 +14,18 @@ class LocalTableMixin:
     _controller: LocalTableController = None
     _temp_dir: ReusableTemporaryDirectory = None
     _source_table_factory: TableFactory = None
+    restriction: AndList
 
     def pull(self, *restrictions) -> None:
-        """Pull entities present in the (restricted) source table into the local table."""
+        """Pulls entities present in the (restricted) source table into the local table."""
         if not restrictions:
             restrictions = AndList()
         with self._temp_dir:
             self._controller.pull(restrictions)
+
+    def delete(self):
+        """Deletes entities from the local table."""
+        self._controller.delete(self.restriction)
 
     @property
     def source(self) -> Type[UserTable]:

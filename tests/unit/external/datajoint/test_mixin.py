@@ -18,7 +18,8 @@ def fake_controller():
                 raise RuntimeError("Pull method must be called inside with clause")
 
     fake_controller = FakeController()
-    fake_controller.pull = MagicMock(wraps=fake_controller.pull)
+    fake_controller.pull = MagicMock(name="fake_controller.pull", wraps=fake_controller.pull)
+    fake_controller.delete = MagicMock(name="fake_controller.delete")
     return fake_controller
 
 
@@ -56,6 +57,13 @@ class TestPull:
     def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_controller):
         LocalTableMixin().pull()
         fake_controller.pull.assert_called_once_with(AndList())
+
+
+class TestDelete:
+    def test_if_call_to_controller_is_correct(self, fake_controller):
+        LocalTableMixin.restriction = "restriction"
+        LocalTableMixin().delete()
+        fake_controller.delete.assert_called_once_with("restriction")
 
 
 class TestSourceProperty:
