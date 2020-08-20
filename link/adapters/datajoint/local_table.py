@@ -1,16 +1,22 @@
 from ...base import Base
 from .gateway import DataJointGateway
-from ...use_cases.pull import Pull
-from ...use_cases.delete import Delete
+from ...use_cases.base import UseCase
 
 
 class LocalTableController(Base):
     """Controls the execution of local-table-related use-cases."""
 
-    pull_use_case: Pull = None
-    delete_use_case: Delete = None
-    source_gateway: DataJointGateway = None
-    local_gateway: DataJointGateway = None
+    def __init__(
+        self,
+        pull_use_case: UseCase,
+        delete_use_case: UseCase,
+        source_gateway: DataJointGateway,
+        local_gateway: DataJointGateway,
+    ) -> None:
+        self.pull_use_case = pull_use_case
+        self.delete_use_case = delete_use_case
+        self.source_gateway = source_gateway
+        self.local_gateway = local_gateway
 
     def pull(self, restriction) -> None:
         """Pulls the requested entities from the source table into the local table."""

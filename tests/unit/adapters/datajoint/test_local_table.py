@@ -17,22 +17,6 @@ def test_if_subclass_of_base():
     assert issubclass(local_table.LocalTableController, Base)
 
 
-def test_if_pull_use_case_is_none():
-    assert local_table.LocalTableController.pull_use_case is None
-
-
-def test_if_delete_use_case_is_none():
-    assert local_table.LocalTableController.delete_use_case is None
-
-
-def test_if_source_gateway_is_none():
-    assert local_table.LocalTableController.source_gateway is None
-
-
-def test_if_local_gateway_is_none():
-    assert local_table.LocalTableController.local_gateway is None
-
-
 @pytest.fixture
 def pull_use_case_spy():
     return create_autospec(USE_CASES["pull"], instance=True)
@@ -58,21 +42,25 @@ def local_gateway_spy(identifiers):
 
 
 @pytest.fixture
-def controller_cls(pull_use_case_spy, delete_use_case_spy, source_gateway_spy, local_gateway_spy):
+def controller(pull_use_case_spy, delete_use_case_spy, source_gateway_spy, local_gateway_spy):
     class LocalTableController(local_table.LocalTableController):
         pass
 
-    LocalTableController.__qualname__ = LocalTableController.__name__
-    LocalTableController.pull_use_case = pull_use_case_spy
-    LocalTableController.delete_use_case = delete_use_case_spy
-    LocalTableController.source_gateway = source_gateway_spy
-    LocalTableController.local_gateway = local_gateway_spy
-    return LocalTableController
+    return LocalTableController(pull_use_case_spy, delete_use_case_spy, source_gateway_spy, local_gateway_spy)
 
 
-@pytest.fixture
-def controller(controller_cls):
-    return controller_cls()
+class TestInit:
+    def test_if_pull_use_case_is_stored_as_instance_attribute(self, controller, pull_use_case_spy):
+        assert controller.pull_use_case is pull_use_case_spy
+
+    def test_if_delete_use_case_is_stored_as_instance_attribute(self, controller, delete_use_case_spy):
+        assert controller.delete_use_case is delete_use_case_spy
+
+    def test_if_source_gateway_is_stored_as_instance_attribute(self, controller, source_gateway_spy):
+        assert controller.source_gateway is source_gateway_spy
+
+    def test_if_local_gateway_is_stored_as_instance_attribute(self, controller, local_gateway_spy):
+        assert controller.local_gateway is local_gateway_spy
 
 
 class TestPull:

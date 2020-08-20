@@ -25,10 +25,9 @@ def initialize():
     initialized_use_cases = initialize_use_cases(
         dj_gateway_link, dict(pull=local_table_presenter.pull, delete=local_table_presenter.delete)
     )
-    local_table_controller = LocalTableController()
-    local_table_controller.pull_use_case = initialized_use_cases["pull"]
-    local_table_controller.delete_use_case = initialized_use_cases["delete"]
-    local_table_controller.source_gateway = dj_gateways["source"]
+    local_table_controller = LocalTableController(
+        initialized_use_cases["pull"], initialized_use_cases["delete"], dj_gateways["source"], dj_gateways["local"]
+    )
     LocalTableMixin._controller = local_table_controller
     LocalTableMixin._temp_dir = temp_dir
     LocalTableMixin._source_table_factory = table_factories["source"]
