@@ -2,6 +2,7 @@ from unittest.mock import create_autospec
 
 import pytest
 
+from link.base import Base
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.use_cases import USE_CASES
 from link.adapters.datajoint import local_table
@@ -10,6 +11,10 @@ from link.adapters.datajoint import local_table
 @pytest.fixture
 def restriction():
     return "restriction"
+
+
+def test_if_subclass_of_base():
+    assert issubclass(local_table.LocalTableController, Base)
 
 
 def test_if_pull_use_case_is_none():
@@ -90,7 +95,3 @@ class TestDelete:
     ):
         controller.delete(restriction)
         delete_use_case_spy.assert_called_once_with(identifiers)
-
-
-def test_repr(controller):
-    assert repr(controller) == "LocalTableController()"

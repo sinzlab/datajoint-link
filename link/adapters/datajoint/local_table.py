@@ -1,9 +1,10 @@
+from ...base import Base
 from .gateway import DataJointGateway
 from ...use_cases.pull import Pull
 from ...use_cases.delete import Delete
 
 
-class LocalTableController:
+class LocalTableController(Base):
     """Controls the execution of local-table-related use-cases."""
 
     pull_use_case: Pull = None
@@ -20,9 +21,6 @@ class LocalTableController:
         """Deletes the requested entities from the local table."""
         identifiers = self.local_gateway.get_identifiers_in_restriction(restriction)
         self.delete_use_case(identifiers)
-
-    def __repr__(self) -> str:
-        return self.__class__.__qualname__ + "()"
 
 
 class LocalTablePresenter:
