@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, create_autospec
 from dataclasses import is_dataclass
+from itertools import chain
 
 import pytest
 from datajoint import Part, Table
@@ -76,7 +77,7 @@ def part_entities():
 
 @pytest.fixture
 def part_table_spies(part_entities):
-    part_table_spies = dict()
+    part_table_spies = {}
     for name, entities in part_entities.items():
         spy = MagicMock(name=name + "Spy", spec=Part)
         spy.__and__.return_value.fetch.return_value = entities
@@ -246,13 +247,15 @@ class TestDelete:
         table_facade.delete(primary_key)
 
     @pytest.mark.usefixtures("delete")
-    def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
-        for part in part_table_spies.values():
+    def test_if_non_flag_part_tables_and_flag_part_tables_are_restricted(
+        self, part_table_spies, flag_table_spies, primary_key
+    ):
+        for part in chain(part_table_spies.values(), flag_table_spies.values()):
             part.__and__.assert_called_once_with(primary_key)
 
     @pytest.mark.usefixtures("delete")
-    def test_if_part_entities_are_deleted(self, part_table_spies):
-        for part in part_table_spies.values():
+    def test_if_part_entities_and_flags_are_deleted(self, part_table_spies, flag_table_spies):
+        for part in chain(part_table_spies.values(), flag_table_spies.values()):
             part.__and__.return_value.delete_quick.assert_called_once_with()
 
     @pytest.mark.usefixtures("delete")

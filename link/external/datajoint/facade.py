@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
+from itertools import chain
 
 from .file import ReusableTemporaryDirectory
 from ...adapters.datajoint.gateway import EntityDTO
@@ -51,7 +52,7 @@ class TableFacade(AbstractTableFacade, Base):
 
     def delete(self, primary_key: PrimaryKey) -> None:
         """Deletes the entity identified by the provided primary key from the table."""
-        for part in self.table_factory.part_tables.values():
+        for part in chain(self.table_factory.part_tables.values(), self.table_factory.flag_tables.values()):
             (part & primary_key).delete_quick()
         (self.table_factory() & primary_key).delete_quick()
 
