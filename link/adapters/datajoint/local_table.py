@@ -39,3 +39,6 @@ class LocalTablePresenter:
 
     def delete(self, info):
         """Presents information about the finished deletion process to the user."""
+
+    def refresh(self, info):
+        """Presents information about the finished refresh process to the user."""
