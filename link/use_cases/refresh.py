@@ -1,5 +1,10 @@
-from . import RepositoryLink
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from .base import UseCase
+
+if TYPE_CHECKING:
+    from . import RepositoryLink
 
 
 class Refresh(UseCase):
