@@ -17,23 +17,23 @@ def execute_delete(use_case, to_be_deleted_identifiers):
 
 
 @pytest.fixture
-def deletion_requested_identifiers():
+def outbound_deletion_requested_identifiers():
     return ["identifier" + str(i) for i in [0, 2]]
 
 
 def test_if_entities_that_had_their_deletion_requested_have_it_approved(
-    gateway_link_spy, deletion_requested_identifiers
+    gateway_link_spy, outbound_deletion_requested_identifiers
 ):
     gateway_link_spy.outbound.set_flag.assert_has_calls(
-        [call(i, "deletion_approved", True) for i in deletion_requested_identifiers], any_order=True,
+        [call(i, "deletion_approved", True) for i in outbound_deletion_requested_identifiers], any_order=True,
     )
 
 
 def test_if_entities_that_had_their_deletion_not_requested_are_deleted_from_outbound_repository(
-    gateway_link_spy, deletion_requested_identifiers, to_be_deleted_identifiers
+    gateway_link_spy, outbound_deletion_requested_identifiers, to_be_deleted_identifiers
 ):
     gateway_link_spy.outbound.delete.assert_has_calls(
-        [call(i) for i in to_be_deleted_identifiers if i not in deletion_requested_identifiers], any_order=True
+        [call(i) for i in to_be_deleted_identifiers if i not in outbound_deletion_requested_identifiers], any_order=True
     )
 
 

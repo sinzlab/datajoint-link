@@ -37,34 +37,86 @@ def all_identifiers(source_identifiers, outbound_identifiers, local_identifiers)
 
 
 @pytest.fixture
-def deletion_requested_identifiers():
+def source_deletion_requested_identifiers():
     return []
 
 
 @pytest.fixture
-def deletion_approved_identifiers():
+def outbound_deletion_requested_identifiers():
     return []
 
 
 @pytest.fixture
-def source_flags(source_identifiers):
-    return {i: {} for i in source_identifiers}
+def local_deletion_requested_identifiers():
+    return []
 
 
 @pytest.fixture
-def outbound_flags(outbound_identifiers, deletion_requested_identifiers, deletion_approved_identifiers):
+def all_deletion_requested_identifiers(
+    source_deletion_requested_identifiers, outbound_deletion_requested_identifiers, local_deletion_requested_identifiers
+):
     return {
-        i: {
-            "deletion_requested": i in deletion_requested_identifiers,
-            "deletion_approved": i in deletion_approved_identifiers,
-        }
-        for i in outbound_identifiers
+        "source": source_deletion_requested_identifiers,
+        "outbound": outbound_deletion_requested_identifiers,
+        "local": local_deletion_requested_identifiers,
     }
 
 
 @pytest.fixture
-def local_flags(local_identifiers, deletion_requested_identifiers):
-    return {i: {"deletion_requested": i in deletion_requested_identifiers} for i in local_identifiers}
+def source_deletion_approved_identifiers():
+    return []
+
+
+@pytest.fixture
+def outbound_deletion_approved_identifiers():
+    return []
+
+
+@pytest.fixture
+def local_deletion_approved_identifiers():
+    return []
+
+
+@pytest.fixture
+def all_deletion_approved_identifiers(
+    source_deletion_approved_identifiers, outbound_deletion_approved_identifiers, local_deletion_approved_identifiers
+):
+    return {
+        "source": source_deletion_approved_identifiers,
+        "outbound": outbound_deletion_approved_identifiers,
+        "local": local_deletion_approved_identifiers,
+    }
+
+
+@pytest.fixture
+def all_flag_identifiers(all_deletion_requested_identifiers, all_deletion_approved_identifiers):
+    return {
+        "deletion_requested": all_deletion_requested_identifiers,
+        "deletion_approved": all_deletion_approved_identifiers,
+    }
+
+
+@pytest.fixture
+def create_flags(all_flag_identifiers):
+    def _create_flags(identifiers, repo_type):
+        return {i: {n: i in fi[repo_type] for n, fi in all_flag_identifiers.items()} for i in identifiers}
+
+    return _create_flags
+
+
+@pytest.fixture
+def source_flags(create_flags, source_identifiers):
+    return create_flags(source_identifiers, "source")
+
+
+@pytest.fixture
+def outbound_flags(create_flags, outbound_identifiers):
+    return create_flags(outbound_identifiers, "outbound")
+
+
+@pytest.fixture
+def local_flags(create_flags, local_identifiers):
+    return create_flags(local_identifiers, "local")
 
 
 @pytest.fixture
