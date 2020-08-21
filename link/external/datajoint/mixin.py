@@ -27,6 +27,10 @@ class LocalTableMixin:
         """Deletes entities from the local table."""
         self._controller.delete(self.restriction)
 
+    def refresh(self):
+        """Refreshes the repositories."""
+        self._controller.refresh()
+
     @property
     def source(self) -> Type[UserTable]:
         """Returns the source table class."""

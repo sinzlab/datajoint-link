@@ -20,6 +20,7 @@ def fake_controller():
     fake_controller = FakeController()
     fake_controller.pull = MagicMock(name="fake_controller.pull", wraps=fake_controller.pull)
     fake_controller.delete = MagicMock(name="fake_controller.delete")
+    fake_controller.refresh = MagicMock(name="fake_controller.refresh")
     return fake_controller
 
 
@@ -59,11 +60,15 @@ class TestPull:
         fake_controller.pull.assert_called_once_with(AndList())
 
 
-class TestDelete:
-    def test_if_call_to_controller_is_correct(self, fake_controller):
-        LocalTableMixin.restriction = "restriction"
-        LocalTableMixin().delete()
-        fake_controller.delete.assert_called_once_with("restriction")
+def test_if_call_to_controller_is_correct(fake_controller):
+    LocalTableMixin.restriction = "restriction"
+    LocalTableMixin().delete()
+    fake_controller.delete.assert_called_once_with("restriction")
+
+
+def test_if_call_to_controller_is_correct_when_refreshing(fake_controller):
+    LocalTableMixin().refresh()
+    fake_controller.refresh.assert_called_once_with()
 
 
 class TestSourceProperty:
