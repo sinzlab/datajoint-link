@@ -9,28 +9,22 @@ USES_EXTERNAL = False
 
 
 @pytest.fixture
-def flagged_entities_primary_keys(n_entities, src_data):
-    proportion_flagged = float(os.environ.get("PROPORTION_FLAGGED", 0.2))
-    n_flagged = round(n_entities * proportion_flagged)
+def deletion_requested_entities_primary_keys(n_entities, src_data):
+    proportion_deletion_requested = float(os.environ.get("PROPORTION_DELETION_REQUESTED", 0.2))
+    n_deletion_requested = round(n_entities * proportion_deletion_requested)
     random.seed(42)
-    flagged_entities = [random.choice(src_data) for _ in range(n_flagged)]
-    return sorted([dict(prim_attr=e["prim_attr"]) for e in flagged_entities], key=lambda e: e["prim_attr"])
+    deletion_requested_entities = [random.choice(src_data) for _ in range(n_deletion_requested)]
+    return sorted([dict(prim_attr=e["prim_attr"]) for e in deletion_requested_entities], key=lambda e: e["prim_attr"])
 
 
 @pytest.fixture
-def source_flags(local_db_config, flagged_entities_primary_keys):
-    return [
-        dict(e, remote_host=local_db_config.name, remote_schema=local_db_config.schema_name)
-        for e in flagged_entities_primary_keys
-    ]
+def outbound_deletion_requested_flags(deletion_requested_entities_primary_keys):
+    return [e for e in deletion_requested_entities_primary_keys]
 
 
 @pytest.fixture
-def expected_local_flags(src_db_config, flagged_entities_primary_keys):
-    return [
-        dict(e, remote_host=src_db_config.name, remote_schema=src_db_config.schema_name)
-        for e in flagged_entities_primary_keys
-    ]
+def expected_local_deletion_requested_flags(deletion_requested_entities_primary_keys):
+    return [e for e in deletion_requested_entities_primary_keys]
 
 
 @pytest.fixture
@@ -46,34 +40,38 @@ def outbound_table_cls(src_db, local_db, outbound_schema_name, src_table_name, l
 
 
 @pytest.fixture
-def insert_flags(local_table_cls_with_pulled_data, source_flags, outbound_table_cls):
-    outbound_table_cls().FlaggedForDeletion().insert(source_flags)
+def insert_flags_and_refresh(local_table_cls_with_pulled_data, outbound_deletion_requested_flags, outbound_table_cls):
+    outbound_table_cls().DeletionRequested().insert(outbound_deletion_requested_flags)
+    local_table_cls_with_pulled_data().refresh()
 
 
 @pytest.fixture
-def insert_flags_and_delete_flagged_entities(insert_flags, local_table_cls_with_pulled_data):
-    flags = local_table_cls_with_pulled_data().flagged_for_deletion.fetch(as_dict=True)
+def insert_flags_refresh_and_delete_deletion_requested_entities(
+    insert_flags_and_refresh, local_table_cls_with_pulled_data
+):
+    flags = local_table_cls_with_pulled_data().DeletionRequested.fetch(as_dict=True)
     (local_table_cls_with_pulled_data() & flags).delete()
 
 
-@pytest.mark.usefixtures("insert_flags")
-def test_if_flagged_entities_are_present_in_flagged_for_deletion_part_table_on_local_side(
-    local_table_cls_with_pulled_data, expected_local_flags
+@pytest.mark.usefixtures("insert_flags_and_refresh")
+def test_if_deletion_requested_entities_are_present_in_deletion_requested_part_table_on_local_side(
+    local_table_cls_with_pulled_data, expected_local_deletion_requested_flags
 ):
-    actual_local_flags = local_table_cls_with_pulled_data().flagged_for_deletion.fetch(as_dict=True)
-    assert actual_local_flags == expected_local_flags
+    actual_local_deletion_requested_flags = local_table_cls_with_pulled_data().DeletionRequested.fetch(as_dict=True)
+    assert actual_local_deletion_requested_flags == expected_local_deletion_requested_flags
 
 
-@pytest.mark.usefixtures("insert_flags_and_delete_flagged_entities")
-def test_if_deleted_flagged_entities_are_present_in_ready_for_deletion_part_table_on_source_side(
-    outbound_table_cls, source_flags
+@pytest.mark.usefixtures("insert_flags_refresh_and_delete_deletion_requested_entities")
+def test_if_locally_deleted_deletion_requested_entities_are_present_in_deletion_approved_part_table_in_outbound_table(
+    outbound_table_cls, outbound_deletion_requested_flags
 ):
-    ready_for_deletion_flags = outbound_table_cls.ReadyForDeletion().fetch(as_dict=True)
-    assert ready_for_deletion_flags == source_flags
+    deletion_approved_flags = outbound_table_cls.DeletionApproved().fetch(as_dict=True)
+    assert deletion_approved_flags == outbound_deletion_requested_flags
 
 
+@pytest.mark.xfail
 @pytest.mark.usefixtures("insert_flags")
-def test_if_pulling_skips_flagged_entities(local_table_cls_with_pulled_data):
+def test_if_pulling_skips_deletion_requested_entities(local_table_cls_with_pulled_data):
     data_before_pull = local_table_cls_with_pulled_data().fetch(as_dict=True)
     with pytest.warns(UserWarning):
         local_table_cls_with_pulled_data().pull()
