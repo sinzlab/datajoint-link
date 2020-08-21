@@ -29,7 +29,11 @@ def initialize():
         ),
     )
     local_table_controller = LocalTableController(
-        initialized_use_cases["pull"], initialized_use_cases["delete"], dj_gateways["source"], dj_gateways["local"]
+        initialized_use_cases["pull"],
+        initialized_use_cases["delete"],
+        initialized_use_cases["refresh"],
+        dj_gateways["source"],
+        dj_gateways["local"],
     )
     LocalTableMixin._controller = local_table_controller
     LocalTableMixin._temp_dir = temp_dir
