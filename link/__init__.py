@@ -23,7 +23,10 @@ def initialize():
     dj_gateway_link = DataJointGatewayLink(**{kind: dj_gateways[kind] for kind in kinds})
     local_table_presenter = LocalTablePresenter()
     initialized_use_cases = initialize_use_cases(
-        dj_gateway_link, dict(pull=local_table_presenter.pull, delete=local_table_presenter.delete)
+        dj_gateway_link,
+        dict(
+            pull=local_table_presenter.pull, delete=local_table_presenter.delete, refresh=local_table_presenter.refresh
+        ),
     )
     local_table_controller = LocalTableController(
         initialized_use_cases["pull"], initialized_use_cases["delete"], dj_gateways["source"], dj_gateways["local"]
