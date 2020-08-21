@@ -9,13 +9,13 @@ USE_CASE = "pull"
 
 
 @pytest.fixture(autouse=True)
-def execute_pull(use_case, identifiers):
-    use_case(identifiers[2:7])
+def execute_pull(use_case, create_identifiers):
+    use_case(create_identifiers(2, 7))
 
 
 @pytest.fixture
-def pulled_identifiers(identifiers):
-    return identifiers[5:7]
+def pulled_identifiers(create_identifiers):
+    return create_identifiers(5, 7)
 
 
 @pytest.fixture
