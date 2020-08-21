@@ -10,11 +10,13 @@ class LocalTableController(Base):
         self,
         pull_use_case: UseCase,
         delete_use_case: UseCase,
+        refresh_use_case: UseCase,
         source_gateway: DataJointGateway,
         local_gateway: DataJointGateway,
     ) -> None:
         self.pull_use_case = pull_use_case
         self.delete_use_case = delete_use_case
+        self.refresh_use_case = refresh_use_case
         self.source_gateway = source_gateway
         self.local_gateway = local_gateway
 
@@ -27,6 +29,10 @@ class LocalTableController(Base):
         """Deletes the requested entities from the local table."""
         identifiers = self.local_gateway.get_identifiers_in_restriction(restriction)
         self.delete_use_case(identifiers)
+
+    def refresh(self) -> None:
+        """Refreshes the repositories."""
+        self.refresh_use_case()
 
 
 class LocalTablePresenter:

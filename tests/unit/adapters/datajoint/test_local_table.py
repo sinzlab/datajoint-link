@@ -1,4 +1,4 @@
-from unittest.mock import create_autospec
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
@@ -19,7 +19,7 @@ def restriction():
 
 @pytest.fixture
 def use_case_spies():
-    return {n: create_autospec(USE_CASES[n], instance=True) for n in ["pull", "delete"]}
+    return {n: MagicMock(USE_CASES[n]("dummy_repo_link_factory", "dummy_output_port")) for n in USE_CASES}
 
 
 @pytest.fixture
@@ -38,7 +38,11 @@ def controller(use_case_spies, gateway_spies):
         pass
 
     return LocalTableController(
-        use_case_spies["pull"], use_case_spies["delete"], gateway_spies["source"], gateway_spies["local"]
+        use_case_spies["pull"],
+        use_case_spies["delete"],
+        use_case_spies["refresh"],
+        gateway_spies["source"],
+        gateway_spies["local"],
     )
 
 
@@ -48,6 +52,9 @@ class TestInit:
 
     def test_if_delete_use_case_is_stored_as_instance_attribute(self, controller, use_case_spies):
         assert controller.delete_use_case is use_case_spies["delete"]
+
+    def test_if_refresh_use_case_is_stored_as_instance_attribute(self, controller, use_case_spies):
+        assert controller.refresh_use_case is use_case_spies["refresh"]
 
     def test_if_source_gateway_is_stored_as_instance_attribute(self, controller, gateway_spies):
         assert controller.source_gateway is gateway_spies["source"]
@@ -78,3 +85,12 @@ class TestMethod:
 
     def test_if_use_case_is_called_with_identifiers(self, identifiers, use_case_spy):
         use_case_spy.assert_called_once_with(identifiers)
+
+
+def test_if_call_to_refresh_use_case_is_correct(controller, use_case_spies):
+    from inspect import signature
+
+    print(signature(use_case_spies["refresh"]))
+    print(use_case_spies["refresh"]._spec_signature)
+    controller.refresh()
+    use_case_spies["refresh"].assert_called_once_with()
