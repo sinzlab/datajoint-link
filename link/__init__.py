@@ -1,4 +1,4 @@
-from link.external.datajoint.link import Link
+from link.frameworks.datajoint.link import Link
 from link.schemas import LazySchema
 
 
@@ -8,10 +8,10 @@ def initialize():
     from link.adapters.datajoint.gateway import DataJointGateway
     from link.adapters.datajoint import DataJointGatewayLink
     from link.adapters.datajoint.local_table import LocalTablePresenter, LocalTableController
-    from link.external.datajoint.file import ReusableTemporaryDirectory
-    from link.external.datajoint.factory import TableFactory
-    from link.external.datajoint.facade import TableFacade
-    from link.external.datajoint.link import LocalTableMixin
+    from link.frameworks.datajoint.file import ReusableTemporaryDirectory
+    from link.frameworks.datajoint.factory import TableFactory
+    from link.frameworks.datajoint.facade import TableFacade
+    from link.frameworks.datajoint.link import LocalTableMixin
 
     kinds = ("source", "outbound", "local")
     table_factories = {kind: TableFactory() for kind in kinds}

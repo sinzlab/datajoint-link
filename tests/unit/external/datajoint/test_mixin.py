@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from datajoint import AndList
 
-from link.external.datajoint.mixin import LocalTableMixin
-from link.external.datajoint.factory import TableFactory
+from link.frameworks.datajoint.mixin import LocalTableMixin
+from link.frameworks.datajoint.factory import TableFactory
 
 
 @pytest.fixture

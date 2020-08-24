@@ -5,9 +5,9 @@ import pytest
 from datajoint import Lookup, Schema
 
 from link.base import Base
-from link.external.datajoint.dj_helpers import replace_stores
-from link.external.datajoint.link import Link, LocalTableMixin
-from link.external.datajoint.factory import TableFactoryConfig, TableFactory
+from link.frameworks.datajoint.dj_helpers import replace_stores
+from link.frameworks.datajoint.link import Link, LocalTableMixin
+from link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
 
 
 @pytest.fixture

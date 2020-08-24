@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from link.base import Base
-from link.external.datajoint.file import ReusableTemporaryDirectory
+from link.frameworks.datajoint.file import ReusableTemporaryDirectory
 
 
 def test_if_subclass_of_abstract_context_manager():

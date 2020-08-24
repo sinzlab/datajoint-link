@@ -7,7 +7,7 @@ import pytest
 from datajoint import Part
 
 from link.base import Base
-from link.external.datajoint.factory import TableFactoryConfig, TableFactory
+from link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
 
 
 class TestTableFactoryConfig:
@@ -254,7 +254,7 @@ class TestCall:
 
     @pytest.mark.usefixtures("configure_for_spawning")
     def test_if_class_attributes_are_set_on_spawned_table_class(
-        self, factory, dummy_spawned_table_cls, table_cls_attrs
+        self, factory, table_cls_attrs
     ):
         for name, value in table_cls_attrs.items():
             assert getattr(factory(), name) == value

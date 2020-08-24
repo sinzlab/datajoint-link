@@ -7,9 +7,9 @@ from datajoint import Part, Table
 
 from link.base import Base
 from link.adapters.datajoint.gateway import EntityDTO as GatewayEntityDTO
-from link.external.datajoint.facade import EntityDTO, TableFacade
-from link.external.datajoint.factory import TableFactory
-from link.external.datajoint.file import ReusableTemporaryDirectory
+from link.frameworks.datajoint.facade import EntityDTO, TableFacade
+from link.frameworks.datajoint.factory import TableFactory
+from link.frameworks.datajoint.file import ReusableTemporaryDirectory
 
 
 @pytest.fixture
