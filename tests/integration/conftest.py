@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, create_autospec
 from typing import Iterable
+from copy import deepcopy
 
 import pytest
 
@@ -9,7 +10,7 @@ from link.use_cases import USE_CASES, AbstractGatewayLink, initialize_use_cases
 @pytest.fixture
 def config():
     return {
-        "identifiers": {"source": 10, "outbound": 5, "local": 5},
+        "identifiers": {"source": 0, "outbound": 0, "local": 0},
         "flags": {
             "source": {"deletion_requested": [], "deletion_approved": []},
             "outbound": {"deletion_requested": [], "deletion_approved": []},
@@ -20,11 +21,11 @@ def config():
 
 @pytest.fixture
 def create_identifiers():
-    def _create_identifiers(arg):
-        if isinstance(arg, int):
-            indexes = range(arg)
-        elif isinstance(arg, Iterable):
-            indexes = arg
+    def _create_identifiers(spec):
+        if isinstance(spec, int):
+            indexes = range(spec)
+        elif isinstance(spec, Iterable):
+            indexes = spec
         else:
             raise RuntimeError("Invalid type for 'arg'")
         return ["identifier" + str(i) for i in indexes]
@@ -33,123 +34,20 @@ def create_identifiers():
 
 
 @pytest.fixture
-def source_identifiers(config, create_identifiers):
-    return create_identifiers(config["identifiers"]["source"])
-
-
-@pytest.fixture
-def outbound_identifiers(config, create_identifiers):
-    return create_identifiers(config["identifiers"]["outbound"])
-
-
-@pytest.fixture
-def local_identifiers(config, create_identifiers):
-    return create_identifiers(config["identifiers"]["local"])
-
-
-@pytest.fixture
-def all_identifiers(source_identifiers, outbound_identifiers, local_identifiers):
-    return {"source": source_identifiers, "outbound": outbound_identifiers, "local": local_identifiers}
-
-
-@pytest.fixture
-def source_deletion_requested_identifiers(config, create_identifiers):
-    return create_identifiers(config["flags"]["source"]["deletion_requested"])
-
-
-@pytest.fixture
-def outbound_deletion_requested_identifiers(config, create_identifiers):
-    return create_identifiers(config["flags"]["outbound"]["deletion_requested"])
-
-
-@pytest.fixture
-def local_deletion_requested_identifiers(config, create_identifiers):
-    return create_identifiers(config["flags"]["local"]["deletion_requested"])
-
-
-@pytest.fixture
-def all_deletion_requested_identifiers(
-    source_deletion_requested_identifiers, outbound_deletion_requested_identifiers, local_deletion_requested_identifiers
-):
-    return {
-        "source": source_deletion_requested_identifiers,
-        "outbound": outbound_deletion_requested_identifiers,
-        "local": local_deletion_requested_identifiers,
-    }
-
-
-@pytest.fixture
-def source_deletion_approved_identifiers(config, create_identifiers):
-    return create_identifiers(config["flags"]["source"]["deletion_approved"])
-
-
-@pytest.fixture
-def outbound_deletion_approved_identifiers(config, create_identifiers):
-    return create_identifiers(config["flags"]["outbound"]["deletion_approved"])
-
-
-@pytest.fixture
-def local_deletion_approved_identifiers(config, create_identifiers):
-    return create_identifiers(config["flags"]["local"]["deletion_approved"])
-
-
-@pytest.fixture
-def all_deletion_approved_identifiers(
-    source_deletion_approved_identifiers, outbound_deletion_approved_identifiers, local_deletion_approved_identifiers
-):
-    return {
-        "source": source_deletion_approved_identifiers,
-        "outbound": outbound_deletion_approved_identifiers,
-        "local": local_deletion_approved_identifiers,
-    }
-
-
-@pytest.fixture
-def all_flag_identifiers(all_deletion_requested_identifiers, all_deletion_approved_identifiers):
-    return {
-        "deletion_requested": all_deletion_requested_identifiers,
-        "deletion_approved": all_deletion_approved_identifiers,
-    }
-
-
-@pytest.fixture
-def create_flags(all_flag_identifiers):
-    def _create_flags(identifiers, repo_type):
-        return {i: {n: i in fi[repo_type] for n, fi in all_flag_identifiers.items()} for i in identifiers}
-
-    return _create_flags
-
-
-@pytest.fixture
-def source_flags(create_flags, source_identifiers):
-    return create_flags(source_identifiers, "source")
-
-
-@pytest.fixture
-def outbound_flags(create_flags, outbound_identifiers):
-    return create_flags(outbound_identifiers, "outbound")
-
-
-@pytest.fixture
-def local_flags(create_flags, local_identifiers):
-    return create_flags(local_identifiers, "local")
-
-
-@pytest.fixture
-def all_flags(source_flags, outbound_flags, local_flags):
-    return {"source": source_flags, "outbound": outbound_flags, "local": local_flags}
-
-
-@pytest.fixture
-def processed_config(all_identifiers, all_flags):
-    return {"identifiers": all_identifiers, "flags": all_flags}
+def processed_config(config, create_identifiers):
+    processed = deepcopy(config)
+    for repo_name, repo_identifier_spec in processed["identifiers"].items():
+        processed["identifiers"][repo_name] = create_identifiers(repo_identifier_spec)
+    for repo_name, repo_flag_identifier_spec in processed["flags"].items():
+        processed["flags"][repo_name] = {n: create_identifiers(v) for n, v in repo_flag_identifier_spec.items()}
+    return processed
 
 
 @pytest.fixture
 def gateway_link_spy(processed_config):
     spy = create_autospec(AbstractGatewayLink, instance=True)
-    for name, identifiers in processed_config["identifiers"].items():
-        getattr(spy, name).identifiers = identifiers
+    for repo_name, identifiers in processed_config["identifiers"].items():
+        getattr(spy, repo_name).identifiers = identifiers
 
     def make_get_flags(flags):
         def get_flags(identifier):
@@ -157,8 +55,12 @@ def gateway_link_spy(processed_config):
 
         return get_flags
 
-    for name, repo_flags in processed_config["flags"].items():
-        getattr(spy, name).get_flags.side_effect = make_get_flags(repo_flags)
+    for repo_name, repo_flag_identifiers in processed_config["flags"].items():
+        repo_flags = {
+            i: {fn: i in fi for fn, fi in repo_flag_identifiers.items()}
+            for i in processed_config["identifiers"][repo_name]
+        }
+        getattr(spy, repo_name).get_flags.side_effect = make_get_flags(repo_flags)
     return spy
 
 

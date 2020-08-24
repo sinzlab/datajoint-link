@@ -8,6 +8,18 @@ from link.entities.abstract_gateway import AbstractEntityDTO
 USE_CASE = "pull"
 
 
+@pytest.fixture
+def config():
+    return {
+        "identifiers": {"source": 10, "outbound": 5, "local": 5},
+        "flags": {
+            "source": {"deletion_requested": [], "deletion_approved": []},
+            "outbound": {"deletion_requested": [], "deletion_approved": []},
+            "local": {"deletion_requested": [], "deletion_approved": []},
+        },
+    }
+
+
 @pytest.fixture(autouse=True)
 def execute_pull(use_case, create_identifiers):
     use_case(create_identifiers(range(2, 7)))
