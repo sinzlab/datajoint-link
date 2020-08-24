@@ -253,9 +253,7 @@ class TestCall:
             assert issubclass(factory(), cls)
 
     @pytest.mark.usefixtures("configure_for_spawning")
-    def test_if_class_attributes_are_set_on_spawned_table_class(
-        self, factory, table_cls_attrs
-    ):
+    def test_if_class_attributes_are_set_on_spawned_table_class(self, factory, table_cls_attrs):
         for name, value in table_cls_attrs.items():
             assert getattr(factory(), name) == value
 
