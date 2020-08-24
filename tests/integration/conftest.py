@@ -6,6 +6,18 @@ from link.use_cases import USE_CASES, AbstractGatewayLink, initialize_use_cases
 
 
 @pytest.fixture
+def config():
+    return {
+        "identifiers": {"source": (10,), "outbound": (5,), "local": (5,)},
+        "flags": {
+            "source": {"deletion_requested": [], "deletion_approved": []},
+            "outbound": {"deletion_requested": [], "deletion_approved": []},
+            "local": {"deletion_requested": [], "deletion_approved": []},
+        },
+    }
+
+
+@pytest.fixture
 def create_identifiers():
     def _create_identifiers(start, stop=None):
         if stop is None:
@@ -17,18 +29,18 @@ def create_identifiers():
 
 
 @pytest.fixture
-def source_identifiers(create_identifiers):
-    return create_identifiers(10)
+def source_identifiers(config, create_identifiers):
+    return create_identifiers(*config["identifiers"]["source"])
 
 
 @pytest.fixture
-def outbound_identifiers(create_identifiers):
-    return create_identifiers(5)
+def outbound_identifiers(config, create_identifiers):
+    return create_identifiers(*config["identifiers"]["outbound"])
 
 
 @pytest.fixture
-def local_identifiers(create_identifiers):
-    return create_identifiers(5)
+def local_identifiers(config, create_identifiers):
+    return create_identifiers(*config["identifiers"]["local"])
 
 
 @pytest.fixture
@@ -37,18 +49,18 @@ def all_identifiers(source_identifiers, outbound_identifiers, local_identifiers)
 
 
 @pytest.fixture
-def source_deletion_requested_identifiers():
-    return []
+def source_deletion_requested_identifiers(config):
+    return config["flags"]["source"]["deletion_requested"]
 
 
 @pytest.fixture
-def outbound_deletion_requested_identifiers():
-    return []
+def outbound_deletion_requested_identifiers(config):
+    return config["flags"]["outbound"]["deletion_requested"]
 
 
 @pytest.fixture
-def local_deletion_requested_identifiers():
-    return []
+def local_deletion_requested_identifiers(config):
+    return config["flags"]["local"]["deletion_requested"]
 
 
 @pytest.fixture
@@ -63,18 +75,18 @@ def all_deletion_requested_identifiers(
 
 
 @pytest.fixture
-def source_deletion_approved_identifiers():
-    return []
+def source_deletion_approved_identifiers(config):
+    return config["flags"]["source"]["deletion_approved"]
 
 
 @pytest.fixture
-def outbound_deletion_approved_identifiers():
-    return []
+def outbound_deletion_approved_identifiers(config):
+    return config["flags"]["outbound"]["deletion_approved"]
 
 
 @pytest.fixture
-def local_deletion_approved_identifiers():
-    return []
+def local_deletion_approved_identifiers(config):
+    return config["flags"]["local"]["deletion_approved"]
 
 
 @pytest.fixture
@@ -125,14 +137,14 @@ def all_flags(source_flags, outbound_flags, local_flags):
 
 
 @pytest.fixture
-def config(all_identifiers, all_flags):
+def processed_config(all_identifiers, all_flags):
     return {"identifiers": all_identifiers, "flags": all_flags}
 
 
 @pytest.fixture
-def gateway_link_spy(config):
+def gateway_link_spy(processed_config):
     spy = create_autospec(AbstractGatewayLink, instance=True)
-    for name, identifiers in config["identifiers"].items():
+    for name, identifiers in processed_config["identifiers"].items():
         getattr(spy, name).identifiers = identifiers
 
     def make_get_flags(flags):
@@ -141,7 +153,7 @@ def gateway_link_spy(config):
 
         return get_flags
 
-    for name, repo_flags in config["flags"].items():
+    for name, repo_flags in processed_config["flags"].items():
         getattr(spy, name).get_flags.side_effect = make_get_flags(repo_flags)
     return spy
 
