@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, create_autospec
+from typing import Iterable
 
 import pytest
 
@@ -8,7 +9,7 @@ from link.use_cases import USE_CASES, AbstractGatewayLink, initialize_use_cases
 @pytest.fixture
 def config():
     return {
-        "identifiers": {"source": (10,), "outbound": (5,), "local": (5,)},
+        "identifiers": {"source": 10, "outbound": 5, "local": 5},
         "flags": {
             "source": {"deletion_requested": [], "deletion_approved": []},
             "outbound": {"deletion_requested": [], "deletion_approved": []},
@@ -19,28 +20,31 @@ def config():
 
 @pytest.fixture
 def create_identifiers():
-    def _create_identifiers(start, stop=None):
-        if stop is None:
-            stop = start
-            start = 0
-        return ["identifier" + str(i) for i in range(start, stop)]
+    def _create_identifiers(arg):
+        if isinstance(arg, int):
+            indexes = range(arg)
+        elif isinstance(arg, Iterable):
+            indexes = arg
+        else:
+            raise RuntimeError("Invalid type for 'arg'")
+        return ["identifier" + str(i) for i in indexes]
 
     return _create_identifiers
 
 
 @pytest.fixture
 def source_identifiers(config, create_identifiers):
-    return create_identifiers(*config["identifiers"]["source"])
+    return create_identifiers(config["identifiers"]["source"])
 
 
 @pytest.fixture
 def outbound_identifiers(config, create_identifiers):
-    return create_identifiers(*config["identifiers"]["outbound"])
+    return create_identifiers(config["identifiers"]["outbound"])
 
 
 @pytest.fixture
 def local_identifiers(config, create_identifiers):
-    return create_identifiers(*config["identifiers"]["local"])
+    return create_identifiers(config["identifiers"]["local"])
 
 
 @pytest.fixture
@@ -49,18 +53,18 @@ def all_identifiers(source_identifiers, outbound_identifiers, local_identifiers)
 
 
 @pytest.fixture
-def source_deletion_requested_identifiers(config):
-    return config["flags"]["source"]["deletion_requested"]
+def source_deletion_requested_identifiers(config, create_identifiers):
+    return create_identifiers(config["flags"]["source"]["deletion_requested"])
 
 
 @pytest.fixture
-def outbound_deletion_requested_identifiers(config):
-    return config["flags"]["outbound"]["deletion_requested"]
+def outbound_deletion_requested_identifiers(config, create_identifiers):
+    return create_identifiers(config["flags"]["outbound"]["deletion_requested"])
 
 
 @pytest.fixture
-def local_deletion_requested_identifiers(config):
-    return config["flags"]["local"]["deletion_requested"]
+def local_deletion_requested_identifiers(config, create_identifiers):
+    return create_identifiers(config["flags"]["local"]["deletion_requested"])
 
 
 @pytest.fixture
@@ -75,18 +79,18 @@ def all_deletion_requested_identifiers(
 
 
 @pytest.fixture
-def source_deletion_approved_identifiers(config):
-    return config["flags"]["source"]["deletion_approved"]
+def source_deletion_approved_identifiers(config, create_identifiers):
+    return create_identifiers(config["flags"]["source"]["deletion_approved"])
 
 
 @pytest.fixture
-def outbound_deletion_approved_identifiers(config):
-    return config["flags"]["outbound"]["deletion_approved"]
+def outbound_deletion_approved_identifiers(config, create_identifiers):
+    return create_identifiers(config["flags"]["outbound"]["deletion_approved"])
 
 
 @pytest.fixture
-def local_deletion_approved_identifiers(config):
-    return config["flags"]["local"]["deletion_approved"]
+def local_deletion_approved_identifiers(config, create_identifiers):
+    return create_identifiers(config["flags"]["local"]["deletion_approved"])
 
 
 @pytest.fixture

@@ -10,12 +10,12 @@ USE_CASE = "pull"
 
 @pytest.fixture(autouse=True)
 def execute_pull(use_case, create_identifiers):
-    use_case(create_identifiers(2, 7))
+    use_case(create_identifiers(range(2, 7)))
 
 
 @pytest.fixture
 def pulled_identifiers(create_identifiers):
-    return create_identifiers(5, 7)
+    return create_identifiers(range(5, 7))
 
 
 @pytest.fixture

@@ -7,13 +7,13 @@ USE_CASE = "refresh"
 
 
 @pytest.fixture
-def outbound_deletion_requested_identifiers():
-    return ["identifier" + str(i) for i in [0, 2, 3]]
+def outbound_deletion_requested_identifiers(create_identifiers):
+    return create_identifiers([0, 2, 3])
 
 
 @pytest.fixture
-def local_deletion_requested_identifiers():
-    return ["identifier" + str(i) for i in [0, 3]]
+def local_deletion_requested_identifiers(create_identifiers):
+    return create_identifiers([0, 3])
 
 
 def test_if_deletion_requested_flag_is_enabled_on_correct_entities_in_local_gateway(

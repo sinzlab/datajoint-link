@@ -17,8 +17,8 @@ def execute_delete(use_case, to_be_deleted_identifiers):
 
 
 @pytest.fixture
-def outbound_deletion_requested_identifiers():
-    return ["identifier" + str(i) for i in [0, 2]]
+def outbound_deletion_requested_identifiers(create_identifiers):
+    return create_identifiers([0, 2])
 
 
 def test_if_entities_that_had_their_deletion_requested_have_it_approved(
