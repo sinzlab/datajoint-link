@@ -27,7 +27,7 @@ def get_part_table_classes(
 ) -> Dict[str, Type[Part]]:
     if ignored_parts is None:
         ignored_parts = []
-    part_table_classes = dict()
+    part_table_classes = {}
     for name in dir(table_cls):
         if name[0].isupper() and name not in ignored_parts:
             attr = getattr(table_cls, name)

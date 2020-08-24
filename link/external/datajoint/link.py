@@ -18,7 +18,7 @@ class Link(Base):
 
     def __init__(self, local_schema: Schema, source_schema: Schema, stores: Optional[Dict[str, str]] = None) -> None:
         if stores is None:
-            stores = dict()
+            stores = {}
         self.local_schema = local_schema
         self.source_schema = source_schema
         self.stores = stores
@@ -76,7 +76,7 @@ class Link(Base):
             )
 
     def _create_local_part_table_definitions(self) -> Dict[str, str]:
-        part_table_definitions = dict()
+        part_table_definitions = {}
         for name, part in self._table_cls_factories["source"].part_tables.items():
             part_table_definitions[name] = self._create_definition(part)
         return part_table_definitions

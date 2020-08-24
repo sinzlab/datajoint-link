@@ -34,7 +34,7 @@ class DataJointGatewayLink(AbstractGatewayLink, Base):
 
 
 def initialize(table_facade_link: AbstractTableFacadeLink) -> DataJointGatewayLink:
-    gateways = dict()
+    gateways = {}
     for kind in ("source", "outbound", "local"):
         table_facade = getattr(table_facade_link, kind)
         gateways[kind] = DataJointGateway(table_facade, IdentificationTranslator(table_facade))

@@ -17,8 +17,7 @@ class Contents(MutableMapping, Base):
     def __getitem__(self, identifier: str) -> TransferEntity:
         """Fetches an entity."""
         entity = self.entities[identifier]
-        transfer_entity = entity.create_transfer_entity(self.gateway.fetch(identifier))
-        return transfer_entity
+        return entity.create_transfer_entity(self.gateway.fetch(identifier))
 
     def __setitem__(self, identifier: str, transfer_entity: TransferEntity) -> None:
         """Inserts an entity."""

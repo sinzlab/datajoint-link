@@ -1,5 +1,4 @@
-from typing import Dict, Union, Any
+from typing import Dict, Union
 
 
 PrimaryKey = Dict[str, Union[str, int, float]]
-TableEntity = Dict[str, Any]

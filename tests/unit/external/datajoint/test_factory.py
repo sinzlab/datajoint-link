@@ -125,7 +125,7 @@ def configure_for_spawning(factory, fake_schema, table_name, table_bases, table_
     config.flag_table_names = flag_part_table_names
     config.table_cls = None
     config.table_definition = None
-    config.part_table_definitions = dict()
+    config.part_table_definitions = {}
     config.is_table_creation_possible = False
     factory.config = config
 

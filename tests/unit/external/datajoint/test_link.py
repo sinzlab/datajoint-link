@@ -54,7 +54,7 @@ def source_table_cls_stub():
 
 @pytest.fixture
 def source_part_stubs():
-    source_part_stubs = dict()
+    source_part_stubs = {}
     for name in ["A", "B", "C"]:
         source_part_stub = MagicMock(name="SourcePart" + name + "Stub")
         source_part_stub.return_value.heading.__str__.return_value = "source_part_" + name.lower() + "_heading"
@@ -70,7 +70,7 @@ def table_cls_factory_spies(source_table_cls_stub, source_part_stubs):
     }
     table_cls_factory_spies["source"].return_value = source_table_cls_stub
     table_cls_factory_spies["source"].part_tables = source_part_stubs
-    table_cls_factory_spies["outbound"].table_cls_attrs = dict()
+    table_cls_factory_spies["outbound"].table_cls_attrs = {}
     table_cls_factory_spies["local"].return_value = "local_table_cls"
     return table_cls_factory_spies
 
@@ -189,7 +189,7 @@ class TestCallWithoutInitialSetup:
         table_cls_factory_spies["local"].assert_called_once_with()
 
     def test_if_local_table_class_is_returned(self, linked_table):
-        assert linked_table is "local_table_cls"
+        assert linked_table == "local_table_cls"
 
 
 @pytest.fixture

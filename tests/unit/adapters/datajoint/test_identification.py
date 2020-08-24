@@ -14,8 +14,7 @@ def primary_keys():
 
 @pytest.fixture
 def table_facade_stub(primary_keys):
-    table_facade_stub = MagicMock(name="table_facade_stub", spec=AbstractTableFacade, primary_keys=primary_keys)
-    return table_facade_stub
+    return MagicMock(name="table_facade_stub", spec=AbstractTableFacade, primary_keys=primary_keys)
 
 
 @pytest.fixture

@@ -51,7 +51,7 @@ def is_present_in_flag_table(flag_table_names):
 
 @pytest.fixture
 def flag_table_spies(flag_table_names, is_present_in_flag_table):
-    flag_table_spies = dict()
+    flag_table_spies = {}
     for name in flag_table_names:
         spy = MagicMock(name=name + "Spy", spec=Part)
         spy.__and__.return_value.__contains__.return_value = is_present_in_flag_table[name]
