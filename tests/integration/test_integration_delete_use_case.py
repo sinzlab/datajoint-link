@@ -11,9 +11,8 @@ def config():
     return {
         "identifiers": {"source": 10, "outbound": 5, "local": 5},
         "flags": {
-            "source": {"deletion_requested": [], "deletion_approved": []},
             "outbound": {"deletion_requested": [0, 2], "deletion_approved": []},
-            "local": {"deletion_requested": [], "deletion_approved": []},
+            "local": {"deletion_requested": []},
         },
     }
 
