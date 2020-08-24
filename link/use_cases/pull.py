@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 class Pull(UseCase):
     def execute(self, repo_link: RepositoryLink, identifiers: List[str]) -> None:
         """Pulls the entities specified by the provided identifiers if they were not already pulled."""
-        valid_identifiers = [identifier for identifier in identifiers if identifier not in repo_link.local]
+        valid_identifiers = [identifier for identifier in identifiers if identifier not in repo_link.outbound]
         entities = [repo_link.source[identifier] for identifier in valid_identifiers]
         with repo_link.outbound.transaction(), repo_link.local.transaction():
             for entity in entities:

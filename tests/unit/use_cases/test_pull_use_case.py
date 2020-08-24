@@ -37,15 +37,15 @@ def identifier_only_transfer_entities(transfer_entities):
 
 @pytest.fixture
 def repo_link_spy(repo_link_spy, is_valid, transfer_entities):
-    repo_link_spy.local.__contains__.side_effect = [not flag for flag in is_valid]
+    repo_link_spy.outbound.__contains__.side_effect = [not flag for flag in is_valid]
     repo_link_spy.source.__getitem__.side_effect = transfer_entities
     return repo_link_spy
 
 
-def test_if_presence_of_entities_in_local_repo_is_checked(use_case, repo_link_spy, identifiers):
+def test_if_presence_of_entities_in_outbound_repo_is_checked(use_case, repo_link_spy, identifiers):
     use_case(identifiers)
     calls = [call(identifier) for identifier in identifiers]
-    assert repo_link_spy.local.__contains__.call_args_list == calls
+    assert repo_link_spy.outbound.__contains__.call_args_list == calls
 
 
 def test_if_entities_are_fetched(use_case, repo_link_spy, identifiers, valid_identifiers):
