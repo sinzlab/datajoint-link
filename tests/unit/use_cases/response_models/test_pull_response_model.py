@@ -4,13 +4,13 @@ from link.use_cases.pull import PullResponseModel
 
 
 @pytest.fixture
-def valid():
-    return {"identifier" + str(i) for i in range(5)}
+def valid(create_identifiers):
+    return set(create_identifiers(5))
 
 
 @pytest.fixture
-def invalid():
-    return {"identifier" + str(i) for i in range(5, 10)}
+def invalid(create_identifiers):
+    return set(create_identifiers(range(5, 10)))
 
 
 @pytest.fixture

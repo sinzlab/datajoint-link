@@ -2,5 +2,5 @@ import pytest
 
 
 @pytest.fixture
-def requested():
-    return {"identifier" + str(i) for i in range(10)}
+def requested(create_identifiers):
+    return set(create_identifiers(10))

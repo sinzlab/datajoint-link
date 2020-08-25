@@ -4,8 +4,8 @@ from link.use_cases.refresh import RefreshResponseModel
 
 
 @pytest.fixture
-def refreshed():
-    return {"identifiers" + str(i) for i in range(10)}
+def refreshed(create_identifiers):
+    return set(create_identifiers(10))
 
 
 @pytest.fixture

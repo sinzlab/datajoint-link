@@ -4,18 +4,18 @@ from link.use_cases.delete import DeleteResponseModel
 
 
 @pytest.fixture
-def deletion_approved():
-    return {"identifier" + str(i) for i in range(5)}
+def deletion_approved(create_identifiers):
+    return set(create_identifiers(5))
 
 
 @pytest.fixture
-def deleted_from_outbound():
-    return {"identifier" + str(i) for i in range(5, 10)}
+def deleted_from_outbound(create_identifiers):
+    return set(create_identifiers(range(5, 10)))
 
 
 @pytest.fixture
-def deleted_from_local():
-    return {"identifier" + str(i) for i in range(10)}
+def deleted_from_local(create_identifiers):
+    return set(create_identifiers(10))
 
 
 @pytest.fixture
