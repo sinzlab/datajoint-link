@@ -145,6 +145,6 @@ def test_if_initialization_of_response_model_class_is_correct(
     )
 
 
-def test_if_response_model_is_passed_to_output_port(use_case, response_model_cls_spy, dummy_output_port, identifiers):
+def test_if_response_model_is_passed_to_output_port(use_case, response_model_cls_spy, output_port_spy, identifiers):
     use_case(identifiers)
-    dummy_output_port.assert_called_once_with(response_model_cls_spy.return_value)
+    output_port_spy.assert_called_once_with(response_model_cls_spy.return_value)

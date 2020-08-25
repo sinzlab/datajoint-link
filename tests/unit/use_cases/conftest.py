@@ -27,13 +27,13 @@ def repo_link_factory_stub(repo_link_spy):
 
 
 @pytest.fixture
-def dummy_output_port():
-    return MagicMock(name="dummy_output_port")
+def output_port_spy():
+    return MagicMock(name="output_port_spy")
 
 
 @pytest.fixture
-def use_case(use_case_cls, repo_link_factory_stub, dummy_output_port):
-    return use_case_cls(repo_link_factory_stub, dummy_output_port)
+def use_case(use_case_cls, repo_link_factory_stub, output_port_spy):
+    return use_case_cls(repo_link_factory_stub, output_port_spy)
 
 
 @pytest.fixture
