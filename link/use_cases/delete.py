@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from . import RepositoryLink
 
 
-class Delete(UseCase):
+class DeleteUseCase(UseCase):
     def execute(self, repo_link: RepositoryLink, identifiers: List[str]) -> None:
         """Executes logic associated with the deletion of entities from the local repository."""
         deletion_requested, deletion_not_requested = self._group_by_deletion_requested(repo_link, identifiers)

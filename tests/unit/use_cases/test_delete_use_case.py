@@ -3,15 +3,15 @@ from itertools import compress
 
 import pytest
 
-from link.use_cases.delete import Delete
+from link.use_cases.delete import DeleteUseCase
 from link.use_cases.base import UseCase
 
 
-USE_CASE = Delete
+USE_CASE = DeleteUseCase
 
 
 def test_if_subclass_of_use_case():
-    assert issubclass(Delete, UseCase)
+    assert issubclass(DeleteUseCase, UseCase)
 
 
 @pytest.fixture
