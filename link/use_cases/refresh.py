@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from . import RepositoryLink
 
 
-class Refresh(UseCase):
+class RefreshUseCase(UseCase):
     def execute(self, repo_link: RepositoryLink) -> None:
         """Refreshes the deletion requested flags in the local table."""
         deletion_requested = {i for i in repo_link.outbound if repo_link.outbound.flags[i]["deletion_requested"]}

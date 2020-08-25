@@ -3,14 +3,14 @@ from itertools import compress
 import pytest
 
 from link.use_cases.base import UseCase
-from link.use_cases.refresh import Refresh
+from link.use_cases.refresh import RefreshUseCase
 
 
-USE_CASE = Refresh
+USE_CASE = RefreshUseCase
 
 
 def test_if_subclass_of_use_case():
-    assert issubclass(Refresh, UseCase)
+    assert issubclass(RefreshUseCase, UseCase)
 
 
 @pytest.fixture

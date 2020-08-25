@@ -5,7 +5,7 @@ from typing import Callable, Any, Dict
 from .base import UseCase
 from .pull import PullUseCase
 from .delete import Delete
-from .refresh import Refresh
+from .refresh import RefreshUseCase
 from ..entities.abstract_gateway import AbstractGateway
 from ..entities.repository import Repository, RepositoryFactory
 from ..base import Base
@@ -49,7 +49,7 @@ class RepositoryLinkFactory(Base):
         return RepositoryLink(**kwargs)
 
 
-USE_CASES = dict(pull=PullUseCase, delete=Delete, refresh=Refresh)
+USE_CASES = dict(pull=PullUseCase, delete=Delete, refresh=RefreshUseCase)
 
 
 def initialize_use_cases(
