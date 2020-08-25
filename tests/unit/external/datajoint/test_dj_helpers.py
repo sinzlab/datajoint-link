@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 from datajoint import Part
 
@@ -70,7 +72,9 @@ class TestReplaceStores:
 
     @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
     def test_if_stores_not_present_in_stores_mapping_are_ignored(self, replacement_matches_expectation):
-        assert replacement_matches_expectation()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            assert replacement_matches_expectation()
 
     @pytest.mark.usefixtures("add_store_not_present_in_stores_mapping")
     def test_if_user_warning_is_raised_if_stores_missing_in_stores_mapping_are_encountered(self, recorded_warnings):
