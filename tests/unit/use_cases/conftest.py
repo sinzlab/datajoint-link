@@ -13,7 +13,7 @@ def identifiers():
 
 @pytest.fixture
 def use_case_cls(request):
-    return request.module.USE_CASE
+    return type(request.module.USE_CASE.__name__, (request.module.USE_CASE,), dict())
 
 
 @pytest.fixture
