@@ -4,11 +4,6 @@ from link.use_cases.pull import PullResponseModel
 
 
 @pytest.fixture
-def requested():
-    return {"identifier" + str(i) for i in range(10)}
-
-
-@pytest.fixture
 def valid():
     return {"identifier" + str(i) for i in range(5)}
 

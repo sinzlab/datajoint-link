@@ -4,11 +4,6 @@ from link.use_cases.delete import DeleteResponseModel
 
 
 @pytest.fixture
-def requested():
-    return {"identifier" + str(i) for i in range(10)}
-
-
-@pytest.fixture
 def deletion_approved():
     return {"identifier" + str(i) for i in range(5)}
 
