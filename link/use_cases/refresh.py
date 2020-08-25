@@ -1,10 +1,22 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
+from dataclasses import dataclass
 
 from .base import UseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
+
+
+@dataclass
+class RefreshResponseModel:
+    """Response model for the refresh use-case."""
+
+    refreshed: List[str]
+
+    @property
+    def n_refreshed(self) -> int:
+        return len(self.refreshed)
 
 
 class RefreshUseCase(UseCase):
