@@ -1,9 +1,10 @@
 from itertools import compress
+from unittest.mock import create_autospec
 
 import pytest
 
 from link.use_cases.base import UseCase
-from link.use_cases.refresh import RefreshUseCase
+from link.use_cases.refresh import RefreshUseCase, RefreshResponseModel
 
 
 USE_CASE = RefreshUseCase
@@ -11,6 +12,21 @@ USE_CASE = RefreshUseCase
 
 def test_if_subclass_of_use_case():
     assert issubclass(RefreshUseCase, UseCase)
+
+
+def test_if_response_model_class_is_refresh_response_model():
+    assert RefreshUseCase.response_model_cls is RefreshResponseModel
+
+
+@pytest.fixture
+def response_model_cls_spy():
+    return create_autospec(RefreshResponseModel)
+
+
+@pytest.fixture
+def use_case_cls(response_model_cls_spy):
+    RefreshUseCase.response_model_cls = response_model_cls_spy
+    return RefreshUseCase
 
 
 @pytest.fixture
@@ -55,10 +71,24 @@ def test_if_deletion_requested_flag_is_checked_on_local_entities_corresponding_t
         spy.__getitem__.assert_called_once_with("deletion_requested")
 
 
-def test_if_deletion_requested_flag_is_enabled_on_local_entities(
-    use_case, outbound_deletion_requested, local_deletion_requested, local_flag_manager_spies
-):
+@pytest.fixture
+def to_be_enabled(outbound_deletion_requested, local_deletion_requested):
+    return [b1 and not b2 for b1, b2 in zip(outbound_deletion_requested, local_deletion_requested)]
+
+
+def test_if_deletion_requested_flag_is_enabled_on_local_entities(use_case, to_be_enabled, local_flag_manager_spies):
     use_case()
-    to_be_enabled = [b1 and not b2 for b1, b2 in zip(outbound_deletion_requested, local_deletion_requested)]
     for spy in compress(local_flag_manager_spies.values(), to_be_enabled):
         spy.__setitem__.assert_called_once_with("deletion_requested", True)
+
+
+def test_if_initialization_of_response_model_class_is_correct(
+    use_case, response_model_cls_spy, identifiers, to_be_enabled
+):
+    use_case()
+    response_model_cls_spy.assert_called_once_with(list(compress(identifiers, to_be_enabled)))
+
+
+def test_if_response_model_is_passed_to_output_port(use_case, response_model_cls_spy, output_port_spy):
+    use_case()
+    output_port_spy.assert_called_once_with(response_model_cls_spy.return_value)
