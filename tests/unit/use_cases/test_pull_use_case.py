@@ -141,7 +141,7 @@ def test_if_initialization_of_response_model_class_is_correct(
 ):
     use_case(identifiers)
     response_model_cls_spy.assert_called_once_with(
-        requested=set(identifiers), valid=set(valid_identifiers), invalid=set(identifiers) - set(valid_identifiers)
+        requested=identifiers, valid=valid_identifiers, invalid=[i for i in identifiers if i not in valid_identifiers]
     )
 
 
