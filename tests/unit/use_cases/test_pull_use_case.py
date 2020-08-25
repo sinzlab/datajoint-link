@@ -4,7 +4,7 @@ from itertools import compress
 import pytest
 
 from link.entities.repository import TransferEntity
-from link.use_cases.pull import PullUseCase
+from link.use_cases.pull import PullUseCase, PullResponseModel
 from link.use_cases.base import UseCase
 
 
@@ -13,6 +13,21 @@ USE_CASE = PullUseCase
 
 def test_if_subclass_of_use_case():
     assert issubclass(PullUseCase, UseCase)
+
+
+def test_if_response_model_is_pull_response_model():
+    assert PullUseCase.response_model_cls is PullResponseModel
+
+
+@pytest.fixture
+def response_model_cls_spy():
+    return create_autospec(PullResponseModel)
+
+
+@pytest.fixture
+def use_case_cls(response_model_cls_spy):
+    PullUseCase.response_model_cls = response_model_cls_spy
+    return PullUseCase
 
 
 @pytest.fixture
@@ -119,3 +134,17 @@ def test_if_entities_are_inserted_into_local_repo_after_transaction_in_local_rep
     repo_link_spy.local.transaction.side_effect = RuntimeError
     pull_with_error()
     repo_link_spy.local.contents.__setitem__.assert_not_called()
+
+
+def test_if_initialization_of_response_model_class_is_correct(
+    use_case, response_model_cls_spy, identifiers, valid_identifiers
+):
+    use_case(identifiers)
+    response_model_cls_spy.assert_called_once_with(
+        requested=set(identifiers), valid=set(valid_identifiers), invalid=set(identifiers) - set(valid_identifiers)
+    )
+
+
+def test_if_response_model_is_passed_to_output_port(use_case, response_model_cls_spy, dummy_output_port, identifiers):
+    use_case(identifiers)
+    dummy_output_port.assert_called_once_with(response_model_cls_spy.return_value)

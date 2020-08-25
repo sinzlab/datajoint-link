@@ -12,6 +12,11 @@ def identifiers():
 
 
 @pytest.fixture
+def use_case_cls(request):
+    return request.module.USE_CASE
+
+
+@pytest.fixture
 def repo_link_spy():
     return create_autospec(RepositoryLink, instance=True)
 
@@ -27,8 +32,8 @@ def dummy_output_port():
 
 
 @pytest.fixture
-def use_case(request, repo_link_factory_stub, dummy_output_port):
-    return request.module.USE_CASE(repo_link_factory_stub, dummy_output_port)
+def use_case(use_case_cls, repo_link_factory_stub, dummy_output_port):
+    return use_case_cls(repo_link_factory_stub, dummy_output_port)
 
 
 @pytest.fixture
