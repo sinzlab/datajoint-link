@@ -1,10 +1,37 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, List, Tuple, Set
+from dataclasses import dataclass
 
 from .base import UseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
+
+
+@dataclass
+class DeleteResponseModel:
+    """Response model for the delete use-case."""
+
+    requested: List[str]
+    deletion_approved: List[str]
+    deleted_from_outbound: List[str]
+    deleted_from_local: List[str]
+
+    @property
+    def n_requested(self):
+        return len(self.requested)
+
+    @property
+    def n_deletion_approved(self):
+        return len(self.deletion_approved)
+
+    @property
+    def n_deleted_from_outbound(self):
+        return len(self.deleted_from_outbound)
+
+    @property
+    def n_deleted_from_local(self):
+        return len(self.deleted_from_local)
 
 
 class DeleteUseCase(UseCase):
