@@ -7,8 +7,8 @@ from link.use_cases import RepositoryLinkFactory, RepositoryLink
 
 
 @pytest.fixture
-def identifiers():
-    return ["identifier" + str(i) for i in range(3)]
+def identifiers(create_identifiers):
+    return create_identifiers(3)
 
 
 @pytest.fixture
