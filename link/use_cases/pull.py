@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Set
 from dataclasses import dataclass
 
 from .base import ResponseModel, UseCase
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 class PullResponseModel(ResponseModel):
     """Response model for the pull use-case."""
 
-    requested: List[str]
-    valid: List[str]
-    invalid: List[str]
+    requested: Set[str]
+    valid: Set[str]
+    invalid: Set[str]
 
     @property
     def n_requested(self) -> int:
@@ -42,7 +42,7 @@ class PullUseCase(UseCase):
                 repo_link.local[entity.identifier] = entity
         # noinspection PyArgumentList
         return self.response_model_cls(
-            requested=identifiers,
-            valid=valid_identifiers,
-            invalid=[i for i in identifiers if i not in valid_identifiers],
+            requested=set(identifiers),
+            valid=set(valid_identifiers),
+            invalid={i for i in identifiers if i not in valid_identifiers},
         )

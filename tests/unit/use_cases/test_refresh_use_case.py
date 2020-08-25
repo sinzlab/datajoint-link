@@ -86,7 +86,7 @@ def test_if_initialization_of_response_model_class_is_correct(
     use_case, response_model_cls_spy, identifiers, to_be_enabled
 ):
     use_case()
-    response_model_cls_spy.assert_called_once_with(list(compress(identifiers, to_be_enabled)))
+    response_model_cls_spy.assert_called_once_with(set(compress(identifiers, to_be_enabled)))
 
 
 def test_if_response_model_is_passed_to_output_port(use_case, response_model_cls_spy, output_port_spy):

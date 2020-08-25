@@ -16,22 +16,22 @@ def test_if_subclass_of_response_model():
 
 @pytest.fixture
 def requested():
-    return ["identifier" + str(i) for i in range(10)]
+    return {"identifier" + str(i) for i in range(10)}
 
 
 @pytest.fixture
 def deletion_approved():
-    return ["identifier" + str(i) for i in range(5)]
+    return {"identifier" + str(i) for i in range(5)}
 
 
 @pytest.fixture
 def deleted_from_outbound():
-    return ["identifier" + str(i) for i in range(5, 10)]
+    return {"identifier" + str(i) for i in range(5, 10)}
 
 
 @pytest.fixture
 def deleted_from_local():
-    return ["identifier" + str(i) for i in range(10)]
+    return {"identifier" + str(i) for i in range(10)}
 
 
 @pytest.fixture

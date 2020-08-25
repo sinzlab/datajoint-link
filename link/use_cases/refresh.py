@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Set
 from dataclasses import dataclass
 
 from .base import ResponseModel, UseCase
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class RefreshResponseModel(ResponseModel):
     """Response model for the refresh use-case."""
 
-    refreshed: List[str]
+    refreshed: Set[str]
 
     @property
     def n_refreshed(self) -> int:
@@ -29,4 +29,4 @@ class RefreshUseCase(UseCase):
         for identifier in to_be_enabled:
             repo_link.local.flags[identifier]["deletion_requested"] = True
         # noinspection PyArgumentList
-        return self.response_model_cls(refreshed=list(to_be_enabled))
+        return self.response_model_cls(refreshed=to_be_enabled)

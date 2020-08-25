@@ -16,7 +16,7 @@ def test_if_subclass_of_response_model():
 
 @pytest.fixture
 def refreshed():
-    return ["identifiers" + str(i) for i in range(10)]
+    return {"identifiers" + str(i) for i in range(10)}
 
 
 @pytest.fixture
