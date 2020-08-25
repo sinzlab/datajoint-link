@@ -4,18 +4,9 @@ from itertools import compress
 import pytest
 
 from link.use_cases.delete import DeleteUseCase, DeleteResponseModel
-from link.use_cases.base import UseCase
 
 
 USE_CASE = DeleteUseCase
-
-
-def test_if_subclass_of_use_case():
-    assert issubclass(DeleteUseCase, UseCase)
-
-
-def test_if_response_model_class_is_delete_response_model():
-    assert DeleteUseCase.response_model_cls is DeleteResponseModel
 
 
 @pytest.fixture

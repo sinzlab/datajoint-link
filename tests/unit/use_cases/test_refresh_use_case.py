@@ -3,19 +3,10 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from link.use_cases.base import UseCase
 from link.use_cases.refresh import RefreshUseCase, RefreshResponseModel
 
 
 USE_CASE = RefreshUseCase
-
-
-def test_if_subclass_of_use_case():
-    assert issubclass(RefreshUseCase, UseCase)
-
-
-def test_if_response_model_class_is_refresh_response_model():
-    assert RefreshUseCase.response_model_cls is RefreshResponseModel
 
 
 @pytest.fixture

@@ -3,12 +3,16 @@ from dataclasses import dataclass
 from typing import Callable, Any, Dict
 
 from .base import UseCase
-from .pull import PullUseCase
-from .delete import DeleteUseCase
-from .refresh import RefreshUseCase
+from .pull import PullResponseModel, PullUseCase
+from .delete import DeleteResponseModel, DeleteUseCase
+from .refresh import RefreshResponseModel, RefreshUseCase
 from ..entities.abstract_gateway import AbstractGateway
 from ..entities.repository import Repository, RepositoryFactory
 from ..base import Base
+
+
+RESPONSE_MODELS = dict(pull=PullResponseModel, delete=DeleteResponseModel, refresh=RefreshResponseModel)
+USE_CASES = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
 
 
 class AbstractGatewayLink(ABC):
@@ -47,9 +51,6 @@ class RepositoryLinkFactory(Base):
             kind: self.repo_factory_cls(getattr(self.gateway_link, kind))() for kind in ("source", "outbound", "local")
         }
         return RepositoryLink(**kwargs)
-
-
-USE_CASES = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
 
 
 def initialize_use_cases(

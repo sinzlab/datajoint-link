@@ -5,18 +5,9 @@ import pytest
 
 from link.entities.repository import TransferEntity
 from link.use_cases.pull import PullUseCase, PullResponseModel
-from link.use_cases.base import UseCase
 
 
 USE_CASE = PullUseCase
-
-
-def test_if_subclass_of_use_case():
-    assert issubclass(PullUseCase, UseCase)
-
-
-def test_if_response_model_is_pull_response_model():
-    assert PullUseCase.response_model_cls is PullResponseModel
 
 
 @pytest.fixture
