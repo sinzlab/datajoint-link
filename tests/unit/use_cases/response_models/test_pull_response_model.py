@@ -18,13 +18,8 @@ def model(requested, valid, invalid):
     return PullResponseModel(requested=requested, valid=valid, invalid=invalid)
 
 
-def test_n_requested_property(model, requested):
-    assert model.n_requested == len(requested)
-
-
-def test_n_valid_property(model, valid):
-    assert model.n_valid == len(valid)
-
-
-def test_n_invalid_property(model, invalid):
-    assert model.n_invalid == len(invalid)
+@pytest.mark.parametrize(
+    "name,length", [("requested", 10), ("valid", 5), ("invalid", 5)],
+)
+def test_n_property(model, name, length):
+    assert getattr(model, "n_" + name) == length
