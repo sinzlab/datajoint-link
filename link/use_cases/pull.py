@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from . import RepositoryLink
 
 
-class Pull(UseCase):
+class PullUseCase(UseCase):
     def execute(self, repo_link: RepositoryLink, identifiers: List[str]) -> None:
         """Pulls the entities specified by the provided identifiers if they were not already pulled."""
         valid_identifiers = [identifier for identifier in identifiers if identifier not in repo_link.outbound]

@@ -4,15 +4,15 @@ from itertools import compress
 import pytest
 
 from link.entities.repository import TransferEntity
-from link.use_cases.pull import Pull
+from link.use_cases.pull import PullUseCase
 from link.use_cases.base import UseCase
 
 
-USE_CASE = Pull
+USE_CASE = PullUseCase
 
 
 def test_if_subclass_of_use_case():
-    assert issubclass(Pull, UseCase)
+    assert issubclass(PullUseCase, UseCase)
 
 
 @pytest.fixture

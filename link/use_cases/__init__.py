@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Callable, Any, Dict
 
 from .base import UseCase
-from .pull import Pull
+from .pull import PullUseCase
 from .delete import Delete
 from .refresh import Refresh
 from ..entities.abstract_gateway import AbstractGateway
@@ -49,7 +49,7 @@ class RepositoryLinkFactory(Base):
         return RepositoryLink(**kwargs)
 
 
-USE_CASES = dict(pull=Pull, delete=Delete, refresh=Refresh)
+USE_CASES = dict(pull=PullUseCase, delete=Delete, refresh=Refresh)
 
 
 def initialize_use_cases(
