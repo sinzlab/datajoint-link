@@ -1,9 +1,9 @@
-from unittest.mock import call
+from unittest.mock import call, create_autospec
 from itertools import compress
 
 import pytest
 
-from link.use_cases.delete import DeleteUseCase
+from link.use_cases.delete import DeleteUseCase, DeleteResponseModel
 from link.use_cases.base import UseCase
 
 
@@ -12,6 +12,21 @@ USE_CASE = DeleteUseCase
 
 def test_if_subclass_of_use_case():
     assert issubclass(DeleteUseCase, UseCase)
+
+
+def test_if_response_model_class_is_delete_response_model():
+    assert DeleteUseCase.response_model_cls is DeleteResponseModel
+
+
+@pytest.fixture
+def response_model_cls_spy():
+    return create_autospec(DeleteResponseModel)
+
+
+@pytest.fixture
+def use_case_cls(response_model_cls_spy):
+    DeleteUseCase.response_model_cls = response_model_cls_spy
+    return DeleteUseCase
 
 
 @pytest.fixture
@@ -44,15 +59,37 @@ def test_if_deletion_is_approved_on_entities_that_had_it_requested(
         spy.__setitem__.assert_called_once_with("deletion_approved", True)
 
 
+@pytest.fixture
+def deletion_not_requested_identifiers(identifiers, deletion_requested):
+    return compress(identifiers, [not f for f in deletion_requested])
+
+
 def test_if_entities_that_had_their_deletion_not_requested_are_deleted_from_outbound_repository(
-    use_case, identifiers, deletion_requested, repo_link_spy
+    use_case, identifiers, repo_link_spy, deletion_not_requested_identifiers
 ):
     use_case(identifiers)
     repo_link_spy.outbound.__delitem__.assert_has_calls(
-        [call(i) for i in compress(identifiers, [not f for f in deletion_requested])], any_order=True
+        [call(i) for i in deletion_not_requested_identifiers], any_order=True
     )
 
 
 def test_if_all_entities_are_deleted_from_local_repository(use_case, identifiers, repo_link_spy):
     use_case(identifiers)
     assert repo_link_spy.local.__delitem__.call_args_list == [call(i) for i in identifiers]
+
+
+def test_if_initialization_of_response_model_class_is_correct(
+    use_case, identifiers, response_model_cls_spy, deletion_requested, deletion_not_requested_identifiers
+):
+    use_case(identifiers)
+    response_model_cls_spy.assert_called_once_with(
+        requested=identifiers,
+        deletion_approved=set(compress(identifiers, deletion_requested)),
+        deleted_from_outbound=set(deletion_not_requested_identifiers),
+        deleted_from_local=identifiers,
+    )
+
+
+def test_if_response_model_is_passed_to_output_port(use_case, identifiers, output_port_spy, response_model_cls_spy):
+    use_case(identifiers)
+    output_port_spy.assert_called_once_with(response_model_cls_spy.return_value)

@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 class DeleteResponseModel:
     """Response model for the delete use-case."""
 
-    requested: List[str]
-    deletion_approved: List[str]
-    deleted_from_outbound: List[str]
-    deleted_from_local: List[str]
+    requested: Set[str]
+    deletion_approved: Set[str]
+    deleted_from_outbound: Set[str]
+    deleted_from_local: Set[str]
 
     @property
     def n_requested(self):
@@ -35,12 +35,21 @@ class DeleteResponseModel:
 
 
 class DeleteUseCase(UseCase):
-    def execute(self, repo_link: RepositoryLink, identifiers: List[str]) -> None:
+    response_model_cls = DeleteResponseModel
+
+    def execute(self, repo_link: RepositoryLink, identifiers: List[str]) -> DeleteResponseModel:
         """Executes logic associated with the deletion of entities from the local repository."""
         deletion_requested, deletion_not_requested = self._group_by_deletion_requested(repo_link, identifiers)
         self._approve_deletion(repo_link, deletion_requested)
         self._delete_from_outbound(repo_link, deletion_not_requested)
         self._delete_from_local(repo_link, identifiers)
+        # noinspection PyArgumentList
+        return self.response_model_cls(
+            requested=identifiers,
+            deletion_approved=deletion_requested,
+            deleted_from_outbound=deletion_not_requested,
+            deleted_from_local=identifiers,
+        )
 
     @staticmethod
     def _group_by_deletion_requested(repo_link: RepositoryLink, identifiers: List[str]) -> Tuple[Set[str], Set[str]]:
