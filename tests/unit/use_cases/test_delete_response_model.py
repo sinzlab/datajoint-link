@@ -2,11 +2,16 @@ from dataclasses import is_dataclass
 
 import pytest
 
+from link.use_cases.base import ResponseModel
 from link.use_cases.delete import DeleteResponseModel
 
 
 def test_if_dataclass():
     assert is_dataclass(DeleteResponseModel)
+
+
+def test_if_subclass_of_response_model():
+    assert issubclass(DeleteResponseModel, ResponseModel)
 
 
 @pytest.fixture

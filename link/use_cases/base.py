@@ -9,6 +9,10 @@ if TYPE_CHECKING:
     from . import RepositoryLinkFactory
 
 
+class ResponseModel(ABC):
+    """ABC for response models."""
+
+
 class UseCase(ABC, Base):
     """Specifies the interface for use-cases."""
 
@@ -23,5 +27,5 @@ class UseCase(ABC, Base):
         self.output_port(output)
 
     @abstractmethod
-    def execute(self, *args, **kwargs) -> Any:
+    def execute(self, *args, **kwargs) -> ResponseModel:
         """Executes the use-case."""

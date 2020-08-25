@@ -1,9 +1,14 @@
 from unittest.mock import MagicMock
+from abc import ABC
 
 import pytest
 
 from link.use_cases import RepositoryLink, base
 from link.base import Base
+
+
+def test_if_response_model_is_subclass_of_abc():
+    assert issubclass(base.ResponseModel, ABC)
 
 
 @pytest.fixture

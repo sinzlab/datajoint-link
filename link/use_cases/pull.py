@@ -2,14 +2,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 from dataclasses import dataclass
 
-from .base import UseCase
+from .base import ResponseModel, UseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
 
 
 @dataclass
-class PullResponseModel:
+class PullResponseModel(ResponseModel):
     """Response model for the pull use-case."""
 
     requested: List[str]
