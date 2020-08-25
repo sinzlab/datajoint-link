@@ -11,7 +11,7 @@ def create_identifiers():
         elif isinstance(spec, Iterable):
             indexes = spec
         else:
-            raise RuntimeError("Invalid type for 'arg'")
+            raise RuntimeError("Invalid type for 'spec'")
         return ["identifier" + str(i) for i in indexes]
 
     return _create_identifiers
