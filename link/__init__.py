@@ -7,7 +7,7 @@ def initialize():
     from link.adapters.datajoint.identification import IdentificationTranslator
     from link.adapters.datajoint.gateway import DataJointGateway
     from link.adapters.datajoint import DataJointGatewayLink
-    from link.adapters.datajoint.local_table import Presenter
+    from link.adapters.datajoint.presenter import Presenter
     from link.adapters.datajoint.controller import Controller
     from link.frameworks.datajoint.file import ReusableTemporaryDirectory
     from link.frameworks.datajoint.factory import TableFactory
