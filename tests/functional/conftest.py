@@ -277,7 +277,7 @@ def run_container(database_config_cls, minio_config_cls):
                 "minio/minio:" + container_config.image_tag,
                 name=container_config.name,
                 environment=dict(
-                    MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key,
+                    MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key
                 ),
                 command=["server", "/data"],
                 healthcheck=dict(
@@ -314,7 +314,7 @@ def mysql_conn(db_config):
     connection = None
     try:
         connection = pymysql.connect(
-            host=db_config.name, user="root", password=db_config.password, cursorclass=pymysql.cursors.DictCursor,
+            host=db_config.name, user="root", password=db_config.password, cursorclass=pymysql.cursors.DictCursor
         )
         yield connection
     finally:

@@ -54,7 +54,7 @@ class RepositoryLinkFactory(Base):
 
 
 def initialize_use_cases(
-    gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]],
+    gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]]
 ) -> Dict[str, UseCase]:
     """Initializes the use-cases and returns them."""
     factory = RepositoryLinkFactory(gateway_link)

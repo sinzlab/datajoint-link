@@ -58,9 +58,7 @@ class TestRepositoryLinkFactory:
         factory()
         assert repo_factory_cls_spy.return_value.call_args_list == [call() for _ in range(3)]
 
-    def test_if_repo_link_is_returned(
-        self, factory,
-    ):
+    def test_if_repo_link_is_returned(self, factory):
         assert isinstance(factory(), use_cases.RepositoryLink)
 
     def test_if_source_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos):

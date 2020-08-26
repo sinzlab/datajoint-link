@@ -73,7 +73,7 @@ class TableFactory(Base):
             table_cls_attrs = self.config.table_cls_attrs
         # noinspection PyTypeChecker
         return type(
-            self.config.table_name, self.config.table_bases + (table_cls,), {**table_cls_attrs, **part_table_classes},
+            self.config.table_name, self.config.table_bases + (table_cls,), {**table_cls_attrs, **part_table_classes}
         )
 
     def _create_table_cls(self) -> Type[UserTable]:
