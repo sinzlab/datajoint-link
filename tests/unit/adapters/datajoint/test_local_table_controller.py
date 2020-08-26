@@ -9,7 +9,7 @@ from link.adapters.datajoint import local_table
 
 
 def test_if_subclass_of_base():
-    assert issubclass(local_table.LocalTableController, Base)
+    assert issubclass(local_table.Controller, Base)
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def gateway_spies(identifiers):
 
 @pytest.fixture
 def controller(use_case_spies, gateway_spies):
-    class LocalTableController(local_table.LocalTableController):
+    class LocalTableController(local_table.Controller):
         pass
 
     return LocalTableController(

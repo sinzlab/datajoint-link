@@ -7,7 +7,7 @@ def initialize():
     from link.adapters.datajoint.identification import IdentificationTranslator
     from link.adapters.datajoint.gateway import DataJointGateway
     from link.adapters.datajoint import DataJointGatewayLink
-    from link.adapters.datajoint.local_table import LocalTablePresenter, LocalTableController
+    from link.adapters.datajoint.local_table import LocalTablePresenter, Controller
     from link.frameworks.datajoint.file import ReusableTemporaryDirectory
     from link.frameworks.datajoint.factory import TableFactory
     from link.frameworks.datajoint.facade import TableFacade
@@ -28,7 +28,7 @@ def initialize():
             pull=local_table_presenter.pull, delete=local_table_presenter.delete, refresh=local_table_presenter.refresh
         ),
     )
-    local_table_controller = LocalTableController(
+    local_table_controller = Controller(
         initialized_use_cases["pull"],
         initialized_use_cases["delete"],
         initialized_use_cases["refresh"],

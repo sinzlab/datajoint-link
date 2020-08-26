@@ -3,8 +3,8 @@ from .gateway import DataJointGateway
 from ...use_cases.base import UseCase
 
 
-class LocalTableController(Base):
-    """Controls the execution of local-table-related use-cases."""
+class Controller(Base):
+    """Controls the execution of use-cases at the user's request."""
 
     def __init__(
         self,

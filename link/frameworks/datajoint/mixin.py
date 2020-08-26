@@ -3,7 +3,7 @@ from typing import Type
 from datajoint import AndList
 from datajoint.user_tables import UserTable
 
-from ...adapters.datajoint.local_table import LocalTableController
+from ...adapters.datajoint.local_table import Controller
 from .file import ReusableTemporaryDirectory
 from .factory import TableFactory
 
@@ -11,7 +11,7 @@ from .factory import TableFactory
 class LocalTableMixin:
     """Mixin class for adding additional functionality to the local table class."""
 
-    _controller: LocalTableController = None
+    _controller: Controller = None
     _temp_dir: ReusableTemporaryDirectory = None
     _source_table_factory: TableFactory = None
     restriction: AndList
