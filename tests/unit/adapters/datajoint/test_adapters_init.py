@@ -16,7 +16,7 @@ def kind(request):
 class TestDataJointGatewayLink:
     @pytest.fixture
     def gateway_stubs(self):
-        gateway_stubs = dict()
+        gateway_stubs = {}
         for kind in ("source", "outbound", "local"):
             gateway_stub = MagicMock(name=kind + "_gateway_stub", spec=DataJointGateway)
             gateway_stubs[kind] = gateway_stub
@@ -38,7 +38,7 @@ class TestDataJointGatewayLink:
 
 class TestInitialize:
     @pytest.fixture
-    def table_facade_link_stub(self,):
+    def table_facade_link_stub(self):
         return MagicMock(name="table_facade_link_stub", spec=AbstractTableFacadeLink)
 
     @pytest.fixture
