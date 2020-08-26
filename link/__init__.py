@@ -7,7 +7,7 @@ def initialize():
     from link.adapters.datajoint.identification import IdentificationTranslator
     from link.adapters.datajoint.gateway import DataJointGateway
     from link.adapters.datajoint import DataJointGatewayLink
-    from link.adapters.datajoint.local_table import LocalTablePresenter, Controller
+    from link.adapters.datajoint.local_table import Presenter, Controller
     from link.frameworks.datajoint.file import ReusableTemporaryDirectory
     from link.frameworks.datajoint.factory import TableFactory
     from link.frameworks.datajoint.facade import TableFacade
@@ -21,7 +21,7 @@ def initialize():
     identification_translators = {kind: IdentificationTranslator(table_facades[kind]) for kind in kinds}
     dj_gateways = {kind: DataJointGateway(table_facades[kind], identification_translators[kind]) for kind in kinds}
     dj_gateway_link = DataJointGatewayLink(**{kind: dj_gateways[kind] for kind in kinds})
-    local_table_presenter = LocalTablePresenter()
+    local_table_presenter = Presenter()
     initialized_use_cases = initialize_use_cases(
         dj_gateway_link,
         dict(

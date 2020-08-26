@@ -35,8 +35,8 @@ class Controller(Base):
         self.refresh_use_case()
 
 
-class LocalTablePresenter:
-    """Presents information about the execution of local-table-related use-cases to the user."""
+class Presenter:
+    """Converts response models to view models."""
 
     def pull(self, info):
         """Presents information about the finished pull to the user."""
