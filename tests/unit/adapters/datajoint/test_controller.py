@@ -5,11 +5,11 @@ import pytest
 from link.base import Base
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.use_cases import USE_CASES
-from link.adapters.datajoint import local_table
+from link.adapters.datajoint.controller import Controller as OriginalController
 
 
 def test_if_subclass_of_base():
-    assert issubclass(local_table.Controller, Base)
+    assert issubclass(OriginalController, Base)
 
 
 @pytest.fixture
@@ -34,10 +34,10 @@ def gateway_spies(identifiers):
 
 @pytest.fixture
 def controller(use_case_spies, gateway_spies):
-    class LocalTableController(local_table.Controller):
+    class Controller(OriginalController):
         pass
 
-    return LocalTableController(
+    return Controller(
         use_case_spies["pull"],
         use_case_spies["delete"],
         use_case_spies["refresh"],
@@ -88,9 +88,5 @@ class TestMethod:
 
 
 def test_if_call_to_refresh_use_case_is_correct(controller, use_case_spies):
-    from inspect import signature
-
-    print(signature(use_case_spies["refresh"]))
-    print(use_case_spies["refresh"]._spec_signature)
     controller.refresh()
     use_case_spies["refresh"].assert_called_once_with()

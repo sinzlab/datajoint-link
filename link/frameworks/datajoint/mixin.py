@@ -3,7 +3,7 @@ from typing import Type
 from datajoint import AndList
 from datajoint.user_tables import UserTable
 
-from ...adapters.datajoint.local_table import Controller
+from ...adapters.datajoint.controller import Controller
 from .file import ReusableTemporaryDirectory
 from .factory import TableFactory
 
