@@ -43,8 +43,9 @@ class TestInit:
     def test_if_prefix_is_stored_as_attribute(self, reusable_temp_dir):
         assert reusable_temp_dir.prefix == "prefix"
 
-    def test_if_name_is_none(self, reusable_temp_dir):
-        assert reusable_temp_dir.name is None
+    def test_if_accessing_name_outside_of_context_manager_raises_attribute_error(self, reusable_temp_dir):
+        with pytest.raises(AttributeError):
+            _ = reusable_temp_dir.name
 
 
 class TestEnter:
@@ -68,7 +69,8 @@ class TestExit:
             pass
         temp_dir_spy.cleanup.assert_called_once_with()
 
-    def test_if_name_is_set_to_none(self, reusable_temp_dir):
+    def test_if_name_is_deleted(self, reusable_temp_dir):
         with reusable_temp_dir:
             pass
-        assert reusable_temp_dir.name is None
+        with pytest.raises(AttributeError):
+            _ = reusable_temp_dir.name
