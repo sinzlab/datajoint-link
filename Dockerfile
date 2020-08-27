@@ -19,7 +19,6 @@ RUN python3.8 -m pip install \
     docker \
     pymysql \
     minio \
-    mypy
 WORKDIR /src/link
 COPY . .
 RUN python3.8 -m pip install -e .

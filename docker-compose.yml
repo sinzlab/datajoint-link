@@ -14,11 +14,6 @@ services:
         entrypoint: "pytest"
         networks:
             - test_runner_network
-    mypy:
-        build: .
-        volumes:
-            - .:/src/link
-        command: "mypy /src/link"
 networks:
     test_runner_network:
         name: test_runner_network
