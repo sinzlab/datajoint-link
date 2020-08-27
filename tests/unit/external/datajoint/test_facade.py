@@ -1,12 +1,10 @@
 from unittest.mock import MagicMock, create_autospec
-from dataclasses import is_dataclass
 from itertools import chain
 
 import pytest
 from datajoint import Part, Table
 
 from link.base import Base
-from link.adapters.datajoint.gateway import EntityDTO as GatewayEntityDTO
 from link.frameworks.datajoint.facade import EntityDTO, TableFacade
 from link.frameworks.datajoint.factory import TableFactory
 from link.frameworks.datajoint.file import ReusableTemporaryDirectory
@@ -25,18 +23,6 @@ def primary_key(primary_key_names):
 @pytest.fixture
 def master_entity(primary_key):
     return dict(primary_key, non_primary_attr1=0, non_primary_attr2=1)
-
-
-class TestEntityDTO:
-    def test_if_subclass_of_gateway_entity_dto(self):
-        assert issubclass(EntityDTO, GatewayEntityDTO)
-
-    def test_if_dataclass(self):
-        assert is_dataclass(EntityDTO)
-
-    def test_if_parts_are_empty_dict_if_not_provided(self, primary_key_names, master_entity):
-        # noinspection PyArgumentList
-        assert EntityDTO(primary_key_names, master_entity).parts == dict()
 
 
 @pytest.fixture

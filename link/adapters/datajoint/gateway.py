@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Dict, Any
 from itertools import tee
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
@@ -15,6 +15,7 @@ class EntityDTO(AbstractEntityDTO):
 
     primary_key: List[str]
     master: Dict[str, Any]
+    parts: Dict[str, Any] = field(default_factory=dict)
 
     def create_identifier_only_copy(self) -> EntityDTO:
         """Creates a new instance of the class containing only the data used to compute the identifier."""

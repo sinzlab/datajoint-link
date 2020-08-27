@@ -22,6 +22,10 @@ class TestEntityDTO:
             ["a", "b"], dict(a=0, b=1)
         )
 
+    def test_if_parts_are_empty_dict_if_not_provided(self):
+        # noinspection PyArgumentList
+        assert EntityDTO(["a", "b"], dict(a=0, b=1, c=2)).parts == dict()
+
 
 def test_if_datajoint_gateway_is_subclass_of_abstract_gateway():
     assert issubclass(DataJointGateway, AbstractGateway)
