@@ -13,8 +13,8 @@ from ...base import Base
 class Link(Base):
     _schema_cls = Schema
     _replace_stores_func = staticmethod(replace_stores)
-    _table_cls_factories: Dict[str, TableFactory] = None
     _base_table_cls: Type[UserTable] = Lookup
+    _table_cls_factories: Dict[str, TableFactory]
 
     def __init__(self, local_schema: Schema, source_schema: Schema, stores: Optional[Dict[str, str]] = None) -> None:
         if stores is None:
