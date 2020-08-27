@@ -74,10 +74,10 @@ def test_if_initialization_of_response_model_class_is_correct(
 ):
     use_case(identifiers)
     response_model_cls_spy.assert_called_once_with(
-        requested=identifiers,
+        requested=set(identifiers),
         deletion_approved=set(compress(identifiers, deletion_requested)),
         deleted_from_outbound=set(deletion_not_requested_identifiers),
-        deleted_from_local=identifiers,
+        deleted_from_local=set(identifiers),
     )
 
 

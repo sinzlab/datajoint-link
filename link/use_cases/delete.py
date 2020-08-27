@@ -45,10 +45,10 @@ class DeleteUseCase(UseCase):
         self._delete_from_local(repo_link, identifiers)
         # noinspection PyArgumentList
         return self.response_model_cls(
-            requested=identifiers,
+            requested=set(identifiers),
             deletion_approved=deletion_requested,
             deleted_from_outbound=deletion_not_requested,
-            deleted_from_local=identifiers,
+            deleted_from_local=set(identifiers),
         )
 
     @staticmethod

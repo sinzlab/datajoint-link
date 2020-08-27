@@ -98,12 +98,10 @@ class LazySchema:
         return self._is_initialized
 
     def __getattr__(self, item: str) -> Any:
-        self.initialize()
-        return getattr(self._schema, item)
+        return getattr(self.schema, item)
 
     def __call__(self, cls: Type[Table], *, context: Dict[str, Any] = None) -> Type[Table]:
-        self.initialize()
-        return self._schema(cls, context=context)
+        return self.schema(cls, context=context)
 
     def __repr__(self) -> str:
         return (

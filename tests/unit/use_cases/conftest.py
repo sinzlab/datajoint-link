@@ -18,7 +18,9 @@ def use_case_cls(request):
 
 @pytest.fixture
 def repo_link_spy():
-    return create_autospec(RepositoryLink, instance=True)
+    spy = create_autospec(RepositoryLink, instance=True)
+    spy.mock_add_spec(["source", "outbound", "local"])
+    return spy
 
 
 @pytest.fixture

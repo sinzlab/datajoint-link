@@ -65,7 +65,7 @@ class TableFactory(Base):
         return {name: getattr(self(), name) for name in self.config.flag_table_names}
 
     def _spawn_table_cls(self) -> Type[UserTable]:
-        spawned_table_classes = {}
+        spawned_table_classes: Dict[str, Type[UserTable]] = {}
         self.config.schema.spawn_missing_classes(context=spawned_table_classes)
         table_cls = spawned_table_classes[self.config.table_name]
         return self._extend_table_cls(table_cls)
@@ -85,7 +85,7 @@ class TableFactory(Base):
         )
 
     def _create_table_cls(self) -> Type[UserTable]:
-        part_table_classes = {}
+        part_table_classes: Dict[str, Type[Part]] = {}
         self._create_flag_part_table_classes(part_table_classes)
         self._create_non_flag_part_table_classes(part_table_classes)
         extended_table_cls = self._extend_table_cls(self.config.table_cls, part_table_classes)

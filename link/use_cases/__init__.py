@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, Type
 
 from .base import UseCase
 from .pull import PullResponseModel, PullUseCase
@@ -12,7 +12,7 @@ from ..base import Base
 
 
 RESPONSE_MODELS = dict(pull=PullResponseModel, delete=DeleteResponseModel, refresh=RefreshResponseModel)
-USE_CASES = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
+USE_CASES: Dict[str, Type[UseCase]] = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
 
 
 class AbstractGatewayLink(ABC):
@@ -34,9 +34,9 @@ class AbstractGatewayLink(ABC):
 
 @dataclass
 class RepositoryLink:
-    source: Repository = None
-    outbound: Repository = None
-    local: Repository = None
+    source: Repository
+    outbound: Repository
+    local: Repository
 
 
 class RepositoryLinkFactory(Base):
