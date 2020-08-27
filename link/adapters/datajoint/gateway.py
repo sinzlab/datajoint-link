@@ -23,7 +23,7 @@ class EntityDTO(AbstractEntityDTO):
         return self.__class__(self.primary_key, {k: v for k, v in self.master.items() if k in self.primary_key})
 
 
-class DataJointGateway(AbstractGateway, Base):
+class DataJointGateway(AbstractGateway[EntityDTO], Base):
     def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
         self.table_facade = table_facade
         self.translator = translator
