@@ -32,9 +32,6 @@ class TestDataJointGatewayLink:
     def test_if_gateway_is_stored_as_instance_attribute(self, kind, gateway_link, gateway_stubs):
         assert getattr(gateway_link, kind) is gateway_stubs[kind]
 
-    def test_if_correct_gateway_is_returned(self, kind, gateway_link, gateway_stubs):
-        assert getattr(gateway_link, kind) is gateway_stubs[kind]
-
 
 class TestInitialize:
     @pytest.fixture
