@@ -3,14 +3,14 @@ from dataclasses import dataclass, field
 from itertools import chain
 
 from .file import ReusableTemporaryDirectory
-from ...adapters.datajoint.gateway import EntityDTO
+from ...adapters.datajoint.gateway import EntityDTO as GatewayEntityDTO
 from ...adapters.datajoint.abstract_facade import AbstractTableFacade
 from ...base import Base
 from ...types import PrimaryKey
 
 
 @dataclass
-class EntityDTO(EntityDTO):
+class EntityDTO(GatewayEntityDTO):
     parts: Dict[str, Any] = field(default_factory=dict)
 
 
