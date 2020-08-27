@@ -15,7 +15,7 @@ class TableFactoryConfig:
 
     schema: Schema
     table_name: str
-    table_bases: Tuple[Type] = field(default_factory=tuple)
+    table_bases: Tuple[Type, ...] = field(default_factory=tuple)
     table_cls_attrs: Dict[str, Any] = field(default_factory=dict)
     flag_table_names: List[str] = field(default_factory=list)
     table_cls: Optional[Type[UserTable]] = None
@@ -32,12 +32,20 @@ class TableFactory(Base):
     """Factory that creates table classes according to a provided configuration object."""
 
     def __init__(self) -> None:
-        self.config: Optional[TableFactoryConfig] = None
+        self._config: Optional[TableFactoryConfig] = None
+
+    @property
+    def config(self) -> TableFactoryConfig:
+        if self._config is None:
+            raise RuntimeError("Config is not set")
+        return self._config
+
+    @config.setter
+    def config(self, config: TableFactoryConfig) -> None:
+        self._config = config
 
     def __call__(self) -> Type[UserTable]:
         """Spawns or creates (if spawning fails) the table class according to the configuration object."""
-        if self.config is None:
-            raise RuntimeError("Config is not set")
         try:
             table_cls = self._spawn_table_cls()
         except KeyError:
