@@ -1,7 +1,7 @@
 import pytest
 
 from link.use_cases import RESPONSE_MODELS, USE_CASES
-from link.use_cases.base import UseCase
+from link.use_cases.base import AbstractUseCase
 
 
 @pytest.fixture(params=USE_CASES)
@@ -15,7 +15,7 @@ def use_case_cls(use_case_name):
 
 
 def test_if_subclass_of_use_case(use_case_cls):
-    assert issubclass(use_case_cls, UseCase)
+    assert issubclass(use_case_cls, AbstractUseCase)
 
 
 @pytest.fixture

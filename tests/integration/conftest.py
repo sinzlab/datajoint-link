@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from link.use_cases import USE_CASES, AbstractGatewayLink, initialize_use_cases
+from link.use_cases import REQUEST_MODELS, USE_CASES, AbstractGatewayLink, initialize_use_cases
 
 
 @pytest.fixture
@@ -61,3 +61,8 @@ def initialized_use_cases(gateway_link_spy, output_port_spies):
 @pytest.fixture
 def use_case(request, initialized_use_cases):
     return initialized_use_cases[request.module.USE_CASE]
+
+
+@pytest.fixture
+def request_model(request):
+    return REQUEST_MODELS[request.module.USE_CASE]

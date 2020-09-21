@@ -3,7 +3,7 @@ from link.schemas import LazySchema
 
 
 def initialize():
-    from link.use_cases import initialize_use_cases
+    from link.use_cases import REQUEST_MODELS, initialize_use_cases
     from link.adapters.datajoint.identification import IdentificationTranslator
     from link.adapters.datajoint.gateway import DataJointGateway
     from link.adapters.datajoint import DataJointGatewayLink
@@ -32,6 +32,9 @@ def initialize():
         initialized_use_cases["pull"],
         initialized_use_cases["delete"],
         initialized_use_cases["refresh"],
+        REQUEST_MODELS["pull"],
+        REQUEST_MODELS["delete"],
+        REQUEST_MODELS["refresh"],
         dj_gateways["source"],
         dj_gateways["local"],
     )

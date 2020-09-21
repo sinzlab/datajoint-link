@@ -2,14 +2,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Tuple, Set
 from dataclasses import dataclass
 
-from .base import ResponseModel, UseCase
+from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
 
 
 @dataclass
-class DeleteResponseModel(ResponseModel):
+class DeleteRequestModel(AbstractRequestModel):
+    """Request model for the delete use-case."""
+
+    identifiers: List[str]
+
+
+@dataclass
+class DeleteResponseModel(AbstractResponseModel):
     """Response model for the delete use-case."""
 
     requested: Set[str]
@@ -34,21 +41,23 @@ class DeleteResponseModel(ResponseModel):
         return len(self.deleted_from_local)
 
 
-class DeleteUseCase(UseCase):
+class DeleteUseCase(AbstractUseCase[DeleteRequestModel]):
     response_model_cls = DeleteResponseModel
 
-    def execute(self, repo_link: RepositoryLink, identifiers: List[str]) -> DeleteResponseModel:
+    def execute(self, repo_link: RepositoryLink, request_model: DeleteRequestModel) -> DeleteResponseModel:
         """Executes logic associated with the deletion of entities from the local repository."""
-        deletion_requested, deletion_not_requested = self._group_by_deletion_requested(repo_link, identifiers)
+        deletion_requested, deletion_not_requested = self._group_by_deletion_requested(
+            repo_link, request_model.identifiers
+        )
         self._approve_deletion(repo_link, deletion_requested)
         self._delete_from_outbound(repo_link, deletion_not_requested)
-        self._delete_from_local(repo_link, identifiers)
+        self._delete_from_local(repo_link, request_model.identifiers)
         # noinspection PyArgumentList
         return self.response_model_cls(
-            requested=set(identifiers),
+            requested=set(request_model.identifiers),
             deletion_approved=deletion_requested,
             deleted_from_outbound=deletion_not_requested,
-            deleted_from_local=set(identifiers),
+            deleted_from_local=set(request_model.identifiers),
         )
 
     @staticmethod

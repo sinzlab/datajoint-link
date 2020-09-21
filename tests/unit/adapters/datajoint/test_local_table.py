@@ -4,7 +4,7 @@ import pytest
 
 from link.base import Base
 from link.adapters.datajoint.gateway import DataJointGateway
-from link.use_cases import USE_CASES
+from link.use_cases import REQUEST_MODELS, USE_CASES
 from link.adapters.datajoint import local_table
 
 
@@ -23,6 +23,11 @@ def use_case_spies():
 
 
 @pytest.fixture
+def request_model_cls_spies():
+    return {n: MagicMock(REQUEST_MODELS[n]) for n in USE_CASES}
+
+
+@pytest.fixture
 def gateway_spies(identifiers):
     spies = {}
     for name in ["source", "local"]:
@@ -33,7 +38,7 @@ def gateway_spies(identifiers):
 
 
 @pytest.fixture
-def controller(use_case_spies, gateway_spies):
+def controller(use_case_spies, request_model_cls_spies, gateway_spies):
     class LocalTableController(local_table.LocalTableController):
         pass
 
@@ -41,6 +46,9 @@ def controller(use_case_spies, gateway_spies):
         use_case_spies["pull"],
         use_case_spies["delete"],
         use_case_spies["refresh"],
+        request_model_cls_spies["pull"],
+        request_model_cls_spies["delete"],
+        request_model_cls_spies["refresh"],
         gateway_spies["source"],
         gateway_spies["local"],
     )
@@ -55,6 +63,15 @@ class TestInit:
 
     def test_if_refresh_use_case_is_stored_as_instance_attribute(self, controller, use_case_spies):
         assert controller.refresh_use_case is use_case_spies["refresh"]
+
+    def test_if_pull_request_model_cls_is_stored_as_instance_attribute(self, controller, request_model_cls_spies):
+        assert controller.pull_request_model_cls is request_model_cls_spies["pull"]
+
+    def test_if_delete_request_model_cls_is_stored_as_instance_attribute(self, controller, request_model_cls_spies):
+        assert controller.delete_request_model_cls is request_model_cls_spies["delete"]
+
+    def test_if_refresh_request_model_cls_is_stored_as_instance_attribute(self, controller, request_model_cls_spies):
+        assert controller.refresh_request_model_cls is request_model_cls_spies["refresh"]
 
     def test_if_source_gateway_is_stored_as_instance_attribute(self, controller, gateway_spies):
         assert controller.source_gateway is gateway_spies["source"]
@@ -77,20 +94,28 @@ class TestMethod:
         return {"pull": gateway_spies["source"], "delete": gateway_spies["local"]}[method_name]
 
     @pytest.fixture
+    def request_model_cls_spy(self, request_model_cls_spies, method_name):
+        return request_model_cls_spies[method_name]
+
+    @pytest.fixture
     def use_case_spy(self, use_case_spies, method_name):
         return use_case_spies[method_name]
 
     def test_if_restriction_is_converted_into_identifiers(self, gateway_spy, restriction):
         gateway_spy.get_identifiers_in_restriction.assert_called_once_with(restriction)
 
-    def test_if_use_case_is_called_with_identifiers(self, identifiers, use_case_spy):
-        use_case_spy.assert_called_once_with(identifiers)
+    def test_if_initialization_of_request_model_is_correct(self, request_model_cls_spy, identifiers):
+        request_model_cls_spy.assert_called_once_with(identifiers)
+
+    def test_if_use_case_is_called_with_request_model(self, use_case_spy, request_model_cls_spy):
+        use_case_spy.assert_called_once_with(request_model_cls_spy.return_value)
 
 
-def test_if_call_to_refresh_use_case_is_correct(controller, use_case_spies):
-    from inspect import signature
+class TestRefresh:
+    def test_if_initialization_of_request_model_is_correct(self, controller, request_model_cls_spies):
+        controller.refresh()
+        request_model_cls_spies["refresh"].assert_called_once_with()
 
-    print(signature(use_case_spies["refresh"]))
-    print(use_case_spies["refresh"]._spec_signature)
-    controller.refresh()
-    use_case_spies["refresh"].assert_called_once_with()
+    def test_if_use_case_is_called_with_request_model(self, controller, use_case_spies, request_model_cls_spies):
+        controller.refresh()
+        use_case_spies["refresh"].assert_called_once_with(request_model_cls_spies["refresh"].return_value)

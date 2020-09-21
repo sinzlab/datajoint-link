@@ -23,8 +23,8 @@ def to_be_deleted_identifiers(create_identifiers):
 
 
 @pytest.fixture(autouse=True)
-def execute_delete(use_case, to_be_deleted_identifiers):
-    use_case(to_be_deleted_identifiers)
+def execute_delete(use_case, request_model, to_be_deleted_identifiers):
+    use_case(request_model(to_be_deleted_identifiers))
 
 
 def test_if_entities_that_had_their_deletion_requested_have_it_approved(processed_config, gateway_link_spy):

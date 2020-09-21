@@ -18,9 +18,9 @@ def config():
 
 
 def test_if_deletion_requested_flag_is_enabled_on_correct_entities_in_local_gateway(
-    processed_config, use_case, gateway_link_spy
+    processed_config, use_case, request_model, gateway_link_spy
 ):
-    use_case()
+    use_case(request_model())
     to_be_enabled = [
         i
         for i in processed_config["flags"]["outbound"]["deletion_requested"]

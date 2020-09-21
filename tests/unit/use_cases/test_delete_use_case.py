@@ -3,10 +3,17 @@ from itertools import compress
 
 import pytest
 
-from link.use_cases.delete import DeleteUseCase, DeleteResponseModel
+from link.use_cases.delete import DeleteRequestModel, DeleteResponseModel, DeleteUseCase
 
 
 USE_CASE = DeleteUseCase
+
+
+@pytest.fixture
+def request_model_stub(identifiers):
+    stub = create_autospec(DeleteRequestModel, instance=True)
+    stub.identifiers = identifiers
+    return stub
 
 
 @pytest.fixture
@@ -36,16 +43,16 @@ def repo_link_spy(repo_link_spy, flag_manager_spies):
     return repo_link_spy
 
 
-def test_if_deletion_requested_flag_is_checked_in_flag_managers(use_case, identifiers, flag_manager_spies):
-    use_case(identifiers)
+def test_if_deletion_requested_flag_is_checked_in_flag_managers(use_case, request_model_stub, flag_manager_spies):
+    use_case(request_model_stub)
     for spy in flag_manager_spies.values():
         spy.__getitem__.assert_called_once_with("deletion_requested")
 
 
 def test_if_deletion_is_approved_on_entities_that_had_it_requested(
-    use_case, identifiers, deletion_requested, flag_manager_spies
+    use_case, request_model_stub, deletion_requested, flag_manager_spies
 ):
-    use_case(identifiers)
+    use_case(request_model_stub)
     for spy in compress(flag_manager_spies.values(), deletion_requested):
         spy.__setitem__.assert_called_once_with("deletion_approved", True)
 
@@ -56,23 +63,28 @@ def deletion_not_requested_identifiers(identifiers, deletion_requested):
 
 
 def test_if_entities_that_had_their_deletion_not_requested_are_deleted_from_outbound_repository(
-    use_case, identifiers, repo_link_spy, deletion_not_requested_identifiers
+    use_case, request_model_stub, repo_link_spy, deletion_not_requested_identifiers
 ):
-    use_case(identifiers)
+    use_case(request_model_stub)
     repo_link_spy.outbound.__delitem__.assert_has_calls(
         [call(i) for i in deletion_not_requested_identifiers], any_order=True
     )
 
 
-def test_if_all_entities_are_deleted_from_local_repository(use_case, identifiers, repo_link_spy):
-    use_case(identifiers)
+def test_if_all_entities_are_deleted_from_local_repository(use_case, request_model_stub, identifiers, repo_link_spy):
+    use_case(request_model_stub)
     assert repo_link_spy.local.__delitem__.call_args_list == [call(i) for i in identifiers]
 
 
 def test_if_initialization_of_response_model_class_is_correct(
-    use_case, identifiers, response_model_cls_spy, deletion_requested, deletion_not_requested_identifiers
+    use_case,
+    request_model_stub,
+    identifiers,
+    response_model_cls_spy,
+    deletion_requested,
+    deletion_not_requested_identifiers,
 ):
-    use_case(identifiers)
+    use_case(request_model_stub)
     response_model_cls_spy.assert_called_once_with(
         requested=set(identifiers),
         deletion_approved=set(compress(identifiers, deletion_requested)),
@@ -81,6 +93,8 @@ def test_if_initialization_of_response_model_class_is_correct(
     )
 
 
-def test_if_response_model_is_passed_to_output_port(use_case, identifiers, output_port_spy, response_model_cls_spy):
-    use_case(identifiers)
+def test_if_response_model_is_passed_to_output_port(
+    use_case, request_model_stub, output_port_spy, response_model_cls_spy
+):
+    use_case(request_model_stub)
     output_port_spy.assert_called_once_with(response_model_cls_spy.return_value)

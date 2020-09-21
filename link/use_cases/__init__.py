@@ -2,17 +2,18 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Any, Dict, Type
 
-from .base import UseCase
-from .pull import PullResponseModel, PullUseCase
-from .delete import DeleteResponseModel, DeleteUseCase
-from .refresh import RefreshResponseModel, RefreshUseCase
+from .base import AbstractUseCase
+from .pull import PullRequestModel, PullResponseModel, PullUseCase
+from .delete import DeleteRequestModel, DeleteResponseModel, DeleteUseCase
+from .refresh import RefreshRequestModel, RefreshResponseModel, RefreshUseCase
 from ..entities.abstract_gateway import AbstractGateway
 from ..entities.repository import Repository, RepositoryFactory
 from ..base import Base
 
 
+REQUEST_MODELS = dict(pull=PullRequestModel, delete=DeleteRequestModel, refresh=RefreshRequestModel)
 RESPONSE_MODELS = dict(pull=PullResponseModel, delete=DeleteResponseModel, refresh=RefreshResponseModel)
-USE_CASES: Dict[str, Type[UseCase]] = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
+USE_CASES: Dict[str, Type[AbstractUseCase]] = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
 
 
 class AbstractGatewayLink(ABC):
@@ -55,7 +56,7 @@ class RepositoryLinkFactory(Base):
 
 def initialize_use_cases(
     gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]]
-) -> Dict[str, UseCase]:
+) -> Dict[str, AbstractUseCase]:
     """Initializes the use-cases and returns them."""
     factory = RepositoryLinkFactory(gateway_link)
     return {n: uc(factory, output_ports[n]) for n, uc in USE_CASES.items()}
