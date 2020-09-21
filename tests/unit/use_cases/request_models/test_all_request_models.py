@@ -1,0 +1,19 @@
+from dataclasses import is_dataclass
+
+import pytest
+
+from link.use_cases import REQUEST_MODELS
+from link.use_cases.base import AbstractRequestModel
+
+
+@pytest.fixture(params=REQUEST_MODELS.values())
+def model_cls(request):
+    return request.param
+
+
+def test_if_dataclass(model_cls):
+    assert is_dataclass(model_cls)
+
+
+def test_if_subclass_of_response_model(model_cls):
+    assert issubclass(model_cls, AbstractRequestModel)
