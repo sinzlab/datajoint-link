@@ -4,7 +4,7 @@ import pytest
 
 from link.base import Base
 from link.adapters.datajoint.gateway import DataJointGateway
-from link.use_cases import REQUEST_MODELS, USE_CASES
+from link.use_cases import REQUEST_MODELS, USE_CASES, RepositoryLinkFactory
 from link.adapters.datajoint import local_table
 
 
@@ -18,8 +18,18 @@ def restriction():
 
 
 @pytest.fixture
-def use_case_spies():
-    return {n: MagicMock(USE_CASES[n]("dummy_repo_link_factory", "dummy_output_port")) for n in USE_CASES}
+def dummy_repo_link_factory():
+    return create_autospec(RepositoryLinkFactory, instance=True)
+
+
+@pytest.fixture
+def dummy_output_port():
+    return MagicMock(name="dummy_output_port")
+
+
+@pytest.fixture
+def use_case_spies(dummy_repo_link_factory, dummy_output_port):
+    return {n: MagicMock(USE_CASES[n](dummy_repo_link_factory, dummy_output_port)) for n in USE_CASES}
 
 
 @pytest.fixture
