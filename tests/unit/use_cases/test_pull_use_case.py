@@ -4,28 +4,9 @@ from itertools import compress
 import pytest
 
 from link.entities.repository import TransferEntity
-from link.use_cases.pull import PullRequestModel, PullResponseModel, PullUseCase
 
 
-USE_CASE = PullUseCase
-
-
-@pytest.fixture
-def request_model_stub(identifiers):
-    stub = create_autospec(PullRequestModel, instance=True)
-    stub.identifiers = identifiers
-    return stub
-
-
-@pytest.fixture
-def response_model_cls_spy():
-    return create_autospec(PullResponseModel)
-
-
-@pytest.fixture
-def use_case_cls(response_model_cls_spy):
-    PullUseCase.response_model_cls = response_model_cls_spy
-    return PullUseCase
+USE_CASE_NAME = "pull"
 
 
 @pytest.fixture

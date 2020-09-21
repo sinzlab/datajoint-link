@@ -3,26 +3,15 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from link.use_cases.refresh import RefreshRequestModel, RefreshResponseModel, RefreshUseCase
+from link.use_cases.refresh import RefreshRequestModel
 
 
-USE_CASE = RefreshUseCase
+USE_CASE_NAME = "refresh"
 
 
 @pytest.fixture
 def dummy_request_model():
     return create_autospec(RefreshRequestModel, instance=True)
-
-
-@pytest.fixture
-def response_model_cls_spy():
-    return create_autospec(RefreshResponseModel)
-
-
-@pytest.fixture
-def use_case_cls(response_model_cls_spy):
-    RefreshUseCase.response_model_cls = response_model_cls_spy
-    return RefreshUseCase
 
 
 @pytest.fixture

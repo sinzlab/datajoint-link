@@ -1,30 +1,10 @@
-from unittest.mock import call, create_autospec
+from unittest.mock import call
 from itertools import compress
 
 import pytest
 
-from link.use_cases.delete import DeleteRequestModel, DeleteResponseModel, DeleteUseCase
 
-
-USE_CASE = DeleteUseCase
-
-
-@pytest.fixture
-def request_model_stub(identifiers):
-    stub = create_autospec(DeleteRequestModel, instance=True)
-    stub.identifiers = identifiers
-    return stub
-
-
-@pytest.fixture
-def response_model_cls_spy():
-    return create_autospec(DeleteResponseModel)
-
-
-@pytest.fixture
-def use_case_cls(response_model_cls_spy):
-    DeleteUseCase.response_model_cls = response_model_cls_spy
-    return DeleteUseCase
+USE_CASE_NAME = "delete"
 
 
 @pytest.fixture
