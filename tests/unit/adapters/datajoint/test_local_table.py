@@ -42,42 +42,18 @@ def controller(use_case_spies, request_model_cls_spies, gateway_spies):
     class LocalTableController(local_table.LocalTableController):
         pass
 
-    return LocalTableController(
-        use_case_spies["pull"],
-        use_case_spies["delete"],
-        use_case_spies["refresh"],
-        request_model_cls_spies["pull"],
-        request_model_cls_spies["delete"],
-        request_model_cls_spies["refresh"],
-        gateway_spies["source"],
-        gateway_spies["local"],
-    )
+    return LocalTableController(use_case_spies, request_model_cls_spies, gateway_spies)
 
 
 class TestInit:
-    def test_if_pull_use_case_is_stored_as_instance_attribute(self, controller, use_case_spies):
-        assert controller.pull_use_case is use_case_spies["pull"]
+    def test_if_use_cases_are_stored_as_instance_attribute(self, controller, use_case_spies):
+        assert controller.use_cases is use_case_spies
 
-    def test_if_delete_use_case_is_stored_as_instance_attribute(self, controller, use_case_spies):
-        assert controller.delete_use_case is use_case_spies["delete"]
+    def test_if_request_model_classes_are_stored_as_instance_attribute(self, controller, request_model_cls_spies):
+        assert controller.request_model_classes is request_model_cls_spies
 
-    def test_if_refresh_use_case_is_stored_as_instance_attribute(self, controller, use_case_spies):
-        assert controller.refresh_use_case is use_case_spies["refresh"]
-
-    def test_if_pull_request_model_cls_is_stored_as_instance_attribute(self, controller, request_model_cls_spies):
-        assert controller.pull_request_model_cls is request_model_cls_spies["pull"]
-
-    def test_if_delete_request_model_cls_is_stored_as_instance_attribute(self, controller, request_model_cls_spies):
-        assert controller.delete_request_model_cls is request_model_cls_spies["delete"]
-
-    def test_if_refresh_request_model_cls_is_stored_as_instance_attribute(self, controller, request_model_cls_spies):
-        assert controller.refresh_request_model_cls is request_model_cls_spies["refresh"]
-
-    def test_if_source_gateway_is_stored_as_instance_attribute(self, controller, gateway_spies):
-        assert controller.source_gateway is gateway_spies["source"]
-
-    def test_if_local_gateway_is_stored_as_instance_attribute(self, controller, gateway_spies):
-        assert controller.local_gateway is gateway_spies["local"]
+    def test_if_gateways_are_stored_as_instance_attribute(self, controller, gateway_spies):
+        assert controller.gateways is gateway_spies
 
 
 class TestMethod:

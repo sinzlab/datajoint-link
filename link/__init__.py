@@ -28,16 +28,7 @@ def initialize():
             pull=local_table_presenter.pull, delete=local_table_presenter.delete, refresh=local_table_presenter.refresh
         ),
     )
-    local_table_controller = LocalTableController(
-        initialized_use_cases["pull"],
-        initialized_use_cases["delete"],
-        initialized_use_cases["refresh"],
-        REQUEST_MODELS["pull"],
-        REQUEST_MODELS["delete"],
-        REQUEST_MODELS["refresh"],
-        dj_gateways["source"],
-        dj_gateways["local"],
-    )
+    local_table_controller = LocalTableController(initialized_use_cases, REQUEST_MODELS, dj_gateways)
     LocalTableMixin._controller = local_table_controller
     LocalTableMixin._temp_dir = temp_dir
     LocalTableMixin._source_table_factory = table_factories["source"]

@@ -1,10 +1,17 @@
-from typing import Type
+from typing import Type, Mapping, TypedDict
 
 from ...base import Base
 from .gateway import DataJointGateway
-from ...use_cases.refresh import RefreshRequestModel, RefreshUseCase
-from ...use_cases.delete import DeleteRequestModel, DeleteUseCase
-from ...use_cases.pull import PullRequestModel, PullUseCase
+from ...use_cases.base import AbstractUseCase
+from ...use_cases.pull import PullRequestModel
+from ...use_cases.delete import DeleteRequestModel
+from ...use_cases.refresh import RefreshRequestModel
+
+
+class RequestModelClasses(TypedDict):
+    pull: Type[PullRequestModel]
+    delete: Type[DeleteRequestModel]
+    refresh: Type[RefreshRequestModel]
 
 
 class LocalTableController(Base):
@@ -12,39 +19,29 @@ class LocalTableController(Base):
 
     def __init__(
         self,
-        pull_use_case: PullUseCase,
-        delete_use_case: DeleteUseCase,
-        refresh_use_case: RefreshUseCase,
-        pull_request_model_cls: Type[PullRequestModel],
-        delete_request_model_cls: Type[DeleteRequestModel],
-        refresh_request_model_cls: Type[RefreshRequestModel],
-        source_gateway: DataJointGateway,
-        local_gateway: DataJointGateway,
+        use_cases: Mapping[str, AbstractUseCase],
+        request_model_classes: RequestModelClasses,
+        gateways: Mapping[str, DataJointGateway],
     ) -> None:
-        self.pull_use_case = pull_use_case
-        self.delete_use_case = delete_use_case
-        self.refresh_use_case = refresh_use_case
-        self.pull_request_model_cls = pull_request_model_cls
-        self.delete_request_model_cls = delete_request_model_cls
-        self.refresh_request_model_cls = refresh_request_model_cls
-        self.source_gateway = source_gateway
-        self.local_gateway = local_gateway
+        self.use_cases = use_cases
+        self.request_model_classes = request_model_classes
+        self.gateways = gateways
 
     def pull(self, restriction) -> None:
         """Pulls the requested entities from the source table into the local table."""
-        identifiers = self.source_gateway.get_identifiers_in_restriction(restriction)
+        identifiers = self.gateways["source"].get_identifiers_in_restriction(restriction)
         # noinspection PyArgumentList
-        self.pull_use_case(self.pull_request_model_cls(identifiers))
+        self.use_cases["pull"](self.request_model_classes["pull"](identifiers))
 
     def delete(self, restriction) -> None:
         """Deletes the requested entities from the local table."""
-        identifiers = self.local_gateway.get_identifiers_in_restriction(restriction)
+        identifiers = self.gateways["local"].get_identifiers_in_restriction(restriction)
         # noinspection PyArgumentList
-        self.delete_use_case(self.delete_request_model_cls(identifiers))
+        self.use_cases["delete"](self.request_model_classes["delete"](identifiers))
 
     def refresh(self) -> None:
         """Refreshes the repositories."""
-        self.refresh_use_case(self.refresh_request_model_cls())
+        self.use_cases["refresh"](self.request_model_classes["refresh"]())
 
 
 class LocalTablePresenter:
