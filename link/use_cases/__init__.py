@@ -20,17 +20,17 @@ class AbstractGatewayLink(ABC):
     @property
     @abstractmethod
     def source(self) -> AbstractGateway:
-        pass
+        """Returns the source gateway."""
 
     @property
     @abstractmethod
     def outbound(self) -> AbstractGateway:
-        pass
+        """Returns the outbound gateway."""
 
     @property
     @abstractmethod
     def local(self) -> AbstractGateway:
-        pass
+        """Returns the local gateway."""
 
 
 @dataclass

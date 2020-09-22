@@ -11,17 +11,17 @@ class AbstractTableFacadeLink(ABC):
     @property
     @abstractmethod
     def source(self) -> AbstractTableFacade:
-        pass
+        """Returns the table facade corresponding to the source table."""
 
     @property
     @abstractmethod
     def outbound(self) -> AbstractTableFacade:
-        pass
+        """Returns the table facade corresponding to the outbound table."""
 
     @property
     @abstractmethod
     def local(self) -> AbstractTableFacade:
-        pass
+        """Returns the table facade corresponding to the local table."""
 
 
 class DataJointGatewayLink(AbstractGatewayLink, Base):
