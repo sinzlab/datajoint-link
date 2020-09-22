@@ -84,25 +84,13 @@ def gateway_spy_cls():
             pass
 
         def start_transaction(self) -> None:
-            if self.in_transaction:
-                raise Exception
-            if self.error_when_starting:
-                raise RuntimeError
-            self.in_transaction = True
+            pass
 
         def commit_transaction(self) -> None:
-            if not self.in_transaction:
-                raise Exception
-            if self.error_when_committing:
-                raise RuntimeError
-            self.in_transaction = False
+            pass
 
         def cancel_transaction(self) -> None:
-            if not self.in_transaction:
-                raise Exception
-            if self.error_when_cancelling:
-                raise RuntimeError
-            self.in_transaction = False
+            pass
 
     return GatewaySpy
 
