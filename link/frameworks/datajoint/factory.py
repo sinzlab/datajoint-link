@@ -88,6 +88,7 @@ class TableFactory(Base):
         part_table_classes: Dict[str, Type[Part]] = {}
         self._create_flag_part_table_classes(part_table_classes)
         self._create_non_flag_part_table_classes(part_table_classes)
+        assert self.config.table_cls is not None
         extended_table_cls = self._extend_table_cls(self.config.table_cls, part_table_classes)
         return self.config.schema(extended_table_cls)
 
