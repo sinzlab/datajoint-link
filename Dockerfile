@@ -18,7 +18,7 @@ RUN python3.8 -m pip install \
     pytest-xdist \
     docker \
     pymysql \
-    minio \
+    minio
 WORKDIR /src/link
 COPY . .
 RUN python3.8 -m pip install -e .
