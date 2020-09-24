@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, create_autospec
 from abc import ABC
 
 import pytest
@@ -7,8 +7,12 @@ from link.use_cases import RepositoryLink, base
 from link.base import Base
 
 
+def test_if_request_model_is_subclass_of_abc():
+    assert issubclass(base.AbstractRequestModel, ABC)
+
+
 def test_if_response_model_is_subclass_of_abc():
-    assert issubclass(base.ResponseModel, ABC)
+    assert issubclass(base.AbstractResponseModel, ABC)
 
 
 @pytest.fixture
@@ -23,7 +27,7 @@ def output_port_spy():
 
 @pytest.fixture
 def use_case(repo_link_factory_spy, output_port_spy):
-    class UseCase(base.UseCase):
+    class UseCase(base.AbstractUseCase):
         def execute(self, repo_link: RepositoryLink, *args, **kwargs):
             pass
 
@@ -32,7 +36,7 @@ def use_case(repo_link_factory_spy, output_port_spy):
 
 
 def test_if_subclass_of_base():
-    assert issubclass(base.UseCase, Base)
+    assert issubclass(base.AbstractUseCase, Base)
 
 
 class TestInit:
@@ -44,14 +48,19 @@ class TestInit:
 
 
 class TestCall:
-    def test_if_repo_link_factory_is_called_correctly(self, use_case, repo_link_factory_spy):
-        use_case()
+    @pytest.fixture
+    def dummy_request_model(self):
+        return create_autospec(base.AbstractRequestModel, instance=True)
+
+    @pytest.fixture(autouse=True)
+    def call(self, use_case, dummy_request_model):
+        use_case(dummy_request_model)
+
+    def test_if_repo_link_factory_is_called_correctly(self, repo_link_factory_spy):
         repo_link_factory_spy.assert_called_once_with()
 
-    def test_if_call_to_execute_method_is_correct(self, use_case):
-        use_case("arg", kwarg="kwarg")
-        use_case.execute.assert_called_once_with("link", "arg", kwarg="kwarg")
+    def test_if_call_to_execute_method_is_correct(self, use_case, dummy_request_model):
+        use_case.execute.assert_called_once_with("link", dummy_request_model)
 
-    def test_if_call_to_output_port_is_correct(self, use_case, output_port_spy):
-        use_case()
+    def test_if_call_to_output_port_is_correct(self, output_port_spy):
         output_port_spy.assert_called_once_with("output")

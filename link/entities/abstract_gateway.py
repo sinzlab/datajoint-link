@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, TypeVar, Generic
 
 
 class AbstractEntityDTO(ABC):
@@ -11,7 +11,10 @@ class AbstractEntityDTO(ABC):
         """Creates a copy of the instance containing only the data used to compute the unique identifier."""
 
 
-class AbstractGateway(ABC):
+EntityDTO = TypeVar("EntityDTO", bound=AbstractEntityDTO)
+
+
+class AbstractGateway(ABC, Generic[EntityDTO]):
     """Defines the interface of the gateway as expected by the entities."""
 
     @property
@@ -24,11 +27,11 @@ class AbstractGateway(ABC):
         """Gets the flags associated with the entity specified by the provided identifier."""
 
     @abstractmethod
-    def fetch(self, identifier: str) -> AbstractEntityDTO:
+    def fetch(self, identifier: str) -> EntityDTO:
         """Fetches an entity."""
 
     @abstractmethod
-    def insert(self, data: AbstractEntityDTO) -> None:
+    def insert(self, entity_dto: EntityDTO) -> None:
         """Inserts an entity."""
 
     @abstractmethod

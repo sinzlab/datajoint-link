@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Dict, Any
 from itertools import tee
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
@@ -15,6 +15,7 @@ class EntityDTO(AbstractEntityDTO):
 
     primary_key: List[str]
     master: Dict[str, Any]
+    parts: Dict[str, Any] = field(default_factory=dict)
 
     def create_identifier_only_copy(self) -> EntityDTO:
         """Creates a new instance of the class containing only the data used to compute the identifier."""
@@ -22,7 +23,7 @@ class EntityDTO(AbstractEntityDTO):
         return self.__class__(self.primary_key, {k: v for k, v in self.master.items() if k in self.primary_key})
 
 
-class DataJointGateway(AbstractGateway, Base):
+class DataJointGateway(AbstractGateway[EntityDTO], Base):
     def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
         self.table_facade = table_facade
         self.translator = translator

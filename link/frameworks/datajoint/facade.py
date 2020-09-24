@@ -1,17 +1,11 @@
-from typing import List, Dict, Any
-from dataclasses import dataclass, field
+from typing import List, Dict
 from itertools import chain
 
 from .file import ReusableTemporaryDirectory
-from ...adapters.datajoint.gateway import EntityDTO
 from ...adapters.datajoint.abstract_facade import AbstractTableFacade
+from ...adapters.datajoint.gateway import EntityDTO
 from ...base import Base
 from ...types import PrimaryKey
-
-
-@dataclass
-class EntityDTO(EntityDTO):
-    parts: Dict[str, Any] = field(default_factory=dict)
 
 
 class TableFacade(AbstractTableFacade, Base):

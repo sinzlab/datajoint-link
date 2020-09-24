@@ -29,8 +29,6 @@ class FlagManagerFactory(Mapping, Base):
 
 
 class FlagManager(MutableMapping, Base):
-    __delitem__ = None
-
     def __init__(self, entity: Entity, gateway: AbstractGateway) -> None:
         self.entity = entity
         self.gateway = gateway
@@ -43,6 +41,10 @@ class FlagManager(MutableMapping, Base):
         """Sets the value of a flag of the entity."""
         self.gateway.set_flag(self.entity.identifier, flag, value)
         self.entity.flags[flag] = value
+
+    def __delitem__(self, flag: str) -> None:
+        """Deletes a flag from the entity."""
+        raise NotImplementedError
 
     def __iter__(self) -> Iterator[str]:
         """Iterates over the flag names of the entity."""

@@ -237,4 +237,4 @@ class TestCallWithInitialSetup:
         assert table_cls_factory_spies["local"].call_args_list == [call(), call()]
 
     def test_if_local_table_class_is_returned(self, linked_table):
-        assert linked_table is "local_table_cls"
+        assert linked_table == "local_table_cls"

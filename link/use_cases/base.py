@@ -1,19 +1,26 @@
 """Contains the abstract base classes use-cases inherit from."""
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Any
+from typing import TYPE_CHECKING, Callable, Any, Generic, TypeVar
 
 from ..base import Base
 
 if TYPE_CHECKING:
-    from . import RepositoryLinkFactory
+    from . import RepositoryLinkFactory, RepositoryLink
 
 
-class ResponseModel(ABC):
+class AbstractRequestModel(ABC):
+    """ABC for request models."""
+
+
+RequestModel = TypeVar("RequestModel", bound=AbstractRequestModel)
+
+
+class AbstractResponseModel(ABC):
     """ABC for response models."""
 
 
-class UseCase(ABC, Base):
+class AbstractUseCase(ABC, Base, Generic[RequestModel]):
     """Specifies the interface for use-cases."""
 
     def __init__(self, repo_link_factory: RepositoryLinkFactory, output_port: Callable[[Any], None]) -> None:
@@ -21,11 +28,11 @@ class UseCase(ABC, Base):
         self.repo_link_factory = repo_link_factory
         self.output_port = output_port
 
-    def __call__(self, *args, **kwargs) -> None:
+    def __call__(self, request_model: RequestModel) -> None:
         """Executes the use-case and passes its output to the output port."""
-        output = self.execute(self.repo_link_factory(), *args, **kwargs)
+        output = self.execute(self.repo_link_factory(), request_model)
         self.output_port(output)
 
     @abstractmethod
-    def execute(self, *args, **kwargs) -> ResponseModel:
+    def execute(self, repo_link: RepositoryLink, request_model: RequestModel) -> AbstractResponseModel:
         """Executes the use-case."""

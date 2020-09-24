@@ -3,7 +3,7 @@ from link.schemas import LazySchema
 
 
 def initialize():
-    from link.use_cases import initialize_use_cases
+    from link.use_cases import REQUEST_MODELS, initialize_use_cases
     from link.adapters.datajoint.identification import IdentificationTranslator
     from link.adapters.datajoint.gateway import DataJointGateway
     from link.adapters.datajoint import DataJointGatewayLink
@@ -29,13 +29,7 @@ def initialize():
             pull=local_table_presenter.pull, delete=local_table_presenter.delete, refresh=local_table_presenter.refresh
         ),
     )
-    local_table_controller = Controller(
-        initialized_use_cases["pull"],
-        initialized_use_cases["delete"],
-        initialized_use_cases["refresh"],
-        dj_gateways["source"],
-        dj_gateways["local"],
-    )
+    local_table_controller = LocalTableController(initialized_use_cases, REQUEST_MODELS, dj_gateways)
     LocalTableMixin._controller = local_table_controller
     LocalTableMixin._temp_dir = temp_dir
     LocalTableMixin._source_table_factory = table_factories["source"]

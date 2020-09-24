@@ -69,8 +69,10 @@ def test_if_table_factory_is_subclass_of_base():
     assert issubclass(TableFactory, Base)
 
 
-def test_if_config_is_none(factory):
-    assert factory.config is None
+def test_if_runtime_error_is_raised_if_config_is_accessed_while_not_being_set(factory):
+    with pytest.raises(RuntimeError) as exc_info:
+        _ = factory.config
+    assert str(exc_info.value) == "Config is not set"
 
 
 @pytest.fixture
@@ -229,11 +231,6 @@ def returned_non_flag_part_tables(factory, non_flag_part_table_definitions):
 
 
 class TestCall:
-    def test_if_runtime_error_is_raised_if_config_attribute_is_none(self, factory):
-        with pytest.raises(RuntimeError) as exc_info:
-            factory()
-        assert str(exc_info.value) == "Config is not set"
-
     @pytest.mark.usefixtures("configure_for_spawning")
     def test_if_call_to_spawn_missing_classes_method_of_schema_is_correct(self, factory, fake_schema, copy_call_args):
         # noinspection PyTypeChecker

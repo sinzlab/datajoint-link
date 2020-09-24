@@ -20,8 +20,8 @@ def config():
 
 
 @pytest.fixture(autouse=True)
-def execute_pull(use_case, create_identifiers):
-    use_case(create_identifiers(range(2, 7)))
+def execute_pull(use_case, request_model, create_identifiers):
+    use_case(request_model(create_identifiers(range(2, 7))))
 
 
 @pytest.fixture

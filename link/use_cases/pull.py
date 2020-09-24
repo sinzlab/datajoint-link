@@ -2,14 +2,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Set
 from dataclasses import dataclass
 
-from .base import ResponseModel, UseCase
+from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
 
 
 @dataclass
-class PullResponseModel(ResponseModel):
+class PullRequestModel(AbstractRequestModel):
+    """Request model for pull use-case."""
+
+    identifiers: List[str]
+
+
+@dataclass
+class PullResponseModel(AbstractResponseModel):
     """Response model for the pull use-case."""
 
     requested: Set[str]
@@ -29,12 +36,12 @@ class PullResponseModel(ResponseModel):
         return len(self.invalid)
 
 
-class PullUseCase(UseCase):
+class PullUseCase(AbstractUseCase[PullRequestModel]):
     response_model_cls = PullResponseModel
 
-    def execute(self, repo_link: RepositoryLink, identifiers: List[str]) -> PullResponseModel:
+    def execute(self, repo_link: RepositoryLink, request_model: PullRequestModel) -> PullResponseModel:
         """Pulls the entities specified by the provided identifiers if they were not already pulled."""
-        valid_identifiers = [identifier for identifier in identifiers if identifier not in repo_link.outbound]
+        valid_identifiers = [i for i in request_model.identifiers if i not in repo_link.outbound]
         entities = [repo_link.source[identifier] for identifier in valid_identifiers]
         with repo_link.outbound.transaction(), repo_link.local.transaction():
             for entity in entities:
@@ -42,7 +49,7 @@ class PullUseCase(UseCase):
                 repo_link.local[entity.identifier] = entity
         # noinspection PyArgumentList
         return self.response_model_cls(
-            requested=set(identifiers),
+            requested=set(request_model.identifiers),
             valid=set(valid_identifiers),
-            invalid={i for i in identifiers if i not in valid_identifiers},
+            invalid={i for i in request_model.identifiers if i not in valid_identifiers},
         )

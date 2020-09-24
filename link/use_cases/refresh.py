@@ -2,14 +2,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Set
 from dataclasses import dataclass
 
-from .base import ResponseModel, UseCase
+from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
 
 
 @dataclass
-class RefreshResponseModel(ResponseModel):
+class RefreshRequestModel(AbstractRequestModel):
+    """Request model for the refresh use-case."""
+
+
+@dataclass
+class RefreshResponseModel(AbstractResponseModel):
     """Response model for the refresh use-case."""
 
     refreshed: Set[str]
@@ -19,10 +24,10 @@ class RefreshResponseModel(ResponseModel):
         return len(self.refreshed)
 
 
-class RefreshUseCase(UseCase):
+class RefreshUseCase(AbstractUseCase[RefreshRequestModel]):
     response_model_cls = RefreshResponseModel
 
-    def execute(self, repo_link: RepositoryLink) -> RefreshResponseModel:
+    def execute(self, repo_link: RepositoryLink, request_model: RefreshRequestModel) -> RefreshResponseModel:
         """Refreshes the deletion requested flags in the local table."""
         deletion_requested = {i for i in repo_link.outbound if repo_link.outbound.flags[i]["deletion_requested"]}
         to_be_enabled = {i for i in deletion_requested if not repo_link.local.flags[i]["deletion_requested"]}

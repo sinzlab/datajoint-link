@@ -11,9 +11,9 @@ from .factory import TableFactory
 class LocalTableMixin:
     """Mixin class for adding additional functionality to the local table class."""
 
-    _controller: Controller = None
-    _temp_dir: ReusableTemporaryDirectory = None
-    _source_table_factory: TableFactory = None
+    _controller: LocalTableController
+    _temp_dir: ReusableTemporaryDirectory
+    _source_table_factory: TableFactory
     restriction: AndList
 
     def pull(self, *restrictions) -> None:

@@ -16,7 +16,7 @@ def kind(request):
 class TestDataJointGatewayLink:
     @pytest.fixture
     def gateway_stubs(self):
-        gateway_stubs = dict()
+        gateway_stubs = {}
         for kind in ("source", "outbound", "local"):
             gateway_stub = MagicMock(name=kind + "_gateway_stub", spec=DataJointGateway)
             gateway_stubs[kind] = gateway_stub
@@ -30,9 +30,6 @@ class TestDataJointGatewayLink:
         assert issubclass(DataJointGatewayLink, Base)
 
     def test_if_gateway_is_stored_as_instance_attribute(self, kind, gateway_link, gateway_stubs):
-        assert getattr(gateway_link, kind) is gateway_stubs[kind]
-
-    def test_if_correct_gateway_is_returned(self, kind, gateway_link, gateway_stubs):
         assert getattr(gateway_link, kind) is gateway_stubs[kind]
 
 

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 
 from link.entities.flag_manager import FlagManager
-from link.use_cases import RepositoryLinkFactory, RepositoryLink
+from link.use_cases import RepositoryLinkFactory, RepositoryLink, USE_CASES, REQUEST_MODELS, RESPONSE_MODELS
 
 
 @pytest.fixture
@@ -12,13 +12,31 @@ def identifiers(create_identifiers):
 
 
 @pytest.fixture
-def use_case_cls(request):
-    return type(request.module.USE_CASE.__name__, (request.module.USE_CASE,), dict())
+def request_model_stub(request, identifiers):
+    stub = create_autospec(REQUEST_MODELS[request.module.USE_CASE_NAME], instance=True)
+    stub.identifiers = identifiers
+    return stub
+
+
+@pytest.fixture
+def response_model_cls_spy(request):
+    return create_autospec(RESPONSE_MODELS[request.module.USE_CASE_NAME])
+
+
+@pytest.fixture
+def use_case_cls(request, response_model_cls_spy):
+    use_case_cls = type(
+        USE_CASES[request.module.USE_CASE_NAME].__name__, (USE_CASES[request.module.USE_CASE_NAME],), dict()
+    )
+    use_case_cls.response_model_cls = response_model_cls_spy
+    return use_case_cls
 
 
 @pytest.fixture
 def repo_link_spy():
-    return create_autospec(RepositoryLink, instance=True)
+    spy = create_autospec(RepositoryLink, instance=True)
+    spy.mock_add_spec(["source", "outbound", "local"])
+    return spy
 
 
 @pytest.fixture

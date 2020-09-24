@@ -1,6 +1,5 @@
 from contextlib import AbstractContextManager
 from tempfile import TemporaryDirectory
-from typing import Optional
 
 from ...base import Base
 
@@ -12,7 +11,7 @@ class ReusableTemporaryDirectory(AbstractContextManager, Base):
 
     def __init__(self, prefix: str) -> None:
         self.prefix = prefix
-        self._temp_dir = None
+        self._temp_dir: TemporaryDirectory
 
     def __enter__(self) -> str:
         """Returns the name of a newly created temporary directory."""
@@ -22,8 +21,8 @@ class ReusableTemporaryDirectory(AbstractContextManager, Base):
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Cleans up the temporary directory created by entering the with clause."""
         self._temp_dir.cleanup()
-        self._temp_dir = None
+        del self._temp_dir
 
     @property
-    def name(self) -> Optional[str]:
-        return self._temp_dir.name if self._temp_dir else None
+    def name(self) -> str:
+        return self._temp_dir.name

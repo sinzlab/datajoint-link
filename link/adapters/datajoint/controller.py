@@ -1,6 +1,17 @@
-from link.adapters.datajoint import DataJointGateway
-from link.base import Base
-from link.use_cases import UseCase
+from typing import Type, Mapping, TypedDict
+
+from ...base import Base
+from .gateway import DataJointGateway
+from ...use_cases.base import AbstractUseCase
+from ...use_cases.pull import PullRequestModel
+from ...use_cases.delete import DeleteRequestModel
+from ...use_cases.refresh import RefreshRequestModel
+
+
+class RequestModelClasses(TypedDict):
+    pull: Type[PullRequestModel]
+    delete: Type[DeleteRequestModel]
+    refresh: Type[RefreshRequestModel]
 
 
 class Controller(Base):
@@ -8,28 +19,41 @@ class Controller(Base):
 
     def __init__(
         self,
-        pull_use_case: UseCase,
-        delete_use_case: UseCase,
-        refresh_use_case: UseCase,
-        source_gateway: DataJointGateway,
-        local_gateway: DataJointGateway,
+        use_cases: Mapping[str, AbstractUseCase],
+        request_model_classes: RequestModelClasses,
+        gateways: Mapping[str, DataJointGateway],
     ) -> None:
-        self.pull_use_case = pull_use_case
-        self.delete_use_case = delete_use_case
-        self.refresh_use_case = refresh_use_case
-        self.source_gateway = source_gateway
-        self.local_gateway = local_gateway
+        self.use_cases = use_cases
+        self.request_model_classes = request_model_classes
+        self.gateways = gateways
 
     def pull(self, restriction) -> None:
         """Pulls the requested entities from the source table into the local table."""
-        identifiers = self.source_gateway.get_identifiers_in_restriction(restriction)
-        self.pull_use_case(identifiers)
+        identifiers = self.gateways["source"].get_identifiers_in_restriction(restriction)
+        # noinspection PyArgumentList
+        self.use_cases["pull"](self.request_model_classes["pull"](identifiers))
 
     def delete(self, restriction) -> None:
         """Deletes the requested entities from the local table."""
-        identifiers = self.local_gateway.get_identifiers_in_restriction(restriction)
-        self.delete_use_case(identifiers)
+        identifiers = self.gateways["local"].get_identifiers_in_restriction(restriction)
+        # noinspection PyArgumentList
+        self.use_cases["delete"](self.request_model_classes["delete"](identifiers))
 
     def refresh(self) -> None:
         """Refreshes the repositories."""
-        self.refresh_use_case()
+        self.use_cases["refresh"](self.request_model_classes["refresh"]())
+
+
+class LocalTablePresenter:
+    """Presents information about the execution of local-table-related use-cases to the user."""
+
+    def pull(self, info):
+        """Presents information about the finished pull to the user."""
+        # TODO: Transform info to output format
+        # TODO: Print transformed info
+
+    def delete(self, info):
+        """Presents information about the finished deletion process to the user."""
+
+    def refresh(self, info):
+        """Presents information about the finished refresh process to the user."""

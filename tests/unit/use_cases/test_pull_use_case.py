@@ -4,21 +4,9 @@ from itertools import compress
 import pytest
 
 from link.entities.repository import TransferEntity
-from link.use_cases.pull import PullUseCase, PullResponseModel
 
 
-USE_CASE = PullUseCase
-
-
-@pytest.fixture
-def response_model_cls_spy():
-    return create_autospec(PullResponseModel)
-
-
-@pytest.fixture
-def use_case_cls(response_model_cls_spy):
-    PullUseCase.response_model_cls = response_model_cls_spy
-    return PullUseCase
+USE_CASE_NAME = "pull"
 
 
 @pytest.fixture
@@ -48,33 +36,33 @@ def repo_link_spy(repo_link_spy, is_valid, transfer_entities):
     return repo_link_spy
 
 
-def test_if_presence_of_entities_in_outbound_repo_is_checked(use_case, repo_link_spy, identifiers):
-    use_case(identifiers)
+def test_if_presence_of_entities_in_outbound_repo_is_checked(use_case, request_model_stub, repo_link_spy, identifiers):
+    use_case(request_model_stub)
     calls = [call(identifier) for identifier in identifiers]
     assert repo_link_spy.outbound.__contains__.call_args_list == calls
 
 
-def test_if_entities_are_fetched(use_case, repo_link_spy, identifiers, valid_identifiers):
-    use_case(identifiers)
+def test_if_entities_are_fetched(use_case, request_model_stub, repo_link_spy, valid_identifiers):
+    use_case(request_model_stub)
     calls = [call(identifier) for identifier in valid_identifiers]
     assert repo_link_spy.source.__getitem__.call_args_list == calls
 
 
-def test_if_transaction_is_started_in_outbound_repo(use_case, repo_link_spy, identifiers):
-    use_case(identifiers)
+def test_if_transaction_is_started_in_outbound_repo(use_case, request_model_stub, repo_link_spy, identifiers):
+    use_case(request_model_stub)
     repo_link_spy.outbound.transaction.assert_called_once_with()
 
 
-def test_if_transaction_is_started_in_local_repo(use_case, repo_link_spy, identifiers):
-    use_case(identifiers)
+def test_if_transaction_is_started_in_local_repo(use_case, request_model_stub, repo_link_spy):
+    use_case(request_model_stub)
     repo_link_spy.local.transaction.assert_called_once_with()
 
 
 @pytest.fixture
-def pull_with_error(use_case, identifiers):
+def pull_with_error(use_case, request_model_stub):
     def _pull_with_error():
         try:
-            use_case(identifiers)
+            use_case(request_model_stub)
         except RuntimeError:
             pass
 
@@ -88,18 +76,18 @@ def test_if_transaction_is_started_in_outbound_repo_first(repo_link_spy, pull_wi
 
 
 def test_if_entities_are_inserted_into_outbound_repo(
-    use_case, identifiers, repo_link_spy, valid_identifiers, identifier_only_transfer_entities
+    use_case, request_model_stub, repo_link_spy, valid_identifiers, identifier_only_transfer_entities
 ):
-    use_case(identifiers)
+    use_case(request_model_stub)
     assert repo_link_spy.outbound.__setitem__.call_args_list == [
         call(identifier, entity) for identifier, entity in zip(valid_identifiers, identifier_only_transfer_entities)
     ]
 
 
 def test_if_entities_are_inserted_into_local_repo(
-    use_case, identifiers, repo_link_spy, valid_identifiers, transfer_entities
+    use_case, request_model_stub, repo_link_spy, valid_identifiers, transfer_entities
 ):
-    use_case(identifiers)
+    use_case(request_model_stub)
     assert repo_link_spy.local.__setitem__.call_args_list == [
         call(identifier, entity) for identifier, entity in zip(valid_identifiers, transfer_entities)
     ]
@@ -128,9 +116,9 @@ def test_if_entities_are_inserted_into_local_repo_after_transaction_in_local_rep
 
 
 def test_if_initialization_of_response_model_class_is_correct(
-    use_case, response_model_cls_spy, identifiers, valid_identifiers
+    use_case, request_model_stub, response_model_cls_spy, identifiers, valid_identifiers
 ):
-    use_case(identifiers)
+    use_case(request_model_stub)
     response_model_cls_spy.assert_called_once_with(
         requested=set(identifiers),
         valid=set(valid_identifiers),
@@ -138,6 +126,8 @@ def test_if_initialization_of_response_model_class_is_correct(
     )
 
 
-def test_if_response_model_is_passed_to_output_port(use_case, response_model_cls_spy, output_port_spy, identifiers):
-    use_case(identifiers)
+def test_if_response_model_is_passed_to_output_port(
+    use_case, request_model_stub, response_model_cls_spy, output_port_spy
+):
+    use_case(request_model_stub)
     output_port_spy.assert_called_once_with(response_model_cls_spy.return_value)

@@ -16,9 +16,6 @@ class TestFlagManager:
     def test_if_subclass_of_base(self):
         assert issubclass(flag_manager.FlagManager, Base)
 
-    def test_if_delitem_is_none(self):
-        assert flag_manager.FlagManager.__delitem__ is None
-
     def test_if_entity_is_stored_as_instance_attribute(self, entity, manager):
         assert manager.entity is entity
 
@@ -44,6 +41,10 @@ class TestFlagManager:
             pass
         with pytest.raises(KeyError):
             _ = entity.flags["flag3"]
+
+    def test_if_trying_to_delete_flag_raises_not_implemented_error(self, manager):
+        with pytest.raises(NotImplementedError):
+            del manager["flag3"]
 
     def test_iter(self, manager, entity_flags):
         assert all(flag1 == flag2 for flag1, flag2 in zip(manager, list(entity_flags)))

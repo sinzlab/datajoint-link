@@ -11,26 +11,36 @@ class AbstractTableFacadeLink(ABC):
     @property
     @abstractmethod
     def source(self) -> AbstractTableFacade:
-        pass
+        """Returns the table facade corresponding to the source table."""
 
     @property
     @abstractmethod
     def outbound(self) -> AbstractTableFacade:
-        pass
+        """Returns the table facade corresponding to the outbound table."""
 
     @property
     @abstractmethod
     def local(self) -> AbstractTableFacade:
-        pass
+        """Returns the table facade corresponding to the local table."""
 
 
 class DataJointGatewayLink(AbstractGatewayLink, Base):
-    source = outbound = local = None
-
     def __init__(self, source: DataJointGateway, outbound: DataJointGateway, local: DataJointGateway):
-        self.source = source
-        self.outbound = outbound
-        self.local = local
+        self._source = source
+        self._outbound = outbound
+        self._local = local
+
+    @property
+    def source(self) -> DataJointGateway:
+        return self._source
+
+    @property
+    def outbound(self) -> DataJointGateway:
+        return self._outbound
+
+    @property
+    def local(self) -> DataJointGateway:
+        return self._local
 
 
 def initialize(table_facade_link: AbstractTableFacadeLink) -> DataJointGatewayLink:
