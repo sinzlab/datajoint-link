@@ -11,7 +11,7 @@ from .factory import TableFactory
 class LocalTableMixin:
     """Mixin class for adding additional functionality to the local table class."""
 
-    _controller: LocalTableController
+    _controller: Controller
     _temp_dir: ReusableTemporaryDirectory
     _source_table_factory: TableFactory
     restriction: AndList

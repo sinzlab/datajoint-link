@@ -5,7 +5,7 @@ import pytest
 from link.base import Base
 from link.adapters.datajoint.gateway import DataJointGateway
 from link.use_cases import REQUEST_MODELS, USE_CASES, RepositoryLinkFactory
-from link.adapters.datajoint import local_table
+from link.adapters.datajoint.controller import Controller as OriginalController
 
 
 def test_if_subclass_of_base():
@@ -49,7 +49,7 @@ def gateway_spies(identifiers):
 
 @pytest.fixture
 def controller(use_case_spies, request_model_cls_spies, gateway_spies):
-    class LocalTableController(local_table.LocalTableController):
+    class LocalTableController(OriginalController):
         pass
 
     return LocalTableController(use_case_spies, request_model_cls_spies, gateway_spies)
