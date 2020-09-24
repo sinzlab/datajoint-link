@@ -38,7 +38,7 @@ class TestDataJointGatewayLink:
 
 class TestInitialize:
     @pytest.fixture
-    def table_facade_link_stub(self,):
+    def table_facade_link_stub(self):
         return MagicMock(name="table_facade_link_stub", spec=AbstractTableFacadeLink)
 
     @pytest.fixture
