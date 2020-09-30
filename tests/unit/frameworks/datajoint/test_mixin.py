@@ -3,8 +3,10 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from datajoint import AndList
 
+from link.use_cases import USE_CASES
 from link.frameworks.datajoint.mixin import LocalTableMixin
 from link.frameworks.datajoint.factory import TableFactory
+from link.frameworks.datajoint.printer import Printer
 
 
 @pytest.fixture
@@ -39,15 +41,21 @@ def fake_temp_dir(fake_controller):
 
 
 @pytest.fixture
+def printer_spy():
+    return MagicMock(name="printer_spy")
+
+
+@pytest.fixture
 def source_table_factory_spy():
     return create_autospec(TableFactory, instance=True)()
 
 
 @pytest.fixture(autouse=True)
-def configure_mixin(fake_controller, fake_temp_dir, source_table_factory_spy):
+def configure_mixin(fake_controller, fake_temp_dir, source_table_factory_spy, printer_spy):
     LocalTableMixin._controller = fake_controller
     LocalTableMixin._temp_dir = fake_temp_dir
     LocalTableMixin._source_table_factory = source_table_factory_spy
+    LocalTableMixin._printer = printer_spy
 
 
 class TestPull:
@@ -69,6 +77,22 @@ def test_if_call_to_controller_is_correct(fake_controller):
 def test_if_call_to_controller_is_correct_when_refreshing(fake_controller):
     LocalTableMixin().refresh()
     fake_controller.refresh.assert_called_once_with()
+
+
+@pytest.mark.parametrize("method_name", USE_CASES)
+def test_if_call_to_printer_is_correct(printer_spy, method_name):
+    getattr(LocalTableMixin(), method_name)()
+    printer_spy.assert_called_once_with()
+
+
+@pytest.mark.parametrize("method_name", USE_CASES)
+def test_if_printer_is_called_after_use_case_is_executed(fake_controller, printer_spy, method_name):
+    setattr(fake_controller, method_name, MagicMock(side_effect=RuntimeError))
+    try:
+        getattr(LocalTableMixin(), method_name)()
+    except RuntimeError:
+        pass
+    printer_spy.assert_not_called()
 
 
 class TestSourceProperty:

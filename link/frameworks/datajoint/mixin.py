@@ -6,6 +6,7 @@ from datajoint.user_tables import UserTable
 from ...adapters.datajoint.controller import Controller
 from .file import ReusableTemporaryDirectory
 from .factory import TableFactory
+from .printer import Printer
 
 
 class LocalTableMixin:
@@ -14,6 +15,7 @@ class LocalTableMixin:
     _controller: Controller
     _temp_dir: ReusableTemporaryDirectory
     _source_table_factory: TableFactory
+    _printer: Printer
     restriction: AndList
 
     def pull(self, *restrictions) -> None:
@@ -22,14 +24,17 @@ class LocalTableMixin:
             restrictions = AndList()
         with self._temp_dir:
             self._controller.pull(restrictions)
+        self._printer()
 
     def delete(self):
         """Deletes entities from the local table."""
         self._controller.delete(self.restriction)
+        self._printer()
 
     def refresh(self):
         """Refreshes the repositories."""
         self._controller.refresh()
+        self._printer()
 
     @property
     def source(self) -> Type[UserTable]:

@@ -13,6 +13,7 @@ def initialize():
     from link.frameworks.datajoint.factory import TableFactory
     from link.frameworks.datajoint.facade import TableFacade
     from link.frameworks.datajoint.link import LocalTableMixin
+    from link.frameworks.datajoint.printer import Printer
 
     kinds = ("source", "outbound", "local")
     table_factories = {kind: TableFactory() for kind in kinds}
@@ -24,6 +25,7 @@ def initialize():
     dj_gateway_link = DataJointGatewayLink(**{kind: dj_gateways[kind] for kind in kinds})
     view_model = ViewModel()
     local_table_presenter = Presenter(identification_translators, view_model)
+    printer = Printer(view_model)
     initialized_use_cases = initialize_use_cases(
         dj_gateway_link,
         dict(
@@ -34,6 +36,7 @@ def initialize():
     LocalTableMixin._controller = local_table_controller
     LocalTableMixin._temp_dir = temp_dir
     LocalTableMixin._source_table_factory = table_factories["source"]
+    LocalTableMixin._printer = printer
 
 
 initialize()
