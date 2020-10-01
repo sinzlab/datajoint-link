@@ -2,41 +2,50 @@ from link.frameworks.datajoint.link import Link
 from link.schemas import LazySchema
 
 
-def initialize():
-    from link.use_cases import REQUEST_MODELS, initialize_use_cases
+_REPO_NAMES = ("source", "outbound", "local")
+
+
+def _initialize():
     from link.adapters.datajoint.identification import IdentificationTranslator
     from link.adapters.datajoint.gateway import DataJointGateway
-    from link.adapters.datajoint import DataJointGatewayLink
-    from link.adapters.datajoint.presenter import Presenter, ViewModel
-    from link.adapters.datajoint.controller import Controller
+    from link.adapters.datajoint.presenter import Presenter, ViewModel, Translators
     from link.frameworks.datajoint.file import ReusableTemporaryDirectory
     from link.frameworks.datajoint.factory import TableFactory
     from link.frameworks.datajoint.facade import TableFacade
+
+    factories = {n: TableFactory() for n in _REPO_NAMES}
+    Link._table_cls_factories = factories
+    temp_dir = ReusableTemporaryDirectory("link_")
+    facades = {n: TableFacade(factories[n], temp_dir) for n in _REPO_NAMES}
+    translators = {n: IdentificationTranslator(facades[n]) for n in _REPO_NAMES}
+    gateways = {n: DataJointGateway(facades[n], translators[n]) for n in _REPO_NAMES}
+    view_model = ViewModel()
+    presenter = Presenter(translators, view_model)
+    _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model)
+
+
+def _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model):
+    from link.use_cases import REQUEST_MODELS, initialize_use_cases
+    from link.adapters.datajoint import DataJointGatewayLink
+    from link.adapters.datajoint.controller import Controller
     from link.frameworks.datajoint.link import LocalTableMixin
     from link.frameworks.datajoint.printer import Printer
 
-    kinds = ("source", "outbound", "local")
-    table_factories = {kind: TableFactory() for kind in kinds}
-    Link._table_cls_factories = table_factories
-    temp_dir = ReusableTemporaryDirectory("link_")
-    table_facades = {kind: TableFacade(table_factories[kind], temp_dir) for kind in kinds}
-    identification_translators = {kind: IdentificationTranslator(table_facades[kind]) for kind in kinds}
-    dj_gateways = {kind: DataJointGateway(table_facades[kind], identification_translators[kind]) for kind in kinds}
-    dj_gateway_link = DataJointGatewayLink(**{kind: dj_gateways[kind] for kind in kinds})
-    view_model = ViewModel()
-    local_table_presenter = Presenter(identification_translators, view_model)
-    printer = Printer(view_model)
-    initialized_use_cases = initialize_use_cases(
-        dj_gateway_link,
-        dict(
-            pull=local_table_presenter.pull, delete=local_table_presenter.delete, refresh=local_table_presenter.refresh
+    LocalTableMixin._controller = Controller(
+        initialize_use_cases(
+            DataJointGatewayLink(**{n: gateways[n] for n in _REPO_NAMES}),
+            dict(
+                pull=presenter.pull,
+                delete=presenter.delete,
+                refresh=presenter.refresh,
+            ),
         ),
+        REQUEST_MODELS,
+        gateways,
     )
-    local_table_controller = Controller(initialized_use_cases, REQUEST_MODELS, dj_gateways)
-    LocalTableMixin._controller = local_table_controller
     LocalTableMixin._temp_dir = temp_dir
-    LocalTableMixin._source_table_factory = table_factories["source"]
-    LocalTableMixin._printer = printer
+    LocalTableMixin._source_table_factory = factories["source"]
+    LocalTableMixin._printer = Printer(view_model)
 
 
-initialize()
+_initialize()
