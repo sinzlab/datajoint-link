@@ -1,5 +1,5 @@
 import os
-from typing import Type, Dict, Optional, Any
+from typing import Type, Dict, Optional, Any, Union
 
 from datajoint import Schema, Lookup
 from datajoint.user_tables import UserTable
@@ -8,6 +8,7 @@ from .factory import TableFactoryConfig, TableFactory
 from .dj_helpers import replace_stores
 from .mixin import LocalTableMixin
 from ...base import Base
+from ...schemas import LazySchema
 
 
 class Link(Base):
@@ -16,7 +17,12 @@ class Link(Base):
     _base_table_cls: Type[UserTable] = Lookup
     _table_cls_factories: Dict[str, TableFactory]
 
-    def __init__(self, local_schema: Schema, source_schema: Schema, stores: Optional[Dict[str, str]] = None) -> None:
+    def __init__(
+        self,
+        local_schema: Union[Schema, LazySchema],
+        source_schema: Union[Schema, LazySchema],
+        stores: Optional[Dict[str, str]] = None,
+    ) -> None:
         if stores is None:
             stores = {}
         self.local_schema = local_schema
