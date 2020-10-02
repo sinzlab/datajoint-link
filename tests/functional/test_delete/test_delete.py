@@ -67,13 +67,3 @@ def test_if_locally_deleted_deletion_requested_entities_are_present_in_deletion_
 ):
     deletion_approved_flags = outbound_table_cls.DeletionApproved().fetch(as_dict=True)
     assert deletion_approved_flags == outbound_deletion_requested_flags
-
-
-@pytest.mark.xfail
-@pytest.mark.usefixtures("insert_flags")
-def test_if_pulling_skips_deletion_requested_entities(local_table_cls_with_pulled_data):
-    data_before_pull = local_table_cls_with_pulled_data().fetch(as_dict=True)
-    with pytest.warns(UserWarning):
-        local_table_cls_with_pulled_data().pull()
-        data_after_pull = local_table_cls_with_pulled_data().fetch(as_dict=True)
-        assert data_before_pull == data_after_pull
