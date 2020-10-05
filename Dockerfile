@@ -18,8 +18,10 @@ RUN python3.8 -m pip install \
     pytest-xdist \
     docker \
     pymysql \
-    minio
+    minio \
+    pep517
 WORKDIR /src/link
 COPY . .
-RUN python3.8 -m pip install -e .
+RUN python3.8 -m pep517.build . \
+ && pip install dist/*.whl
 
