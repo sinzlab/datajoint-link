@@ -13,7 +13,7 @@ import pymysql
 import minio
 import datajoint as dj
 
-from link import Link, LazySchema
+from dj_link import Link, LazySchema
 
 SCOPE = os.environ.get("SCOPE", "session")
 

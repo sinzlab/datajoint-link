@@ -2,9 +2,9 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from link.entities.transaction_manager import TransactionManager
-from link.entities.abstract_gateway import AbstractGateway
-from link.base import Base
+from dj_link.entities.transaction_manager import TransactionManager
+from dj_link.entities.abstract_gateway import AbstractGateway
+from dj_link.base import Base
 
 
 @pytest.fixture

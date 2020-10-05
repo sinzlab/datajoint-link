@@ -2,7 +2,7 @@ from unittest.mock import create_autospec, call
 
 import pytest
 
-from link.entities.abstract_gateway import AbstractEntityDTO
+from dj_link.entities.abstract_gateway import AbstractEntityDTO
 
 
 USE_CASE = "pull"

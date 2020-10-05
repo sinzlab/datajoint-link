@@ -4,12 +4,12 @@ from collections.abc import MutableMapping
 
 import pytest
 
-from link.entities.abstract_gateway import AbstractEntityDTO
-from link.entities.repository import Entity, TransferEntity, Repository, RepositoryFactory
-from link.entities.contents import Contents
-from link.entities.flag_manager import FlagManagerFactory
-from link.entities.transaction_manager import TransactionManager
-from link.base import Base
+from dj_link.entities.abstract_gateway import AbstractEntityDTO
+from dj_link.entities.repository import Entity, TransferEntity, Repository, RepositoryFactory
+from dj_link.entities.contents import Contents
+from dj_link.entities.flag_manager import FlagManagerFactory
+from dj_link.entities.transaction_manager import TransactionManager
+from dj_link.base import Base
 
 
 @pytest.fixture

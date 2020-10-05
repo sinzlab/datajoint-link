@@ -3,7 +3,7 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from link.use_cases.refresh import RefreshRequestModel
+from dj_link.use_cases.refresh import RefreshRequestModel
 
 
 USE_CASE_NAME = "refresh"

@@ -1,6 +1,6 @@
 import pytest
 
-from link.use_cases.delete import DeleteResponseModel
+from dj_link.use_cases.delete import DeleteResponseModel
 
 
 @pytest.fixture

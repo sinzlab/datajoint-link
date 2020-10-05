@@ -1,7 +1,7 @@
 import pytest
 
-from link.use_cases import RESPONSE_MODELS, USE_CASES
-from link.use_cases.base import AbstractUseCase
+from dj_link.use_cases import RESPONSE_MODELS, USE_CASES
+from dj_link.use_cases.base import AbstractUseCase
 
 
 @pytest.fixture(params=USE_CASES)

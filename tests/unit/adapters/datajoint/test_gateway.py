@@ -3,11 +3,11 @@ from dataclasses import is_dataclass
 
 import pytest
 
-from link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
-from link.base import Base
-from link.adapters.datajoint.gateway import EntityDTO, DataJointGateway
-from link.adapters.datajoint.abstract_facade import AbstractTableFacade
-from link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
+from dj_link.base import Base
+from dj_link.adapters.datajoint.gateway import EntityDTO, DataJointGateway
+from dj_link.adapters.datajoint.abstract_facade import AbstractTableFacade
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
 
 
 class TestEntityDTO:

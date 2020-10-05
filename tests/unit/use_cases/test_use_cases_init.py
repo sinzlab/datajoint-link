@@ -3,9 +3,9 @@ from typing import Type
 
 import pytest
 
-from link import use_cases
-from link.entities.repository import RepositoryFactory
-from link.base import Base
+from dj_link import use_cases
+from dj_link.entities.repository import RepositoryFactory
+from dj_link.base import Base
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ import warnings
 import pytest
 from datajoint import Part
 
-from link.frameworks.datajoint import dj_helpers
+from dj_link.frameworks.datajoint import dj_helpers
 
 
 class TestReplaceStores:

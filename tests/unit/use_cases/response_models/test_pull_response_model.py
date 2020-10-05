@@ -1,6 +1,6 @@
 import pytest
 
-from link.use_cases.pull import PullResponseModel
+from dj_link.use_cases.pull import PullResponseModel
 
 
 @pytest.fixture

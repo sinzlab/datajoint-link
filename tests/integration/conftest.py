@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from link.use_cases import REQUEST_MODELS, USE_CASES, AbstractGatewayLink, initialize_use_cases
+from dj_link.use_cases import REQUEST_MODELS, USE_CASES, AbstractGatewayLink, initialize_use_cases
 
 
 @pytest.fixture

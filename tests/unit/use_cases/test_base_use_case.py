@@ -3,8 +3,8 @@ from abc import ABC
 
 import pytest
 
-from link.use_cases import RepositoryLink, base
-from link.base import Base
+from dj_link.use_cases import RepositoryLink, base
+from dj_link.base import Base
 
 
 def test_if_request_model_is_subclass_of_abc():

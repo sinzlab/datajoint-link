@@ -3,7 +3,7 @@ from itertools import compress
 
 import pytest
 
-from link.entities.repository import TransferEntity
+from dj_link.entities.repository import TransferEntity
 
 
 USE_CASE_NAME = "pull"

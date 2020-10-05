@@ -1,4 +1,4 @@
-from link.base import Base
+from dj_link.base import Base
 
 
 def test_repr():

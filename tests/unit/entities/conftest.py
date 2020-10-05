@@ -3,8 +3,8 @@ from typing import Any, List, Dict
 
 import pytest
 
-from link.entities.repository import Entity
-from link.entities.abstract_gateway import AbstractGateway
+from dj_link.entities.repository import Entity
+from dj_link.entities.abstract_gateway import AbstractGateway
 
 
 @pytest.fixture

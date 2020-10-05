@@ -3,10 +3,9 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from datajoint import AndList
 
-from link.use_cases import USE_CASES
-from link.frameworks.datajoint.mixin import LocalTableMixin
-from link.frameworks.datajoint.factory import TableFactory
-from link.frameworks.datajoint.printer import Printer
+from dj_link.use_cases import USE_CASES
+from dj_link.frameworks.datajoint.mixin import LocalTableMixin
+from dj_link.frameworks.datajoint.factory import TableFactory
 
 
 @pytest.fixture

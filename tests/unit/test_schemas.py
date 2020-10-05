@@ -7,7 +7,7 @@ from datajoint.connection import Connection
 from datajoint.schemas import Schema
 from datajoint.table import Table
 
-from link import schemas
+from dj_link import schemas
 
 
 def test_if_schema_cls_is_correct():

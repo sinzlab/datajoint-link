@@ -2,10 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize
-from link.adapters.datajoint.gateway import DataJointGateway
-from link.adapters.datajoint.identification import IdentificationTranslator
-from link.base import Base
+from dj_link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize
+from dj_link.adapters.datajoint.gateway import DataJointGateway
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.base import Base
 
 
 @pytest.fixture(params=["source", "outbound", "local"])

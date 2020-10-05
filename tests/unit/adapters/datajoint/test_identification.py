@@ -2,9 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from link.base import Base
-from link.adapters.datajoint.abstract_facade import AbstractTableFacade
-from link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.base import Base
+from dj_link.adapters.datajoint.abstract_facade import AbstractTableFacade
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
 
 
 @pytest.fixture

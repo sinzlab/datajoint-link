@@ -3,10 +3,10 @@ from dataclasses import is_dataclass
 
 import pytest
 
-from link.base import Base
-from link.use_cases import RESPONSE_MODELS
-from link.adapters.datajoint.presenter import ViewModel, Presenter
-from link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.base import Base
+from dj_link.use_cases import RESPONSE_MODELS
+from dj_link.adapters.datajoint.presenter import ViewModel, Presenter
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
 
 
 class TestViewModel:

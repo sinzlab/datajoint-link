@@ -4,10 +4,10 @@ from itertools import chain
 import pytest
 from datajoint import Part, Table
 
-from link.base import Base
-from link.frameworks.datajoint.facade import EntityDTO, TableFacade
-from link.frameworks.datajoint.factory import TableFactory
-from link.frameworks.datajoint.file import ReusableTemporaryDirectory
+from dj_link.base import Base
+from dj_link.frameworks.datajoint.facade import EntityDTO, TableFacade
+from dj_link.frameworks.datajoint.factory import TableFactory
+from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
 
 
 @pytest.fixture

@@ -6,8 +6,8 @@ from functools import partial
 import pytest
 from datajoint import Part
 
-from link.base import Base
-from link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
+from dj_link.base import Base
+from dj_link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
 
 
 class TestTableFactoryConfig:

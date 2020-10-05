@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from link.entities.flag_manager import FlagManager
-from link.use_cases import RepositoryLinkFactory, RepositoryLink, USE_CASES, REQUEST_MODELS, RESPONSE_MODELS
+from dj_link.entities.flag_manager import FlagManager
+from dj_link.use_cases import RepositoryLinkFactory, RepositoryLink, USE_CASES, REQUEST_MODELS, RESPONSE_MODELS
 
 
 @pytest.fixture

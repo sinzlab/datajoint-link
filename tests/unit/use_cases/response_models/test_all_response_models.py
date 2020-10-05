@@ -2,8 +2,8 @@ from dataclasses import is_dataclass
 
 import pytest
 
-from link.use_cases import RESPONSE_MODELS
-from link.use_cases.base import AbstractResponseModel
+from dj_link.use_cases import RESPONSE_MODELS
+from dj_link.use_cases.base import AbstractResponseModel
 
 
 @pytest.fixture(params=RESPONSE_MODELS.values())

@@ -1,6 +1,6 @@
 import pytest
 
-from link.use_cases.refresh import RefreshResponseModel
+from dj_link.use_cases.refresh import RefreshResponseModel
 
 
 @pytest.fixture

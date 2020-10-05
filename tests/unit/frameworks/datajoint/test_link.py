@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, call
 import pytest
 from datajoint import Lookup, Schema
 
-from link.base import Base
-from link.frameworks.datajoint.dj_helpers import replace_stores
-from link.frameworks.datajoint.link import Link, LocalTableMixin
-from link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
+from dj_link.base import Base
+from dj_link.frameworks.datajoint.dj_helpers import replace_stores
+from dj_link.frameworks.datajoint.link import Link, LocalTableMixin
+from dj_link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
 
 
 @pytest.fixture

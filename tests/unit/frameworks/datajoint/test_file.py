@@ -4,8 +4,8 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from link.base import Base
-from link.frameworks.datajoint.file import ReusableTemporaryDirectory
+from dj_link.base import Base
+from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
 
 
 def test_if_subclass_of_abstract_context_manager():

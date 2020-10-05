@@ -2,9 +2,9 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from link.frameworks.datajoint.printer import Printer
-from link.base import Base
-from link.adapters.datajoint.presenter import ViewModel
+from dj_link.frameworks.datajoint.printer import Printer
+from dj_link.base import Base
+from dj_link.adapters.datajoint.presenter import ViewModel
 
 
 def test_if_subclass_of_base():

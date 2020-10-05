@@ -2,8 +2,8 @@ from dataclasses import is_dataclass
 
 import pytest
 
-from link.use_cases import REQUEST_MODELS
-from link.use_cases.base import AbstractRequestModel
+from dj_link.use_cases import REQUEST_MODELS
+from dj_link.use_cases.base import AbstractRequestModel
 
 
 @pytest.fixture(params=REQUEST_MODELS.values())
