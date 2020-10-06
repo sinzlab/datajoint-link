@@ -1,4 +1,4 @@
-name: PyPI
+name: Build
 
 on:
   push:
