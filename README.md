@@ -3,6 +3,8 @@
 ![Black](https://github.com/cblessing24/link/workflows/Black/badge.svg)
 ![Mypy](https://github.com/cblessing24/link/workflows/Mypy/badge.svg)
 [![codecov](https://codecov.io/gh/cblessing24/link/branch/master/graph/badge.svg?token=94RHFeL75V)](https://codecov.io/gh/cblessing24/link)
+![PyPI](https://github.com/cblessing24/datajoint-link/workflows/PyPI/badge.svg)
+[![PyPI version](https://badge.fury.io/py/datajoint-link.svg)](https://badge.fury.io/py/datajoint-link)
 
  DataJoint-Link is a tool for linking two [DataJoint](https://datajoint.io/) tables located on different database
   servers together and exchanging entities between them. It preserves [referential integrity](https://docs.datajoint.io/python/concepts/04-Integrity.html#referential-integrity) across the linked tables and supports useful DataJoint features such as part tables and externally stored files. 
