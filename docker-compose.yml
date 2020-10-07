@@ -1,9 +1,5 @@
 version: '3.7'
 services:
-    development:
-        build: .
-        env_file: .env
-        entrypoint: ''
     test:
         build: .
         volumes:
