@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools >= 40.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
@@ -7,7 +7,7 @@ line-length = 120
 
 [tool.coverage.run]
 branch = true
-source = ["dj_link"]
+source = ["/usr/local/lib/python3.8/dist-packages/dj_link"]
 
 [tool.coverage.report]
 exclude_lines = ["if TYPE_CHECKING:"]
