@@ -21,9 +21,8 @@ RUN python3.8 -m pip install \
     pymysql \
     minio \
     pep517
-WORKDIR /src/link
+WORKDIR /src/datajoint-link
 COPY . .
-RUN rm -rf dist \
- && python3.8 -m pep517.build . \
+RUN python3.8 -m pep517.build --out-dir dist . \
  && pip install dist/*.whl
 
