@@ -3,13 +3,10 @@ services:
     development:
         build: .
         env_file: .env
-        volumes:
-            - .:/src/link
         entrypoint: ''
     test:
         build: .
         volumes:
-            - .:/src/link
             - /var/run/docker.sock:/var/run/docker.sock
         entrypoint: "pytest"
         networks:
