@@ -2,7 +2,7 @@
 ![Test](https://github.com/cblessing24/datajoint-link/workflows/Test/badge.svg)
 ![Black](https://github.com/cblessing24/datajoint-link/workflows/Black/badge.svg)
 ![Mypy](https://github.com/cblessing24/datajoint-link/workflows/Mypy/badge.svg)
-[![codecov](https://codecov.io/gh/cblessing24/link/branch/master/graph/badge.svg?token=94RHFeL75V)](https://codecov.io/gh/cblessing24/link)
+[![codecov](https://codecov.io/gh/cblessing24/datajoint-link/branch/master/graph/badge.svg)](https://codecov.io/gh/cblessing24/datajoint-link)
 ![Build](https://github.com/cblessing24/datajoint-link/workflows/Build/badge.svg)
 [![PyPI version](https://badge.fury.io/py/datajoint-link.svg)](https://badge.fury.io/py/datajoint-link)
 
