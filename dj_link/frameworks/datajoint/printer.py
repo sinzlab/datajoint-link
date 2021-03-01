@@ -1,5 +1,5 @@
-from ...base import Base
 from ...adapters.datajoint.presenter import ViewModel
+from ...base import Base
 
 
 class Printer(Base):

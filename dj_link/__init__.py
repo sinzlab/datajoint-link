@@ -1,5 +1,5 @@
 from dj_link.frameworks.datajoint.link import Link
-from dj_link.schemas import LazySchema
+from dj_link.schemas import LazySchema  # noqa: F401
 
 
 _REPO_NAMES = ("source", "outbound", "local")
