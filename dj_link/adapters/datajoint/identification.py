@@ -1,3 +1,4 @@
+"""Contains code used to translate between DataJoint primary keys and identifiers."""
 import hashlib
 import json
 
@@ -7,7 +8,10 @@ from .abstract_facade import AbstractTableFacade
 
 
 class IdentificationTranslator(Base):
+    """Used to translate between DataJoint primary keys and identifiers."""
+
     def __init__(self, table_facade: AbstractTableFacade) -> None:
+        """Initialize the identification translator."""
         self.table_facade = table_facade
 
     @staticmethod

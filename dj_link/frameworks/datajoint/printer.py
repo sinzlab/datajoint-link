@@ -1,3 +1,4 @@
+"""Contains code for printing to standard output."""
 from ...adapters.datajoint.presenter import ViewModel
 from ...base import Base
 
@@ -6,6 +7,7 @@ class Printer(Base):
     """View that uses Python's built-in print function to display information."""
 
     def __init__(self, view_model: ViewModel) -> None:
+        """Initialize the printer."""
         self.view_model = view_model
 
     def __call__(self) -> None:

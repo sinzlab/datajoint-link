@@ -1,3 +1,4 @@
+"""Contains code pertaining to the delete use-case."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,22 +28,28 @@ class DeleteResponseModel(AbstractResponseModel):
 
     @property
     def n_requested(self):
+        """Return the number of entities whose deletion was requested."""
         return len(self.requested)
 
     @property
     def n_deletion_approved(self):
+        """Return the number of entities whose deletion was approved."""
         return len(self.deletion_approved)
 
     @property
     def n_deleted_from_outbound(self):
+        """Return the number of entities who were deleted from the outbound table."""
         return len(self.deleted_from_outbound)
 
     @property
     def n_deleted_from_local(self):
+        """Return the number od entities who were deleted from the local table."""
         return len(self.deleted_from_local)
 
 
 class DeleteUseCase(AbstractUseCase[DeleteRequestModel]):
+    """Use-case that deletes entities from the local table and executes associated logic."""
+
     response_model_cls = DeleteResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: DeleteRequestModel) -> DeleteResponseModel:

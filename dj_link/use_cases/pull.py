@@ -1,3 +1,4 @@
+"""Contains code pertaining to the pull use-case."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,18 +27,23 @@ class PullResponseModel(AbstractResponseModel):
 
     @property
     def n_requested(self) -> int:
+        """Return the number of entities for which a pull was requested."""
         return len(self.requested)
 
     @property
     def n_valid(self) -> int:
+        """Return the number of entities that were pulled."""
         return len(self.valid)
 
     @property
     def n_invalid(self) -> int:
+        """Return the number of entities that were not pulled."""
         return len(self.invalid)
 
 
 class PullUseCase(AbstractUseCase[PullRequestModel]):
+    """Use-case that pulls entities from the source to the local table."""
+
     response_model_cls = PullResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: PullRequestModel) -> PullResponseModel:

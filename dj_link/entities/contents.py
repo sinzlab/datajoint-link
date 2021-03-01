@@ -1,3 +1,4 @@
+"""Contains code pertaining to the fetching, inserting and deleting of entities into/from repositories."""
 from __future__ import annotations
 
 from collections.abc import MutableMapping
@@ -11,7 +12,10 @@ if TYPE_CHECKING:
 
 
 class Contents(MutableMapping, Base):
+    """Handles the fetching, inserting and deleting of entities into/from repositories."""
+
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
+        """Initialize the contents."""
         self.entities = entities
         self.gateway = gateway
 

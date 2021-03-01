@@ -1,3 +1,4 @@
+"""Contains mixins that add functionality to DataJoint tables."""
 from typing import Type
 
 from datajoint import AndList

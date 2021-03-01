@@ -1,3 +1,4 @@
+"""Contains code controlling the execution of use-cases."""
 from typing import Mapping, Type, TypedDict
 
 from ...base import Base
@@ -9,6 +10,8 @@ from .gateway import DataJointGateway
 
 
 class RequestModelClasses(TypedDict):
+    """Maps use-case names to the corresponding request model class for that use-case."""
+
     pull: Type[PullRequestModel]
     delete: Type[DeleteRequestModel]
     refresh: Type[RefreshRequestModel]
@@ -23,6 +26,7 @@ class Controller(Base):
         request_model_classes: RequestModelClasses,
         gateways: Mapping[str, DataJointGateway],
     ) -> None:
+        """Initialize the controller."""
         self.use_cases = use_cases
         self.request_model_classes = request_model_classes
         self.gateways = gateways

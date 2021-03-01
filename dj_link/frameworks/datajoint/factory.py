@@ -1,3 +1,4 @@
+"""Contains the DataJoint table factory."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -33,10 +34,12 @@ class TableFactory(Base):
     """Factory that creates table classes according to a provided configuration object."""
 
     def __init__(self) -> None:
+        """Initialize the table factory."""
         self._config: Optional[TableFactoryConfig] = None
 
     @property
     def config(self) -> TableFactoryConfig:
+        """Return the configuration of the table factory or raise an error if it is not set."""
         if self._config is None:
             raise RuntimeError("Config is not set")
         return self._config

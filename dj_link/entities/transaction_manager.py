@@ -1,3 +1,4 @@
+"""Contains code handling transactions in repositories."""
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -11,7 +12,10 @@ if TYPE_CHECKING:
 
 
 class TransactionManager(Base):
+    """Handles the starting, committing and cancelling of transactions in a repository."""
+
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
+        """Initialize the transaction manager."""
         self.entities = entities
         self.gateway = gateway
         self._entities_copy: Dict[str, Entity]

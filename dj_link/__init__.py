@@ -1,3 +1,4 @@
+"""A tool for linking two DataJoint tables located on different database servers."""
 from dj_link.frameworks.datajoint.link import Link
 from dj_link.schemas import LazySchema  # noqa: F401
 

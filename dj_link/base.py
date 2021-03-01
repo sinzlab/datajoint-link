@@ -1,7 +1,10 @@
+"""Contains basic code useful for most classes."""
 from inspect import signature
 
 
 class Base:
+    """Mixin used to add a basic __repr__ method to other classes."""
+
     def __repr__(self) -> str:
         """Return a string representation of the instance.
 

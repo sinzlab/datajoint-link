@@ -1,3 +1,4 @@
+"""Specifies the interface of the DataJoint table facade as expected by the adapters."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class AbstractTableFacade(ABC):
+    """Specifies the interface of the DataJoint table facade as expected by the adapters."""
+
     @property
     @abstractmethod
     def primary_keys(self) -> List[PrimaryKey]:

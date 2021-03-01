@@ -1,3 +1,4 @@
+"""Contains the link class that is used by the user to establish a link."""
 import os
 from typing import Any, Dict, Optional, Type, Union
 
@@ -12,6 +13,8 @@ from .mixin import LocalTableMixin
 
 
 class Link(Base):
+    """Used by the user to establish a link between a source and a local table."""
+
     _schema_cls = Schema
     _replace_stores_func = staticmethod(replace_stores)
     _base_table_cls: Type[UserTable] = Lookup
@@ -23,6 +26,7 @@ class Link(Base):
         source_schema: Union[Schema, LazySchema],
         stores: Optional[Dict[str, str]] = None,
     ) -> None:
+        """Initialize the link."""
         if stores is None:
             stores = {}
         self.local_schema = local_schema
@@ -30,6 +34,7 @@ class Link(Base):
         self.stores = stores
 
     def __call__(self, cls: Type) -> Type[UserTable]:
+        """Initialize the tables and return the local table."""
         self._configure(cls, "source")
         self._configure(cls, "outbound")
         self._configure(cls, "local")

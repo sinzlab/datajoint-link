@@ -1,3 +1,4 @@
+"""Contains code Initializing the use-cases."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Type
@@ -16,6 +17,8 @@ USE_CASES: Dict[str, Type[AbstractUseCase]] = dict(pull=PullUseCase, delete=Dele
 
 
 class AbstractGatewayLink(ABC):
+    """Contains all three gateways involved in a link."""
+
     @property
     @abstractmethod
     def source(self) -> AbstractGateway:
@@ -34,15 +37,20 @@ class AbstractGatewayLink(ABC):
 
 @dataclass
 class RepositoryLink:
+    """Contains all three repositories involved in a link."""
+
     source: Repository
     outbound: Repository
     local: Repository
 
 
 class RepositoryLinkFactory(Base):
+    """Factory that produces repository links."""
+
     repo_factory_cls = RepositoryFactory
 
     def __init__(self, gateway_link: AbstractGatewayLink) -> None:
+        """Initialize the repository link factory."""
         self.gateway_link = gateway_link
 
     def __call__(self) -> RepositoryLink:

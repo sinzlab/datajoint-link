@@ -1,3 +1,4 @@
+"""Contains code pertaining to the refresh use-case."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,10 +23,13 @@ class RefreshResponseModel(AbstractResponseModel):
 
     @property
     def n_refreshed(self) -> int:
+        """Return the number of entities that were refreshed."""
         return len(self.refreshed)
 
 
 class RefreshUseCase(AbstractUseCase[RefreshRequestModel]):
+    """Use-case that refreshes entities in the local table."""
+
     response_model_cls = RefreshResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: RefreshRequestModel) -> RefreshResponseModel:

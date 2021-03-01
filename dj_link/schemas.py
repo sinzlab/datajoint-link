@@ -67,11 +67,13 @@ class LazySchema:
 
     @property
     def connection(self) -> Optional[Connection]:
+        """Initialize and return a the connection."""
         self.initialize()
         return self._connection
 
     @property
     def schema(self) -> Schema:
+        """Initialize and return the schema."""
         self.initialize()
         return self._schema
 
@@ -95,15 +97,19 @@ class LazySchema:
 
     @property
     def is_initialized(self) -> bool:
+        """Return "True" if the underlying schema is initialized, "False" otherwise."""
         return self._is_initialized
 
     def __getattr__(self, item: str) -> Any:
+        """Return the requested item from the underlying schema."""
         return getattr(self.schema, item)
 
     def __call__(self, cls: Type[Table], *, context: Dict[str, Any] = None) -> Type[Table]:
+        """Call the underlying schema with the provided class and context."""
         return self.schema(cls, context=context)
 
     def __repr__(self) -> str:
+        """Return a string representation of the object."""
         return (
             f"{self.__class__.__qualname__}"
             f"({self.database}, context={self.context}, connection={self._connection}, "

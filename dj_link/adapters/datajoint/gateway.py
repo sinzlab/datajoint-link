@@ -1,3 +1,4 @@
+"""Contains the DataJoint gateway class and related classes/functions."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -25,7 +26,10 @@ class EntityDTO(AbstractEntityDTO):
 
 
 class DataJointGateway(AbstractGateway[EntityDTO], Base):
+    """Gateway between the entities/use-cases and the DataJoint table facade."""
+
     def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
+        """Initialize the DataJoint gateway."""
         self.table_facade = table_facade
         self.translator = translator
 

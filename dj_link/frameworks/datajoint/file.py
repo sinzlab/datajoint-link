@@ -1,3 +1,4 @@
+"""Contains code pertaining to the handling of files."""
 from contextlib import AbstractContextManager
 from tempfile import TemporaryDirectory
 
@@ -10,6 +11,7 @@ class ReusableTemporaryDirectory(AbstractContextManager, Base):
     temp_dir_cls = TemporaryDirectory
 
     def __init__(self, prefix: str) -> None:
+        """Initialize the reusable temporary directory."""
         self.prefix = prefix
         self._temp_dir: TemporaryDirectory
 
@@ -25,4 +27,5 @@ class ReusableTemporaryDirectory(AbstractContextManager, Base):
 
     @property
     def name(self) -> str:
+        """Return the name of the temporary directory."""
         return self._temp_dir.name

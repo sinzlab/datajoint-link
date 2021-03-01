@@ -1,3 +1,4 @@
+"""Contains the DataJoint table facade."""
 from itertools import chain
 from typing import Dict, List
 
@@ -9,7 +10,10 @@ from .file import ReusableTemporaryDirectory
 
 
 class TableFacade(AbstractTableFacade, Base):
+    """Facade masking the interface of DataJoint tables."""
+
     def __init__(self, table_factory, temp_dir: ReusableTemporaryDirectory) -> None:
+        """Initialize the table facade."""
         self.table_factory = table_factory
         self.temp_dir = temp_dir
 

@@ -1,3 +1,4 @@
+"""Contains code managing flags on entities."""
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
@@ -11,7 +12,10 @@ if TYPE_CHECKING:
 
 
 class FlagManagerFactory(Mapping, Base):
+    """Factory producing flag managers."""
+
     def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
+        """Initialize the flag manager factory."""
         self.entities = entities
         self.gateway = gateway
 
@@ -30,7 +34,10 @@ class FlagManagerFactory(Mapping, Base):
 
 
 class FlagManager(MutableMapping, Base):
+    """Manages the flags of a single entity."""
+
     def __init__(self, entity: Entity, gateway: AbstractGateway) -> None:
+        """Initialize the flag manager."""
         self.entity = entity
         self.gateway = gateway
 

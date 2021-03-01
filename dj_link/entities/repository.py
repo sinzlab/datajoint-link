@@ -1,3 +1,4 @@
+"""Contains the entity repository class and related classes."""
 from __future__ import annotations
 
 from collections.abc import MutableMapping
@@ -13,6 +14,8 @@ from .transaction_manager import TransactionManager
 
 @dataclass
 class Entity:
+    """Represents an entity in a repository."""
+
     identifier: str
     flags: Dict[str, bool]
 
@@ -23,6 +26,8 @@ class Entity:
 
 @dataclass
 class TransferEntity(Entity):
+    """Represents an entity in transit between repositories."""
+
     data: AbstractEntityDTO
 
     def create_entity(self) -> Entity:
@@ -36,7 +41,10 @@ class TransferEntity(Entity):
 
 
 class Repository(MutableMapping, Base):
+    """Repository containing entities."""
+
     def __init__(self, contents: Contents, flags: FlagManagerFactory, transaction_manager: TransactionManager):
+        """Initialize the repository."""
         self.contents = contents
         self.flags = flags
         self.transaction_manager = transaction_manager
@@ -67,7 +75,10 @@ class Repository(MutableMapping, Base):
 
 
 class RepositoryFactory(Base):
+    """Factory that produces repositories."""
+
     def __init__(self, gateway: AbstractGateway) -> None:
+        """Initialize the repository factory."""
         self.gateway = gateway
 
     def __call__(self) -> Repository:

@@ -1,3 +1,4 @@
+"""Contains DataJoint helper functions."""
 import re
 import warnings
 from inspect import isclass
@@ -25,6 +26,7 @@ def replace_stores(definition: str, stores: Dict[str, str]) -> str:
 def get_part_table_classes(
     table_cls: Type[UserTable], ignored_parts: Optional[Collection[str]] = None
 ) -> Dict[str, Type[Part]]:
+    """Return all part table classes found on the provided table class."""
     if ignored_parts is None:
         ignored_parts = []
     part_table_classes = {}

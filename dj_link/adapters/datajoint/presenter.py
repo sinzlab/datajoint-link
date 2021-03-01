@@ -1,3 +1,4 @@
+"""Contains the presenter class and related classes/functions."""
 from dataclasses import dataclass
 from typing import Dict, Optional, TypedDict
 
@@ -22,18 +23,22 @@ class ViewModel:
 
     @property
     def message(self) -> str:
+        """Return the message or raise an error if it not set."""
         if self._message is None:
             raise RuntimeError("Message attribute not set")
         return self._message
 
     @property
     def fields(self) -> Dict[str, int]:
+        """Return the fields or raise an error if they are not set."""
         if self._fields is None:
             raise RuntimeError("Fields attribute not set")
         return self._fields
 
 
 class Translators(TypedDict):
+    """Contains one identification translator for each of the three table types."""
+
     source: IdentificationTranslator
     outbound: IdentificationTranslator
     local: IdentificationTranslator
@@ -43,6 +48,7 @@ class Presenter(Base):
     """Updates the view model based on the information present in the response model."""
 
     def __init__(self, translators: Translators, view_model: ViewModel) -> None:
+        """Initialize the presenter."""
         self.translators = translators
         self.view_model = view_model
 
