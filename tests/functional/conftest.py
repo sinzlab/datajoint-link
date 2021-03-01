@@ -12,6 +12,7 @@ import docker
 import minio
 import pymysql
 import pytest
+from minio.deleteobjects import DeleteObject
 
 from dj_link import LazySchema, Link
 
@@ -430,13 +431,16 @@ def cleanup_buckets(src_minio_client, local_minio_client, src_store_config, loca
     for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
         try:
             client.remove_bucket(config.bucket)
-        except minio.error.NoSuchBucket:
-            warnings.warn(f"Tried to remove bucket '{config.bucket}' but it does not exist")
-        except minio.error.BucketNotEmpty:
-            object_names = tuple(o.object_name for o in client.list_objects(config.bucket, recursive=True))
-            for del_err in client.remove_objects(config.bucket, object_names):
-                print(f"Deletion Error: {del_err}")
-            client.remove_bucket(config.bucket)
+        except minio.error.S3Error as error:
+            if error.code == "NoSuchBucket":
+                warnings.warn(f"Tried to remove bucket '{config.bucket}' but it does not exist")
+            if error.code == "BucketNotEmpty":
+                delete_object_list = [
+                    DeleteObject(o.object_name) for o in client.list_objects(config.bucket, recursive=True)
+                ]
+                for del_err in client.remove_objects(config.bucket, delete_object_list):
+                    print(f"Deletion Error: {del_err}")
+                client.remove_bucket(config.bucket)
 
 
 @pytest.fixture
