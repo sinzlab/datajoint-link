@@ -145,3 +145,4 @@ static
 data/
 .idea/
 temp/
+.vscode/
