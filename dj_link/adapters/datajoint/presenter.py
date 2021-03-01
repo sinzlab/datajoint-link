@@ -16,7 +16,7 @@ class ViewModel:
     _fields: Optional[Dict[str, int]] = None
 
     def update(self, message: str, fields: Dict[str, int]) -> None:
-        """Updates the view model."""
+        """Update the view model."""
         self._message = message
         self._fields = fields
 
@@ -47,7 +47,7 @@ class Presenter(Base):
         self.view_model = view_model
 
     def pull(self, response_model: PullResponseModel) -> None:
-        """Updates the view model based on information present in the response model of the pull use-case"""
+        """Update the view model based on information present in the response model of the pull use-case."""
         self.view_model.update(
             "Pull was successful",
             {
@@ -58,7 +58,7 @@ class Presenter(Base):
         )
 
     def delete(self, response_model: DeleteResponseModel) -> None:
-        """Updates the view model based on information present in the response model of the delete use-case"""
+        """Update the view model based on information present in the response model of the delete use-case."""
         self.view_model.update(
             "Deletion was successful",
             {
@@ -70,5 +70,5 @@ class Presenter(Base):
         )
 
     def refresh(self, response_model: RefreshResponseModel) -> None:
-        """Updates the view model based on information present in the response model of the refresh use-case"""
+        """Update the view model based on information present in the response model of the refresh use-case."""
         self.view_model.update("Refresh was successful", {"Number of refreshed entities": response_model.n_refreshed})

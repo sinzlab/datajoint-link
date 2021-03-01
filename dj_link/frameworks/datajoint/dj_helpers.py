@@ -8,7 +8,7 @@ from datajoint.user_tables import UserTable
 
 
 def replace_stores(definition: str, stores: Dict[str, str]) -> str:
-    """Replaces the stores in the definition according to a mapping of replacement to original stores."""
+    """Replace the store in the definition according to a mapping of replacement to original stores."""
     stores = {original: replacement for replacement, original in stores.items()}
 
     def replace_store(match):

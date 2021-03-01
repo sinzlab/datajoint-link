@@ -18,21 +18,21 @@ class TransactionManager(Base):
 
     @property
     def in_transaction(self) -> bool:
-        """Returns "True" if the manager is in transaction, "False" otherwise."""
+        """Return "True" if the manager is in transaction, "False" otherwise."""
         return hasattr(self, "_entities_copy")
 
     def start(self) -> None:
-        """Starts a transaction."""
+        """Start a transaction."""
         self.gateway.start_transaction()
         setattr(self, "_entities_copy", self.entities.copy())
 
     def commit(self) -> None:
-        """Commits a transaction."""
+        """Commit a transaction."""
         self.gateway.commit_transaction()
         delattr(self, "_entities_copy")
 
     def cancel(self) -> None:
-        """Cancels a transaction."""
+        """Cancel a transaction."""
         self.entities.update(self._entities_copy)
         self.gateway.cancel_transaction()
         delattr(self, "_entities_copy")

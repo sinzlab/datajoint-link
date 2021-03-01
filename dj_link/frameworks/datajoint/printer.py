@@ -9,7 +9,7 @@ class Printer(Base):
         self.view_model = view_model
 
     def __call__(self) -> None:
-        """Formats and prints the data contained in the view model."""
+        """Format and print the data contained in the view model."""
         field_lines = [k + ":" + str(v).rjust(self._width)[len(k) + 1 :] for k, v in self.view_model.fields.items()]
         lines = (
             ["=" * self._width, self.view_model.message.center(self._width), "-" * self._width]
@@ -20,7 +20,7 @@ class Printer(Base):
 
     @property
     def _width(self) -> int:
-        """Computes and returns the width of the printed output."""
+        """Compute and return the width of the printed output."""
         if len(self.view_model.message) >= self._max_field_length:
             return len(self.view_model.message) + 2
         if (self._max_field_length - len(self.view_model.message)) % 2 != 0:
@@ -29,5 +29,5 @@ class Printer(Base):
 
     @property
     def _max_field_length(self) -> int:
-        """Computes and returns the length of the longest field."""
+        """Compute and return the length of the longest field."""
         return max(len(k + str(v)) + 2 for k, v in self.view_model.fields.items())

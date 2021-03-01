@@ -16,24 +16,24 @@ class Contents(MutableMapping, Base):
         self.gateway = gateway
 
     def __getitem__(self, identifier: str) -> TransferEntity:
-        """Fetches an entity."""
+        """Fetch an entity."""
         entity = self.entities[identifier]
         return entity.create_transfer_entity(self.gateway.fetch(identifier))
 
     def __setitem__(self, identifier: str, transfer_entity: TransferEntity) -> None:
-        """Inserts an entity."""
+        """Insert an entity."""
         self.gateway.insert(transfer_entity.data)
         self.entities[identifier] = transfer_entity.create_entity()
 
     def __delitem__(self, identifier: str) -> None:
-        """Deletes an entity."""
+        """Delete an entity."""
         self.gateway.delete(identifier)
         del self.entities[identifier]
 
     def __iter__(self) -> Iterator[str]:
-        """Iterates over entity identifiers."""
+        """Iterate over entity identifiers."""
         return iter(self.entities)
 
     def __len__(self) -> int:
-        """Returns the number of entities in the repository."""
+        """Return the number of entities in the repository."""
         return len(self.entities)

@@ -17,7 +17,7 @@ class Entity:
     flags: Dict[str, bool]
 
     def create_transfer_entity(self, data: AbstractEntityDTO) -> TransferEntity:
-        """Creates a transfer entity from the entity given some data."""
+        """Create a transfer entity from the entity given some data."""
         return TransferEntity(self.identifier, self.flags, data)
 
 
@@ -26,11 +26,11 @@ class TransferEntity(Entity):
     data: AbstractEntityDTO
 
     def create_entity(self) -> Entity:
-        """Creates a regular entity from the transfer entity."""
+        """Create a regular entity from the transfer entity."""
         return Entity(self.identifier, self.flags)
 
     def create_identifier_only_copy(self):
-        """Creates a copy of the instance that only contains the data pertaining to the unique identifier."""
+        """Create a copy of the instance that only contains the data pertaining to the unique identifier."""
         # noinspection PyArgumentList
         return self.__class__(self.identifier, self.flags, self.data.create_identifier_only_copy())
 
@@ -42,23 +42,23 @@ class Repository(MutableMapping, Base):
         self.transaction_manager = transaction_manager
 
     def __getitem__(self, identifier: str) -> TransferEntity:
-        """Gets an entity from the repository."""
+        """Get an entity from the repository."""
         return self.contents[identifier]
 
     def __setitem__(self, identifier: str, transfer_entity: TransferEntity) -> None:
-        """Adds an entity to the repository."""
+        """Add an entity to the repository."""
         self.contents[identifier] = transfer_entity
 
     def __delitem__(self, identifier: str) -> None:
-        """Deletes an entity from the repository."""
+        """Delete an entity from the repository."""
         del self.contents[identifier]
 
     def __iter__(self) -> Iterator[str]:
-        """Iterates over identifiers in the repository."""
+        """Iterate over identifiers in the repository."""
         return iter(self.contents)
 
     def __len__(self) -> int:
-        """Returns the number of identifiers in the repository."""
+        """Return the number of identifiers in the repository."""
         return len(self.contents)
 
     def transaction(self) -> ContextManager:
@@ -71,7 +71,7 @@ class RepositoryFactory(Base):
         self.gateway = gateway
 
     def __call__(self) -> Repository:
-        """Creates a repo."""
+        """Create a repository."""
         entities = {
             identifier: Entity(identifier, self.gateway.get_flags(identifier))
             for identifier in self.gateway.identifiers

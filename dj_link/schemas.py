@@ -1,4 +1,4 @@
-"""This module contains custom classes based on the "Schema" class from DataJoint"""
+"""This module contains custom classes based on the "Schema" class from DataJoint."""
 import os
 from typing import Any, Dict, Optional, Type
 
@@ -44,7 +44,7 @@ class LazySchema:
         create_tables: Optional[bool] = True,
         host: Optional[str] = None,
     ) -> None:
-        """Initializes an instance of "LazySchema".
+        """Initialize an instance of "LazySchema".
 
         Args:
             schema_name: The name of the database schema to associate.
@@ -76,7 +76,7 @@ class LazySchema:
         return self._schema
 
     def initialize(self) -> None:
-        """Initializes the underlying schema if it is not already initialized."""
+        """Initialize the underlying schema if it is not already initialized."""
         if not self._is_initialized:
             self._initialize()
 

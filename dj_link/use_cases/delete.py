@@ -46,7 +46,7 @@ class DeleteUseCase(AbstractUseCase[DeleteRequestModel]):
     response_model_cls = DeleteResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: DeleteRequestModel) -> DeleteResponseModel:
-        """Executes logic associated with the deletion of entities from the local repository."""
+        """Execute logic associated with the deletion of entities from the local repository."""
         deletion_requested, deletion_not_requested = self._group_by_deletion_requested(
             repo_link, request_model.identifiers
         )

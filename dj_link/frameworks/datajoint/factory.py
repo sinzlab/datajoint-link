@@ -25,7 +25,7 @@ class TableFactoryConfig:
 
     @property
     def is_table_creation_possible(self) -> bool:
-        """Returns True if the configuration object contains the information necessary for table creation."""
+        """Return True if the configuration object contains the information necessary for table creation."""
         return bool(self.table_cls) and bool(self.table_definition)
 
 
@@ -46,7 +46,7 @@ class TableFactory(Base):
         self._config = config
 
     def __call__(self) -> Type[UserTable]:
-        """Spawns or creates (if spawning fails) the table class according to the configuration object."""
+        """Spawn or create (if spawning fails) the table class according to the configuration object."""
         try:
             table_cls = self._spawn_table_cls()
         except KeyError:
@@ -57,12 +57,12 @@ class TableFactory(Base):
 
     @property
     def part_tables(self) -> Dict[str, Type[Part]]:
-        """Returns all non-flag part table classes associated with the table class."""
+        """Return all non-flag part table classes associated with the table class."""
         return get_part_table_classes(self(), ignored_parts=self.config.flag_table_names)
 
     @property
     def flag_tables(self) -> Dict[str, Type[Part]]:
-        """Returns all part table classes associated with the table class."""
+        """Return all part table classes associated with the table class."""
         return {name: getattr(self(), name) for name in self.config.flag_table_names}
 
     def _spawn_table_cls(self) -> Type[UserTable]:

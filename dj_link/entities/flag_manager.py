@@ -16,16 +16,16 @@ class FlagManagerFactory(Mapping, Base):
         self.gateway = gateway
 
     def __getitem__(self, identifier: str) -> FlagManager:
-        """Gets the entity flags manager corresponding to the entity identified by the provided identifier."""
+        """Get the entity flags manager corresponding to the entity identified by the provided identifier."""
         return FlagManager(self.entities[identifier], self.gateway)
 
     def __iter__(self) -> Iterator[FlagManager]:
-        """Iterates over flag managers."""
+        """Iterate over flag managers."""
         for entity in self.entities.values():
             yield FlagManager(entity, self.gateway)
 
     def __len__(self) -> int:
-        """Returns the number of entities associated with the factory."""
+        """Return the number of entities associated with the factory."""
         return len(self.entities)
 
 
@@ -35,22 +35,22 @@ class FlagManager(MutableMapping, Base):
         self.gateway = gateway
 
     def __getitem__(self, flag: str) -> bool:
-        """Gets the value of a flag of the entity."""
+        """Get the value of a flag of the entity."""
         return self.entity.flags[flag]
 
     def __setitem__(self, flag: str, value: bool) -> None:
-        """Sets the value of a flag of the entity."""
+        """Set the value of a flag of the entity."""
         self.gateway.set_flag(self.entity.identifier, flag, value)
         self.entity.flags[flag] = value
 
     def __delitem__(self, flag: str) -> None:
-        """Deletes a flag from the entity."""
+        """Delete a flag from the entity."""
         raise NotImplementedError
 
     def __iter__(self) -> Iterator[str]:
-        """Iterates over the flag names of the entity."""
+        """Iterate over the flag names of the entity."""
         return iter(self.entity.flags)
 
     def __len__(self) -> int:
-        """Returns the number of flags the entity has."""
+        """Return the number of flags the entity has."""
         return len(self.entity.flags)

@@ -29,7 +29,7 @@ class RefreshUseCase(AbstractUseCase[RefreshRequestModel]):
     response_model_cls = RefreshResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: RefreshRequestModel) -> RefreshResponseModel:
-        """Refreshes the deletion requested flags in the local table."""
+        """Refresh the deletion requested flags in the local table."""
         deletion_requested = {i for i in repo_link.outbound if repo_link.outbound.flags[i]["deletion_requested"]}
         to_be_enabled = {i for i in deletion_requested if not repo_link.local.flags[i]["deletion_requested"]}
         for identifier in to_be_enabled:

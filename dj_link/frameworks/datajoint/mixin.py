@@ -19,7 +19,7 @@ class LocalTableMixin:
     restriction: AndList
 
     def pull(self, *restrictions) -> None:
-        """Pulls entities present in the (restricted) source table into the local table."""
+        """Pull entities present in the (restricted) source table into the local table."""
         if not restrictions:
             restrictions = AndList()
         with self._temp_dir:
@@ -27,16 +27,16 @@ class LocalTableMixin:
         self._printer()
 
     def delete(self):
-        """Deletes entities from the local table."""
+        """Delete entities from the local table."""
         self._controller.delete(self.restriction)
         self._printer()
 
     def refresh(self):
-        """Refreshes the repositories."""
+        """Refresh the repositories."""
         self._controller.refresh()
         self._printer()
 
     @property
     def source(self) -> Type[UserTable]:
-        """Returns the source table class."""
+        """Return the source table class."""
         return self._source_table_factory()

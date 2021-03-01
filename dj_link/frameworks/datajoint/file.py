@@ -14,12 +14,12 @@ class ReusableTemporaryDirectory(AbstractContextManager, Base):
         self._temp_dir: TemporaryDirectory
 
     def __enter__(self) -> str:
-        """Returns the name of a newly created temporary directory."""
+        """Return the name of a newly created temporary directory."""
         self._temp_dir = self.temp_dir_cls(prefix=self.prefix)
         return self.name
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Cleans up the temporary directory created by entering the with clause."""
+        """Clean up the temporary directory created by entering the with clause."""
         self._temp_dir.cleanup()
         del self._temp_dir
 

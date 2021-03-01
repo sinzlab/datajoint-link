@@ -13,44 +13,44 @@ class AbstractTableFacade(ABC):
     @property
     @abstractmethod
     def primary_keys(self) -> List[PrimaryKey]:
-        """Returns all primary keys present in the table."""
+        """Return all primary keys present in the table."""
 
     @abstractmethod
     def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
-        """Gets all primary keys present in the table after the provided restriction is applied to it."""
+        """Get all primary keys present in the table after the provided restriction is applied to it."""
 
     @abstractmethod
     def get_flags(self, primary_key: PrimaryKey) -> Dict[str, bool]:
-        """Gets the names and values of all flags associated with the entity identified by the primary key."""
+        """Get the names and values of all flags associated with the entity identified by the primary key."""
 
     @abstractmethod
     def fetch(self, primary_key: PrimaryKey) -> EntityDTO:
-        """Fetches the entity identified by the provided primary key from the table."""
+        """Fetch the entity identified by the provided primary key from the table."""
 
     @abstractmethod
     def insert(self, entity_dto: EntityDTO) -> None:
-        """Inserts the provided entity into the table."""
+        """Insert the provided entity into the table."""
 
     @abstractmethod
     def delete(self, primary_key: PrimaryKey) -> None:
-        """Deletes the entity identified by the provided primary key from the table."""
+        """Delete the entity identified by the provided primary key from the table."""
 
     @abstractmethod
     def enable_flag(self, primary_key: PrimaryKey, flag_table: str) -> None:
-        """Inserts the provided primary key into the flag table identified by the provided name."""
+        """Insert the provided primary key into the flag table identified by the provided name."""
 
     @abstractmethod
     def disable_flag(self, primary_key: PrimaryKey, flag_table: str) -> None:
-        """Deletes the provided primary key from the flag table identified by the provided name."""
+        """Delete the provided primary key from the flag table identified by the provided name."""
 
     @abstractmethod
     def start_transaction(self) -> None:
-        """Starts a transaction."""
+        """Start a transaction."""
 
     @abstractmethod
     def commit_transaction(self) -> None:
-        """Commits a transaction."""
+        """Commit a transaction."""
 
     @abstractmethod
     def cancel_transaction(self) -> None:
-        """Cancels a transaction."""
+        """Cancel a transaction."""

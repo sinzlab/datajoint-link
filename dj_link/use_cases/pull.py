@@ -41,7 +41,7 @@ class PullUseCase(AbstractUseCase[PullRequestModel]):
     response_model_cls = PullResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: PullRequestModel) -> PullResponseModel:
-        """Pulls the entities specified by the provided identifiers if they were not already pulled."""
+        """Pull the entities specified by the provided identifiers if they were not already pulled."""
         valid_identifiers = [i for i in request_model.identifiers if i not in repo_link.outbound]
         entities = [repo_link.source[identifier] for identifier in valid_identifiers]
         with repo_link.outbound.transaction(), repo_link.local.transaction():

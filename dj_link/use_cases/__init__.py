@@ -19,17 +19,17 @@ class AbstractGatewayLink(ABC):
     @property
     @abstractmethod
     def source(self) -> AbstractGateway:
-        """Returns the source gateway."""
+        """Return the source gateway."""
 
     @property
     @abstractmethod
     def outbound(self) -> AbstractGateway:
-        """Returns the outbound gateway."""
+        """Return the outbound gateway."""
 
     @property
     @abstractmethod
     def local(self) -> AbstractGateway:
-        """Returns the local gateway."""
+        """Return the local gateway."""
 
 
 @dataclass
@@ -46,7 +46,7 @@ class RepositoryLinkFactory(Base):
         self.gateway_link = gateway_link
 
     def __call__(self) -> RepositoryLink:
-        """Creates a link."""
+        """Create a link."""
         kwargs = {
             kind: self.repo_factory_cls(getattr(self.gateway_link, kind))() for kind in ("source", "outbound", "local")
         }
@@ -56,6 +56,6 @@ class RepositoryLinkFactory(Base):
 def initialize_use_cases(
     gateway_link: AbstractGatewayLink, output_ports: Dict[str, Callable[[Any], None]]
 ) -> Dict[str, AbstractUseCase]:
-    """Initializes the use-cases and returns them."""
+    """Initialize the use-cases and returns them."""
     factory = RepositoryLinkFactory(gateway_link)
     return {n: uc(factory, output_ports[n]) for n, uc in USE_CASES.items()}
