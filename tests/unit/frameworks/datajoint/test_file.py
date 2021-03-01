@@ -1,6 +1,6 @@
-from unittest.mock import create_autospec
 from contextlib import AbstractContextManager
 from tempfile import TemporaryDirectory
+from unittest.mock import create_autospec
 
 import pytest
 

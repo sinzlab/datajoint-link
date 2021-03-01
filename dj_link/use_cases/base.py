@@ -1,12 +1,13 @@
 """Contains the abstract base classes use-cases inherit from."""
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Generic, TypeVar
 
 from ..base import Base
 
 if TYPE_CHECKING:
-    from . import RepositoryLinkFactory, RepositoryLink
+    from . import RepositoryLink, RepositoryLinkFactory
 
 
 class AbstractRequestModel(ABC):

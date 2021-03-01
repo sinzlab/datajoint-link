@@ -4,8 +4,8 @@ from datajoint import AndList
 from datajoint.user_tables import UserTable
 
 from ...adapters.datajoint.controller import Controller
-from .file import ReusableTemporaryDirectory
 from .factory import TableFactory
+from .file import ReusableTemporaryDirectory
 from .printer import Printer
 
 

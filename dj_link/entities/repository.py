@@ -1,13 +1,14 @@
 from __future__ import annotations
-from typing import Dict, Iterator, ContextManager
-from dataclasses import dataclass
-from collections.abc import MutableMapping
 
+from collections.abc import MutableMapping
+from dataclasses import dataclass
+from typing import ContextManager, Dict, Iterator
+
+from ..base import Base
+from .abstract_gateway import AbstractEntityDTO, AbstractGateway
 from .contents import Contents
 from .flag_manager import FlagManagerFactory
 from .transaction_manager import TransactionManager
-from .abstract_gateway import AbstractEntityDTO, AbstractGateway
-from ..base import Base
 
 
 @dataclass

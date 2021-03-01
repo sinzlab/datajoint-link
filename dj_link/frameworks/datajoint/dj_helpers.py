@@ -1,7 +1,7 @@
 import re
 import warnings
-from typing import Dict, Type, Optional, Collection
 from inspect import isclass
+from typing import Collection, Dict, Optional, Type
 
 from datajoint import Part
 from datajoint.user_tables import UserTable

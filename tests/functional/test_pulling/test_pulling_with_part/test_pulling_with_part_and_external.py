@@ -2,7 +2,6 @@ import os
 
 import pytest
 
-
 USES_EXTERNAL = True
 
 

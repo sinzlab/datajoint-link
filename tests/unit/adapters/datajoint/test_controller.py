@@ -2,10 +2,10 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from dj_link.base import Base
-from dj_link.adapters.datajoint.gateway import DataJointGateway
-from dj_link.use_cases import REQUEST_MODELS, USE_CASES, RepositoryLinkFactory
 from dj_link.adapters.datajoint.controller import Controller as OriginalController
+from dj_link.adapters.datajoint.gateway import DataJointGateway
+from dj_link.base import Base
+from dj_link.use_cases import REQUEST_MODELS, USE_CASES, RepositoryLinkFactory
 
 
 def test_if_subclass_of_base():

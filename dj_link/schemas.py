@@ -1,6 +1,6 @@
 """This module contains custom classes based on the "Schema" class from DataJoint"""
 import os
-from typing import Optional, Dict, Any, Type
+from typing import Any, Dict, Optional, Type
 
 from datajoint.connection import Connection
 from datajoint.schemas import Schema

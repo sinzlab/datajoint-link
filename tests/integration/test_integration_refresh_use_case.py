@@ -2,7 +2,6 @@ from unittest.mock import call
 
 import pytest
 
-
 USE_CASE = "refresh"
 
 

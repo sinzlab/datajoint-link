@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Dict
+from typing import TYPE_CHECKING, Dict, List
 
 from ...types import PrimaryKey
 

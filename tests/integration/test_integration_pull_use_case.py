@@ -1,9 +1,8 @@
-from unittest.mock import create_autospec, call
+from unittest.mock import call, create_autospec
 
 import pytest
 
 from dj_link.entities.abstract_gateway import AbstractEntityDTO
-
 
 USE_CASE = "pull"
 

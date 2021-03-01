@@ -1,14 +1,14 @@
 import os
-from typing import Type, Dict, Optional, Any, Union
+from typing import Any, Dict, Optional, Type, Union
 
-from datajoint import Schema, Lookup
+from datajoint import Lookup, Schema
 from datajoint.user_tables import UserTable
 
-from .factory import TableFactoryConfig, TableFactory
-from .dj_helpers import replace_stores
-from .mixin import LocalTableMixin
 from ...base import Base
 from ...schemas import LazySchema
+from .dj_helpers import replace_stores
+from .factory import TableFactory, TableFactoryConfig
+from .mixin import LocalTableMixin
 
 
 class Link(Base):

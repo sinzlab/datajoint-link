@@ -1,15 +1,14 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Any, Dict, Type
+from typing import Any, Callable, Dict, Type
 
-from .base import AbstractUseCase
-from .pull import PullRequestModel, PullResponseModel, PullUseCase
-from .delete import DeleteRequestModel, DeleteResponseModel, DeleteUseCase
-from .refresh import RefreshRequestModel, RefreshResponseModel, RefreshUseCase
+from ..base import Base
 from ..entities.abstract_gateway import AbstractGateway
 from ..entities.repository import Repository, RepositoryFactory
-from ..base import Base
-
+from .base import AbstractUseCase
+from .delete import DeleteRequestModel, DeleteResponseModel, DeleteUseCase
+from .pull import PullRequestModel, PullResponseModel, PullUseCase
+from .refresh import RefreshRequestModel, RefreshResponseModel, RefreshUseCase
 
 REQUEST_MODELS = dict(pull=PullRequestModel, delete=DeleteRequestModel, refresh=RefreshRequestModel)
 RESPONSE_MODELS = dict(pull=PullResponseModel, delete=DeleteResponseModel, refresh=RefreshResponseModel)

@@ -1,13 +1,13 @@
-from unittest.mock import MagicMock, DEFAULT, create_autospec
 from copy import deepcopy
 from dataclasses import is_dataclass
 from functools import partial
+from unittest.mock import DEFAULT, MagicMock, create_autospec
 
 import pytest
 from datajoint import Part
 
 from dj_link.base import Base
-from dj_link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
+from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig
 
 
 class TestTableFactoryConfig:

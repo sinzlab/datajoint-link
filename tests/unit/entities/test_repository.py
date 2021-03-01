@@ -1,15 +1,15 @@
-from unittest.mock import MagicMock, create_autospec, call
-from dataclasses import is_dataclass
 from collections.abc import MutableMapping
+from dataclasses import is_dataclass
+from unittest.mock import MagicMock, call, create_autospec
 
 import pytest
 
+from dj_link.base import Base
 from dj_link.entities.abstract_gateway import AbstractEntityDTO
-from dj_link.entities.repository import Entity, TransferEntity, Repository, RepositoryFactory
 from dj_link.entities.contents import Contents
 from dj_link.entities.flag_manager import FlagManagerFactory
+from dj_link.entities.repository import Entity, Repository, RepositoryFactory, TransferEntity
 from dj_link.entities.transaction_manager import TransactionManager
-from dj_link.base import Base
 
 
 @pytest.fixture

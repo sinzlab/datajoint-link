@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
-from .gateway import DataJointGateway
-from .abstract_facade import AbstractTableFacade
-from .identification import IdentificationTranslator
 from ...base import Base
 from ...use_cases import AbstractGatewayLink
+from .abstract_facade import AbstractTableFacade
+from .gateway import DataJointGateway
+from .identification import IdentificationTranslator
 
 
 class AbstractTableFacadeLink(ABC):

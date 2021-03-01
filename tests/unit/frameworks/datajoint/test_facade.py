@@ -1,5 +1,5 @@
-from unittest.mock import MagicMock, create_autospec
 from itertools import chain
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 from datajoint import Part, Table

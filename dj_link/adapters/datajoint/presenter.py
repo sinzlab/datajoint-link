@@ -1,11 +1,11 @@
-from typing import TypedDict, Dict, Optional
 from dataclasses import dataclass
+from typing import Dict, Optional, TypedDict
 
-from .identification import IdentificationTranslator
 from ...base import Base
-from ...use_cases.pull import PullResponseModel
 from ...use_cases.delete import DeleteResponseModel
+from ...use_cases.pull import PullResponseModel
 from ...use_cases.refresh import RefreshResponseModel
+from .identification import IdentificationTranslator
 
 
 @dataclass

@@ -1,10 +1,10 @@
-from unittest.mock import MagicMock, create_autospec
 from abc import ABC
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from dj_link.use_cases import RepositoryLink, base
 from dj_link.base import Base
+from dj_link.use_cases import RepositoryLink, base
 
 
 def test_if_request_model_is_subclass_of_abc():

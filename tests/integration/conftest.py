@@ -1,5 +1,5 @@
-from unittest.mock import MagicMock, create_autospec
 from copy import deepcopy
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 

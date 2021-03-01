@@ -1,5 +1,5 @@
-import pytest
 import datajoint as dj
+import pytest
 
 
 @pytest.fixture

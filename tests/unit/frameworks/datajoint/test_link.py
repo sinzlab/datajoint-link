@@ -6,8 +6,8 @@ from datajoint import Lookup, Schema
 
 from dj_link.base import Base
 from dj_link.frameworks.datajoint.dj_helpers import replace_stores
+from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig
 from dj_link.frameworks.datajoint.link import Link, LocalTableMixin
-from dj_link.frameworks.datajoint.factory import TableFactoryConfig, TableFactory
 
 
 @pytest.fixture

@@ -5,7 +5,6 @@ import pytest
 
 from dj_link.use_cases.refresh import RefreshRequestModel
 
-
 USE_CASE_NAME = "refresh"
 
 

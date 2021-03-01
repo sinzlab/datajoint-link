@@ -1,6 +1,5 @@
 import pytest
 
-
 USES_EXTERNAL = False
 
 

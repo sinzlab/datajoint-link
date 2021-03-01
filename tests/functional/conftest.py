@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import os
 import time
-from dataclasses import dataclass, asdict
-from contextlib import contextmanager
-from typing import Dict
 import warnings
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from typing import Dict
 
-import pytest
-import docker
-import pymysql
-import minio
 import datajoint as dj
+import docker
+import minio
+import pymysql
+import pytest
 
-from dj_link import Link, LazySchema
+from dj_link import LazySchema, Link
 
 SCOPE = os.environ.get("SCOPE", "session")
 

@@ -1,11 +1,11 @@
-from typing import Type, Mapping, TypedDict
+from typing import Mapping, Type, TypedDict
 
 from ...base import Base
-from .gateway import DataJointGateway
 from ...use_cases.base import AbstractUseCase
-from ...use_cases.pull import PullRequestModel
 from ...use_cases.delete import DeleteRequestModel
+from ...use_cases.pull import PullRequestModel
 from ...use_cases.refresh import RefreshRequestModel
+from .gateway import DataJointGateway
 
 
 class RequestModelClasses(TypedDict):

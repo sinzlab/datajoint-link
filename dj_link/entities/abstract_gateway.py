@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import List, Dict, TypeVar, Generic
+from typing import Dict, Generic, List, TypeVar
 
 
 class AbstractEntityDTO(ABC):

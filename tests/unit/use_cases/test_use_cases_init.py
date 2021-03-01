@@ -1,11 +1,11 @@
-from unittest.mock import MagicMock, call
 from typing import Type
+from unittest.mock import MagicMock, call
 
 import pytest
 
 from dj_link import use_cases
-from dj_link.entities.repository import RepositoryFactory
 from dj_link.base import Base
+from dj_link.entities.repository import RepositoryFactory
 
 
 @pytest.fixture

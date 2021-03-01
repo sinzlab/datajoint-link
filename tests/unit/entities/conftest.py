@@ -1,10 +1,10 @@
+from typing import Any, Dict, List
 from unittest.mock import MagicMock, create_autospec
-from typing import Any, List, Dict
 
 import pytest
 
-from dj_link.entities.repository import Entity
 from dj_link.entities.abstract_gateway import AbstractGateway
+from dj_link.entities.repository import Entity
 
 
 @pytest.fixture

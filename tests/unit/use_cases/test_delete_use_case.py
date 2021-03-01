@@ -1,8 +1,7 @@
-from unittest.mock import call
 from itertools import compress
+from unittest.mock import call
 
 import pytest
-
 
 USE_CASE_NAME = "delete"
 

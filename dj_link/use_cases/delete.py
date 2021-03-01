@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Tuple, Set
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, List, Set, Tuple
 
 from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 

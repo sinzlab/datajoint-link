@@ -1,9 +1,8 @@
 import os
 import random
 
-import pytest
 import datajoint as dj
-
+import pytest
 
 USES_EXTERNAL = False
 

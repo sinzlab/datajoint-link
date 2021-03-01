@@ -1,9 +1,9 @@
 import hashlib
 import json
 
+from ...base import Base
 from ...types import PrimaryKey
 from .abstract_facade import AbstractTableFacade
-from ...base import Base
 
 
 class IdentificationTranslator(Base):

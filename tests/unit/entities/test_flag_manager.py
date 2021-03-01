@@ -1,7 +1,7 @@
 import pytest
 
-from dj_link.entities import flag_manager
 from dj_link.base import Base
+from dj_link.entities import flag_manager
 
 
 class TestFlagManager:

@@ -1,10 +1,9 @@
-from unittest.mock import create_autospec, call
 from itertools import compress
+from unittest.mock import call, create_autospec
 
 import pytest
 
 from dj_link.entities.repository import TransferEntity
-
 
 USE_CASE_NAME = "pull"
 

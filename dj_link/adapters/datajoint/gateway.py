@@ -1,12 +1,13 @@
 from __future__ import annotations
-from typing import List, Dict, Any
-from itertools import tee
-from dataclasses import dataclass, field
 
+from dataclasses import dataclass, field
+from itertools import tee
+from typing import Any, Dict, List
+
+from ...base import Base
+from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
-from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
-from ...base import Base
 
 
 @dataclass

@@ -2,9 +2,9 @@ from unittest.mock import create_autospec
 
 import pytest
 
+from dj_link.base import Base
 from dj_link.entities.contents import Contents
 from dj_link.entities.repository import TransferEntity
-from dj_link.base import Base
 
 
 @pytest.fixture

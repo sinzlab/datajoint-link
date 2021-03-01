@@ -1,12 +1,13 @@
 from __future__ import annotations
-from typing import Optional, Dict, Type, Any, Tuple, Mapping, Collection, MutableMapping
-from dataclasses import dataclass, field
 
-from datajoint import Schema, Part
+from dataclasses import dataclass, field
+from typing import Any, Collection, Dict, Mapping, MutableMapping, Optional, Tuple, Type
+
+from datajoint import Part, Schema
 from datajoint.user_tables import UserTable
 
-from .dj_helpers import get_part_table_classes
 from ...base import Base
+from .dj_helpers import get_part_table_classes
 
 
 @dataclass

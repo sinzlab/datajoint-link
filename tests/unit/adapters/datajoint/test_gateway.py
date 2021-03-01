@@ -1,13 +1,13 @@
-from unittest.mock import create_autospec, call
 from dataclasses import is_dataclass
+from unittest.mock import call, create_autospec
 
 import pytest
 
-from dj_link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
-from dj_link.base import Base
-from dj_link.adapters.datajoint.gateway import EntityDTO, DataJointGateway
 from dj_link.adapters.datajoint.abstract_facade import AbstractTableFacade
+from dj_link.adapters.datajoint.gateway import DataJointGateway, EntityDTO
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.base import Base
+from dj_link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
 
 
 class TestEntityDTO:
