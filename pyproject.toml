@@ -10,6 +10,9 @@ profile = "black"
 multi_line_output = 3
 line_length = 120
 
+[tool.pylint.master]
+max-line-length = 120
+
 [tool.coverage.run]
 branch = true
 source = ["/usr/local/lib/python3.8/dist-packages/dj_link"]
