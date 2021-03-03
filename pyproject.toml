@@ -19,6 +19,7 @@ dev-dependencies = [
     "flake8~=3.8",
     "pydocstyle~=5.1",
     "isort~=5.7",
+    "mypy~=0.812",
 ]
 requires-python = ">=3.8"
 dynamic = ["classifiers"]
