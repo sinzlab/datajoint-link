@@ -23,4 +23,5 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
-README.md
+.pdm.toml
+__pypackages__
