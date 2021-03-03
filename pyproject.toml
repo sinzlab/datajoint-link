@@ -41,7 +41,7 @@ max-line-length = 120
 
 [tool.coverage.run]
 branch = true
-source = ["/usr/local/lib/python3.8/dist-packages/dj_link"]
+source = ["dj_link"]
 
 [tool.coverage.report]
 exclude_lines = ["if TYPE_CHECKING:"]
