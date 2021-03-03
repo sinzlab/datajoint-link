@@ -1,6 +1,32 @@
-[build-system]
-requires = ["setuptools >= 40.9.0", "wheel"]
-build-backend = "setuptools.build_meta"
+[project]
+name = "datajoint-link"
+version = "0.2"
+description = "A tool for linking two DataJoint tables located on different database servers"
+readme = "README.md"
+authors = [
+    { name = "Christoph Blessing", email = "33834216+cblessing24@users.noreply.github.com" },
+]
+dependencies = ["datajoint~=0.12"]
+dev-dependencies = [
+    "pytest~=6.2",
+    "pytest-sugar~=0.9",
+    "pytest-cov~=2.11",
+    "docker~=4.4",
+    "pymysql~=1.0",
+    "minio~=7.0",
+]
+requires-python = ">=3.8"
+dynamic = ["classifiers"]
+license = { text = "GNU GPLv3" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+]
+
+[project.urls]
+homepage = "https://github.com/sinzlab/link"
 
 [tool.black]
 line-length = 120
@@ -19,3 +45,9 @@ source = ["/usr/local/lib/python3.8/dist-packages/dj_link"]
 
 [tool.coverage.report]
 exclude_lines = ["if TYPE_CHECKING:"]
+
+[tool.pdm]
+
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"
