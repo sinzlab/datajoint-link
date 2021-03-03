@@ -12,9 +12,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
       - name: Build image
-        cmd: docker build -t dj-link .
+        run: docker build -t dj-link .
       - name: Build distribution artifacts
-        cmd: docker run -v "$PWD/dist:/src/datajoint-link/dist" --entrypoint pdm dj-link build
+        run: docker run -v "$PWD/dist:/src/datajoint-link/dist" --entrypoint pdm dj-link build
       - name: Upload distribution packages to PyPI
         uses: pypa/gh-action-pypi-publish@master
         with:
