@@ -426,7 +426,9 @@ def local_conn(local_db, local_db_config, local_store_config, src_store_config, 
 
 
 @pytest.fixture
-def cleanup_buckets(src_minio_client, local_minio_client, src_store_config, local_store_config):
+def create_and_cleanup_buckets(src_minio_client, local_minio_client, src_store_config, local_store_config):
+    for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
+        client.make_bucket(config.bucket)
     yield
     for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
         try:
