@@ -1,0 +1,22 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Build image
+      run: docker build -t dj-link .
+    - name: Check code with black
+      run: docker run dj-link black --check --diff dj_link
+    - name: Check code with isort
+      run: docker run dj-link isort --check dj_link
+    - name: Check code with flake8
+      run: docker run dj-link flake8 dj_link
+    - name: Check code with pydocstyle
+      run: docker run dj-link pydocstyle dj_link
+    - name: Check code with pylint
+      run: docker run dj-link pylint dj_link

@@ -1,6 +1,6 @@
 # DataJoint-Link
 ![Test](https://github.com/cblessing24/datajoint-link/workflows/Test/badge.svg)
-![Black](https://github.com/cblessing24/datajoint-link/workflows/Black/badge.svg)
+![Lint](https://github.com/cblessing24/datajoint-link/workflows/Lint/badge.svg)
 ![Mypy](https://github.com/cblessing24/datajoint-link/workflows/Mypy/badge.svg)
 [![codecov](https://codecov.io/gh/cblessing24/datajoint-link/branch/master/graph/badge.svg)](https://codecov.io/gh/cblessing24/datajoint-link)
 ![Build](https://github.com/cblessing24/datajoint-link/workflows/Build/badge.svg)
