@@ -12,7 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Run tests and generate coverage report
-      run: docker-compose run -v "$PWD/reports:/reports" test --cov --cov-report=xml:/reports/coverage.xml
+      run: docker-compose run -v "$PWD/reports:/reports" pytest --cov --cov-report=xml:/reports/coverage.xml
     - name: Upload coverage report to Codecov
       run:  bash <(curl -s https://codecov.io/bash) 
       env:

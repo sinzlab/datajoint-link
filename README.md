@@ -152,5 +152,5 @@ Table().refresh()
 # Running Tests
 Clone this repository and run the following command from within the cloned repository to run all tests:
 ```
-docker-compose run test tests
+docker-compose run pytest tests
 ```

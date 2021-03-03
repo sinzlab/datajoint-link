@@ -1,12 +1,12 @@
 version: '3.7'
 services:
-    test:
+    pytest:
         build: .
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-        entrypoint: "pytest"
         networks:
             - test_runner_network
+        entrypoint: ["pdm", "run", "pytest"]
 networks:
     test_runner_network:
         name: test_runner_network
