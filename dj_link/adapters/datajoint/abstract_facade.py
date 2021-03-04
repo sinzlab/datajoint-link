@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict, List
 
-from ...types import PrimaryKey
+from ...custom_types import PrimaryKey
 
 if TYPE_CHECKING:
     from .gateway import EntityDTO

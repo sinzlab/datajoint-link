@@ -5,7 +5,7 @@ from typing import Dict, List
 from ...adapters.datajoint.abstract_facade import AbstractTableFacade
 from ...adapters.datajoint.gateway import EntityDTO
 from ...base import Base
-from ...types import PrimaryKey
+from ...custom_types import PrimaryKey
 from .file import ReusableTemporaryDirectory
 
 

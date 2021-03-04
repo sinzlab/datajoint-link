@@ -3,7 +3,7 @@ import hashlib
 import json
 
 from ...base import Base
-from ...types import PrimaryKey
+from ...custom_types import PrimaryKey
 from .abstract_facade import AbstractTableFacade
 
 
