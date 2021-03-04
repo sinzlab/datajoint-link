@@ -12,7 +12,7 @@ from .factory import TableFactory, TableFactoryConfig
 from .mixin import LocalTableMixin
 
 
-class Link(Base):
+class Link(Base):  # pylint: disable=too-few-public-methods
     """Used by the user to establish a link between a source and a local table."""
 
     _schema_cls = Schema
@@ -55,19 +55,18 @@ class Link(Base):
     def _create_basic_config(self, table_cls: Type, factory_type: str) -> Dict[str, Any]:
         if factory_type == "source":
             return dict(schema=self.source_schema, table_name=table_cls.__name__)
-        elif factory_type == "outbound":
+        if factory_type == "outbound":
             return dict(
                 schema=self._schema_cls(os.environ["LINK_OUTBOUND"], connection=self.source_schema.connection),
                 table_name=table_cls.__name__ + "Outbound",
                 flag_table_names=["DeletionRequested", "DeletionApproved"],
             )
-        else:
-            return dict(
-                schema=self.local_schema,
-                table_name=table_cls.__name__,
-                table_bases=(LocalTableMixin,),
-                flag_table_names=["DeletionRequested"],
-            )
+        return dict(
+            schema=self.local_schema,
+            table_name=table_cls.__name__,
+            table_bases=(LocalTableMixin,),
+            flag_table_names=["DeletionRequested"],
+        )
 
     def _create_initial_config(self, table_cls: Type, factory_type: str) -> Dict[str, Any]:
         config = self._create_basic_config(table_cls, factory_type)
@@ -78,13 +77,12 @@ class Link(Base):
                 table_cls_attrs=dict(source_table=self._table_cls_factories["source"]()),
                 table_definition="-> self.source_table",
             )
-        else:
-            return dict(
-                config,
-                table_cls=self._base_table_cls,
-                table_definition=self._create_definition(self._table_cls_factories["source"]()),
-                part_table_definitions=self._create_local_part_table_definitions(),
-            )
+        return dict(
+            config,
+            table_cls=self._base_table_cls,
+            table_definition=self._create_definition(self._table_cls_factories["source"]()),
+            part_table_definitions=self._create_local_part_table_definitions(),
+        )
 
     def _create_local_part_table_definitions(self) -> Dict[str, str]:
         part_table_definitions = {}

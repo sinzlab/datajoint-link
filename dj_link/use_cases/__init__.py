@@ -44,7 +44,7 @@ class RepositoryLink:
     local: Repository
 
 
-class RepositoryLinkFactory(Base):
+class RepositoryLinkFactory(Base):  # pylint: disable=too-few-public-methods
     """Factory that produces repository links."""
 
     repo_factory_cls = RepositoryFactory

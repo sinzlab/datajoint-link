@@ -52,9 +52,9 @@ class TableFactory(Base):
         """Spawn or create (if spawning fails) the table class according to the configuration object."""
         try:
             table_cls = self._spawn_table_cls()
-        except KeyError:
+        except KeyError as error:
             if not self.config.is_table_creation_possible:
-                raise RuntimeError("Table could neither be spawned nor created")
+                raise RuntimeError("Table could neither be spawned nor created") from error
             table_cls = self._create_table_cls()
         return table_cls
 

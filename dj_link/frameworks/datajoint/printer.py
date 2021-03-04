@@ -3,7 +3,7 @@ from ...adapters.datajoint.presenter import ViewModel
 from ...base import Base
 
 
-class Printer(Base):
+class Printer(Base):  # pylint: disable=too-few-public-methods
     """View that uses Python's built-in print function to display information."""
 
     def __init__(self, view_model: ViewModel) -> None:

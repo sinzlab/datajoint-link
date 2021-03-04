@@ -25,7 +25,7 @@ class EntityDTO(AbstractEntityDTO):
         return self.__class__(self.primary_key, {k: v for k, v in self.master.items() if k in self.primary_key})
 
 
-class DataJointGateway(AbstractGateway[EntityDTO], Base):
+class DataJointGateway(AbstractGateway[EntityDTO], Base):  # pylint: disable=unsubscriptable-object
     """Gateway between the entities/use-cases and the DataJoint table facade."""
 
     def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:

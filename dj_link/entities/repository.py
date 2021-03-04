@@ -40,7 +40,7 @@ class TransferEntity(Entity):
         return self.__class__(self.identifier, self.flags, self.data.create_identifier_only_copy())
 
 
-class Repository(MutableMapping, Base):
+class Repository(MutableMapping, Base):  # pylint: disable=too-many-ancestors
     """Repository containing entities."""
 
     def __init__(self, contents: Contents, flags: FlagManagerFactory, transaction_manager: TransactionManager):
@@ -74,7 +74,7 @@ class Repository(MutableMapping, Base):
         return self.transaction_manager.transaction()
 
 
-class RepositoryFactory(Base):
+class RepositoryFactory(Base):  # pylint: disable=too-few-public-methods
     """Factory that produces repositories."""
 
     def __init__(self, gateway: AbstractGateway) -> None:

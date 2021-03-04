@@ -41,7 +41,7 @@ class PullResponseModel(AbstractResponseModel):
         return len(self.invalid)
 
 
-class PullUseCase(AbstractUseCase[PullRequestModel]):
+class PullUseCase(AbstractUseCase[PullRequestModel]):  # pylint: disable=unsubscriptable-object,too-few-public-methods
     """Use-case that pulls entities from the source to the local table."""
 
     response_model_cls = PullResponseModel

@@ -1,18 +1,21 @@
 """A tool for linking two DataJoint tables located on different database servers."""
-from dj_link.frameworks.datajoint.link import Link
+from dj_link.adapters.datajoint import DataJointGatewayLink
+from dj_link.adapters.datajoint.controller import Controller
+from dj_link.adapters.datajoint.gateway import DataJointGateway
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.adapters.datajoint.presenter import Presenter, ViewModel
+from dj_link.frameworks.datajoint.facade import TableFacade
+from dj_link.frameworks.datajoint.factory import TableFactory
+from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
+from dj_link.frameworks.datajoint.link import Link, LocalTableMixin
+from dj_link.frameworks.datajoint.printer import Printer
 from dj_link.schemas import LazySchema  # noqa: F401
+from dj_link.use_cases import REQUEST_MODELS, initialize_use_cases
 
 _REPO_NAMES = ("source", "outbound", "local")
 
 
 def _initialize():
-    from dj_link.adapters.datajoint.gateway import DataJointGateway
-    from dj_link.adapters.datajoint.identification import IdentificationTranslator
-    from dj_link.adapters.datajoint.presenter import Presenter, ViewModel
-    from dj_link.frameworks.datajoint.facade import TableFacade
-    from dj_link.frameworks.datajoint.factory import TableFactory
-    from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
-
     factories = {n: TableFactory() for n in _REPO_NAMES}
     Link._table_cls_factories = factories
     temp_dir = ReusableTemporaryDirectory("link_")
@@ -25,11 +28,6 @@ def _initialize():
 
 
 def _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model):
-    from dj_link.adapters.datajoint import DataJointGatewayLink
-    from dj_link.adapters.datajoint.controller import Controller
-    from dj_link.frameworks.datajoint.link import LocalTableMixin
-    from dj_link.frameworks.datajoint.printer import Printer
-    from dj_link.use_cases import REQUEST_MODELS, initialize_use_cases
 
     LocalTableMixin._controller = Controller(
         initialize_use_cases(
