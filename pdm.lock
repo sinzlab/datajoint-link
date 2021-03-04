@@ -561,8 +561,8 @@ summary = "Measures the displayed width of unicode strings in a terminal"
 [[package]]
 name = "websocket-client"
 sections = ["dev"]
-version = "0.57.0"
-summary = "WebSocket client for Python. hybi13 is supported."
+version = "0.58.0"
+summary = "WebSocket client for Python with low level API options"
 dependencies = [
     "six",
 ]
@@ -1145,9 +1145,9 @@ content_hash = "sha256:dd94c48eaa360ecfafe0b2a5c0bbb78d0706642e5ba63de58a1a5f460
     {file = "wcwidth-0.2.5-py2.py3-none-any.whl", hash = "sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784"},
     {file = "wcwidth-0.2.5.tar.gz", hash = "sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83"},
 ]
-"websocket-client 0.57.0" = [
-    {file = "websocket_client-0.57.0-py2.py3-none-any.whl", hash = "sha256:0fc45c961324d79c781bab301359d5a1b00b13ad1b10415a4780229ef71a5549"},
-    {file = "websocket_client-0.57.0.tar.gz", hash = "sha256:d735b91d6d1692a6a181f2a8c9e0238e5f6373356f561bb9dc4c7af36f452010"},
+"websocket-client 0.58.0" = [
+    {file = "websocket_client-0.58.0-py2.py3-none-any.whl", hash = "sha256:44b5df8f08c74c3d82d28100fdc81f4536809ce98a17f0757557813275fbb663"},
+    {file = "websocket_client-0.58.0.tar.gz", hash = "sha256:63509b41d158ae5b7f67eb4ad20fecbb4eee99434e73e140354dc3ff8e09716f"},
 ]
 "wrapt 1.12.1" = [
     {file = "wrapt-1.12.1.tar.gz", hash = "sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7"},
