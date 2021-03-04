@@ -25,3 +25,4 @@
 **/values.dev.yaml
 .pdm.toml
 __pypackages__
+dist/
