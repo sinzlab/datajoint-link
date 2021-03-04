@@ -45,6 +45,9 @@ line_length = 120
 [tool.pylint.master]
 max-line-length = 120
 
+[tool.pylint.messages_control]
+disable = "cyclic-import"
+
 [tool.coverage.run]
 branch = true
 source = ["dj_link"]
