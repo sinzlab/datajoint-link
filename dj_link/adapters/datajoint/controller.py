@@ -46,18 +46,3 @@ class Controller(Base):
     def refresh(self) -> None:
         """Refresh the repositories."""
         self.use_cases["refresh"](self.request_model_classes["refresh"]())
-
-
-class LocalTablePresenter:
-    """Presents information about the execution of local-table-related use-cases to the user."""
-
-    def pull(self, info):
-        """Present information about the finished pull to the user."""
-        # TODO: Transform info to output format
-        # TODO: Print transformed info
-
-    def delete(self, info):
-        """Present information about the finished deletion process to the user."""
-
-    def refresh(self, info):
-        """Present information about the finished refresh process to the user."""
