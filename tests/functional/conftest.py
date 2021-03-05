@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import time
 import warnings
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
@@ -12,6 +11,7 @@ import docker
 import minio
 import pymysql
 import pytest
+from container_runner import ContainerRunner
 from minio.deleteobjects import DeleteObject
 
 from dj_link import LazySchema, Link
@@ -207,8 +207,45 @@ def outbound_schema_name(src_db_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(create_container, src_db_config, docker_client, outbound_schema_name):
-    with create_container(docker_client, src_db_config), mysql_conn(src_db_config) as connection:
+def process_container_config(database_config_cls, minio_config_cls):
+    def _process_container_config(container_config):
+        common = dict(detach=True, network=container_config.network)
+        if isinstance(container_config, database_config_cls):
+            container_config = dict(
+                image="datajoint/mysql:" + container_config.image_tag,
+                name=container_config.name,
+                environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
+                **common,
+            )
+        elif isinstance(container_config, minio_config_cls):
+            container_config = dict(
+                image="minio/minio:" + container_config.image_tag,
+                name=container_config.name,
+                environment=dict(
+                    MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key
+                ),
+                command=["server", "/data"],
+                healthcheck=dict(
+                    test=["CMD", "curl", "-f", container_config.name + ":9000/minio/health/ready"],
+                    start_period=int(container_config.health_check.start_period * 1e9),  # nanoseconds
+                    interval=int(container_config.health_check.interval * 1e9),  # nanoseconds
+                    retries=container_config.health_check.max_retries,
+                    timeout=int(container_config.health_check.timeout * 1e9),  # nanoseconds
+                ),
+                **common,
+            )
+        else:
+            raise ValueError
+        return container_config
+
+    return _process_container_config
+
+
+@pytest.fixture(scope=SCOPE)
+def src_db(src_db_config, process_container_config, docker_client, outbound_schema_name):
+    with ContainerRunner(docker_client, process_container_config(src_db_config)), mysql_conn(
+        src_db_config
+    ) as connection:
         with connection.cursor() as cursor:
             for user in src_db_config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
@@ -229,8 +266,10 @@ def src_db(create_container, src_db_config, docker_client, outbound_schema_name)
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(create_container, local_db_config, docker_client):
-    with create_container(docker_client, local_db_config), mysql_conn(local_db_config) as connection:
+def local_db(local_db_config, process_container_config, docker_client):
+    with ContainerRunner(docker_client, process_container_config(local_db_config)), mysql_conn(
+        local_db_config
+    ) as connection:
         with connection.cursor() as cursor:
             for user in local_db_config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' " f"IDENTIFIED BY '{user.password}';")
@@ -242,72 +281,6 @@ def local_db(create_container, local_db_config, docker_client):
             )
         connection.commit()
         yield
-
-
-@pytest.fixture(scope=SCOPE)
-def create_container(run_container):
-    @contextmanager
-    def _create_container(client, container_config):
-        container = None
-        try:
-            container = run_container(client, container_config)
-            wait_until_healthy(container_config, container)
-            yield container
-        finally:
-            if container is not None:
-                container.stop()
-                if container_config.remove:
-                    container.remove(v=True)
-
-    return _create_container
-
-
-@pytest.fixture(scope=SCOPE)
-def run_container(database_config_cls, minio_config_cls):
-    def _run_container(client, container_config):
-        common = dict(detach=True, network=container_config.network)
-        if isinstance(container_config, database_config_cls):
-            container = client.containers.run(
-                "datajoint/mysql:" + container_config.image_tag,
-                name=container_config.name,
-                environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
-                **common,
-            )
-        elif isinstance(container_config, minio_config_cls):
-            container = client.containers.run(
-                "minio/minio:" + container_config.image_tag,
-                name=container_config.name,
-                environment=dict(
-                    MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key
-                ),
-                command=["server", "/data"],
-                healthcheck=dict(
-                    test=["CMD", "curl", "-f", container_config.name + ":9000/minio/health/ready"],
-                    start_period=int(container_config.health_check.start_period * 1e9),  # nanoseconds
-                    interval=int(container_config.health_check.interval * 1e9),  # nanoseconds
-                    retries=container_config.health_check.max_retries,
-                    timeout=int(container_config.health_check.timeout * 1e9),  # nanoseconds
-                ),
-                **common,
-            )
-        else:
-            raise ValueError
-        return container
-
-    return _run_container
-
-
-def wait_until_healthy(container_config, container):
-    time.sleep(container_config.health_check.start_period)
-    n_tries = 0
-    while True:
-        container.reload()
-        if container.attrs["State"]["Health"]["Status"] == "healthy":
-            break
-        if n_tries >= container_config.health_check.max_retries:
-            raise RuntimeError(f"Trying to bring up container '{container_config.name}' exceeded max number of retries")
-        time.sleep(container_config.health_check.interval)
-        n_tries += 1
 
 
 @contextmanager
@@ -324,14 +297,14 @@ def mysql_conn(db_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio(create_container, src_minio_config, docker_client):
-    with create_container(docker_client, src_minio_config):
+def src_minio(src_minio_config, process_container_config, docker_client):
+    with ContainerRunner(docker_client, process_container_config(src_minio_config)):
         yield
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio(create_container, local_minio_config, docker_client):
-    with create_container(docker_client, local_minio_config):
+def local_minio(local_minio_config, process_container_config, docker_client):
+    with ContainerRunner(docker_client, process_container_config(local_minio_config)):
         yield
 
 
