@@ -46,7 +46,8 @@ line_length = 120
 max-line-length = 120
 
 [tool.pylint.messages_control]
-disable = "cyclic-import"
+# duplicate-code can't be disabled on a per instance basis (https://github.com/PyCQA/pylint/issues/214)
+disable = ["cyclic-import", "duplicate-code"]
 
 [tool.coverage.run]
 branch = true
