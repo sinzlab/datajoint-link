@@ -207,18 +207,18 @@ def outbound_schema_name(src_db_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def process_container_config(database_config_cls, minio_config_cls):
-    def _process_container_config(container_config):
+def get_runner_kwargs(database_config_cls, minio_config_cls, docker_client):
+    def _get_runner_kwargs(container_config):
         common = dict(detach=True, network=container_config.network)
         if isinstance(container_config, database_config_cls):
-            container_config = dict(
+            processed_container_config = dict(
                 image="datajoint/mysql:" + container_config.image_tag,
                 name=container_config.name,
                 environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
                 **common,
             )
         elif isinstance(container_config, minio_config_cls):
-            container_config = dict(
+            processed_container_config = dict(
                 image="minio/minio:" + container_config.image_tag,
                 name=container_config.name,
                 environment=dict(
@@ -236,16 +236,20 @@ def process_container_config(database_config_cls, minio_config_cls):
             )
         else:
             raise ValueError
-        return container_config
+        return {
+            "docker_client": docker_client,
+            "container_config": processed_container_config,
+            "max_retries": container_config.health_check.max_retries,
+            "interval": container_config.health_check.interval,
+            "remove": container_config.remove,
+        }
 
-    return _process_container_config
+    return _get_runner_kwargs
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(src_db_config, process_container_config, docker_client, outbound_schema_name):
-    with ContainerRunner(docker_client, process_container_config(src_db_config)), mysql_conn(
-        src_db_config
-    ) as connection:
+def src_db(src_db_config, get_runner_kwargs, outbound_schema_name):
+    with ContainerRunner(**get_runner_kwargs(src_db_config)), mysql_conn(src_db_config) as connection:
         with connection.cursor() as cursor:
             for user in src_db_config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
@@ -266,10 +270,8 @@ def src_db(src_db_config, process_container_config, docker_client, outbound_sche
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(local_db_config, process_container_config, docker_client):
-    with ContainerRunner(docker_client, process_container_config(local_db_config)), mysql_conn(
-        local_db_config
-    ) as connection:
+def local_db(local_db_config, get_runner_kwargs):
+    with ContainerRunner(**get_runner_kwargs(local_db_config)), mysql_conn(local_db_config) as connection:
         with connection.cursor() as cursor:
             for user in local_db_config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' " f"IDENTIFIED BY '{user.password}';")
@@ -297,14 +299,14 @@ def mysql_conn(db_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio(src_minio_config, process_container_config, docker_client):
-    with ContainerRunner(docker_client, process_container_config(src_minio_config)):
+def src_minio(src_minio_config, get_runner_kwargs):
+    with ContainerRunner(**get_runner_kwargs(src_minio_config)):
         yield
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio(local_minio_config, process_container_config, docker_client):
-    with ContainerRunner(docker_client, process_container_config(local_minio_config)):
+def local_minio(local_minio_config, get_runner_kwargs):
+    with ContainerRunner(**get_runner_kwargs(local_minio_config)):
         yield
 
 
