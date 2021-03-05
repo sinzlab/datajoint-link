@@ -21,4 +21,4 @@ jobs:
     - name: Check code with pylint
       run: docker run dj-link pylint dj_link
     - name: Check code with mypy
-      run: docker run dj-link mypy dj-link
+      run: docker run dj-link mypy dj_link
