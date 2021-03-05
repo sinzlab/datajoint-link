@@ -17,7 +17,7 @@ _REPO_NAMES = ("source", "outbound", "local")
 
 def _initialize():
     factories = {n: TableFactory() for n in _REPO_NAMES}
-    Link._table_cls_factories = factories
+    Link.table_cls_factories = factories
     temp_dir = ReusableTemporaryDirectory("link_")
     facades = {n: TableFacade(factories[n], temp_dir) for n in _REPO_NAMES}
     translators = {n: IdentificationTranslator(facades[n]) for n in _REPO_NAMES}
@@ -29,7 +29,7 @@ def _initialize():
 
 def _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model):
 
-    LocalTableMixin._controller = Controller(
+    LocalTableMixin.controller = Controller(
         initialize_use_cases(
             DataJointGatewayLink(**{n: gateways[n] for n in _REPO_NAMES}),
             dict(
@@ -41,9 +41,9 @@ def _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_
         REQUEST_MODELS,
         gateways,
     )
-    LocalTableMixin._temp_dir = temp_dir
-    LocalTableMixin._source_table_factory = factories["source"]
-    LocalTableMixin._printer = Printer(view_model)
+    LocalTableMixin.temp_dir = temp_dir
+    LocalTableMixin.source_table_factory = factories["source"]
+    LocalTableMixin.printer = Printer(view_model)
 
 
 _initialize()

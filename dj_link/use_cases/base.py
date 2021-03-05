@@ -10,14 +10,14 @@ if TYPE_CHECKING:
     from . import RepositoryLink, RepositoryLinkFactory
 
 
-class AbstractRequestModel(ABC):
+class AbstractRequestModel(ABC):  # pylint: disable=too-few-public-methods
     """ABC for request models."""
 
 
 RequestModel = TypeVar("RequestModel", bound=AbstractRequestModel)
 
 
-class AbstractResponseModel(ABC):
+class AbstractResponseModel(ABC):  # pylint: disable=too-few-public-methods
     """ABC for response models."""
 
 

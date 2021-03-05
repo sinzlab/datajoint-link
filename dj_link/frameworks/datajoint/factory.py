@@ -12,7 +12,7 @@ from .dj_helpers import get_part_table_classes
 
 
 @dataclass
-class TableFactoryConfig:
+class TableFactoryConfig:  # pylint: disable=too-many-instance-attributes
     """Configuration used by the table factory to spawn/create tables."""
 
     schema: Schema

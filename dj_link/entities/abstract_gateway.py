@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Generic, List, TypeVar
 
 
-class AbstractEntityDTO(ABC):
+class AbstractEntityDTO(ABC):  # pylint: disable=too-few-public-methods
     """Defines the interface of the data transfer object containing an entity's data."""
 
     @abstractmethod

@@ -91,10 +91,10 @@ def link(
     dummy_base_table_cls,
 ):
     link = Link(local_schema_stub, source_schema_stub, stores=stores)
-    link._table_cls_factories = table_cls_factory_spies
-    link._schema_cls = schema_cls_spy
-    link._replace_stores_func = replace_stores_spy
-    link._base_table_cls = dummy_base_table_cls
+    link.table_cls_factories = table_cls_factory_spies
+    link.schema_cls = schema_cls_spy
+    link.replace_stores_func = replace_stores_spy
+    link.base_table_cls = dummy_base_table_cls
     return link
 
 
@@ -113,15 +113,15 @@ def test_if_link_is_subclass_of_base():
 
 
 def test_if_schema_class_class_attribute_is_datajoint_schema_class():
-    assert Link._schema_cls is Schema
+    assert Link.schema_cls is Schema
 
 
 def test_if_replace_stores_func_class_attribute_is_replace_stores():
-    assert Link._replace_stores_func is replace_stores
+    assert Link.replace_stores_func is replace_stores
 
 
 def test_if_base_table_class_is_lookup_table():
-    assert Link._base_table_cls is Lookup
+    assert Link.base_table_cls is Lookup
 
 
 class TestInit:

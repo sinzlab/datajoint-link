@@ -2,7 +2,7 @@
 from inspect import signature
 
 
-class Base:
+class Base:  # pylint: disable=too-few-public-methods
     """Mixin used to add a basic __repr__ method to other classes."""
 
     def __repr__(self) -> str:
