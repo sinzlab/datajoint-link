@@ -10,7 +10,7 @@ from docker.models.containers import Container
 class ContainerRunner(AbstractContextManager):
     """Context manager for running Docker containers."""
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         docker_client: DockerClient,
         container_config: Mapping[str, Any],
@@ -20,7 +20,7 @@ class ContainerRunner(AbstractContextManager):
     ) -> None:
         """Initialize ContainerRunner.
 
-        The "detach" key must be either omitted from the container configuration or its value must be 'True'.
+        The "detach" key must be either omitted from the container configuration or its value must be "True".
         """
         self.docker_client = docker_client
         self.container_config = self._process_container_config(container_config)
@@ -39,7 +39,7 @@ class ContainerRunner(AbstractContextManager):
     def container(self):
         """Return the container if present, otherwise raise an error."""
         if self._container is None:
-            raise RuntimeError()
+            raise RuntimeError("Container not running")
         return self._container
 
     @container.setter
@@ -77,5 +77,13 @@ class ContainerRunner(AbstractContextManager):
     def _abort(self) -> None:
         self.container.stop()
         raise RuntimeError(
-            f"Container '{self.container.name}' not healthy " f"after max number ({self.max_retries}) of retries"
+            f"Container '{self.container.name}' not healthy after max number ({self.max_retries}) of retries"
+        )
+
+    def __repr__(self) -> str:
+        """Return a string representation of the object."""
+        return (
+            f"{self.__class__.__name__}(docker_client={self.docker_client}, "
+            f"container_config={self.container_config}, max_retries={self.max_retries}, "
+            f"interval={self.interval}, remove={self.remove})"
         )
