@@ -12,7 +12,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
       - name: Build image
-        run: docker build -t dj-link .
+        run: docker build --no-cache -t dj-link .
       - name: Build distribution artifacts
         run: docker run -v "$PWD/dist:/src/datajoint-link/dist" --entrypoint pdm dj-link build
       - name: Upload distribution packages to PyPI
