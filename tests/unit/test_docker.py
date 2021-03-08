@@ -62,20 +62,13 @@ def test_if_value_error_is_raised_if_detach_is_false(docker_client_spy, containe
         ContainerRunner(docker_client_spy, container_config)
 
 
-def test_if_max_retries_is_stored_as_instance_attribute(container_runner):
-    assert container_runner(max_retries=120).max_retries == 120
+def test_if_health_check_config_is_stored_as_instance_attribute(container_runner):
+    health_check_config = {"max_retries": 40, "interval": 2}
+    assert container_runner(health_check_config=health_check_config).health_check_config == health_check_config
 
 
-def test_if_max_retries_is_60_by_default(container_runner):
-    assert container_runner().max_retries == 60
-
-
-def test_if_interval_is_stored_as_instance_attribute(container_runner):
-    assert container_runner(interval=2).interval == 2
-
-
-def test_if_interval_is_1_by_default(container_runner):
-    assert container_runner().interval == 1
+def test_if_default_health_check_config_is_used_if_health_check_config_not_provided(container_runner):
+    assert container_runner().health_check_config == ContainerRunner.default_health_check_config
 
 
 def test_if_remove_is_stored_as_instance_attribute(container_runner):
@@ -97,46 +90,46 @@ def test_if_container_is_stored_as_instance_attribute(container_runner):
 
 
 def test_if_run_method_of_docker_client_is_called_correctly(docker_client_spy, container_runner):
-    with container_runner(interval=0):
+    with container_runner(health_check_config={"interval": 0}):
         docker_client_spy.containers.run.assert_called_once_with(image="my-image")
 
 
 def test_if_reload_method_of_container_is_called_correctly(container_spy, container_runner):
-    with container_runner(interval=0):
+    with container_runner(health_check_config={"interval": 0}):
         assert container_spy.reload.call_args_list == [call()] * 6
 
 
 def test_if_container_is_stopped_if_not_healthy_after_max_retries(container_runner, container_spy):
     with pytest.raises(RuntimeError):
-        with container_runner(max_retries=5, interval=0):
+        with container_runner(health_check_config={"max_retries": 5, "interval": 0}):
             container_spy.stop.assert_called_once_with()
 
 
 def test_if_runtime_error_is_raised_if_not_healthy_after_max_retries(container_runner, container_spy):
     with pytest.raises(RuntimeError) as exc_info:
-        with container_runner(max_retries=5, interval=0):
+        with container_runner(health_check_config={"max_retries": 5, "interval": 0}):
             assert exc_info.value.args[0] == "Container 'container' not healthy after max number (2) of retries"
 
 
 def test_if_container_is_returned(container_runner, container_spy):
-    with container_runner(interval=0) as returned:
+    with container_runner(health_check_config={"interval": 0}) as returned:
         assert returned is container_spy
 
 
 def test_if_container_is_stopped(container_runner, container_spy):
-    with container_runner(interval=0):
+    with container_runner(health_check_config={"interval": 0}):
         pass
     container_spy.stop.assert_called_once_with()
 
 
 def test_if_container_is_removed_if_remove_is_true(container_runner, container_spy):
-    with container_runner(interval=0, remove=True):
+    with container_runner(health_check_config={"interval": 0}, remove=True):
         pass
     container_spy.remove.assert_called_once_with(v=True)
 
 
 def test_if_container_is_not_removed_if_remove_is_false(container_runner, container_spy):
-    with container_runner(interval=0, remove=False):
+    with container_runner(health_check_config={"interval": 0}, remove=False):
         pass
     container_spy.remove.assert_not_called()
 
@@ -144,5 +137,5 @@ def test_if_container_is_not_removed_if_remove_is_false(container_runner, contai
 def test_repr(container_runner, docker_client_spy, container_config):
     assert repr(container_runner()) == (
         f"ContainerRunner(docker_client={docker_client_spy}, container_config={container_config}, "
-        f"max_retries=60, interval=1, remove=True)"
+        "health_check_config={'max_retries': 60, 'interval': 1.0}, remove=True)"
     )

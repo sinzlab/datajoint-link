@@ -1,21 +1,29 @@
 """Contains a context manager for running Docker containers."""
 import time
 from contextlib import AbstractContextManager
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, TypedDict
 
 from docker import DockerClient
 from docker.models.containers import Container
 
 
+class HealthCheckConfig(TypedDict):
+    """Health check configuration for ContainerRunner."""
+
+    max_retries: int
+    interval: float
+
+
 class ContainerRunner(AbstractContextManager):
     """Context manager for running Docker containers."""
 
-    def __init__(  # pylint: disable=too-many-arguments
+    default_health_check_config: HealthCheckConfig = {"max_retries": 60, "interval": 1.0}
+
+    def __init__(
         self,
         docker_client: DockerClient,
         container_config: Mapping[str, Any],
-        max_retries: int = 60,
-        interval: int = 1,
+        health_check_config: Optional[HealthCheckConfig] = None,
         remove: bool = True,
     ) -> None:
         """Initialize ContainerRunner.
@@ -24,8 +32,7 @@ class ContainerRunner(AbstractContextManager):
         """
         self.docker_client = docker_client
         self.container_config = self._process_container_config(container_config)
-        self.max_retries = max_retries
-        self.interval = interval
+        self.health_check_config = self._process_health_check_config(health_check_config)
         self.remove = remove
         self._container: Optional[Container] = None
 
@@ -34,6 +41,11 @@ class ContainerRunner(AbstractContextManager):
         if not container_config.get("detach", True):
             raise ValueError("'detach' must be 'True' or omitted")
         return dict(container_config)
+
+    def _process_health_check_config(self, health_check_config: Optional[HealthCheckConfig]):
+        if health_check_config is None:
+            return self.default_health_check_config
+        return {**self.default_health_check_config, **health_check_config}
 
     @property
     def container(self):
@@ -62,10 +74,10 @@ class ContainerRunner(AbstractContextManager):
         self.container = self.docker_client.containers.run(**self.container_config)
 
     def _wait_until_healthy(self) -> None:
-        for _ in range(self.max_retries):
+        for _ in range(self.health_check_config["max_retries"]):
             if self._is_healthy:
                 break
-            time.sleep(self.interval)
+            time.sleep(self.health_check_config["interval"])
         else:
             self._abort()
 
@@ -77,13 +89,16 @@ class ContainerRunner(AbstractContextManager):
     def _abort(self) -> None:
         self.container.stop()
         raise RuntimeError(
-            f"Container '{self.container.name}' not healthy after max number ({self.max_retries}) of retries"
+            (
+                f"Container '{self.container.name}' not healthy after max number "
+                f"({self.health_check_config['max_retries']}) of retries"
+            )
         )
 
     def __repr__(self) -> str:
         """Return a string representation of the object."""
         return (
             f"{self.__class__.__name__}(docker_client={self.docker_client}, "
-            f"container_config={self.container_config}, max_retries={self.max_retries}, "
-            f"interval={self.interval}, remove={self.remove})"
+            f"container_config={self.container_config}, health_check_config={self.health_check_config}, "
+            f"remove={self.remove})"
         )
