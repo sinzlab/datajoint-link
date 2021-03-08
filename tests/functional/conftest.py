@@ -14,7 +14,7 @@ import pytest
 from minio.deleteobjects import DeleteObject
 
 from dj_link import LazySchema, Link
-from dj_link.container_runner import ContainerRunner
+from dj_link.docker import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
 
