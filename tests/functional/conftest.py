@@ -11,10 +11,10 @@ import docker
 import minio
 import pymysql
 import pytest
-from container_runner import ContainerRunner
 from minio.deleteobjects import DeleteObject
 
 from dj_link import LazySchema, Link
+from dj_link.container_runner import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
 
