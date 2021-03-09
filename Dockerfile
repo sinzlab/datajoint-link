@@ -3,6 +3,7 @@ FROM ubuntu:18.04
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
+    graphviz \
     python3.8 \
     python3.8-dev \
     python3.8-distutils \
