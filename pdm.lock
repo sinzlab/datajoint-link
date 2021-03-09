@@ -144,6 +144,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "gprof2dot"
+sections = ["dev"]
+version = "2021.2.21"
+summary = "Generate a dot graph from the output of several profilers."
+
+[[package]]
 name = "idna"
 sections = ["dev"]
 version = "2.10"
@@ -575,7 +581,7 @@ summary = "Module for decorators, wrappers and monkey patching."
 
 [metadata]
 lock_version = "2"
-content_hash = "sha256:dd94c48eaa360ecfafe0b2a5c0bbb78d0706642e5ba63de58a1a5f4601e42225"
+content_hash = "sha256:79528b098d4f3f6d6f4eff2537232d48fbeb4b06ef2fcab9fab7509b60ba764a"
 
 [metadata.files]
 "appdirs 1.4.4" = [
@@ -694,6 +700,9 @@ content_hash = "sha256:dd94c48eaa360ecfafe0b2a5c0bbb78d0706642e5ba63de58a1a5f460
 "flake8 3.8.4" = [
     {file = "flake8-3.8.4-py2.py3-none-any.whl", hash = "sha256:749dbbd6bfd0cf1318af27bf97a14e28e5ff548ef8e5b1566ccfb25a11e7c839"},
     {file = "flake8-3.8.4.tar.gz", hash = "sha256:aadae8761ec651813c24be05c6f7b4680857ef6afaae4651a4eccaef97ce6c3b"},
+]
+"gprof2dot 2021.2.21" = [
+    {file = "gprof2dot-2021.2.21.tar.gz", hash = "sha256:1223189383b53dcc8ecfd45787ac48c0ed7b4dbc16ee8b88695d053eea1acabf"},
 ]
 "idna 2.10" = [
     {file = "idna-2.10-py2.py3-none-any.whl", hash = "sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0"},
