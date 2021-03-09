@@ -239,8 +239,10 @@ def get_runner_kwargs(database_config_cls, minio_config_cls, docker_client):
         return {
             "docker_client": docker_client,
             "container_config": processed_container_config,
-            "max_retries": container_config.health_check.max_retries,
-            "interval": container_config.health_check.interval,
+            "health_check_config": {
+                "max_retries": container_config.health_check.max_retries,
+                "interval": container_config.health_check.interval,
+            },
             "remove": container_config.remove,
         }
 
