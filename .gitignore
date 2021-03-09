@@ -147,3 +147,4 @@ data/
 temp/
 .vscode/
 .pdm.toml
+profiling/stats
