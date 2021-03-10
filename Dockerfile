@@ -15,5 +15,7 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
 RUN python3.8 -m pip install pdm==1.3.4
 WORKDIR /src/datajoint-link
 COPY . .
+# Fix for https://github.com/actions/virtual-environments/issues/2803
+ENV LD_PRELOAD=/lib/x86_64-linux-gnu/libgcc_s.so.1
 RUN pdm install -v --dev
 ENTRYPOINT [ "pdm", "run" ]
