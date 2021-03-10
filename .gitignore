@@ -148,3 +148,4 @@ temp/
 .vscode/
 .pdm.toml
 profiling/stats
+profiling/figs
