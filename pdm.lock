@@ -145,7 +145,7 @@ dependencies = [
 
 [[package]]
 name = "gprof2dot"
-sections = ["dev"]
+sections = ["profiling"]
 version = "2021.2.21"
 summary = "Generate a dot graph from the output of several profilers."
 
@@ -581,7 +581,7 @@ summary = "Module for decorators, wrappers and monkey patching."
 
 [metadata]
 lock_version = "2"
-content_hash = "sha256:79528b098d4f3f6d6f4eff2537232d48fbeb4b06ef2fcab9fab7509b60ba764a"
+content_hash = "sha256:900df8c84380e1e75051d5df48fb81f6bf297f569f8412dc4ced70c00c4f3a91"
 
 [metadata.files]
 "appdirs 1.4.4" = [
