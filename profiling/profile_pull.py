@@ -1,7 +1,6 @@
 import cProfile
 import os
 import sys
-from datetime import datetime
 from subprocess import PIPE, Popen
 
 import datajoint as dj
@@ -19,8 +18,11 @@ LINK_USER_PASSWORD = "password"
 OUTBOUND_SCHEMA_NAME = "outbound"
 SRC_SCHEMA_NAME = "src"
 LOCAL_SCHEMA_NAME = "local"
-ENTRY_COUNT = int(sys.argv[2])
-PRIMARY_KEY_COUNT = int(sys.argv[3])
+ENTRY_COUNT = int(sys.argv[1])
+PRIMARY_KEY_COUNT = int(sys.argv[2])
+PULL_COUNT = int(sys.argv[3])
+
+assert PULL_COUNT <= ENTRY_COUNT
 
 common_db_config = {
     "image": "datajoint/mysql:latest",
@@ -78,9 +80,11 @@ with ContainerRunner(docker_client, src_db_config), ContainerRunner(docker_clien
     class Table:
         pass
 
-    filename = f"pull_{ENTRY_COUNT}_{PRIMARY_KEY_COUNT}_{datetime.now().strftime('%Y%m%d_%H-%M-%S')}"
-    filepath = os.path.join(sys.argv[1], filename)
-    cProfile.run("Table().pull()", filepath + ".pstats")
+    filename = f"pull_{ENTRY_COUNT}_{PRIMARY_KEY_COUNT}_{PULL_COUNT}"
+    filepath = os.path.join("profiling/stats", filename)
+    keys = Table().source.fetch("KEY")
+    restriction = keys[:PULL_COUNT]
+    cProfile.run("Table().pull(restriction)", filepath + ".pstats")
     gprof2dot = Popen(["gprof2dot", "-f", "pstats", filepath + ".pstats"], stdout=PIPE)
     dot = Popen(["dot", "-Tpng", "-o", filepath + ".png"], stdin=gprof2dot.stdout, stdout=PIPE)
     gprof2dot.stdout.close()
