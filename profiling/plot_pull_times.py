@@ -4,10 +4,10 @@ import sys
 
 import matplotlib.pyplot as plt
 
-PRIMARY_KEY_COUNT = int(sys.argv[1])
-PULL_COUNT = int(sys.argv[2])
+PRIMARY_KEY_COUNT = int(sys.argv[2])
+PULL_COUNT = int(sys.argv[3])
 
-path = "profiling/stats"
+path = os.path.join("profiling", "stats", sys.argv[1])
 
 entry_counts, times = [], []
 for filename in os.listdir(path):
@@ -28,4 +28,4 @@ plt.yscale("log")
 plt.xlabel("# entries in source table")
 plt.ylabel("pull time [s]")
 plt.title(f"Pull Times (primary key count: {PRIMARY_KEY_COUNT}, pull count: {PULL_COUNT})")
-plt.savefig(f"profiling/figs/pull_times_{PRIMARY_KEY_COUNT}_{PULL_COUNT}.png")
+plt.savefig(os.path.join("profiling", "figs", f"pull_times_{sys.argv[1]}_{PRIMARY_KEY_COUNT}_{PULL_COUNT}.png"))
