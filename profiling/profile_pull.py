@@ -18,9 +18,9 @@ LINK_USER_PASSWORD = "password"
 OUTBOUND_SCHEMA_NAME = "outbound"
 SRC_SCHEMA_NAME = "src"
 LOCAL_SCHEMA_NAME = "local"
-ENTRY_COUNT = int(sys.argv[1])
-PRIMARY_KEY_COUNT = int(sys.argv[2])
-PULL_COUNT = int(sys.argv[3])
+ENTRY_COUNT = int(sys.argv[2])
+PRIMARY_KEY_COUNT = int(sys.argv[3])
+PULL_COUNT = int(sys.argv[4])
 
 assert PULL_COUNT <= ENTRY_COUNT
 
@@ -81,7 +81,7 @@ with ContainerRunner(docker_client, src_db_config), ContainerRunner(docker_clien
         pass
 
     filename = f"pull_{ENTRY_COUNT}_{PRIMARY_KEY_COUNT}_{PULL_COUNT}"
-    filepath = os.path.join("profiling/stats", filename)
+    filepath = os.path.join("profiling", "stats", sys.argv[1], filename)
     keys = Table().source.fetch("KEY")
     restriction = keys[:PULL_COUNT]
     cProfile.run("Table().pull(restriction)", filepath + ".pstats")
