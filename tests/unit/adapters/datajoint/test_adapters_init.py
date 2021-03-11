@@ -53,6 +53,3 @@ class TestInitialize:
 
     def test_if_translators_of_gateways_are_identification_translators(self, kind, gateway_link):
         assert isinstance(getattr(gateway_link, kind).translator, IdentificationTranslator)
-
-    def test_if_translators_are_associated_with_correct_table_facade(self, kind, gateway_link, table_facade_link_stub):
-        assert getattr(gateway_link, kind).translator.table_facade is getattr(table_facade_link_stub, kind)

@@ -20,7 +20,7 @@ def _initialize():
     Link.table_cls_factories = factories
     temp_dir = ReusableTemporaryDirectory("link_")
     facades = {n: TableFacade(factories[n], temp_dir) for n in _REPO_NAMES}
-    translators = {n: IdentificationTranslator(facades[n]) for n in _REPO_NAMES}
+    translators = {n: IdentificationTranslator() for n in _REPO_NAMES}
     gateways = {n: DataJointGateway(facades[n], translators[n]) for n in _REPO_NAMES}
     view_model = ViewModel()
     presenter = Presenter(translators, view_model)
