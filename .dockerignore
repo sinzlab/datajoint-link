@@ -1,8 +1,4 @@
-**/.dockerignore
-**/.gitignore
 **/.vscode
-**/docker-compose*
-**/Dockerfile*
 .pdm.toml
 __pypackages__
 dist/
