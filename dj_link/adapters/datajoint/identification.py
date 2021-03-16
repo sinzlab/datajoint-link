@@ -16,7 +16,7 @@ class IdentificationTranslator(Base):
 
     def to_identifier(self, primary_key: PrimaryKey) -> str:
         """Translate the provided primary key to its corresponding identifier."""
-        identifier = hashlib.sha1(json.dumps(primary_key, sort_keys=True).encode()).hexdigest()
+        identifier = hashlib.blake2b(json.dumps(primary_key, sort_keys=True).encode()).hexdigest()
         self._identifier_to_primary_key_mapping[identifier] = primary_key
         return identifier
 
