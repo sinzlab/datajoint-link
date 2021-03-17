@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict, Iterator, List
 
 from ...custom_types import PrimaryKey
 
@@ -57,3 +57,11 @@ class AbstractTableFacade(ABC):
     @abstractmethod
     def cancel_transaction(self) -> None:
         """Cancel a transaction."""
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Return the number of entities in the table."""
+
+    @abstractmethod
+    def __iter__(self) -> Iterator[PrimaryKey]:
+        """Iterate over all primary keys in the table."""

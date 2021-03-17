@@ -1,6 +1,6 @@
 """Contains the DataJoint table facade."""
 from itertools import chain
-from typing import Dict, List
+from typing import Dict, Iterator, List
 
 from ...adapters.datajoint.abstract_facade import AbstractTableFacade
 from ...adapters.datajoint.gateway import EntityDTO
@@ -73,3 +73,11 @@ class TableFacade(AbstractTableFacade, Base):
     def cancel_transaction(self) -> None:
         """Cancel a transaction."""
         self.table_factory().connection.cancel_transaction()
+
+    def __len__(self) -> int:
+        """Return the number of entities in the corresponding table."""
+        return len(self.table_factory())
+
+    def __iter__(self) -> Iterator[PrimaryKey]:
+        """Iterate over all primary keys in the corresponding table."""
+        return iter(self.table_factory())

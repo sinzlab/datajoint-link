@@ -51,6 +51,8 @@ def table_spy(primary_key_names, flag_table_spies, master_entity):
     table_spy.proj.return_value.fetch.return_value = "primary_keys"
     table_spy.proj.return_value.__and__.return_value.fetch.return_value = "primary_keys_in_restriction"
     table_spy.__and__.return_value.fetch1.return_value = master_entity
+    table_spy.__len__.return_value = 1
+    table_spy.__iter__.return_value = "table_iterator"
     for name, flag_table_spy in flag_table_spies.items():
         setattr(table_spy, name, flag_table_spy)
     return table_spy
@@ -316,3 +318,29 @@ class TestTransaction:
 
     def test_if_transaction_related_method_is_executed_in_connection(self, table_spy, method_name):
         getattr(table_spy.connection, method_name).assert_called_once_with()
+
+
+class TestLen:
+    def test_if_call_to_table_factory_is_correct(self, table_facade, table_factory_spy):
+        len(table_facade)
+        table_factory_spy.assert_called_once_with()
+
+    def test_if_call_to_len_method_of_table_is_correct(self, table_facade, table_spy):
+        len(table_facade)
+        table_spy.__len__.assert_called_once_with()
+
+    def test_if_returned_length_is_correct(self, table_facade):
+        assert len(table_facade) == 1
+
+
+class TestIter:
+    def test_if_call_to_table_factory_is_correct(self, table_facade, table_factory_spy):
+        iter(table_facade)
+        table_factory_spy.assert_called_once_with()
+
+    def test_if_call_to_iter_method_of_table_is_correct(self, table_facade, table_spy):
+        iter(table_facade)
+        table_spy.__iter__.assert_called_once_with()
+
+    def test_if_correct_value_is_returned(self, table_facade):
+        assert list(iter(table_facade)) == list(iter("table_iterator"))
