@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from itertools import tee
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterator, List
 
 from ...base import Base
 from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
@@ -100,3 +100,12 @@ class DataJointGateway(AbstractGateway[EntityDTO], Base):  # pylint: disable=uns
     def _to_flag_table_name(flag_name: str) -> str:
         """Translate the provided flag name to the corresponding flag table name."""
         return "".join(part.title() for part in flag_name.split("_"))
+
+    def __len__(self) -> int:
+        """Return the number of entities in the corresponding table."""
+        return len(self.table_facade)
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over all identifiers in the table."""
+        for primary_key in self.table_facade:
+            yield self.translator.to_identifier(primary_key)

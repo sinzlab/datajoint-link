@@ -52,6 +52,8 @@ def table_facade_spy(primary_keys, flags, entity_dto):
     table_facade_spy.get_primary_keys_in_restriction.return_value = primary_keys
     table_facade_spy.get_flags.return_value = flags
     table_facade_spy.fetch.return_value = entity_dto
+    table_facade_spy.__len__.return_value = 1
+    table_facade_spy.__iter__.return_value = primary_keys
     return table_facade_spy
 
 
@@ -196,3 +198,25 @@ def test_if_transaction_is_committed_in_proxy(gateway, table_facade_spy):
 def test_if_transaction_is_cancelled_in_proxy(gateway, table_facade_spy):
     gateway.cancel_transaction()
     table_facade_spy.cancel_transaction.assert_called_once_with()
+
+
+class TestLen:
+    def test_if_len_method_of_table_facade_is_called_correctly(self, gateway, table_facade_spy):
+        len(gateway)
+        table_facade_spy.__len__.assert_called_once_with()
+
+    def test_if_correct_length_is_returned(self, gateway):
+        assert len(gateway) == 1
+
+
+class TestIter:
+    def test_it_iter_method_of_table_facade_is_called_correctly(self, gateway, table_facade_spy):
+        list(iter(gateway))
+        table_facade_spy.__iter__.assert_called_once_with()
+
+    def test_if_calls_to_to_identifier_method_of_translator_are_correct(self, gateway, translator_spy, primary_keys):
+        list(iter(gateway))
+        assert translator_spy.to_identifier.call_args_list == [call(p) for p in primary_keys]
+
+    def test_if_correct_identifiers_are_returned(self, gateway, identifiers):
+        assert list(iter(gateway)) == identifiers

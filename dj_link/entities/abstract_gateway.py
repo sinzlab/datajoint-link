@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, List, TypeVar
+from typing import Dict, Generic, Iterator, List, TypeVar
 
 
 class AbstractEntityDTO(ABC):  # pylint: disable=too-few-public-methods
@@ -55,3 +55,11 @@ class AbstractGateway(ABC, Generic[EntityDTO]):
     @abstractmethod
     def cancel_transaction(self) -> None:
         """Cancel a transaction."""
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Return the number of entities in the gateway."""
+
+    @abstractmethod
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over all identifiers in the table."""
