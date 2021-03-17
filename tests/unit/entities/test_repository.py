@@ -8,7 +8,7 @@ from dj_link.base import Base
 from dj_link.entities.abstract_gateway import AbstractEntityDTO
 from dj_link.entities.contents import Contents
 from dj_link.entities.flag_manager import FlagManagerFactory
-from dj_link.entities.repository import Entity, Repository, RepositoryFactory, TransferEntity
+from dj_link.entities.repository import Entity, EntityFactory, Repository, RepositoryFactory, TransferEntity
 from dj_link.entities.transaction_manager import TransactionManager
 
 
@@ -61,6 +61,25 @@ class TestTransferEntity:
         assert transfer_entity.create_identifier_only_copy() == TransferEntity(
             identifier, flags, entity_dto_spy.create_identifier_only_copy.return_value
         )
+
+
+class TestEntityFactory:
+    @pytest.fixture
+    def factory(self, gateway_spy):
+        return EntityFactory(gateway_spy)
+
+    def test_if_subclass_of_base(self):
+        assert issubclass(EntityFactory, Base)
+
+    def test_if_gateway_is_stored_as_instance_attribute(self, factory, gateway_spy):
+        assert factory.gateway is gateway_spy
+
+    def test_if_flags_are_retrieved_from_gateway(self, identifier, factory, gateway_spy):
+        _ = factory(identifier)
+        gateway_spy.get_flags.assert_called_once_with(identifier)
+
+    def test_if_correct_entity_is_returned(self, factory, identifier, flags):
+        assert factory(identifier) == Entity(identifier, flags[identifier])
 
 
 class TestRepository:

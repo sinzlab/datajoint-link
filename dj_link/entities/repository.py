@@ -40,6 +40,18 @@ class TransferEntity(Entity):
         return self.__class__(self.identifier, self.flags, self.data.create_identifier_only_copy())
 
 
+class EntityFactory(Base):  # pylint: disable=too-few-public-methods
+    """Factory that produces entities."""
+
+    def __init__(self, gateway: AbstractGateway) -> None:
+        """Initialize the entity factory."""
+        self.gateway = gateway
+
+    def __call__(self, identifier: str) -> Entity:
+        """Create an entity based on the provided identifier."""
+        return Entity(identifier, self.gateway.get_flags(identifier))
+
+
 class Repository(MutableMapping, Base):  # pylint: disable=too-many-ancestors
     """Repository containing entities."""
 
