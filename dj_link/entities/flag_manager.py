@@ -2,35 +2,35 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
-from typing import TYPE_CHECKING, Dict, Iterator
+from typing import TYPE_CHECKING, Iterator
 
 from ..base import Base
 from .abstract_gateway import AbstractGateway
 
 if TYPE_CHECKING:
-    from .repository import Entity
+    from .repository import Entity, EntityFactory
 
 
 class FlagManagerFactory(Mapping, Base):
     """Factory producing flag managers."""
 
-    def __init__(self, entities: Dict[str, Entity], gateway: AbstractGateway) -> None:
+    def __init__(self, gateway: AbstractGateway, entity_factory: EntityFactory) -> None:
         """Initialize the flag manager factory."""
-        self.entities = entities
         self.gateway = gateway
+        self.entity_factory = entity_factory
 
     def __getitem__(self, identifier: str) -> FlagManager:
         """Get the entity flags manager corresponding to the entity identified by the provided identifier."""
-        return FlagManager(self.entities[identifier], self.gateway)
+        return FlagManager(self.entity_factory(identifier), self.gateway)
 
     def __iter__(self) -> Iterator[FlagManager]:
         """Iterate over flag managers."""
-        for entity in self.entities.values():
-            yield FlagManager(entity, self.gateway)
+        for identifier in self.gateway:
+            yield FlagManager(self.entity_factory(identifier), self.gateway)
 
     def __len__(self) -> int:
         """Return the number of entities associated with the factory."""
-        return len(self.entities)
+        return len(self.gateway)
 
 
 class FlagManager(MutableMapping, Base):  # pylint: disable=too-many-ancestors

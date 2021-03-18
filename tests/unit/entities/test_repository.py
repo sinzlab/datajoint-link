@@ -192,18 +192,15 @@ class TestRepositoryFactory:
     def test_if_flag_manager_factory_is_assigned_to_flags_attribute_of_returned_repository(self, factory):
         assert isinstance(factory().flags, FlagManagerFactory)
 
+    def test_if_same_entity_factory_instance_is_assigned_to_flag_manager_factory(self, factory):
+        repo = factory()
+        assert repo.flags.entity_factory is repo.contents.entity_factory
+
     def test_if_gateway_of_flag_manager_factory_is_correct(self, factory, gateway_spy):
         assert factory().flags.gateway is gateway_spy
 
     def test_if_transaction_manager_is_assigned_to_transaction_attribute_of_returned_repository(self, factory):
         assert isinstance(factory().transaction_manager, TransactionManager)
-
-    def test_if_entities_associated_with_flag_manager_and_transaction_manager_are_identical(self, factory):
-        repo = factory()
-        assert all(
-            entity is repo.transaction_manager.entities[identifier]
-            for identifier, entity in repo.flags.entities.items()
-        )
 
     def test_if_gateway_of_transaction_manager_is_correct(self, factory, gateway_spy):
         assert factory().transaction_manager.gateway is gateway_spy

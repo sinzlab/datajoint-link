@@ -99,8 +99,9 @@ class RepositoryFactory(Base):  # pylint: disable=too-few-public-methods
             identifier: Entity(identifier, self.gateway.get_flags(identifier))
             for identifier in self.gateway.identifiers
         }
+        entity_factory = EntityFactory(self.gateway)
         return Repository(
-            contents=Contents(self.gateway, EntityFactory(self.gateway)),
-            flags=FlagManagerFactory(entities, self.gateway),
+            contents=Contents(self.gateway, entity_factory),
+            flags=FlagManagerFactory(self.gateway, entity_factory),
             transaction_manager=TransactionManager(entities, self.gateway),
         )
