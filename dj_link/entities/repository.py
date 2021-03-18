@@ -100,7 +100,7 @@ class RepositoryFactory(Base):  # pylint: disable=too-few-public-methods
             for identifier in self.gateway.identifiers
         }
         return Repository(
-            contents=Contents(entities, self.gateway),
+            contents=Contents(self.gateway, EntityFactory(self.gateway)),
             flags=FlagManagerFactory(entities, self.gateway),
             transaction_manager=TransactionManager(entities, self.gateway),
         )

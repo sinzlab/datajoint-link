@@ -32,6 +32,7 @@ def gateway_link_spy(processed_config):
     spy = create_autospec(AbstractGatewayLink, instance=True)
     for repo_name, identifiers in processed_config["identifiers"].items():
         getattr(spy, repo_name).identifiers = identifiers
+        getattr(spy, repo_name).__iter__.return_value = iter(identifiers)
 
     def make_get_flags(flags):
         def get_flags(identifier):

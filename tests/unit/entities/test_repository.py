@@ -180,18 +180,17 @@ class TestRepositoryFactory:
     def test_if_contents_is_assigned_to_contents_attribute_of_returned_repository(self, factory):
         assert isinstance(factory().contents, Contents)
 
-    def test_if_entities_associated_with_contents_are_correct(self, factory, entities):
-        assert factory().contents.entities == entities
-
     def test_if_gateway_of_contents_is_correct(self, factory, gateway_spy):
         assert factory().contents.gateway is gateway_spy
 
+    def test_if_entity_factory_instance_is_assigned_to_contents(self, factory):
+        assert isinstance(factory().contents.entity_factory, EntityFactory)
+
+    def test_if_gateway_of_entity_factory_of_contents_is_correct(self, factory, gateway_spy):
+        assert factory().contents.entity_factory.gateway is gateway_spy
+
     def test_if_flag_manager_factory_is_assigned_to_flags_attribute_of_returned_repository(self, factory):
         assert isinstance(factory().flags, FlagManagerFactory)
-
-    def test_if_entities_associated_with_contents_and_flag_manager_factory_are_identical(self, factory):
-        repo = factory()
-        assert all(entity is repo.flags.entities[identifier] for identifier, entity in repo.contents.entities.items())
 
     def test_if_gateway_of_flag_manager_factory_is_correct(self, factory, gateway_spy):
         assert factory().flags.gateway is gateway_spy
@@ -199,11 +198,11 @@ class TestRepositoryFactory:
     def test_if_transaction_manager_is_assigned_to_transaction_attribute_of_returned_repository(self, factory):
         assert isinstance(factory().transaction_manager, TransactionManager)
 
-    def test_if_entities_associated_with_contents_and_transaction_manager_are_identical(self, factory):
+    def test_if_entities_associated_with_flag_manager_and_transaction_manager_are_identical(self, factory):
         repo = factory()
         assert all(
             entity is repo.transaction_manager.entities[identifier]
-            for identifier, entity in repo.contents.entities.items()
+            for identifier, entity in repo.flags.entities.items()
         )
 
     def test_if_gateway_of_transaction_manager_is_correct(self, factory, gateway_spy):
