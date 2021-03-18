@@ -53,6 +53,7 @@ def table_spy(primary_key_names, flag_table_spies, master_entity):
     table_spy.__and__.return_value.fetch1.return_value = master_entity
     table_spy.__len__.return_value = 1
     table_spy.__iter__.return_value = "table_iterator"
+    table_spy.proj.return_value.__contains__.return_value = True
     for name, flag_table_spy in flag_table_spies.items():
         setattr(table_spy, name, flag_table_spy)
     return table_spy
@@ -165,33 +166,43 @@ class TestGetFlags:
         assert flags == is_present_in_flag_table
 
 
-@pytest.fixture
-def fetched_entity(table_facade, primary_key):
-    return table_facade.fetch(primary_key)
-
-
-@pytest.mark.usefixtures("fetched_entity")
 class TestFetch:
+    @pytest.fixture
+    def fetched_entity(self, table_facade, primary_key):
+        return table_facade.fetch(primary_key)
+
+    @pytest.mark.usefixtures("fetched_entity")
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
+    @pytest.mark.usefixtures("fetched_entity")
     def test_if_table_is_restricted(self, table_spy, primary_key):
         table_spy.__and__.assert_called_once_with(primary_key)
 
+    @pytest.mark.usefixtures("fetched_entity")
     def test_if_master_entity_is_fetched(self, table_spy, temp_dir_stub):
         table_spy.__and__.return_value.fetch1.assert_called_once_with(download_path=temp_dir_stub.name)
 
+    @pytest.mark.usefixtures("fetched_entity")
     def test_if_part_tables_are_restricted(self, part_table_spies, primary_key):
         for part in part_table_spies.values():
             part.__and__.assert_called_once_with(primary_key)
 
+    @pytest.mark.usefixtures("fetched_entity")
     def test_if_part_entities_are_fetched_from_part_tables(self, part_table_spies, temp_dir_stub):
         for part in part_table_spies.values():
             part.__and__.return_value.fetch.assert_called_once_with(as_dict=True, download_path=temp_dir_stub.name)
 
+    @pytest.mark.usefixtures("fetched_entity")
     def test_if_entity_dto_is_returned(self, fetched_entity, primary_key_names, master_entity, part_entities):
         # noinspection PyArgumentList
         assert fetched_entity == EntityDTO(primary_key_names, master_entity, parts=part_entities)
+
+    def test_if_key_error_is_raised_if_entity_is_missing(self, table_factory_spy, table_facade, primary_key):
+        table_factory_spy.return_value.proj.return_value.__contains__.return_value = False
+        with pytest.raises(KeyError) as excinfo:
+            table_facade.fetch(primary_key)
+        assert repr(primary_key) == str(excinfo.value)
 
 
 class TestInsert:

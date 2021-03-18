@@ -141,6 +141,12 @@ class TestFetch:
     def test_if_return_value_is_correct(self, gateway, entity_dto):
         assert gateway.fetch("identifier0") == entity_dto
 
+    def test_if_key_error_is_raise_if_entity_is_missing(self, gateway, table_facade_spy):
+        table_facade_spy.fetch.side_effect = KeyError
+        with pytest.raises(KeyError) as excinfo:
+            gateway.fetch("identifier0")
+        assert repr("identifier0") == str(excinfo.value)
+
 
 class TestInsert:
     def test_if_entity_dto_is_inserted_into_table_facade(self, gateway, table_facade_spy, entity_dto):

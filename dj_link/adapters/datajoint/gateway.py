@@ -49,9 +49,15 @@ class DataJointGateway(AbstractGateway[EntityDTO], Base):  # pylint: disable=uns
         return {self.to_flag_name(flag_table_name): flag for flag_table_name, flag in flags.items()}
 
     def fetch(self, identifier: str) -> EntityDTO:
-        """Fetch the entity identified by the provided identifier."""
+        """Fetch the entity identified by the provided identifier.
+
+        Raises a key error if the entity is missing.
+        """
         primary_key = self.translator.to_primary_key(identifier)
-        return self.table_facade.fetch(primary_key)
+        try:
+            return self.table_facade.fetch(primary_key)
+        except KeyError as exc:
+            raise KeyError(identifier) from exc
 
     def insert(self, entity_dto: EntityDTO) -> None:
         """Insert the provided entity into the table."""

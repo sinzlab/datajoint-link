@@ -34,8 +34,13 @@ class TableFacade(AbstractTableFacade, Base):
         }
 
     def fetch(self, primary_key: PrimaryKey) -> EntityDTO:
-        """Fetch the entity identified by the provided primary key from the table."""
+        """Fetch the entity identified by the provided primary key from the table.
+
+        Raise key error if the entity is missing.
+        """
         table = self.table_factory()
+        if primary_key not in table.proj():
+            raise KeyError(primary_key)
         master_entity = (table & primary_key).fetch1(download_path=self.temp_dir.name)
         part_entities = {}
         for part_name, part in self.table_factory.part_tables.items():

@@ -30,7 +30,10 @@ class AbstractGateway(ABC, Generic[EntityDTO]):
 
     @abstractmethod
     def fetch(self, identifier: str) -> EntityDTO:
-        """Fetch an entity."""
+        """Fetch an entity.
+
+        Raise KeyError if the entity is missing.
+        """
 
     @abstractmethod
     def insert(self, entity_dto: EntityDTO) -> None:

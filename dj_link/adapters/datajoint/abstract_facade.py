@@ -28,7 +28,10 @@ class AbstractTableFacade(ABC):
 
     @abstractmethod
     def fetch(self, primary_key: PrimaryKey) -> EntityDTO:
-        """Fetch the entity identified by the provided primary key from the table."""
+        """Fetch the entity identified by the provided primary key from the table.
+
+        Raise KeyError if the entity is missing.
+        """
 
     @abstractmethod
     def insert(self, entity_dto: EntityDTO) -> None:
