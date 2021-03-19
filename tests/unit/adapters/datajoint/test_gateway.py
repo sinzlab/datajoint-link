@@ -87,15 +87,6 @@ class TestInit:
         assert gateway.translator is translator_spy
 
 
-class TestIdentifiersProperty:
-    def test_if_call_to_translator_is_correct(self, gateway, translator_spy, primary_keys):
-        _ = gateway.identifiers
-        assert translator_spy.to_identifier.call_args_list == [call(primary_key) for primary_key in primary_keys]
-
-    def test_if_identifiers_are_returned(self, gateway, identifiers):
-        assert gateway.identifiers == identifiers
-
-
 class TestGetIdentifiersInRestriction:
     @pytest.fixture
     def restriction(self):

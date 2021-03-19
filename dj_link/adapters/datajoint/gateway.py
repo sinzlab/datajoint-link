@@ -33,11 +33,6 @@ class DataJointGateway(AbstractGateway[EntityDTO], Base):  # pylint: disable=uns
         self.table_facade = table_facade
         self.translator = translator
 
-    @property
-    def identifiers(self) -> List[str]:
-        """Return the identifiers of all entities in the table."""
-        return [self.translator.to_identifier(primary_key) for primary_key in self.table_facade.primary_keys]
-
     def get_identifiers_in_restriction(self, restriction) -> List[str]:
         """Return the identifiers of all entities in the provided restriction."""
         primary_keys = self.table_facade.get_primary_keys_in_restriction(restriction)

@@ -13,11 +13,6 @@ if TYPE_CHECKING:
 class AbstractTableFacade(ABC):
     """Specifies the interface of the DataJoint table facade as expected by the adapters."""
 
-    @property
-    @abstractmethod
-    def primary_keys(self) -> List[PrimaryKey]:
-        """Return all primary keys present in the table."""
-
     @abstractmethod
     def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
         """Get all primary keys present in the table after the provided restriction is applied to it."""

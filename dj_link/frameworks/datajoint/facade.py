@@ -17,11 +17,6 @@ class TableFacade(AbstractTableFacade, Base):
         self.table_factory = table_factory
         self.temp_dir = temp_dir
 
-    @property
-    def primary_keys(self) -> List[PrimaryKey]:
-        """Return all primary keys present in the table."""
-        return self.table_factory().proj().fetch(as_dict=True)
-
     def get_primary_keys_in_restriction(self, restriction) -> List[PrimaryKey]:
         """Get the primary keys of all entities in the restriction."""
         return (self.table_factory().proj() & restriction).fetch(as_dict=True)

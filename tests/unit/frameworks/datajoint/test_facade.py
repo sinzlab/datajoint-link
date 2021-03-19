@@ -109,21 +109,6 @@ def test_if_temp_dir_is_stored_as_instance_attribute(table_facade, temp_dir_stub
     assert table_facade.temp_dir == temp_dir_stub
 
 
-class TestPrimaryKeysProperty:
-    @pytest.fixture(autouse=True)
-    def primary_keys(self, table_facade):
-        return table_facade.primary_keys
-
-    def test_if_table_is_projected_to_primary_keys(self, table_spy):
-        table_spy.proj.assert_called_once_with()
-
-    def test_if_primary_keys_are_fetched_from_projected_table(self, table_spy):
-        table_spy.proj.return_value.fetch.assert_called_once_with(as_dict=True)
-
-    def test_if_primary_keys_are_returned(self, primary_keys):
-        assert primary_keys == "primary_keys"
-
-
 @pytest.fixture
 def primary_keys_in_restriction(table_facade):
     return table_facade.get_primary_keys_in_restriction("restriction")

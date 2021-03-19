@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, Iterator, List, TypeVar
+from typing import Dict, Generic, Iterator, TypeVar
 
 
 class AbstractEntityDTO(ABC):  # pylint: disable=too-few-public-methods
@@ -18,11 +18,6 @@ EntityDTO = TypeVar("EntityDTO", bound=AbstractEntityDTO)
 
 class AbstractGateway(ABC, Generic[EntityDTO]):
     """Define the interface of the gateway as expected by the entities."""
-
-    @property
-    @abstractmethod
-    def identifiers(self) -> List[str]:
-        """Return the identifiers of all the entities in the gateway."""
 
     @abstractmethod
     def get_flags(self, identifier: str) -> Dict[str, bool]:
