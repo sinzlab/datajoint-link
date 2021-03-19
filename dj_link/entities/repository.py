@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import ContextManager, Dict, Iterator
+from typing import Dict, Iterator
 
 from ..base import Base
 from .abstract_gateway import AbstractEntityDTO, AbstractGateway
 from .contents import Contents
 from .flag_manager import FlagManagerFactory
-from .transaction_manager import TransactionManager
 
 
 @dataclass
@@ -55,11 +55,16 @@ class EntityFactory(Base):  # pylint: disable=too-few-public-methods
 class Repository(MutableMapping, Base):  # pylint: disable=too-many-ancestors
     """Repository containing entities."""
 
-    def __init__(self, contents: Contents, flags: FlagManagerFactory, transaction_manager: TransactionManager):
+    def __init__(
+        self,
+        contents: Contents,
+        flags: FlagManagerFactory,
+        gateway: AbstractGateway,
+    ):
         """Initialize the repository."""
         self.contents = contents
         self.flags = flags
-        self.transaction_manager = transaction_manager
+        self.gateway = gateway
 
     def __getitem__(self, identifier: str) -> TransferEntity:
         """Get an entity from the repository."""
@@ -81,9 +86,16 @@ class Repository(MutableMapping, Base):  # pylint: disable=too-many-ancestors
         """Return the number of identifiers in the repository."""
         return len(self.contents)
 
-    def transaction(self) -> ContextManager:
+    @contextmanager
+    def transaction(self) -> Iterator[None]:
         """Context manager that handles the starting, committing and cancelling of transactions."""
-        return self.transaction_manager.transaction()
+        self.gateway.start_transaction()
+        try:
+            yield
+        except RuntimeError:
+            self.gateway.cancel_transaction()
+        else:
+            self.gateway.commit_transaction()
 
 
 class RepositoryFactory(Base):  # pylint: disable=too-few-public-methods
@@ -95,13 +107,9 @@ class RepositoryFactory(Base):  # pylint: disable=too-few-public-methods
 
     def __call__(self) -> Repository:
         """Create a repository."""
-        entities = {
-            identifier: Entity(identifier, self.gateway.get_flags(identifier))
-            for identifier in self.gateway.identifiers
-        }
         entity_factory = EntityFactory(self.gateway)
         return Repository(
             contents=Contents(self.gateway, entity_factory),
             flags=FlagManagerFactory(self.gateway, entity_factory),
-            transaction_manager=TransactionManager(entities, self.gateway),
+            gateway=self.gateway,
         )

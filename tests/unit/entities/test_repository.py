@@ -9,7 +9,6 @@ from dj_link.entities.abstract_gateway import AbstractEntityDTO
 from dj_link.entities.contents import Contents
 from dj_link.entities.flag_manager import FlagManagerFactory
 from dj_link.entities.repository import Entity, EntityFactory, Repository, RepositoryFactory, TransferEntity
-from dj_link.entities.transaction_manager import TransactionManager
 
 
 @pytest.fixture
@@ -95,12 +94,8 @@ class TestRepository:
         return create_autospec(FlagManagerFactory, instance=True)
 
     @pytest.fixture
-    def transaction_manager_spy(self):
-        return create_autospec(TransactionManager, instance=True)
-
-    @pytest.fixture
-    def repo(self, contents_spy, flag_manager_factory_spy, transaction_manager_spy):
-        return Repository(contents_spy, flag_manager_factory_spy, transaction_manager_spy)
+    def repo(self, contents_spy, flag_manager_factory_spy, gateway_spy):
+        return Repository(contents_spy, flag_manager_factory_spy, gateway_spy)
 
     def test_if_subclass_of_mutable_mapping(self):
         assert issubclass(Repository, MutableMapping)
@@ -114,8 +109,8 @@ class TestRepository:
     def test_if_flag_manager_factory_is_stored_as_instance_attribute(self, repo, flag_manager_factory_spy):
         assert repo.flags is flag_manager_factory_spy
 
-    def test_if_transaction_manager_is_stored_as_instance_attribute(self, repo, transaction_manager_spy):
-        assert repo.transaction_manager is transaction_manager_spy
+    def test_if_gateway_is_stored_as_instance_attribute(self, repo, gateway_spy):
+        assert repo.gateway is gateway_spy
 
     def test_if_entity_is_retrieved_from_contents(self, identifier, repo, contents_spy):
         _ = repo[identifier]
@@ -147,12 +142,24 @@ class TestRepository:
     def test_if_length_of_contents_is_returned(self, repo, contents_spy):
         assert len(repo) == 10
 
-    def test_if_transaction_is_called_in_manager(self, repo, transaction_manager_spy):
-        repo.transaction()
-        transaction_manager_spy.transaction.assert_called_once_with()
+    def test_if_transaction_is_started_in_gateway(self, repo, gateway_spy):
+        with repo.transaction():
+            pass
+        gateway_spy.start_transaction.assert_called_once_with()
 
-    def test_if_transaction_context_manager_is_returned(self, repo, transaction_manager_spy):
-        assert repo.transaction() is transaction_manager_spy.transaction.return_value
+    def test_if_transaction_is_committed_in_gateway(self, repo, gateway_spy):
+        with repo.transaction():
+            pass
+        gateway_spy.commit_transaction.assert_called_once_with()
+
+    def test_if_transaction_is_cancelled_in_gateway_after_runtime_error_is_raised(self, repo, gateway_spy):
+        with repo.transaction():
+            raise RuntimeError
+        gateway_spy.cancel_transaction.assert_called_once_with()
+
+    def test_if_none_is_returned_by_context_manager(self, repo):
+        with repo.transaction() as returned:
+            assert returned is None
 
 
 class TestRepositoryFactory:
@@ -169,10 +176,6 @@ class TestRepositoryFactory:
 
     def test_if_gateway_is_stored_as_instance_attribute(self, factory, gateway_spy):
         assert factory.gateway is gateway_spy
-
-    def test_if_flags_are_retrieved_from_gateway(self, identifiers, factory, gateway_spy):
-        _ = factory()
-        assert gateway_spy.get_flags.call_args_list == [call(identifier) for identifier in identifiers]
 
     def test_if_repository_is_returned(self, factory):
         assert isinstance(factory(), Repository)
@@ -199,8 +202,5 @@ class TestRepositoryFactory:
     def test_if_gateway_of_flag_manager_factory_is_correct(self, factory, gateway_spy):
         assert factory().flags.gateway is gateway_spy
 
-    def test_if_transaction_manager_is_assigned_to_transaction_attribute_of_returned_repository(self, factory):
-        assert isinstance(factory().transaction_manager, TransactionManager)
-
-    def test_if_gateway_of_transaction_manager_is_correct(self, factory, gateway_spy):
-        assert factory().transaction_manager.gateway is gateway_spy
+    def test_if_gateway_is_assigned_to_gateway_attribute_of_returned_repository(self, factory, gateway_spy):
+        assert factory().gateway is gateway_spy
