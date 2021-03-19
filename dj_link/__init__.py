@@ -1,4 +1,6 @@
 """A tool for linking two DataJoint tables located on different database servers."""
+from typing import Dict
+
 from dj_link.adapters.datajoint import DataJointGatewayLink
 from dj_link.adapters.datajoint.controller import Controller
 from dj_link.adapters.datajoint.gateway import DataJointGateway
@@ -27,7 +29,13 @@ def _initialize() -> None:
     _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model)
 
 
-def _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model):
+def _configure_local_table_mixin(
+    gateways: Dict[str, DataJointGateway],
+    presenter: Presenter,
+    temp_dir: ReusableTemporaryDirectory,
+    factories: Dict[str, TableFactory],
+    view_model: ViewModel,
+) -> None:
     gateway_link = DataJointGatewayLink(**{n: gateways[n] for n in _REPO_NAMES})
     initialized_use_cases = initialize_use_cases(
         gateway_link,
