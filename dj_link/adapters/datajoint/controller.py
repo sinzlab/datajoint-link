@@ -1,20 +1,10 @@
 """Contains code controlling the execution of use-cases."""
-from typing import Mapping, Type, TypedDict
+from typing import Mapping
 
 from ...base import Base
+from ...use_cases import RequestModelClasses
 from ...use_cases.base import AbstractUseCase
-from ...use_cases.delete import DeleteRequestModel
-from ...use_cases.pull import PullRequestModel
-from ...use_cases.refresh import RefreshRequestModel
 from .gateway import DataJointGateway
-
-
-class RequestModelClasses(TypedDict):
-    """Maps use-case names to the corresponding request model class for that use-case."""
-
-    pull: Type[PullRequestModel]
-    delete: Type[DeleteRequestModel]
-    refresh: Type[RefreshRequestModel]
 
 
 class Controller(Base):

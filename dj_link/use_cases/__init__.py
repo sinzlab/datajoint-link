@@ -1,7 +1,7 @@
 """Contains code Initializing the use-cases."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Type
+from typing import Any, Callable, Dict, Type, TypedDict
 
 from ..base import Base
 from ..entities.abstract_gateway import AbstractGateway
@@ -11,7 +11,16 @@ from .delete import DeleteRequestModel, DeleteResponseModel, DeleteUseCase
 from .pull import PullRequestModel, PullResponseModel, PullUseCase
 from .refresh import RefreshRequestModel, RefreshResponseModel, RefreshUseCase
 
-REQUEST_MODELS = dict(pull=PullRequestModel, delete=DeleteRequestModel, refresh=RefreshRequestModel)
+
+class RequestModelClasses(TypedDict):
+    """Maps use-case names to the corresponding request model class for that use-case."""
+
+    pull: Type[PullRequestModel]
+    delete: Type[DeleteRequestModel]
+    refresh: Type[RefreshRequestModel]
+
+
+REQUEST_MODELS = RequestModelClasses(pull=PullRequestModel, delete=DeleteRequestModel, refresh=RefreshRequestModel)
 RESPONSE_MODELS = dict(pull=PullResponseModel, delete=DeleteResponseModel, refresh=RefreshResponseModel)
 USE_CASES: Dict[str, Type[AbstractUseCase]] = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
 
