@@ -41,24 +41,16 @@ def test_if_subclass_of_base():
 
 
 @pytest.fixture
-def translator_spies():
-    return {n: create_autospec(IdentificationTranslator, instance=True) for n in ["source", "outbound", "local"]}
-
-
-@pytest.fixture
 def view_model_spy():
     return create_autospec(ViewModel, instance=True)
 
 
 @pytest.fixture
-def presenter(translator_spies, view_model_spy):
-    return Presenter(translator_spies, view_model_spy)
+def presenter(view_model_spy):
+    return Presenter(view_model_spy)
 
 
 class TestInit:
-    def test_if_translators_are_stored_as_instance_attribute(self, presenter, translator_spies):
-        assert presenter.translators is translator_spies
-
     def test_if_view_model_is_stored_as_instance_attribute(self, presenter, view_model_spy):
         assert presenter.view_model is view_model_spy
 

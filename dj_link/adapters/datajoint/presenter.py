@@ -47,9 +47,8 @@ class Translators(TypedDict):
 class Presenter(Base):
     """Updates the view model based on the information present in the response model."""
 
-    def __init__(self, translators: Translators, view_model: ViewModel) -> None:
+    def __init__(self, view_model: ViewModel) -> None:
         """Initialize the presenter."""
-        self.translators = translators
         self.view_model = view_model
 
     def pull(self, response_model: PullResponseModel) -> None:

@@ -15,32 +15,29 @@ from dj_link.use_cases import REQUEST_MODELS, initialize_use_cases
 _REPO_NAMES = ("source", "outbound", "local")
 
 
-def _initialize():
+def _initialize() -> None:
     factories = {n: TableFactory() for n in _REPO_NAMES}
     Link.table_cls_factories = factories
     temp_dir = ReusableTemporaryDirectory("link_")
     facades = {n: TableFacade(factories[n], temp_dir) for n in _REPO_NAMES}
-    translators = {n: IdentificationTranslator() for n in _REPO_NAMES}
-    gateways = {n: DataJointGateway(facades[n], translators[n]) for n in _REPO_NAMES}
+    translator = IdentificationTranslator()
+    gateways = {n: DataJointGateway(facades[n], translator) for n in _REPO_NAMES}
     view_model = ViewModel()
-    presenter = Presenter(translators, view_model)
+    presenter = Presenter(view_model)
     _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model)
 
 
 def _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model):
-
-    LocalTableMixin.controller = Controller(
-        initialize_use_cases(
-            DataJointGatewayLink(**{n: gateways[n] for n in _REPO_NAMES}),
-            dict(
-                pull=presenter.pull,
-                delete=presenter.delete,
-                refresh=presenter.refresh,
-            ),
+    gateway_link = DataJointGatewayLink(**{n: gateways[n] for n in _REPO_NAMES})
+    initialized_use_cases = initialize_use_cases(
+        gateway_link,
+        dict(
+            pull=presenter.pull,
+            delete=presenter.delete,
+            refresh=presenter.refresh,
         ),
-        REQUEST_MODELS,
-        gateways,
     )
+    LocalTableMixin.controller = Controller(initialized_use_cases, REQUEST_MODELS, gateways)
     LocalTableMixin.temp_dir = temp_dir
     LocalTableMixin.source_table_factory = factories["source"]
     LocalTableMixin.printer = Printer(view_model)
