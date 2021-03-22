@@ -22,7 +22,11 @@ class RequestModelClasses(TypedDict):
 
 REQUEST_MODELS = RequestModelClasses(pull=PullRequestModel, delete=DeleteRequestModel, refresh=RefreshRequestModel)
 RESPONSE_MODELS = dict(pull=PullResponseModel, delete=DeleteResponseModel, refresh=RefreshResponseModel)
-USE_CASES: Dict[str, Type[AbstractUseCase]] = dict(pull=PullUseCase, delete=DeleteUseCase, refresh=RefreshUseCase)
+USE_CASES: Dict[str, Type[AbstractUseCase]] = {
+    PullUseCase.name: PullUseCase,
+    DeleteUseCase.name: DeleteUseCase,
+    RefreshUseCase.name: RefreshUseCase,
+}
 
 
 class AbstractGatewayLink(ABC):
@@ -75,4 +79,4 @@ def initialize_use_cases(
 ) -> Dict[str, AbstractUseCase]:
     """Initialize the use-cases and returns them."""
     factory = RepositoryLinkFactory(gateway_link)
-    return {n: uc(factory, output_ports[n]) for n, uc in USE_CASES.items()}
+    return {name: use_case(factory, output_ports[name]) for name, use_case in USE_CASES.items()}
