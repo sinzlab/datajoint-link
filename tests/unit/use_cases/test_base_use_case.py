@@ -1,3 +1,4 @@
+import logging
 from abc import ABC
 from unittest.mock import MagicMock, create_autospec
 
@@ -28,7 +29,7 @@ def output_port_spy():
 @pytest.fixture
 def use_case(repo_link_factory_spy, output_port_spy):
     class UseCase(base.AbstractUseCase):
-        name = "use-case"
+        name = "test"
 
         def execute(self, repo_link: RepositoryLink, *args, **kwargs):
             pass
@@ -54,15 +55,28 @@ class TestCall:
     def dummy_request_model(self):
         return create_autospec(base.AbstractRequestModel, instance=True)
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def call(self, use_case, dummy_request_model):
         use_case(dummy_request_model)
 
+    @pytest.mark.usefixtures("call")
     def test_if_repo_link_factory_is_called_correctly(self, repo_link_factory_spy):
         repo_link_factory_spy.assert_called_once_with()
 
+    @pytest.mark.usefixtures("call")
     def test_if_call_to_execute_method_is_correct(self, use_case, dummy_request_model):
         use_case.execute.assert_called_once_with("link", dummy_request_model)
 
+    @pytest.mark.usefixtures("call")
     def test_if_call_to_output_port_is_correct(self, output_port_spy):
         output_port_spy.assert_called_once_with("output")
+
+    def test_if_logged_messages_are_correct(self, caplog, use_case, dummy_request_model):
+        with caplog.at_level(logging.INFO, logger=base.LOGGER.name):
+            use_case(dummy_request_model)
+            messages = [
+                "Executing test use-case...",
+                "Finished executing test use-case!",
+            ]
+            assert len(caplog.records) == len(messages)
+            assert all(m == r.message for m, r in zip(messages, caplog.records))

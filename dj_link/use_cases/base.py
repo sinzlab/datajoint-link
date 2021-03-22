@@ -1,6 +1,7 @@
 """Contains the abstract base classes use-cases inherit from."""
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Generic, TypeVar
 
@@ -8,6 +9,8 @@ from ..base import Base
 
 if TYPE_CHECKING:
     from . import RepositoryLink, RepositoryLinkFactory
+
+LOGGER = logging.getLogger(__name__)
 
 
 class AbstractRequestModel(ABC):  # pylint: disable=too-few-public-methods
@@ -35,7 +38,9 @@ class AbstractUseCase(ABC, Base, Generic[RequestModel]):
 
     def __call__(self, request_model: RequestModel) -> None:
         """Execute the use-case and passes the response model to the output port."""
+        LOGGER.info(f"Executing {self.name} use-case...")
         response_model = self.execute(self.repo_link_factory(), request_model)
+        LOGGER.info(f"Finished executing {self.name} use-case!")
         self.output_port(response_model)
 
     @abstractmethod

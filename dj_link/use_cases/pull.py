@@ -1,6 +1,7 @@
 """Contains code pertaining to the pull use-case."""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Set
 
@@ -8,6 +9,8 @@ from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
