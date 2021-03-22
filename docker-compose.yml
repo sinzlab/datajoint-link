@@ -1,20 +1,25 @@
 version: "3.8"
+volumes:
+  pypackages:
 services:
   pytest:
     build: .
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - .:/src/datajoint-link
+      - pypackages:/src/datajoint-link/__pypackages__
     networks:
       - test_runner_network
-    entrypoint: ["pdm", "run", "pytest"]
+    entrypoint: ["./entrypoints/pytest_entrypoint.sh"]
   profile:
     build: .
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./profiling/stats:/src/datajoint-link/profiling/stats
+      - .:/src/datajoint-link
+      - pypackages:/src/datajoint-link/__pypackages__
     networks:
       - profiling_network
-    entrypoint: ["pdm", "run", "python"]
+    entrypoint: ["./entrypoints/profile_entrypoint.sh"]
 networks:
   profiling_network:
     name: profiling_network
