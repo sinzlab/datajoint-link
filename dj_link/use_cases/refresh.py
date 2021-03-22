@@ -32,6 +32,7 @@ class RefreshUseCase(
 ):  # pylint: disable=unsubscriptable-object,too-few-public-methods
     """Use-case that refreshes entities in the local table."""
 
+    name = "refresh"
     response_model_cls = RefreshResponseModel
 
     def execute(self, repo_link: RepositoryLink, _: RefreshRequestModel) -> RefreshResponseModel:

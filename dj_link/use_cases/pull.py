@@ -44,6 +44,7 @@ class PullResponseModel(AbstractResponseModel):
 class PullUseCase(AbstractUseCase[PullRequestModel]):  # pylint: disable=unsubscriptable-object,too-few-public-methods
     """Use-case that pulls entities from the source to the local table."""
 
+    name = "pull"
     response_model_cls = PullResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: PullRequestModel) -> PullResponseModel:

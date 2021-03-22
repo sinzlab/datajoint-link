@@ -23,5 +23,9 @@ def response_model_cls(use_case_name):
     return RESPONSE_MODELS[use_case_name]
 
 
-def test_of_response_model_class_is_correct(use_case_cls, response_model_cls):
+def test_if_response_model_class_is_correct(use_case_cls, response_model_cls):
     assert use_case_cls.response_model_cls is response_model_cls
+
+
+def test_if_name_is_correct(use_case_cls, use_case_name):
+    assert use_case_cls.name == use_case_name

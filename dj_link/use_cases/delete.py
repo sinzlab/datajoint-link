@@ -52,6 +52,7 @@ class DeleteUseCase(
 ):  # pylint: disable=unsubscriptable-object,too-few-public-methods
     """Use-case that deletes entities from the local table and executes associated logic."""
 
+    name = "delete"
     response_model_cls = DeleteResponseModel
 
     def execute(self, repo_link: RepositoryLink, request_model: DeleteRequestModel) -> DeleteResponseModel:

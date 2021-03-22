@@ -28,6 +28,8 @@ def output_port_spy():
 @pytest.fixture
 def use_case(repo_link_factory_spy, output_port_spy):
     class UseCase(base.AbstractUseCase):
+        name = "use-case"
+
         def execute(self, repo_link: RepositoryLink, *args, **kwargs):
             pass
 

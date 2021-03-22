@@ -24,6 +24,8 @@ class AbstractResponseModel(ABC):  # pylint: disable=too-few-public-methods
 class AbstractUseCase(ABC, Base, Generic[RequestModel]):
     """Specifies the interface for use-cases."""
 
+    name: str
+
     def __init__(
         self, repo_link_factory: RepositoryLinkFactory, output_port: Callable[[AbstractResponseModel], None]
     ) -> None:
