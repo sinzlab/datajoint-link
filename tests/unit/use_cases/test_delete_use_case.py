@@ -1,7 +1,10 @@
+from functools import partial
 from itertools import compress
 from unittest.mock import call
 
 import pytest
+
+from dj_link.use_cases.delete import LOGGER
 
 USE_CASE_NAME = "delete"
 
@@ -70,6 +73,21 @@ def test_if_initialization_of_response_model_class_is_correct(
         deleted_from_outbound=set(deletion_not_requested_identifiers),
         deleted_from_local=set(identifiers),
     )
+
+
+def test_if_logged_messages_are_correct(
+    is_correct_log, use_case, request_model_stub, deletion_requested, deletion_not_requested_identifiers, identifiers
+):
+    messages = [
+        f"Approved deletion of entity with identifier {identifier}"
+        for identifier in compress(identifiers, deletion_requested)
+    ]
+    messages += [
+        f"Deleted entity with identifier {identifier} from outbound table"
+        for identifier in deletion_not_requested_identifiers
+    ]
+    messages += [f"Deleted entity with identifier {identifier} from local table" for identifier in identifiers]
+    assert is_correct_log(LOGGER, partial(use_case, request_model_stub), messages)
 
 
 def test_if_response_model_is_passed_to_output_port(

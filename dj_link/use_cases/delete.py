@@ -1,6 +1,7 @@
 """Contains code pertaining to the delete use-case."""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Set, Tuple
 
@@ -8,6 +9,8 @@ from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
     from . import RepositoryLink
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -81,13 +84,16 @@ class DeleteUseCase(
     def _approve_deletion(repo_link: RepositoryLink, deletion_requested: Set[str]) -> None:
         for identifier in deletion_requested:
             repo_link.outbound.flags[identifier]["deletion_approved"] = True
+            LOGGER.info(f"Approved deletion of entity with identifier {identifier}")
 
     @staticmethod
     def _delete_from_outbound(repo_link: RepositoryLink, deletion_not_requested: Set[str]) -> None:
         for identifier in deletion_not_requested:
             del repo_link.outbound[identifier]
+            LOGGER.info(f"Deleted entity with identifier {identifier} from outbound table")
 
     @staticmethod
     def _delete_from_local(repo_link: RepositoryLink, identifiers: List[str]) -> None:
         for identifier in identifiers:
             del repo_link.local[identifier]
+            LOGGER.info(f"Deleted entity with identifier {identifier} from local table")
