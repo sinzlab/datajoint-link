@@ -128,7 +128,8 @@ def test_if_initialization_of_response_model_class_is_correct(
 
 
 def test_if_logged_messages_are_correct(is_correct_log, use_case, request_model_stub, valid_identifiers):
-    messages = [f"Pulled entity with identifier {identifier}" for identifier in valid_identifiers]
+    messages = [f"Inserted entity with identifier {identifier} into outbound table" for identifier in valid_identifiers]
+    messages += [f"Inserted entity with identifier {identifier} into local table" for identifier in valid_identifiers]
     assert is_correct_log(LOGGER, partial(use_case, request_model_stub), messages)
 
 

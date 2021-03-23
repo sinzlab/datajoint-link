@@ -57,8 +57,9 @@ class PullUseCase(AbstractUseCase[PullRequestModel]):  # pylint: disable=unsubsc
         with repo_link.outbound.transaction(), repo_link.local.transaction():
             for entity in entities:
                 repo_link.outbound[entity.identifier] = entity.create_identifier_only_copy()
+                LOGGER.info(f"Inserted entity with identifier {entity.identifier} into outbound table")
                 repo_link.local[entity.identifier] = entity
-                LOGGER.info(f"Pulled entity with identifier {entity.identifier}")
+                LOGGER.info(f"Inserted entity with identifier {entity.identifier} into local table")
         # noinspection PyArgumentList
         return self.response_model_cls(
             requested=set(request_model.identifiers),
