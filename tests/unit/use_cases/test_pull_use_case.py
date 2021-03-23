@@ -1,4 +1,4 @@
-import logging
+from functools import partial
 from itertools import compress
 from unittest.mock import call, create_autospec
 
@@ -127,12 +127,9 @@ def test_if_initialization_of_response_model_class_is_correct(
     )
 
 
-def test_if_logged_messages_are_correct(caplog, use_case, request_model_stub, valid_identifiers):
-    with caplog.at_level(logging.INFO, logger=LOGGER.name):
-        use_case(request_model_stub)
-        messages = [f"Pulled entity with identifier {identifier}" for identifier in valid_identifiers]
-        assert len(caplog.records) == len(messages)
-        assert all(m == r.message for m, r in zip(messages, caplog.records))
+def test_if_logged_messages_are_correct(is_correct_log, use_case, request_model_stub, valid_identifiers):
+    messages = [f"Pulled entity with identifier {identifier}" for identifier in valid_identifiers]
+    assert is_correct_log(LOGGER, partial(use_case, request_model_stub), messages)
 
 
 def test_if_response_model_is_passed_to_output_port(

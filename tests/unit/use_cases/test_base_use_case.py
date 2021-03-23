@@ -1,5 +1,5 @@
-import logging
 from abc import ABC
+from functools import partial
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
@@ -71,12 +71,9 @@ class TestCall:
     def test_if_call_to_output_port_is_correct(self, output_port_spy):
         output_port_spy.assert_called_once_with("output")
 
-    def test_if_logged_messages_are_correct(self, caplog, use_case, dummy_request_model):
-        with caplog.at_level(logging.INFO, logger=base.LOGGER.name):
-            use_case(dummy_request_model)
-            messages = [
-                "Executing test use-case...",
-                "Finished executing test use-case!",
-            ]
-            assert len(caplog.records) == len(messages)
-            assert all(m == r.message for m, r in zip(messages, caplog.records))
+    def test_if_logged_messages_are_correct(self, is_correct_log, use_case, dummy_request_model):
+        messages = [
+            "Executing test use-case...",
+            "Finished executing test use-case!",
+        ]
+        assert is_correct_log(base.LOGGER, partial(use_case, dummy_request_model), messages)

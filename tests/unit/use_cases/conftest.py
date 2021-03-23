@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
@@ -65,3 +66,14 @@ def create_flag_manager_spies():
         return spies
 
     return _create_flag_manager_spies
+
+
+@pytest.fixture
+def is_correct_log(caplog):
+    def _is_correct_log(logger, func, messages, log_level=logging.INFO):
+        with caplog.at_level(log_level, logger=logger.name):
+            func()
+        logged_messages = {r.message for r in caplog.records}
+        return logged_messages == set(messages)
+
+    return _is_correct_log
