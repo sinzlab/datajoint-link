@@ -1,9 +1,11 @@
+import logging
 from itertools import compress
 from unittest.mock import call, create_autospec
 
 import pytest
 
 from dj_link.entities.repository import TransferEntity
+from dj_link.use_cases.pull import LOGGER
 
 USE_CASE_NAME = "pull"
 
@@ -123,6 +125,14 @@ def test_if_initialization_of_response_model_class_is_correct(
         valid=set(valid_identifiers),
         invalid={i for i in identifiers if i not in valid_identifiers},
     )
+
+
+def test_if_logged_messages_are_correct(caplog, use_case, request_model_stub, valid_identifiers):
+    with caplog.at_level(logging.INFO, logger=LOGGER.name):
+        use_case(request_model_stub)
+        messages = [f"Pulled entity with identifier {identifier}" for identifier in valid_identifiers]
+        assert len(caplog.records) == len(messages)
+        assert all(m == r.message for m, r in zip(messages, caplog.records))
 
 
 def test_if_response_model_is_passed_to_output_port(
