@@ -52,10 +52,11 @@ class DataJointGatewayLink(AbstractGatewayLink, Base):
         return self._local
 
 
-def initialize(table_facade_link: AbstractTableFacadeLink) -> DataJointGatewayLink:
+def initialize_adapters(table_facade_link: AbstractTableFacadeLink) -> DataJointGatewayLink:
     """Initialize the adapters."""
+    translator = IdentificationTranslator()
     gateways = {}
     for kind in ("source", "outbound", "local"):
         table_facade = getattr(table_facade_link, kind)
-        gateways[kind] = DataJointGateway(table_facade, IdentificationTranslator())
+        gateways[kind] = DataJointGateway(table_facade, translator)
     return DataJointGatewayLink(**gateways)

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dj_link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize
+from dj_link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize_adapters
 from dj_link.adapters.datajoint.gateway import DataJointGateway
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.base import Base
@@ -40,7 +40,7 @@ class TestInitialize:
 
     @pytest.fixture
     def gateway_link(self, table_facade_link_stub):
-        return initialize(table_facade_link_stub)
+        return initialize_adapters(table_facade_link_stub)
 
     def test_if_gateway_link_is_returned(self, gateway_link):
         assert isinstance(gateway_link, DataJointGatewayLink)
@@ -53,3 +53,9 @@ class TestInitialize:
 
     def test_if_translators_of_gateways_are_identification_translators(self, kind, gateway_link):
         assert isinstance(getattr(gateway_link, kind).translator, IdentificationTranslator)
+
+    def test_if_the_same_translator_is_used_in_all_gateways(self, gateway_link):
+        assert (
+            gateway_link.source.translator is gateway_link.outbound.translator
+            and gateway_link.outbound.translator is gateway_link.local.translator
+        )
