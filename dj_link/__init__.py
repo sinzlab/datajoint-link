@@ -45,7 +45,7 @@ def _configure_local_table_mixin(
             refresh=presenter.refresh,
         ),
     )
-    LocalTableMixin.controller = Controller(initialized_use_cases, REQUEST_MODELS, gateways)
+    LocalTableMixin.controller = Controller(initialized_use_cases, REQUEST_MODELS, gateway_link)
     LocalTableMixin.temp_dir = temp_dir
     LocalTableMixin.source_table_factory = factories["source"]
     LocalTableMixin.printer = Printer(view_model)

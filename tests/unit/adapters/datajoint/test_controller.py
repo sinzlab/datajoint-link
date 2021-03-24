@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
+from dj_link.adapters.datajoint import DataJointGatewayLink
 from dj_link.adapters.datajoint.controller import Controller as OriginalController
-from dj_link.adapters.datajoint.gateway import DataJointGateway
 from dj_link.base import Base
 from dj_link.use_cases import REQUEST_MODELS, USE_CASES, RepositoryLinkFactory
 
@@ -38,21 +38,19 @@ def request_model_cls_spies():
 
 
 @pytest.fixture
-def gateway_spies(identifiers):
-    spies = {}
+def gateway_link_spy(identifiers):
+    spy = create_autospec(DataJointGatewayLink, instance=True)
     for name in ["source", "local"]:
-        spy = create_autospec(DataJointGateway, instance=True)
-        spy.get_identifiers_in_restriction.return_value = identifiers
-        spies[name] = spy
-    return spies
+        getattr(spy, name).get_identifiers_in_restriction.return_value = identifiers
+    return spy
 
 
 @pytest.fixture
-def controller(use_case_spies, request_model_cls_spies, gateway_spies):
-    class LocalTableController(OriginalController):
+def controller(use_case_spies, request_model_cls_spies, gateway_link_spy):
+    class Controller(OriginalController):
         pass
 
-    return LocalTableController(use_case_spies, request_model_cls_spies, gateway_spies)
+    return Controller(use_case_spies, request_model_cls_spies, gateway_link_spy)
 
 
 class TestInit:
@@ -62,8 +60,8 @@ class TestInit:
     def test_if_request_model_classes_are_stored_as_instance_attribute(self, controller, request_model_cls_spies):
         assert controller.request_model_classes is request_model_cls_spies
 
-    def test_if_gateways_are_stored_as_instance_attribute(self, controller, gateway_spies):
-        assert controller.gateways is gateway_spies
+    def test_if_gateway_link_is_stored_as_instance_attribute(self, controller, gateway_link_spy):
+        assert controller.gateway_link is gateway_link_spy
 
 
 class TestMethod:
@@ -76,8 +74,8 @@ class TestMethod:
         getattr(controller, method_name)(restriction)
 
     @pytest.fixture
-    def gateway_spy(self, gateway_spies, method_name):
-        return {"pull": gateway_spies["source"], "delete": gateway_spies["local"]}[method_name]
+    def gateway_spy(self, gateway_link_spy, method_name):
+        return {"pull": gateway_link_spy.source, "delete": gateway_link_spy.local}[method_name]
 
     @pytest.fixture
     def request_model_cls_spy(self, request_model_cls_spies, method_name):
