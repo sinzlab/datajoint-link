@@ -1,11 +1,10 @@
 """A tool for linking two DataJoint tables located on different database servers."""
 from typing import Dict
 
-from dj_link.adapters.datajoint import DataJointGatewayLink
+from dj_link.adapters.datajoint import DataJointGatewayLink, initialize_adapters
 from dj_link.adapters.datajoint.controller import Controller
-from dj_link.adapters.datajoint.gateway import DataJointGateway
-from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.adapters.datajoint.presenter import Presenter, ViewModel
+from dj_link.frameworks.datajoint import TableFacadeLink
 from dj_link.frameworks.datajoint.facade import TableFacade
 from dj_link.frameworks.datajoint.factory import TableFactory
 from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
@@ -21,22 +20,20 @@ def _initialize() -> None:
     factories = {n: TableFactory() for n in _REPO_NAMES}
     Link.table_cls_factories = factories
     temp_dir = ReusableTemporaryDirectory("link_")
-    facades = {n: TableFacade(factories[n], temp_dir) for n in _REPO_NAMES}
-    translator = IdentificationTranslator()
-    gateways = {n: DataJointGateway(facades[n], translator) for n in _REPO_NAMES}
+    facade_link = TableFacadeLink(**{n: TableFacade(factories[n], temp_dir) for n in _REPO_NAMES})
+    gateway_link = initialize_adapters(facade_link)
     view_model = ViewModel()
     presenter = Presenter(view_model)
-    _configure_local_table_mixin(gateways, presenter, temp_dir, factories, view_model)
+    _configure_local_table_mixin(gateway_link, presenter, temp_dir, factories, view_model)
 
 
 def _configure_local_table_mixin(
-    gateways: Dict[str, DataJointGateway],
+    gateway_link: DataJointGatewayLink,
     presenter: Presenter,
     temp_dir: ReusableTemporaryDirectory,
     factories: Dict[str, TableFactory],
     view_model: ViewModel,
 ) -> None:
-    gateway_link = DataJointGatewayLink(**{n: gateways[n] for n in _REPO_NAMES})
     initialized_use_cases = initialize_use_cases(
         gateway_link,
         dict(
