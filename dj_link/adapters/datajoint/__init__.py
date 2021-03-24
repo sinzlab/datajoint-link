@@ -1,11 +1,13 @@
 """Contains code initializing the adapters."""
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 from ...base import Base
 from ...use_cases import AbstractGatewayLink
 from .abstract_facade import AbstractTableFacade
 from .gateway import DataJointGateway
 from .identification import IdentificationTranslator
+from .presenter import Presenter, ViewModel
 
 
 class AbstractTableFacadeLink(ABC):
@@ -52,11 +54,14 @@ class DataJointGatewayLink(AbstractGatewayLink, Base):
         return self._local
 
 
-def initialize_adapters(table_facade_link: AbstractTableFacadeLink) -> DataJointGatewayLink:
+def initialize_adapters(
+    table_facade_link: AbstractTableFacadeLink,
+) -> Tuple[DataJointGatewayLink, ViewModel, Presenter]:
     """Initialize the adapters."""
     translator = IdentificationTranslator()
     gateways = {}
     for kind in ("source", "outbound", "local"):
         table_facade = getattr(table_facade_link, kind)
         gateways[kind] = DataJointGateway(table_facade, translator)
-    return DataJointGatewayLink(**gateways)
+    view_model = ViewModel()
+    return DataJointGatewayLink(**gateways), view_model, Presenter(view_model)

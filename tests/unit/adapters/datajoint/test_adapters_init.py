@@ -5,6 +5,7 @@ import pytest
 from dj_link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize_adapters
 from dj_link.adapters.datajoint.gateway import DataJointGateway
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.adapters.datajoint.presenter import Presenter, ViewModel
 from dj_link.base import Base
 
 
@@ -33,14 +34,26 @@ class TestDataJointGatewayLink:
         assert getattr(gateway_link, kind) is gateway_stubs[kind]
 
 
-class TestInitialize:
+class TestInitializeAdapters:
     @pytest.fixture
     def table_facade_link_stub(self):
         return MagicMock(name="table_facade_link_stub", spec=AbstractTableFacadeLink)
 
     @pytest.fixture
-    def gateway_link(self, table_facade_link_stub):
+    def initialize_adapters_return_value(self, table_facade_link_stub):
         return initialize_adapters(table_facade_link_stub)
+
+    @pytest.fixture
+    def gateway_link(self, initialize_adapters_return_value):
+        return initialize_adapters_return_value[0]
+
+    @pytest.fixture
+    def view_model(self, initialize_adapters_return_value):
+        return initialize_adapters_return_value[1]
+
+    @pytest.fixture
+    def presenter(self, initialize_adapters_return_value):
+        return initialize_adapters_return_value[2]
 
     def test_if_gateway_link_is_returned(self, gateway_link):
         assert isinstance(gateway_link, DataJointGatewayLink)
@@ -59,3 +72,12 @@ class TestInitialize:
             gateway_link.source.translator is gateway_link.outbound.translator
             and gateway_link.outbound.translator is gateway_link.local.translator
         )
+
+    def test_if_view_model_is_returned(self, view_model):
+        assert isinstance(view_model, ViewModel)
+
+    def test_if_presenter_is_returned(self, presenter):
+        assert isinstance(presenter, Presenter)
+
+    def test_if_view_model_of_presenter_is_correct(self, view_model, presenter):
+        assert view_model is presenter.view_model

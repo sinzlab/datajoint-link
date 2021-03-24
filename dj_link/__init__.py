@@ -21,9 +21,7 @@ def _initialize() -> None:
     Link.table_cls_factories = factories
     temp_dir = ReusableTemporaryDirectory("link_")
     facade_link = TableFacadeLink(**{n: TableFacade(factories[n], temp_dir) for n in _REPO_NAMES})
-    gateway_link = initialize_adapters(facade_link)
-    view_model = ViewModel()
-    presenter = Presenter(view_model)
+    gateway_link, view_model, presenter = initialize_adapters(facade_link)
     _configure_local_table_mixin(gateway_link, presenter, temp_dir, factories, view_model)
 
 
