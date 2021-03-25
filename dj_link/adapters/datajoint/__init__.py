@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from ...base import Base
+from ...globals import REPOSITORY_NAMES
 from ...use_cases import AbstractGatewayLink
 from .abstract_facade import AbstractTableFacade
 from .gateway import DataJointGateway
@@ -60,8 +61,8 @@ def initialize_adapters(
     """Initialize the adapters."""
     translator = IdentificationTranslator()
     gateways = {}
-    for kind in ("source", "outbound", "local"):
-        table_facade = getattr(table_facade_link, kind)
-        gateways[kind] = DataJointGateway(table_facade, translator)
+    for repo_type in REPOSITORY_NAMES:
+        table_facade = getattr(table_facade_link, repo_type)
+        gateways[repo_type] = DataJointGateway(table_facade, translator)
     view_model = ViewModel()
     return DataJointGatewayLink(**gateways), view_model, Presenter(view_model)

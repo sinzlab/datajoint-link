@@ -7,10 +7,11 @@ from dj_link.adapters.datajoint.gateway import DataJointGateway
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.adapters.datajoint.presenter import Presenter, ViewModel
 from dj_link.base import Base
+from dj_link.globals import REPOSITORY_NAMES
 
 
-@pytest.fixture(params=["source", "outbound", "local"])
-def kind(request):
+@pytest.fixture(params=REPOSITORY_NAMES)
+def repo_type(request):
     return request.param
 
 
@@ -18,9 +19,9 @@ class TestDataJointGatewayLink:
     @pytest.fixture
     def gateway_stubs(self):
         gateway_stubs = {}
-        for kind in ("source", "outbound", "local"):
-            gateway_stub = MagicMock(name=kind + "_gateway_stub", spec=DataJointGateway)
-            gateway_stubs[kind] = gateway_stub
+        for repo_type in REPOSITORY_NAMES:
+            gateway_stub = MagicMock(name=repo_type + "_gateway_stub", spec=DataJointGateway)
+            gateway_stubs[repo_type] = gateway_stub
         return gateway_stubs
 
     @pytest.fixture
@@ -30,8 +31,8 @@ class TestDataJointGatewayLink:
     def test_if_subclass_of_base(self):
         assert issubclass(DataJointGatewayLink, Base)
 
-    def test_if_gateway_is_stored_as_instance_attribute(self, kind, gateway_link, gateway_stubs):
-        assert getattr(gateway_link, kind) is gateway_stubs[kind]
+    def test_if_gateway_is_stored_as_instance_attribute(self, repo_type, gateway_link, gateway_stubs):
+        assert getattr(gateway_link, repo_type) is gateway_stubs[repo_type]
 
 
 class TestInitializeAdapters:
@@ -58,14 +59,16 @@ class TestInitializeAdapters:
     def test_if_gateway_link_is_returned(self, gateway_link):
         assert isinstance(gateway_link, DataJointGatewayLink)
 
-    def test_if_gateway_in_link_is_datajoint_gateway(self, kind, gateway_link):
-        assert isinstance(getattr(gateway_link, kind), DataJointGateway)
+    def test_if_gateway_in_link_is_datajoint_gateway(self, repo_type, gateway_link):
+        assert isinstance(getattr(gateway_link, repo_type), DataJointGateway)
 
-    def test_if_gateways_are_associated_with_correct_table_facade(self, kind, gateway_link, table_facade_link_stub):
-        assert getattr(gateway_link, kind).table_facade is getattr(table_facade_link_stub, kind)
+    def test_if_gateways_are_associated_with_correct_table_facade(
+        self, repo_type, gateway_link, table_facade_link_stub
+    ):
+        assert getattr(gateway_link, repo_type).table_facade is getattr(table_facade_link_stub, repo_type)
 
-    def test_if_translators_of_gateways_are_identification_translators(self, kind, gateway_link):
-        assert isinstance(getattr(gateway_link, kind).translator, IdentificationTranslator)
+    def test_if_translators_of_gateways_are_identification_translators(self, repo_type, gateway_link):
+        assert isinstance(getattr(gateway_link, repo_type).translator, IdentificationTranslator)
 
     def test_if_the_same_translator_is_used_in_all_gateways(self, gateway_link):
         assert (
