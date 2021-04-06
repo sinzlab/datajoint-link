@@ -144,6 +144,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "flake8-docstrings"
+sections = ["dev"]
+version = "1.6.0"
+summary = "Extension for flake8 which uses pydocstyle to check docstrings"
+dependencies = [
+    "flake8>=3",
+    "pydocstyle>=2.1",
+]
+
+[[package]]
 name = "gprof2dot"
 sections = ["profiling"]
 version = "2021.2.21"
@@ -581,7 +591,7 @@ summary = "Module for decorators, wrappers and monkey patching."
 
 [metadata]
 lock_version = "2"
-content_hash = "sha256:900df8c84380e1e75051d5df48fb81f6bf297f569f8412dc4ced70c00c4f3a91"
+content_hash = "sha256:a049b661a00a7146540000d4795fb774beb10edf5b4f8b4f4574b66a406433f2"
 
 [metadata.files]
 "appdirs 1.4.4" = [
@@ -700,6 +710,10 @@ content_hash = "sha256:900df8c84380e1e75051d5df48fb81f6bf297f569f8412dc4ced70c00
 "flake8 3.8.4" = [
     {file = "flake8-3.8.4-py2.py3-none-any.whl", hash = "sha256:749dbbd6bfd0cf1318af27bf97a14e28e5ff548ef8e5b1566ccfb25a11e7c839"},
     {file = "flake8-3.8.4.tar.gz", hash = "sha256:aadae8761ec651813c24be05c6f7b4680857ef6afaae4651a4eccaef97ce6c3b"},
+]
+"flake8-docstrings 1.6.0" = [
+    {file = "flake8_docstrings-1.6.0-py2.py3-none-any.whl", hash = "sha256:99cac583d6c7e32dd28bbfbef120a7c0d1b6dde4adb5a9fd441c4227a6534bde"},
+    {file = "flake8-docstrings-1.6.0.tar.gz", hash = "sha256:9fe7c6a306064af8e62a055c2f61e9eb1da55f84bb39caef2b84ce53708ac34b"},
 ]
 "gprof2dot 2021.2.21" = [
     {file = "gprof2dot-2021.2.21.tar.gz", hash = "sha256:1223189383b53dcc8ecfd45787ac48c0ed7b4dbc16ee8b88695d053eea1acabf"},
