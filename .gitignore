@@ -149,3 +149,4 @@ temp/
 .pdm.toml
 profiling/stats
 profiling/figs
+pyrightconfig.json
