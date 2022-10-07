@@ -619,7 +619,7 @@ summary = "Module for decorators, wrappers and monkey patching."
 
 [metadata]
 lock_version = "4.0"
-content_hash = "sha256:200fa2cf6b090584a9f534169c11dce48d1fcae286fef2dd75d43232e64cc448"
+content_hash = "sha256:0715609a747dc04dd5c92852732e16927cb7a947104a9b2bc4e3b9916f5d374a"
 
 [metadata.files]
 "appnope 0.1.3" = [

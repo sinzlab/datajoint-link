@@ -30,13 +30,13 @@ dev = [
     "pytest-cov~=2.11",
     "docker~=4.4",
     "pymysql~=1.0",
-    "minio~=7.0",
     "pylint~=2.7",
     "flake8~=3.8",
     "isort~=5.7",
     "mypy~=0.812",
     "flake8-docstrings~=1.6",
     "black>=22.10.0",
+    "minio>=7.1.12",
 ]
 profiling = [
     "gprof2dot~=2021.2",

@@ -183,7 +183,7 @@ def get_minio_config(minio_config_cls):
     def _get_minio_config(network_config, health_check_config, kind):
         return minio_config_cls(
             image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
-            name=os.environ.get(kind.upper() + "_MINIO_NAME", "test_" + kind + "_minio"),
+            name=os.environ.get(kind.upper() + "_MINIO_NAME", "test-" + kind + "-minio"),
             network=network_config,
             health_check=health_check_config,
             remove=remove,
@@ -226,7 +226,7 @@ def get_runner_kwargs(database_config_cls, minio_config_cls, docker_client):
                 ),
                 command=["server", "/data"],
                 healthcheck=dict(
-                    test=["CMD", "curl", "-f", container_config.name + ":9000/minio/health/ready"],
+                    test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
                     start_period=int(container_config.health_check.start_period * 1e9),  # nanoseconds
                     interval=int(container_config.health_check.interval * 1e9),  # nanoseconds
                     retries=container_config.health_check.max_retries,
@@ -256,7 +256,7 @@ def src_db(src_db_config, get_runner_kwargs, outbound_schema_name):
             for user in src_db_config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
             sql_statements = (
-                fr"GRANT ALL PRIVILEGES ON `{src_db_config.users['end_user'].name}\_%`.* "
+                rf"GRANT ALL PRIVILEGES ON `{src_db_config.users['end_user'].name}\_%`.* "
                 f"TO '{src_db_config.users['end_user'].name}'@'%';",
                 f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
                 f"TO '{src_db_config.users['dj_user'].name}'@'%';",
