@@ -1,10 +1,14 @@
 # DataJoint-Link
 
-![Test](https://github.com/cblessing24/datajoint-link/workflows/Test/badge.svg)
-![Lint](https://github.com/cblessing24/datajoint-link/workflows/Lint/badge.svg)
-[![codecov](https://codecov.io/gh/cblessing24/datajoint-link/branch/master/graph/badge.svg)](https://codecov.io/gh/cblessing24/datajoint-link)
-![Build](https://github.com/cblessing24/datajoint-link/workflows/Build/badge.svg)
-[![PyPI version](https://badge.fury.io/py/datajoint-link.svg)](https://badge.fury.io/py/datajoint-link)
+<p align="center">
+<img src="datajoint_link.png" alt="datajoint-link logo" style="display: block; margin-left: auto; margin-right: auto; width: 20%">
+<br>
+<a href="https://github.com/cblessing24/datajoint-link/actions/workflows/test.yml"><img alt="Test Workflow Status" src="https://github.com/cblessing24/datajoint-link/actions/workflows/test.yml/badge.svg"></a>
+<a href="https://github.com/cblessing24/datajoint-link/actions/workflows/build.yml"><img alt="Build Workflow Status" src="https://github.com/cblessing24/datajoint-link/actions/workflows/build.yml/badge.svg"></a>
+<a href="https://github.com/cblessing24/datajoint-link/actions/workflows/lint.yml"><img alt="Lint Workflow Status" src="https://github.com/cblessing24/datajoint-link/actions/workflows/lint.yml/badge.svg"></a>
+<a href="https://codecov.io/gh/cblessing24/datajoint-link/"><img alt="Coverage" src="https://img.shields.io/codecov/c/github/cblessing24/datajoint-link"></a>
+<a href="https://pypi.org/project/datajoint-link/"><img alt="PyPI" src="https://img.shields.io/pypi/v/datajoint-link"></a>
+</p>
 
  DataJoint-Link is a tool for linking two [DataJoint](https://datajoint.io/) tables located on different database
   servers together and exchanging entities between them. It preserves [referential integrity](https://docs.datajoint.io/python/concepts/04-Integrity.html#referential-integrity) across the linked tables and supports useful DataJoint features such as part tables and externally stored files.
