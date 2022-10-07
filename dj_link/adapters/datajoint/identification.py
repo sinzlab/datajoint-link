@@ -12,7 +12,7 @@ class IdentificationTranslator(Base):
 
     def __init__(self) -> None:
         """Initialize the identification translator."""
-        self._identifier_to_primary_key_mapping: Dict[str, PrimaryKey] = dict()
+        self._identifier_to_primary_key_mapping: Dict[str, PrimaryKey] = {}
 
     def to_identifier(self, primary_key: PrimaryKey) -> str:
         """Translate the provided primary key to its corresponding identifier."""

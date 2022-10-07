@@ -13,10 +13,10 @@ class AbstractEntityDTO(ABC):  # pylint: disable=too-few-public-methods
         """Create a copy of the instance containing only the data used to compute the unique identifier."""
 
 
-EntityDTO = TypeVar("EntityDTO", bound=AbstractEntityDTO)
+EntityDataTransferObject = TypeVar("EntityDataTransferObject", bound=AbstractEntityDTO)
 
 
-class AbstractGateway(ABC, Generic[EntityDTO]):
+class AbstractGateway(ABC, Generic[EntityDataTransferObject]):
     """Define the interface of the gateway as expected by the entities."""
 
     @abstractmethod
@@ -24,14 +24,14 @@ class AbstractGateway(ABC, Generic[EntityDTO]):
         """Get the flags associated with the entity specified by the provided identifier."""
 
     @abstractmethod
-    def fetch(self, identifier: str) -> EntityDTO:
+    def fetch(self, identifier: str) -> EntityDataTransferObject:
         """Fetch an entity.
 
         Raise KeyError if the entity is missing.
         """
 
     @abstractmethod
-    def insert(self, entity_dto: EntityDTO) -> None:
+    def insert(self, entity_dto: EntityDataTransferObject) -> None:
         """Insert an entity."""
 
     @abstractmethod
