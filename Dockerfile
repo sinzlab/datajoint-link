@@ -18,5 +18,5 @@ WORKDIR /src/datajoint-link
 COPY . .
 # Fix for https://github.com/actions/virtual-environments/issues/2803
 ENV LD_PRELOAD=/lib/x86_64-linux-gnu/libgcc_s.so.1
-RUN pdm sync --dev --group profiling
+RUN pdm install --dev --no-lock
 ENTRYPOINT [ "pdm", "run" ]

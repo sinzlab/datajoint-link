@@ -19,6 +19,7 @@ classifiers = [
 [project.urls]
 homepage = "https://github.com/sinzlab/link"
 
+[project.optional-dependencies]
 [tool.pdm]
 version = {use_scm = true}
 
@@ -30,12 +31,12 @@ dev = [
     "docker~=4.4",
     "pymysql~=1.0",
     "minio~=7.0",
-    "black~=20.8b1",
     "pylint~=2.7",
     "flake8~=3.8",
     "isort~=5.7",
     "mypy~=0.812",
     "flake8-docstrings~=1.6",
+    "black>=22.10.0",
 ]
 profiling = [
     "gprof2dot~=2021.2",
