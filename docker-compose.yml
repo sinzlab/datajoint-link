@@ -1,7 +1,14 @@
 version: "3.8"
-volumes:
-  pypackages:
 services:
+  dev:
+    build:
+      context: .
+      args:
+        BASE: cblessing24/python3.8:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - datajoint-link:/src
+    command: "tmux"
   pytest:
     build: .
     volumes:
@@ -20,8 +27,13 @@ services:
     networks:
       - profiling_network
     entrypoint: ["./entrypoints/profile_entrypoint.sh"]
+
 networks:
   profiling_network:
     name: profiling_network
   test_runner_network:
     name: test_runner_network
+
+volumes:
+  pypackages:
+  datajoint-link:
