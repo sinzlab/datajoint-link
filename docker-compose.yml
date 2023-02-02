@@ -35,6 +35,9 @@ services:
       "--cov-report=xml:/src/reports/coverage.xml",
       "--cov-config=pyproject.toml", # Workaround for https://github.com/nedbat/coveragepy/issues/512
     ]
+  black:
+    image: cblessing24/datajoint-link:latest
+    command: ["black", "--check", "--diff", "."]
   profile:
     build: .
     volumes:
