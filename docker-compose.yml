@@ -20,6 +20,21 @@ services:
     networks:
       - test
     command: ["pytest"]
+  pytest_github:
+    image: cblessing24/datajoint-link:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./reports:/src/reports
+    environment:
+      DOCKER_NETWORK: datajoint-link_test
+    networks:
+      - test
+    command: [
+      "pytest", 
+      "--cov", 
+      "--cov-report=xml:/src/reports/coverage.xml",
+      "--cov-config=pyproject.toml", # Workaround for https://github.com/nedbat/coveragepy/issues/512
+    ]
   profile:
     build: .
     volumes:
