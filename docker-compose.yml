@@ -1,4 +1,5 @@
 version: "3.8"
+name: datajoint-link
 services:
   dev:
     build:
@@ -10,14 +11,15 @@ services:
       - datajoint-link:/src
     command: "tmux"
   pytest:
-    build: .
+    image: cblessing24/datajoint-link:latest
     volumes:
+      - datajoint-link:/src
       - /var/run/docker.sock:/var/run/docker.sock
-      - .:/src/datajoint-link
-      - pypackages:/src/datajoint-link/__pypackages__
+    environment:
+      DOCKER_NETWORK: datajoint-link_test
     networks:
-      - test_runner_network
-    entrypoint: ["./entrypoints/pytest_entrypoint.sh"]
+      - test
+    command: ["pytest"]
   profile:
     build: .
     volumes:
@@ -31,8 +33,7 @@ services:
 networks:
   profiling_network:
     name: profiling_network
-  test_runner_network:
-    name: test_runner_network
+  test:
 
 volumes:
   pypackages:

@@ -68,3 +68,12 @@ exclude_lines = ["if TYPE_CHECKING:"]
 [build-system]
 requires = ["pdm-pep517"]
 build-backend = "pdm.pep517.api"
+
+[tool.pytest.ini_options]
+addopts = ["--quiet", "--strict-markers"]
+testpaths = [
+    "tests",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]
