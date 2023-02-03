@@ -47,6 +47,9 @@ services:
   flake8:
     image: cblessing24/compenv:latest
     command: ["flake8", "."]
+  pylint:
+    image: cblessing24/compenv:latest
+    command: ["pylint", "compenv"]
   profile:
     build: .
     volumes:

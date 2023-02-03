@@ -56,8 +56,9 @@ max-line-length = 120
 ignore-patterns = ["test_.*\\.py", "conftest\\.py"]
 
 [tool.pylint.messages_control]
+enable = ["useless-suppression"]
 # duplicate-code can't be disabled on a per instance basis (https://github.com/PyCQA/pylint/issues/214)
-disable = ["cyclic-import", "duplicate-code", "logging-fstring-interpolation"]
+disable = ["cyclic-import", "logging-fstring-interpolation"]
 
 [tool.mypy]
 python_version = "3.8"
