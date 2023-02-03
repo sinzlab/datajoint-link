@@ -38,6 +38,9 @@ services:
   black:
     image: cblessing24/datajoint-link:latest
     command: ["black", "--check", "--diff", "."]
+  isort:
+    image: cblessing24/datajoint-link:latest
+    command: ["isort", "--check-only", "--diff", "."]
   profile:
     build: .
     volumes:
