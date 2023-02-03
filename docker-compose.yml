@@ -44,6 +44,9 @@ services:
   mypy:
     image: cblessing24/compenv:latest
     command: ["mypy"]
+  flake8:
+    image: cblessing24/compenv:latest
+    command: ["flake8", "."]
   profile:
     build: .
     volumes:
