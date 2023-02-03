@@ -59,6 +59,14 @@ ignore-patterns = ["test_.*\\.py", "conftest\\.py"]
 # duplicate-code can't be disabled on a per instance basis (https://github.com/PyCQA/pylint/issues/214)
 disable = ["cyclic-import", "duplicate-code", "logging-fstring-interpolation"]
 
+[tool.mypy]
+python_version = "3.8"
+files = [
+    "dj_link"
+]
+strict = true
+mypy_path = "stubs"
+
 [tool.coverage.run]
 branch = true
 source = ["dj_link"]

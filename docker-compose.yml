@@ -41,6 +41,9 @@ services:
   isort:
     image: cblessing24/datajoint-link:latest
     command: ["isort", "--check-only", "--diff", "."]
+  mypy:
+    image: cblessing24/compenv:latest
+    command: ["mypy"]
   profile:
     build: .
     volumes:
