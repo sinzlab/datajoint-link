@@ -35,7 +35,7 @@ jobs:
           path: /tmp
           tag: cblessing24/datajoint-link:latest
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Lint code
         run: touch .env && docker compose run ${{ matrix.linter }}
   test:
@@ -49,7 +49,7 @@ jobs:
           path: /tmp
           tag: cblessing24/datajoint-link:latest
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Test code
         run: touch .env && docker compose run pytest_github
       - name: Upload coverage to codecov
@@ -90,7 +90,7 @@ jobs:
           path: /tmp
           tag: cblessing24/datajoint-link:latest
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build distribution artifacts
         run: touch .env && docker compose run build
       - name: Upload distribution packages to PyPI
