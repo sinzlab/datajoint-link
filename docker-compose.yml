@@ -42,14 +42,14 @@ services:
     image: cblessing24/datajoint-link:latest
     command: ["isort", "--check-only", "--diff", "."]
   mypy:
-    image: cblessing24/compenv:latest
+    image: cblessing24/datajoint-link:latest
     command: ["mypy"]
   flake8:
-    image: cblessing24/compenv:latest
+    image: cblessing24/datajoint-link:latest
     command: ["flake8", "."]
   pylint:
-    image: cblessing24/compenv:latest
-    command: ["pylint", "compenv"]
+    image: cblessing24/datajoint-link:latest
+    command: ["pylint", "dj_link"]
   profile:
     build: .
     volumes:
