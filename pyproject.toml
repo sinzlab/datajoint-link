@@ -68,6 +68,14 @@ files = [
 strict = true
 mypy_path = "stubs"
 
+[[tool.mypy.overrides]]
+module = [
+    "datajoint.*",
+    "docker.*",
+    "setuptools.*",
+]
+ignore_missing_imports = true
+
 [tool.coverage.run]
 branch = true
 source = ["dj_link"]
