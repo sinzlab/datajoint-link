@@ -10,7 +10,6 @@ repos:
           "compose",
           "run",
           "--interactive=false",
-          "--volume=datajoint-link:/src",
           "black",
         ]
       - id: isort
@@ -22,7 +21,6 @@ repos:
           "compose",
           "run",
           "--interactive=false",
-          "--volume=datajoint-link:/src",
           "isort",
         ]
       - id: mypy
@@ -34,7 +32,6 @@ repos:
           "compose",
           "run",
           "--interactive=false",
-          "--volume=datajoint-link:/src",
           "mypy",
         ]
         pass_filenames: false
@@ -47,7 +44,6 @@ repos:
           "compose",
           "run",
           "--interactive=false",
-          "--volume=datajoint-link:/src",
           "flake8",
         ]
       - id: pylint
@@ -59,6 +55,18 @@ repos:
           "compose",
           "run",
           "--interactive=false",
-          "--volume=datajoint-link:/src",
           "pylint",
         ]
+      - id: pytest
+        name: pytest
+        entry: docker
+        language: system
+        types: [python]
+        args: [
+          "compose",
+          "run",
+          "--interactive=false",
+          "pytest",
+          "-m=not slow"
+        ]
+        pass_filenames: false
