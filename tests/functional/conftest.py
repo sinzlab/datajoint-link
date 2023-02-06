@@ -4,6 +4,8 @@ import os
 import warnings
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
+from random import choices
+from string import ascii_lowercase
 from typing import Dict
 
 import datajoint as dj
@@ -113,7 +115,7 @@ def health_check_config(health_check_config_cls):
 
 @pytest.fixture(scope=SCOPE)
 def remove():
-    return bool(int(os.environ.get("REMOVE", True)))
+    return bool(int(os.environ.get("REMOVE", False)))
 
 
 # noinspection PyArgumentList
@@ -151,12 +153,16 @@ def src_db_config(get_db_config, network_config, health_check_config, remove, sr
     return get_db_config("source", network_config, health_check_config, remove, src_user_configs)
 
 
+def create_random_string(length=6):
+    return "".join(choices(ascii_lowercase, k=length))
+
+
 @pytest.fixture(scope=SCOPE)
 def get_db_config(database_config_cls):
     def _get_db_config(kind, network_config, health_check_config, remove, user_configs):
         return database_config_cls(
             image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
-            name=os.environ.get(kind.upper() + "_DATABASE_NAME", "test_" + kind + "_database"),
+            name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
             network=network_config,
             health_check=health_check_config,
             remove=remove,
@@ -174,16 +180,16 @@ def local_db_config(get_db_config, network_config, health_check_config, remove, 
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_config(get_minio_config, network_config, health_check_config):
-    return get_minio_config(network_config, health_check_config, "source")
+def src_minio_config(get_minio_config, network_config, health_check_config, remove):
+    return get_minio_config(network_config, health_check_config, remove, "source")
 
 
 @pytest.fixture(scope=SCOPE)
 def get_minio_config(minio_config_cls):
-    def _get_minio_config(network_config, health_check_config, kind):
+    def _get_minio_config(network_config, health_check_config, remove, kind):
         return minio_config_cls(
             image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
-            name=os.environ.get(kind.upper() + "_MINIO_NAME", "test-" + kind + "-minio"),
+            name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
             network=network_config,
             health_check=health_check_config,
             remove=remove,
@@ -195,8 +201,8 @@ def get_minio_config(minio_config_cls):
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio_config(get_minio_config, network_config, health_check_config):
-    return get_minio_config(network_config, health_check_config, "local")
+def local_minio_config(get_minio_config, network_config, health_check_config, remove):
+    return get_minio_config(network_config, health_check_config, remove, "local")
 
 
 @pytest.fixture(scope=SCOPE)
