@@ -54,6 +54,7 @@ skip_gitignore = true
 [tool.pylint.master]
 max-line-length = 120
 ignore-patterns = ["test_.*\\.py", "conftest\\.py"]
+fail-on = ["useless-suppression"]
 
 [tool.pylint.messages_control]
 enable = ["useless-suppression"]
