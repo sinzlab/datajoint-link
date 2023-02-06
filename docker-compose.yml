@@ -8,7 +8,7 @@ services:
         BASE: cblessing24/python3.8:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - datajoint-link:/src
+      - code:/src
     environment:
       DOCKER_NETWORK: datajoint-link_test
     networks:
@@ -18,13 +18,13 @@ services:
   pytest:
     image: cblessing24/datajoint-link:latest
     volumes:
-      - datajoint-link:/src
+      - code:/src
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DOCKER_NETWORK: datajoint-link_test
     networks:
       - test
-    command: ["pytest"]
+    entrypoint: ["pdm", "run", "pytest"]
   pytest_github:
     image: cblessing24/datajoint-link:latest
     volumes:
@@ -42,38 +42,36 @@ services:
     ]
   black:
     image: cblessing24/datajoint-link:latest
+    volumes:
+      - datajoint-link:/src
     entrypoint: ["pdm", "run", "black", "--check", "--diff"]
     command: ["."]
   isort:
     image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
     entrypoint: ["pdm", "run", "isort", "--check-only", "--diff"]
     command: ["."]
   mypy:
     image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
     entrypoint: ["pdm", "run", "mypy"]
   flake8:
     image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
     entrypoint: ["pdm", "run", "flake8"]
     command: ["."]
   pylint:
     image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
     entrypoint: ["pdm", "run", "pylint"]
     command: ["dj_link"]
-  profile:
-    build: .
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - .:/src/datajoint-link
-      - pypackages:/src/datajoint-link/__pypackages__
-    networks:
-      - profiling_network
-    entrypoint: ["./entrypoints/profile_entrypoint.sh"]
 
 networks:
-  profiling_network:
-    name: profiling_network
   test:
 
 volumes:
-  pypackages:
-  datajoint-link:
+  code:
