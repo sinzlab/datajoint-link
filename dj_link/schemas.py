@@ -104,9 +104,9 @@ class LazySchema:  # pylint: disable=too-many-instance-attributes
         """Return the requested item from the underlying schema."""
         return getattr(self.schema, item)
 
-    def __call__(self, cls: Type[Table], *, context: Dict[str, Any] = None) -> Type[Table]:
+    def __call__(self, cls: Type[Table], *, context: Optional[Dict[str, Any]] = None) -> Type[Table]:
         """Call the underlying schema with the provided class and context."""
-        return self.schema(cls, context=context)  # pylint: disable=not-callable
+        return self.schema(cls, context=context)
 
     def __repr__(self) -> str:
         """Return a string representation of the object."""
