@@ -43,7 +43,7 @@ services:
   black:
     image: cblessing24/datajoint-link:latest
     volumes:
-      - datajoint-link:/src
+      - code:/src
     entrypoint: ["pdm", "run", "black", "--check", "--diff"]
     command: ["."]
   isort:
