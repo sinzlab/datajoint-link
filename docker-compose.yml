@@ -13,6 +13,7 @@ services:
       DOCKER_NETWORK: datajoint-link_test
     networks:
       - test
+    env_file: .env
     command: "tmux"
   pytest:
     image: cblessing24/datajoint-link:latest
