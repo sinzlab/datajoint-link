@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import pathlib
 import warnings
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
@@ -19,6 +20,13 @@ from dj_link import LazySchema, Link
 from dj_link.docker import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        module_path = pathlib.Path(item.fspath)
+        if config.rootdir / pathlib.Path("tests/functional") in module_path.parents:
+            item.add_marker(pytest.mark.slow)
 
 
 @pytest.fixture(scope=SCOPE)
