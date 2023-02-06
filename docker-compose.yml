@@ -9,6 +9,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - datajoint-link:/src
+    environment:
+      DOCKER_NETWORK: datajoint-link_test
+    networks:
+      - test
     command: "tmux"
   pytest:
     image: cblessing24/datajoint-link:latest
