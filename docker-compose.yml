@@ -42,19 +42,23 @@ services:
     ]
   black:
     image: cblessing24/datajoint-link:latest
-    command: ["black", "--check", "--diff", "."]
+    entrypoint: ["pdm", "run", "black", "--check", "--diff"]
+    command: ["."]
   isort:
     image: cblessing24/datajoint-link:latest
-    command: ["isort", "--check-only", "--diff", "."]
+    entrypoint: ["pdm", "run", "isort", "--check-only", "--diff"]
+    command: ["."]
   mypy:
     image: cblessing24/datajoint-link:latest
-    command: ["mypy"]
+    entrypoint: ["pdm", "run", "mypy"]
   flake8:
     image: cblessing24/datajoint-link:latest
-    command: ["flake8", "."]
+    entrypoint: ["pdm", "run", "flake8"]
+    command: ["."]
   pylint:
     image: cblessing24/datajoint-link:latest
-    command: ["pylint", "dj_link"]
+    entrypoint: ["pdm", "run", "pylint"]
+    command: ["dj_link"]
   profile:
     build: .
     volumes:
