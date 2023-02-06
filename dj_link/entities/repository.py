@@ -52,7 +52,7 @@ class EntityFactory(Base):  # pylint: disable=too-few-public-methods
         return Entity(identifier, self.gateway.get_flags(identifier))
 
 
-class Repository(MutableMapping, Base):  # pylint: disable=too-many-ancestors
+class Repository(MutableMapping, Base):
     """Repository containing entities."""
 
     def __init__(

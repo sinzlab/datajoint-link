@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .repository import EntityFactory, TransferEntity
 
 
-class Contents(MutableMapping, Base):  # pylint: disable=too-many-ancestors
+class Contents(MutableMapping, Base):
     """Handles the fetching, inserting and deleting of entities into/from repositories."""
 
     def __init__(self, gateway: AbstractGateway, entity_factory: EntityFactory) -> None:

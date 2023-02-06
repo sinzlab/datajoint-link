@@ -50,9 +50,7 @@ class DeleteResponseModel(AbstractResponseModel):
         return len(self.deleted_from_local)
 
 
-class DeleteUseCase(
-    AbstractUseCase[DeleteRequestModel]
-):  # pylint: disable=unsubscriptable-object,too-few-public-methods
+class DeleteUseCase(AbstractUseCase[DeleteRequestModel]):  # pylint: disable=too-few-public-methods
     """Use-case that deletes entities from the local table and executes associated logic."""
 
     name = "delete"

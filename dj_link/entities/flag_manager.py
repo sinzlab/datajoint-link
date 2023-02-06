@@ -33,7 +33,7 @@ class FlagManagerFactory(Mapping, Base):
         return len(self.gateway)
 
 
-class FlagManager(MutableMapping, Base):  # pylint: disable=too-many-ancestors
+class FlagManager(MutableMapping, Base):
     """Manages the flags of a single entity."""
 
     def __init__(self, entity: Entity, gateway: AbstractGateway) -> None:

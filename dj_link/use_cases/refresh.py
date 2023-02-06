@@ -30,9 +30,7 @@ class RefreshResponseModel(AbstractResponseModel):
         return len(self.refreshed)
 
 
-class RefreshUseCase(
-    AbstractUseCase[RefreshRequestModel]
-):  # pylint: disable=unsubscriptable-object,too-few-public-methods
+class RefreshUseCase(AbstractUseCase[RefreshRequestModel]):  # pylint: disable=too-few-public-methods
     """Use-case that refreshes entities in the local table."""
 
     name = "refresh"

@@ -59,7 +59,7 @@ fail-on = ["useless-suppression"]
 [tool.pylint.messages_control]
 enable = ["useless-suppression"]
 # duplicate-code can't be disabled on a per instance basis (https://github.com/PyCQA/pylint/issues/214)
-disable = ["cyclic-import", "logging-fstring-interpolation"]
+disable = ["cyclic-import", "logging-fstring-interpolation", "duplicate-code"]
 
 [tool.mypy]
 python_version = "3.8"
