@@ -86,7 +86,6 @@ def network_config():
     return os.environ["DOCKER_NETWORK"]
 
 
-# noinspection PyArgumentList
 @pytest.fixture(scope=SCOPE)
 def health_check_config():
     return HealthCheckConfig(
@@ -102,7 +101,6 @@ def remove():
     return bool(int(os.environ.get("REMOVE", False)))
 
 
-# noinspection PyArgumentList
 @pytest.fixture(scope=SCOPE)
 def src_user_configs():
     return dict(
@@ -121,7 +119,6 @@ def src_user_configs():
     )
 
 
-# noinspection PyArgumentList
 @pytest.fixture(scope=SCOPE)
 def local_user_configs():
     return dict(
@@ -338,7 +335,6 @@ def src_store_config(get_store_config, src_minio_config, src_store_name):
 
 @pytest.fixture
 def get_store_config():
-    # noinspection PyArgumentList
     def _get_store_config(minio_config, kind, store_name):
         return StoreConfig(
             name=store_name,
