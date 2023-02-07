@@ -1,0 +1,98 @@
+[project]
+name = "datajoint-link"
+description = "A tool for linking two DataJoint tables located on different database servers"
+readme = "README.md"
+authors = [
+    {name = "Christoph Blessing", email = "33834216+cblessing24@users.noreply.github.com"},
+]
+dependencies = ["datajoint >= 0.12, < 0.13"]
+requires-python = ">=3.8"
+dynamic = ["classifiers", "version"]
+license = {text = "GNU GPLv3"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+]
+
+[project.urls]
+homepage = "https://github.com/sinzlab/link"
+
+[project.optional-dependencies]
+[tool.pdm]
+version = {use_scm = true}
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest~=6.2",
+    "pytest-sugar~=0.9",
+    "pytest-cov~=2.11",
+    "docker~=4.4",
+    "pymysql~=1.0",
+    "pylint~=2.7",
+    "flake8~=3.8",
+    "isort~=5.7",
+    "mypy~=0.812",
+    "flake8-docstrings~=1.6",
+    "black>=22.10.0",
+    "minio>=7.1.12",
+]
+profiling = [
+    "gprof2dot~=2021.2",
+]
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 120
+skip_gitignore = true
+
+[tool.pylint.master]
+max-line-length = 120
+ignore-patterns = ["test_.*\\.py", "conftest\\.py"]
+fail-on = ["useless-suppression"]
+
+[tool.pylint.messages_control]
+enable = ["useless-suppression"]
+# duplicate-code can't be disabled on a per instance basis (https://github.com/PyCQA/pylint/issues/214)
+disable = ["cyclic-import", "logging-fstring-interpolation", "duplicate-code"]
+
+[tool.mypy]
+python_version = "3.8"
+files = [
+    "dj_link"
+]
+strict = false
+mypy_path = "stubs"
+
+[[tool.mypy.overrides]]
+module = [
+    "datajoint.*",
+    "docker.*",
+    "setuptools.*",
+]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["dj_link"]
+
+[tool.coverage.report]
+exclude_lines = ["if TYPE_CHECKING:"]
+
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"
+
+[tool.pytest.ini_options]
+addopts = ["--quiet", "--strict-markers"]
+testpaths = [
+    "tests",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]

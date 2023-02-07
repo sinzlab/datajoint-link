@@ -1,0 +1,77 @@
+version: "3.8"
+name: datajoint-link
+services:
+  dev:
+    build:
+      context: .
+      args:
+        BASE: cblessing24/python3.8:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - code:/src
+    environment:
+      DOCKER_NETWORK: datajoint-link_test
+    networks:
+      - test
+    env_file: .env
+    command: "tmux"
+  pytest:
+    image: cblessing24/datajoint-link:latest
+    volumes:
+      - code:/src
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOCKER_NETWORK: datajoint-link_test
+    networks:
+      - test
+    entrypoint: ["pdm", "run", "pytest"]
+  pytest_github:
+    image: cblessing24/datajoint-link:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./reports:/src/reports
+    environment:
+      DOCKER_NETWORK: datajoint-link_test
+    networks:
+      - test
+    command: [
+      "pytest", 
+      "--cov", 
+      "--cov-report=xml:/src/reports/coverage.xml",
+      "--cov-config=pyproject.toml", # Workaround for https://github.com/nedbat/coveragepy/issues/512
+    ]
+  black:
+    image: cblessing24/datajoint-link:latest
+    volumes:
+      - code:/src
+    entrypoint: ["pdm", "run", "black", "--check", "--diff"]
+    command: ["."]
+  isort:
+    image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
+    entrypoint: ["pdm", "run", "isort", "--check-only", "--diff"]
+    command: ["."]
+  mypy:
+    image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
+    entrypoint: ["pdm", "run", "mypy"]
+  flake8:
+    image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
+    entrypoint: ["pdm", "run", "flake8"]
+    command: ["."]
+  pylint:
+    image: cblessing24/datajoint-link:latest
+    volumes_from:
+      - black
+    entrypoint: ["pdm", "run", "pylint"]
+    command: ["dj_link"]
+
+networks:
+  test:
+
+volumes:
+  code:
