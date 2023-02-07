@@ -3,70 +3,33 @@ repos:
     hooks:
       - id: black
         name: black
-        entry: docker
+        entry: docker compose run --interactive=false black
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "black",
-        ]
       - id: isort
         name: isort
-        entry: docker
+        entry: docker compose run --interactive=false isort
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "isort",
-        ]
       - id: mypy
         name: mypy
-        entry: docker
+        entry: docker compose run --interactive=false mypy
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "mypy",
-        ]
         pass_filenames: false
       - id: flake8
         name: flake8
-        entry: docker
+        entry: docker compose run --interactive=false flake8
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "flake8",
-        ]
       - id: pylint
         name: pylint
-        entry: docker
+        entry: docker compose run --interactive=false pylint
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "pylint",
-        ]
       - id: pytest
         name: pytest
-        entry: docker
+        entry: docker compose run --interactive=false pytest -m='not slow'
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "pytest",
-          "-m=not slow"
-        ]
         pass_filenames: false
