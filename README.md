@@ -4,7 +4,7 @@
 <img src="datajoint_link.png" alt="datajoint-link logo" style="display: block; margin-left: auto; margin-right: auto; width: 20%">
 <br>
 <a href="https://github.com/sinzlab/datajoint-link/actions/workflows/ci.yml"><img alt="Actions Status" src="https://github.com/sinzlab/datajoint-link/actions/workflows/ci.yml/badge.svg"></a>
-<a href="https://codecov.io/gh/cblessing24/datajoint-link/"><img alt="Coverage" src="https://img.shields.io/codecov/c/github/cblessing24/datajoint-link"></a>
+<a href="https://codecov.io/gh/sinzlab/datajoint-link/"><img alt="Coverage" src="https://img.shields.io/codecov/c/github/sinzlab/datajoint-link"></a>
 <a href="https://pypi.org/project/datajoint-link/"><img alt="PyPI" src="https://img.shields.io/pypi/v/datajoint-link"></a>
 </p>
 
