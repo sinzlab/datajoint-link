@@ -46,10 +46,10 @@ def container_config_cls(health_check_config_cls):
 def health_check_config_cls():
     @dataclass
     class HealthCheckConfig:
-        start_period: int  # period after which health is first checked in seconds
+        start_period_seconds: int  # period after which health is first checked
         max_retries: int  # max number of retries before raising an error
-        interval: int  # interval between health checks in seconds
-        timeout: int  # max time a health check test has to finish
+        interval_seconds: int  # interval between health checks
+        timeout_seconds: int  # max time a health check test has to finish
 
     return HealthCheckConfig
 
@@ -114,10 +114,10 @@ def network_config():
 @pytest.fixture(scope=SCOPE)
 def health_check_config(health_check_config_cls):
     return health_check_config_cls(
-        start_period=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
+        start_period_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
         max_retries=int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
-        interval=int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
-        timeout=int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
+        interval_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
+        timeout_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
     )
 
 
@@ -241,10 +241,10 @@ def get_runner_kwargs(database_config_cls, minio_config_cls, docker_client):
                 command=["server", "/data"],
                 healthcheck=dict(
                     test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
-                    start_period=int(container_config.health_check.start_period * 1e9),  # nanoseconds
-                    interval=int(container_config.health_check.interval * 1e9),  # nanoseconds
+                    start_period=int(container_config.health_check.start_period_seconds * 1e9),  # nanoseconds
+                    interval=int(container_config.health_check.interval_seconds * 1e9),  # nanoseconds
                     retries=container_config.health_check.max_retries,
-                    timeout=int(container_config.health_check.timeout * 1e9),  # nanoseconds
+                    timeout=int(container_config.health_check.timeout_seconds * 1e9),  # nanoseconds
                 ),
                 **common,
             )
@@ -255,7 +255,7 @@ def get_runner_kwargs(database_config_cls, minio_config_cls, docker_client):
             "container_config": processed_container_config,
             "health_check_config": {
                 "max_retries": container_config.health_check.max_retries,
-                "interval": container_config.health_check.interval,
+                "interval": container_config.health_check.interval_seconds,
             },
             "remove": container_config.remove,
         }
