@@ -29,75 +29,51 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.slow)
 
 
-@pytest.fixture(scope=SCOPE)
-def container_config_cls(health_check_config_cls):
-    @dataclass
-    class ContainerConfig:
-        image_tag: str
-        name: str
-        network: str  # docker network to use for testing
-        health_check: health_check_config_cls
-        remove: bool  # container and associated volume will be removed if true
-
-    return ContainerConfig
+@dataclass(frozen=True)
+class ContainerConfig:
+    image_tag: str
+    name: str
+    network: str  # docker network to use for testing
+    health_check: HealthCheckConfig
+    remove: bool  # container and associated volume will be removed if true
 
 
-@pytest.fixture(scope=SCOPE)
-def health_check_config_cls():
-    @dataclass
-    class HealthCheckConfig:
-        start_period_seconds: int  # period after which health is first checked
-        max_retries: int  # max number of retries before raising an error
-        interval_seconds: int  # interval between health checks
-        timeout_seconds: int  # max time a health check test has to finish
-
-    return HealthCheckConfig
+@dataclass(frozen=True)
+class HealthCheckConfig:
+    start_period_seconds: int  # period after which health is first checked
+    max_retries: int  # max number of retries before raising an error
+    interval_seconds: int  # interval between health checks
+    timeout_seconds: int  # max time a health check test has to finish
 
 
-@pytest.fixture(scope=SCOPE)
-def database_config_cls(container_config_cls, user_config):
-    @dataclass
-    class DatabaseConfig(container_config_cls):
-        password: str  # MYSQL root user password
-        users: Dict[str, user_config]
-        schema_name: str
-
-    return DatabaseConfig
+@dataclass(frozen=True)
+class DatabaseConfig(ContainerConfig):
+    password: str  # MYSQL root user password
+    users: Dict[str, UserConfig]
+    schema_name: str
 
 
-@pytest.fixture(scope=SCOPE)
-def user_config():
-    @dataclass
-    class UserConfig:
-        name: str
-        password: str
-
-    return UserConfig
+@dataclass(frozen=True)
+class UserConfig:
+    name: str
+    password: str
 
 
-@pytest.fixture(scope=SCOPE)
-def minio_config_cls(container_config_cls):
-    @dataclass
-    class MinIOConfig(container_config_cls):
-        access_key: str
-        secret_key: str
-
-    return MinIOConfig
+@dataclass(frozen=True)
+class MinIOConfig(ContainerConfig):
+    access_key: str
+    secret_key: str
 
 
-@pytest.fixture(scope=SCOPE)
-def store_config():
-    @dataclass
-    class StoreConfig:
-        name: str
-        protocol: str
-        endpoint: str
-        bucket: str
-        location: str
-        access_key: str
-        secret_key: str
-
-    return StoreConfig
+@dataclass(frozen=True)
+class StoreConfig:
+    name: str
+    protocol: str
+    endpoint: str
+    bucket: str
+    location: str
+    access_key: str
+    secret_key: str
 
 
 @pytest.fixture(scope=SCOPE)
@@ -112,8 +88,8 @@ def network_config():
 
 # noinspection PyArgumentList
 @pytest.fixture(scope=SCOPE)
-def health_check_config(health_check_config_cls):
-    return health_check_config_cls(
+def health_check_config():
+    return HealthCheckConfig(
         start_period_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
         max_retries=int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
         interval_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
@@ -128,17 +104,17 @@ def remove():
 
 # noinspection PyArgumentList
 @pytest.fixture(scope=SCOPE)
-def src_user_configs(user_config):
+def src_user_configs():
     return dict(
-        admin_user=user_config(
+        admin_user=UserConfig(
             os.environ.get("SOURCE_DATABASE_ADMIN_USER", "source_admin_user"),
             os.environ.get("SOURCE_DATABASE_ADMIN_PASS", "source_admin_user_pass"),
         ),
-        end_user=user_config(
+        end_user=UserConfig(
             os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
             os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
         ),
-        dj_user=user_config(
+        dj_user=UserConfig(
             os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
             os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
         ),
@@ -147,9 +123,9 @@ def src_user_configs(user_config):
 
 # noinspection PyArgumentList
 @pytest.fixture(scope=SCOPE)
-def local_user_configs(user_config):
+def local_user_configs():
     return dict(
-        end_user=user_config(
+        end_user=UserConfig(
             os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
             os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
         ),
@@ -166,9 +142,9 @@ def create_random_string(length=6):
 
 
 @pytest.fixture(scope=SCOPE)
-def get_db_config(database_config_cls):
+def get_db_config():
     def _get_db_config(kind, network_config, health_check_config, remove, user_configs):
-        return database_config_cls(
+        return DatabaseConfig(
             image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
             name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
             network=network_config,
@@ -193,9 +169,9 @@ def src_minio_config(get_minio_config, network_config, health_check_config, remo
 
 
 @pytest.fixture(scope=SCOPE)
-def get_minio_config(minio_config_cls):
+def get_minio_config():
     def _get_minio_config(network_config, health_check_config, remove, kind):
-        return minio_config_cls(
+        return MinIOConfig(
             image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
             name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
             network=network_config,
@@ -221,17 +197,17 @@ def outbound_schema_name(src_db_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def get_runner_kwargs(database_config_cls, minio_config_cls, docker_client):
+def get_runner_kwargs(docker_client):
     def _get_runner_kwargs(container_config):
         common = dict(detach=True, network=container_config.network)
-        if isinstance(container_config, database_config_cls):
+        if isinstance(container_config, DatabaseConfig):
             processed_container_config = dict(
                 image="datajoint/mysql:" + container_config.image_tag,
                 name=container_config.name,
                 environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
                 **common,
             )
-        elif isinstance(container_config, minio_config_cls):
+        elif isinstance(container_config, MinIOConfig):
             processed_container_config = dict(
                 image="minio/minio:" + container_config.image_tag,
                 name=container_config.name,
@@ -361,10 +337,10 @@ def src_store_config(get_store_config, src_minio_config, src_store_name):
 
 
 @pytest.fixture
-def get_store_config(store_config):
+def get_store_config():
     # noinspection PyArgumentList
     def _get_store_config(minio_config, kind, store_name):
-        return store_config(
+        return StoreConfig(
             name=store_name,
             protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
             endpoint=minio_config.name + ":9000",
