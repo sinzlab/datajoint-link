@@ -21,6 +21,7 @@ from dj_link.docker import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
 REMOVE = True
+NETWORK = os.environ["DOCKER_NETWORK"]
 
 
 def pytest_collection_modifyitems(config, items):
@@ -34,7 +35,6 @@ def pytest_collection_modifyitems(config, items):
 class ContainerConfig:
     image_tag: str
     name: str
-    network: str  # docker network to use for testing
     health_check: HealthCheckConfig
 
 
@@ -94,11 +94,6 @@ def docker_client():
 
 
 @pytest.fixture(scope=SCOPE)
-def network_config():
-    return os.environ["DOCKER_NETWORK"]
-
-
-@pytest.fixture(scope=SCOPE)
 def src_user_configs():
     return dict(
         admin_user=UserConfig(
@@ -127,8 +122,8 @@ def local_user_configs():
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db_spec(get_db_spec, network_config, src_user_configs):
-    return get_db_spec("source", network_config, src_user_configs)
+def src_db_spec(get_db_spec, src_user_configs):
+    return get_db_spec("source", src_user_configs)
 
 
 def create_random_string(length=6):
@@ -137,12 +132,11 @@ def create_random_string(length=6):
 
 @pytest.fixture(scope=SCOPE)
 def get_db_spec():
-    def _get_db_spec(kind, network_config, user_configs):
+    def _get_db_spec(kind, user_configs):
         return DatabaseSpec(
             ContainerConfig(
                 image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
                 name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
-                network=network_config,
                 health_check=HealthCheckConfig(),
             ),
             DatabaseConfig(
@@ -156,23 +150,22 @@ def get_db_spec():
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db_spec(get_db_spec, network_config, local_user_configs):
-    return get_db_spec("local", network_config, local_user_configs)
+def local_db_spec(get_db_spec, local_user_configs):
+    return get_db_spec("local", local_user_configs)
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_spec(get_minio_spec, network_config):
-    return get_minio_spec(network_config, "source")
+def src_minio_spec(get_minio_spec):
+    return get_minio_spec("source")
 
 
 @pytest.fixture(scope=SCOPE)
 def get_minio_spec():
-    def _get_minio_spec(network_config, kind):
+    def _get_minio_spec(kind):
         return MinIOSpec(
             ContainerConfig(
                 image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
                 name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
-                network=network_config,
                 health_check=HealthCheckConfig(),
             ),
             MinIOConfig(
@@ -185,8 +178,8 @@ def get_minio_spec():
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio_spec(get_minio_spec, network_config):
-    return get_minio_spec(network_config, "local")
+def local_minio_spec(get_minio_spec):
+    return get_minio_spec("local")
 
 
 @pytest.fixture(scope=SCOPE)
@@ -199,7 +192,7 @@ def outbound_schema_name():
 @pytest.fixture(scope=SCOPE)
 def get_runner_kwargs(docker_client):
     def _get_runner_kwargs(spec):
-        common = dict(detach=True, network=spec.container.network, name=spec.container.name)
+        common = dict(detach=True, network=NETWORK, name=spec.container.name)
         if isinstance(spec, DatabaseSpec):
             processed_container_config = dict(
                 image="datajoint/mysql:" + spec.container.image_tag,
