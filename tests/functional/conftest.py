@@ -22,6 +22,8 @@ from dj_link.docker import ContainerRunner
 SCOPE = os.environ.get("SCOPE", "session")
 REMOVE = True
 NETWORK = os.environ["DOCKER_NETWORK"]
+DATABASE_IMAGE = "datajoint/mysql:latest"
+MINIO_IMAGE = "minio/minio:latest"
 
 
 def pytest_collection_modifyitems(config, items):
@@ -33,7 +35,7 @@ def pytest_collection_modifyitems(config, items):
 
 @dataclass(frozen=True)
 class ContainerConfig:
-    image_tag: str
+    image: str
     name: str
     health_check: HealthCheckConfig
 
@@ -135,7 +137,7 @@ def get_db_spec():
     def _get_db_spec(kind, user_configs):
         return DatabaseSpec(
             ContainerConfig(
-                image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
+                image=DATABASE_IMAGE,
                 name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
                 health_check=HealthCheckConfig(),
             ),
@@ -164,7 +166,7 @@ def get_minio_spec():
     def _get_minio_spec(kind):
         return MinIOSpec(
             ContainerConfig(
-                image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
+                image=MINIO_IMAGE,
                 name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
                 health_check=HealthCheckConfig(),
             ),
@@ -192,16 +194,14 @@ def outbound_schema_name():
 @pytest.fixture(scope=SCOPE)
 def get_runner_kwargs(docker_client):
     def _get_runner_kwargs(spec):
-        common = dict(detach=True, network=NETWORK, name=spec.container.name)
+        common = dict(detach=True, network=NETWORK, name=spec.container.name, image=spec.container.image)
         if isinstance(spec, DatabaseSpec):
             processed_container_config = dict(
-                image="datajoint/mysql:" + spec.container.image_tag,
                 environment=dict(MYSQL_ROOT_PASSWORD=spec.config.password),
                 **common,
             )
         elif isinstance(spec, MinIOSpec):
             processed_container_config = dict(
-                image="minio/minio:" + spec.container.image_tag,
                 environment=dict(MINIO_ACCESS_KEY=spec.config.access_key, MINIO_SECRET_KEY=spec.config.secret_key),
                 command=["server", "/data"],
                 healthcheck=dict(
