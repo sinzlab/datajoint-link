@@ -40,10 +40,10 @@ class ContainerConfig:
 
 @dataclass(frozen=True)
 class HealthCheckConfig:
-    start_period_seconds: int  # period after which health is first checked
-    max_retries: int  # max number of retries before raising an error
-    interval_seconds: int  # interval between health checks
-    timeout_seconds: int  # max time a health check test has to finish
+    start_period_seconds: int = 0  # period after which health is first checked
+    max_retries: int = 60  # max number of retries before raising an error
+    interval_seconds: int = 1  # interval between health checks
+    timeout_seconds: int = 5  # max time a health check test has to finish
 
 
 @dataclass(frozen=True)
@@ -87,16 +87,6 @@ def network_config():
 
 
 @pytest.fixture(scope=SCOPE)
-def health_check_config():
-    return HealthCheckConfig(
-        start_period_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
-        max_retries=int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
-        interval_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
-        timeout_seconds=int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
-    )
-
-
-@pytest.fixture(scope=SCOPE)
 def remove():
     return bool(int(os.environ.get("REMOVE", False)))
 
@@ -130,8 +120,8 @@ def local_user_configs():
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db_config(get_db_config, network_config, health_check_config, remove, src_user_configs):
-    return get_db_config("source", network_config, health_check_config, remove, src_user_configs)
+def src_db_config(get_db_config, network_config, remove, src_user_configs):
+    return get_db_config("source", network_config, remove, src_user_configs)
 
 
 def create_random_string(length=6):
@@ -140,12 +130,12 @@ def create_random_string(length=6):
 
 @pytest.fixture(scope=SCOPE)
 def get_db_config():
-    def _get_db_config(kind, network_config, health_check_config, remove, user_configs):
+    def _get_db_config(kind, network_config, remove, user_configs):
         return DatabaseConfig(
             image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
             name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
             network=network_config,
-            health_check=health_check_config,
+            health_check=HealthCheckConfig(),
             remove=remove,
             password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
             users=user_configs,
@@ -156,23 +146,23 @@ def get_db_config():
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db_config(get_db_config, network_config, health_check_config, remove, local_user_configs):
-    return get_db_config("local", network_config, health_check_config, remove, local_user_configs)
+def local_db_config(get_db_config, network_config, remove, local_user_configs):
+    return get_db_config("local", network_config, remove, local_user_configs)
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_config(get_minio_config, network_config, health_check_config, remove):
-    return get_minio_config(network_config, health_check_config, remove, "source")
+def src_minio_config(get_minio_config, network_config, remove):
+    return get_minio_config(network_config, remove, "source")
 
 
 @pytest.fixture(scope=SCOPE)
 def get_minio_config():
-    def _get_minio_config(network_config, health_check_config, remove, kind):
+    def _get_minio_config(network_config, remove, kind):
         return MinIOConfig(
             image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
             name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
             network=network_config,
-            health_check=health_check_config,
+            health_check=HealthCheckConfig(),
             remove=remove,
             access_key=os.environ.get(kind.upper() + "_MINIO_ACCESS_KEY", kind + "_minio_access_key"),
             secret_key=os.environ.get(kind.upper() + "_MINIO_SECRET_KEY", kind + "_minio_secret_key"),
@@ -182,8 +172,8 @@ def get_minio_config():
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio_config(get_minio_config, network_config, health_check_config, remove):
-    return get_minio_config(network_config, health_check_config, remove, "local")
+def local_minio_config(get_minio_config, network_config, remove):
+    return get_minio_config(network_config, remove, "local")
 
 
 @pytest.fixture(scope=SCOPE)
