@@ -20,6 +20,7 @@ from dj_link import LazySchema, Link
 from dj_link.docker import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
+REMOVE = True
 
 
 def pytest_collection_modifyitems(config, items):
@@ -35,7 +36,6 @@ class ContainerConfig:
     name: str
     network: str  # docker network to use for testing
     health_check: HealthCheckConfig
-    remove: bool  # container and associated volume will be removed if true
 
 
 @dataclass(frozen=True)
@@ -99,11 +99,6 @@ def network_config():
 
 
 @pytest.fixture(scope=SCOPE)
-def remove():
-    return bool(int(os.environ.get("REMOVE", False)))
-
-
-@pytest.fixture(scope=SCOPE)
 def src_user_configs():
     return dict(
         admin_user=UserConfig(
@@ -132,8 +127,8 @@ def local_user_configs():
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db_spec(get_db_spec, network_config, remove, src_user_configs):
-    return get_db_spec("source", network_config, remove, src_user_configs)
+def src_db_spec(get_db_spec, network_config, src_user_configs):
+    return get_db_spec("source", network_config, src_user_configs)
 
 
 def create_random_string(length=6):
@@ -142,14 +137,13 @@ def create_random_string(length=6):
 
 @pytest.fixture(scope=SCOPE)
 def get_db_spec():
-    def _get_db_spec(kind, network_config, remove, user_configs):
+    def _get_db_spec(kind, network_config, user_configs):
         return DatabaseSpec(
             ContainerConfig(
                 image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
                 name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
                 network=network_config,
                 health_check=HealthCheckConfig(),
-                remove=remove,
             ),
             DatabaseConfig(
                 password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
@@ -162,25 +156,24 @@ def get_db_spec():
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db_spec(get_db_spec, network_config, remove, local_user_configs):
-    return get_db_spec("local", network_config, remove, local_user_configs)
+def local_db_spec(get_db_spec, network_config, local_user_configs):
+    return get_db_spec("local", network_config, local_user_configs)
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_spec(get_minio_spec, network_config, remove):
-    return get_minio_spec(network_config, remove, "source")
+def src_minio_spec(get_minio_spec, network_config):
+    return get_minio_spec(network_config, "source")
 
 
 @pytest.fixture(scope=SCOPE)
 def get_minio_spec():
-    def _get_minio_spec(network_config, remove, kind):
+    def _get_minio_spec(network_config, kind):
         return MinIOSpec(
             ContainerConfig(
                 image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
                 name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
                 network=network_config,
                 health_check=HealthCheckConfig(),
-                remove=remove,
             ),
             MinIOConfig(
                 access_key=os.environ.get(kind.upper() + "_MINIO_ACCESS_KEY", kind + "_minio_access_key"),
@@ -192,8 +185,8 @@ def get_minio_spec():
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio_spec(get_minio_spec, network_config, remove):
-    return get_minio_spec(network_config, remove, "local")
+def local_minio_spec(get_minio_spec, network_config):
+    return get_minio_spec(network_config, "local")
 
 
 @pytest.fixture(scope=SCOPE)
@@ -236,7 +229,7 @@ def get_runner_kwargs(docker_client):
                 "max_retries": spec.container.health_check.max_retries,
                 "interval": spec.container.health_check.interval_seconds,
             },
-            "remove": spec.container.remove,
+            "remove": REMOVE,
         }
 
     return _get_runner_kwargs
