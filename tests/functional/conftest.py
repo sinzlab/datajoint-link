@@ -232,27 +232,28 @@ def get_runner_kwargs(docker_client):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(src_db_spec, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(src_db_spec)), mysql_conn(src_db_spec) as connection:
-        with connection.cursor() as cursor:
-            for user in src_db_spec.config.users.values():
-                cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
-                for grant in user.grants:
-                    cursor.execute(grant)
-        connection.commit()
-        yield
+def create_db(get_runner_kwargs):
+    def _create_db(db_spec):
+        with ContainerRunner(**get_runner_kwargs(db_spec)), mysql_conn(db_spec) as connection:
+            with connection.cursor() as cursor:
+                for user in db_spec.config.users.values():
+                    cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
+                    for grant in user.grants:
+                        cursor.execute(grant)
+            connection.commit()
+            yield
+
+    return _create_db
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(local_db_spec, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(local_db_spec)), mysql_conn(local_db_spec) as connection:
-        with connection.cursor() as cursor:
-            for user in local_db_spec.config.users.values():
-                cursor.execute(f"CREATE USER '{user.name}'@'%' " f"IDENTIFIED BY '{user.password}';")
-                for grant in user.grants:
-                    cursor.execute(grant)
-        connection.commit()
-        yield
+def src_db(src_db_spec, create_db):
+    yield from create_db(src_db_spec)
+
+
+@pytest.fixture(scope=SCOPE)
+def local_db(local_db_spec, create_db):
+    yield from create_db(local_db_spec)
 
 
 @contextmanager
