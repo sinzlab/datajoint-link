@@ -65,6 +65,7 @@ class DatabaseSpec:
 class UserConfig:
     name: str
     password: str
+    grants: list[str]
 
 
 @dataclass(frozen=True)
@@ -96,36 +97,37 @@ def docker_client():
 
 
 @pytest.fixture(scope=SCOPE)
-def src_user_configs():
-    return dict(
-        admin_user=UserConfig(
-            os.environ.get("SOURCE_DATABASE_ADMIN_USER", "source_admin_user"),
-            os.environ.get("SOURCE_DATABASE_ADMIN_PASS", "source_admin_user_pass"),
-        ),
-        end_user=UserConfig(
-            os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
-            os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
-        ),
-        dj_user=UserConfig(
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
-        ),
-    )
+def create_user_configs(outbound_schema_name):
+    def _create_user_configs(schema_name):
+        return dict(
+            admin_user=UserConfig(
+                "admin_user",
+                "admin_user_password",
+                grants=[
+                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO 'admin_user'@'%';",
+                ],
+            ),
+            end_user=UserConfig(
+                "end_user",
+                "end_user_password",
+                grants=[r"GRANT ALL PRIVILEGES ON `end_user\_%`.* TO 'end_user'@'%';"],
+            ),
+            dj_user=UserConfig(
+                "dj_user",
+                "dj_user_password",
+                grants=[
+                    f"GRANT SELECT, REFERENCES ON `{schema_name}`.* TO 'dj_user'@'%';",
+                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO 'dj_user'@'%';",
+                ],
+            ),
+        )
+
+    return _create_user_configs
 
 
 @pytest.fixture(scope=SCOPE)
-def local_user_configs():
-    return dict(
-        end_user=UserConfig(
-            os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
-            os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
-        ),
-    )
-
-
-@pytest.fixture(scope=SCOPE)
-def src_db_spec(get_db_spec, src_user_configs):
-    return get_db_spec("source", src_user_configs)
+def src_db_spec(get_db_spec):
+    return get_db_spec("source")
 
 
 def create_random_string(length=6):
@@ -133,8 +135,9 @@ def create_random_string(length=6):
 
 
 @pytest.fixture(scope=SCOPE)
-def get_db_spec():
-    def _get_db_spec(kind, user_configs):
+def get_db_spec(create_user_configs):
+    def _get_db_spec(kind):
+        schema_name = "end_user_schema"
         return DatabaseSpec(
             ContainerConfig(
                 image=DATABASE_IMAGE,
@@ -143,8 +146,8 @@ def get_db_spec():
             ),
             DatabaseConfig(
                 password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
-                users=user_configs,
-                schema_name=os.environ.get(kind.upper() + "_DATABASE_END_USER_SCHEMA", kind + "_end_user_schema"),
+                users=create_user_configs(schema_name),
+                schema_name=schema_name,
             ),
         )
 
@@ -152,8 +155,8 @@ def get_db_spec():
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db_spec(get_db_spec, local_user_configs):
-    return get_db_spec("local", local_user_configs)
+def local_db_spec(get_db_spec):
+    return get_db_spec("local")
 
 
 @pytest.fixture(scope=SCOPE)
@@ -229,23 +232,13 @@ def get_runner_kwargs(docker_client):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(src_db_spec, get_runner_kwargs, outbound_schema_name):
+def src_db(src_db_spec, get_runner_kwargs):
     with ContainerRunner(**get_runner_kwargs(src_db_spec)), mysql_conn(src_db_spec) as connection:
         with connection.cursor() as cursor:
             for user in src_db_spec.config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
-            sql_statements = (
-                rf"GRANT ALL PRIVILEGES ON `{src_db_spec.config.users['end_user'].name}\_%`.* "
-                f"TO '{src_db_spec.config.users['end_user'].name}'@'%';",
-                f"GRANT SELECT, REFERENCES ON `{src_db_spec.config.schema_name}`.* "
-                f"TO '{src_db_spec.config.users['dj_user'].name}'@'%';",
-                f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
-                f"TO '{src_db_spec.config.users['dj_user'].name}'@'%';",
-                f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
-                f"TO '{src_db_spec.config.users['admin_user'].name}'@'%';",
-            )
-            for sql_statement in sql_statements:
-                cursor.execute(sql_statement)
+                for grant in user.grants:
+                    cursor.execute(grant)
         connection.commit()
         yield
 
@@ -256,12 +249,8 @@ def local_db(local_db_spec, get_runner_kwargs):
         with connection.cursor() as cursor:
             for user in local_db_spec.config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' " f"IDENTIFIED BY '{user.password}';")
-            cursor.execute(
-                (
-                    f"GRANT ALL PRIVILEGES ON `{local_db_spec.config.schema_name}`.* "
-                    f"TO '{local_db_spec.config.users['end_user'].name}'"
-                )
-            )
+                for grant in user.grants:
+                    cursor.execute(grant)
         connection.commit()
         yield
 
