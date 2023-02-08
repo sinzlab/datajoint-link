@@ -47,10 +47,16 @@ class HealthCheckConfig:
 
 
 @dataclass(frozen=True)
-class DatabaseConfig(ContainerConfig):
+class DatabaseConfig:
     password: str  # MYSQL root user password
     users: Dict[str, UserConfig]
     schema_name: str
+
+
+@dataclass(frozen=True)
+class DatabaseSpec:
+    container: ContainerConfig
+    config: DatabaseConfig
 
 
 @dataclass(frozen=True)
@@ -60,9 +66,15 @@ class UserConfig:
 
 
 @dataclass(frozen=True)
-class MinIOConfig(ContainerConfig):
+class MinIOConfig:
     access_key: str
     secret_key: str
+
+
+@dataclass(frozen=True)
+class MinIOSpec:
+    container: ContainerConfig
+    config: MinIOConfig
 
 
 @dataclass(frozen=True)
@@ -120,8 +132,8 @@ def local_user_configs():
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db_config(get_db_config, network_config, remove, src_user_configs):
-    return get_db_config("source", network_config, remove, src_user_configs)
+def src_db_spec(get_db_spec, network_config, remove, src_user_configs):
+    return get_db_spec("source", network_config, remove, src_user_configs)
 
 
 def create_random_string(length=6):
@@ -129,55 +141,63 @@ def create_random_string(length=6):
 
 
 @pytest.fixture(scope=SCOPE)
-def get_db_config():
-    def _get_db_config(kind, network_config, remove, user_configs):
-        return DatabaseConfig(
-            image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
-            name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
-            network=network_config,
-            health_check=HealthCheckConfig(),
-            remove=remove,
-            password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
-            users=user_configs,
-            schema_name=os.environ.get(kind.upper() + "_DATABASE_END_USER_SCHEMA", kind + "_end_user_schema"),
+def get_db_spec():
+    def _get_db_spec(kind, network_config, remove, user_configs):
+        return DatabaseSpec(
+            ContainerConfig(
+                image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
+                name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
+                network=network_config,
+                health_check=HealthCheckConfig(),
+                remove=remove,
+            ),
+            DatabaseConfig(
+                password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
+                users=user_configs,
+                schema_name=os.environ.get(kind.upper() + "_DATABASE_END_USER_SCHEMA", kind + "_end_user_schema"),
+            ),
         )
 
-    return _get_db_config
+    return _get_db_spec
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db_config(get_db_config, network_config, remove, local_user_configs):
-    return get_db_config("local", network_config, remove, local_user_configs)
+def local_db_spec(get_db_spec, network_config, remove, local_user_configs):
+    return get_db_spec("local", network_config, remove, local_user_configs)
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_config(get_minio_config, network_config, remove):
-    return get_minio_config(network_config, remove, "source")
+def src_minio_spec(get_minio_spec, network_config, remove):
+    return get_minio_spec(network_config, remove, "source")
 
 
 @pytest.fixture(scope=SCOPE)
-def get_minio_config():
-    def _get_minio_config(network_config, remove, kind):
-        return MinIOConfig(
-            image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
-            name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
-            network=network_config,
-            health_check=HealthCheckConfig(),
-            remove=remove,
-            access_key=os.environ.get(kind.upper() + "_MINIO_ACCESS_KEY", kind + "_minio_access_key"),
-            secret_key=os.environ.get(kind.upper() + "_MINIO_SECRET_KEY", kind + "_minio_secret_key"),
+def get_minio_spec():
+    def _get_minio_spec(network_config, remove, kind):
+        return MinIOSpec(
+            ContainerConfig(
+                image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
+                name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
+                network=network_config,
+                health_check=HealthCheckConfig(),
+                remove=remove,
+            ),
+            MinIOConfig(
+                access_key=os.environ.get(kind.upper() + "_MINIO_ACCESS_KEY", kind + "_minio_access_key"),
+                secret_key=os.environ.get(kind.upper() + "_MINIO_SECRET_KEY", kind + "_minio_secret_key"),
+            ),
         )
 
-    return _get_minio_config
+    return _get_minio_spec
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio_config(get_minio_config, network_config, remove):
-    return get_minio_config(network_config, remove, "local")
+def local_minio_spec(get_minio_spec, network_config, remove):
+    return get_minio_spec(network_config, remove, "local")
 
 
 @pytest.fixture(scope=SCOPE)
-def outbound_schema_name(src_db_config):
+def outbound_schema_name():
     name = "outbound_schema"
     os.environ["LINK_OUTBOUND"] = name
     return name
@@ -185,29 +205,25 @@ def outbound_schema_name(src_db_config):
 
 @pytest.fixture(scope=SCOPE)
 def get_runner_kwargs(docker_client):
-    def _get_runner_kwargs(container_config):
-        common = dict(detach=True, network=container_config.network)
-        if isinstance(container_config, DatabaseConfig):
+    def _get_runner_kwargs(spec):
+        common = dict(detach=True, network=spec.container.network, name=spec.container.name)
+        if isinstance(spec, DatabaseSpec):
             processed_container_config = dict(
-                image="datajoint/mysql:" + container_config.image_tag,
-                name=container_config.name,
-                environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
+                image="datajoint/mysql:" + spec.container.image_tag,
+                environment=dict(MYSQL_ROOT_PASSWORD=spec.config.password),
                 **common,
             )
-        elif isinstance(container_config, MinIOConfig):
+        elif isinstance(spec, MinIOSpec):
             processed_container_config = dict(
-                image="minio/minio:" + container_config.image_tag,
-                name=container_config.name,
-                environment=dict(
-                    MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key
-                ),
+                image="minio/minio:" + spec.container.image_tag,
+                environment=dict(MINIO_ACCESS_KEY=spec.config.access_key, MINIO_SECRET_KEY=spec.config.secret_key),
                 command=["server", "/data"],
                 healthcheck=dict(
                     test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
-                    start_period=int(container_config.health_check.start_period_seconds * 1e9),  # nanoseconds
-                    interval=int(container_config.health_check.interval_seconds * 1e9),  # nanoseconds
-                    retries=container_config.health_check.max_retries,
-                    timeout=int(container_config.health_check.timeout_seconds * 1e9),  # nanoseconds
+                    start_period=int(spec.container.health_check.start_period_seconds * 1e9),  # nanoseconds
+                    interval=int(spec.container.health_check.interval_seconds * 1e9),  # nanoseconds
+                    retries=spec.container.health_check.max_retries,
+                    timeout=int(spec.container.health_check.timeout_seconds * 1e9),  # nanoseconds
                 ),
                 **common,
             )
@@ -217,30 +233,30 @@ def get_runner_kwargs(docker_client):
             "docker_client": docker_client,
             "container_config": processed_container_config,
             "health_check_config": {
-                "max_retries": container_config.health_check.max_retries,
-                "interval": container_config.health_check.interval_seconds,
+                "max_retries": spec.container.health_check.max_retries,
+                "interval": spec.container.health_check.interval_seconds,
             },
-            "remove": container_config.remove,
+            "remove": spec.container.remove,
         }
 
     return _get_runner_kwargs
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(src_db_config, get_runner_kwargs, outbound_schema_name):
-    with ContainerRunner(**get_runner_kwargs(src_db_config)), mysql_conn(src_db_config) as connection:
+def src_db(src_db_spec, get_runner_kwargs, outbound_schema_name):
+    with ContainerRunner(**get_runner_kwargs(src_db_spec)), mysql_conn(src_db_spec) as connection:
         with connection.cursor() as cursor:
-            for user in src_db_config.users.values():
+            for user in src_db_spec.config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
             sql_statements = (
-                rf"GRANT ALL PRIVILEGES ON `{src_db_config.users['end_user'].name}\_%`.* "
-                f"TO '{src_db_config.users['end_user'].name}'@'%';",
-                f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
-                f"TO '{src_db_config.users['dj_user'].name}'@'%';",
+                rf"GRANT ALL PRIVILEGES ON `{src_db_spec.config.users['end_user'].name}\_%`.* "
+                f"TO '{src_db_spec.config.users['end_user'].name}'@'%';",
+                f"GRANT SELECT, REFERENCES ON `{src_db_spec.config.schema_name}`.* "
+                f"TO '{src_db_spec.config.users['dj_user'].name}'@'%';",
                 f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
-                f"TO '{src_db_config.users['dj_user'].name}'@'%';",
+                f"TO '{src_db_spec.config.users['dj_user'].name}'@'%';",
                 f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
-                f"TO '{src_db_config.users['admin_user'].name}'@'%';",
+                f"TO '{src_db_spec.config.users['admin_user'].name}'@'%';",
             )
             for sql_statement in sql_statements:
                 cursor.execute(sql_statement)
@@ -249,15 +265,15 @@ def src_db(src_db_config, get_runner_kwargs, outbound_schema_name):
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(local_db_config, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(local_db_config)), mysql_conn(local_db_config) as connection:
+def local_db(local_db_spec, get_runner_kwargs):
+    with ContainerRunner(**get_runner_kwargs(local_db_spec)), mysql_conn(local_db_spec) as connection:
         with connection.cursor() as cursor:
-            for user in local_db_config.users.values():
+            for user in local_db_spec.config.users.values():
                 cursor.execute(f"CREATE USER '{user.name}'@'%' " f"IDENTIFIED BY '{user.password}';")
             cursor.execute(
                 (
-                    f"GRANT ALL PRIVILEGES ON `{local_db_config.schema_name}`.* "
-                    f"TO '{local_db_config.users['end_user'].name}'"
+                    f"GRANT ALL PRIVILEGES ON `{local_db_spec.config.schema_name}`.* "
+                    f"TO '{local_db_spec.config.users['end_user'].name}'"
                 )
             )
         connection.commit()
@@ -265,11 +281,14 @@ def local_db(local_db_config, get_runner_kwargs):
 
 
 @contextmanager
-def mysql_conn(db_config):
+def mysql_conn(db_spec):
     connection = None
     try:
         connection = pymysql.connect(
-            host=db_config.name, user="root", password=db_config.password, cursorclass=pymysql.cursors.DictCursor
+            host=db_spec.container.name,
+            user="root",
+            password=db_spec.config.password,
+            cursorclass=pymysql.cursors.DictCursor,
         )
         yield connection
     finally:
@@ -278,34 +297,34 @@ def mysql_conn(db_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio(src_minio_config, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(src_minio_config)):
+def src_minio(src_minio_spec, get_runner_kwargs):
+    with ContainerRunner(**get_runner_kwargs(src_minio_spec)):
         yield
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio(local_minio_config, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(local_minio_config)):
+def local_minio(local_minio_spec, get_runner_kwargs):
+    with ContainerRunner(**get_runner_kwargs(local_minio_spec)):
         yield
 
 
 @pytest.fixture
-def src_minio_client(src_minio, src_minio_config):
-    return get_minio_client(src_minio_config)
+def src_minio_client(src_minio, src_minio_spec):
+    return get_minio_client(src_minio_spec)
 
 
-def get_minio_client(minio_config):
+def get_minio_client(minio_spec):
     return minio.Minio(
-        minio_config.name + ":9000",
-        access_key=minio_config.access_key,
-        secret_key=minio_config.secret_key,
+        minio_spec.container.name + ":9000",
+        access_key=minio_spec.config.access_key,
+        secret_key=minio_spec.config.secret_key,
         secure=False,
     )
 
 
 @pytest.fixture
-def local_minio_client(local_minio, local_minio_config):
-    return get_minio_client(local_minio_config)
+def local_minio_client(local_minio, local_minio_spec):
+    return get_minio_client(local_minio_spec)
 
 
 @pytest.fixture
@@ -319,42 +338,42 @@ def local_store_name():
 
 
 @pytest.fixture
-def src_store_config(get_store_config, src_minio_config, src_store_name):
-    return get_store_config(src_minio_config, "source", src_store_name)
+def src_store_config(get_store_config, src_minio_spec, src_store_name):
+    return get_store_config(src_minio_spec, "source", src_store_name)
 
 
 @pytest.fixture
 def get_store_config():
-    def _get_store_config(minio_config, kind, store_name):
+    def _get_store_config(minio_spec, kind, store_name):
         return StoreConfig(
             name=store_name,
             protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
-            endpoint=minio_config.name + ":9000",
+            endpoint=minio_spec.container.name + ":9000",
             bucket=os.environ.get(kind.upper() + "_STORE_BUCKET", kind + "-store-bucket"),
             location=os.environ.get(kind.upper() + "_STORE_LOCATION", kind + "_store_location"),
-            access_key=minio_config.access_key,
-            secret_key=minio_config.secret_key,
+            access_key=minio_spec.config.access_key,
+            secret_key=minio_spec.config.secret_key,
         )
 
     return _get_store_config
 
 
 @pytest.fixture
-def local_store_config(get_store_config, local_minio_config, local_store_name):
-    return get_store_config(local_minio_config, "local", local_store_name)
+def local_store_config(get_store_config, local_minio_spec, local_store_name):
+    return get_store_config(local_minio_spec, "local", local_store_name)
 
 
 @pytest.fixture
 def get_conn():
     @contextmanager
-    def _get_conn(db_config, user_type, stores=None):
+    def _get_conn(db_spec, user_type, stores=None):
         if stores is None:
             stores = dict()
         conn = None
         try:
-            dj.config["database.host"] = db_config.name
-            dj.config["database.user"] = db_config.users[user_type + "_user"].name
-            dj.config["database.password"] = db_config.users[user_type + "_user"].password
+            dj.config["database.host"] = db_spec.container.name
+            dj.config["database.user"] = db_spec.config.users[user_type + "_user"].name
+            dj.config["database.password"] = db_spec.config.users[user_type + "_user"].password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
             dj.config["safemode"] = False
             conn = dj.conn(reset=True)
@@ -367,14 +386,14 @@ def get_conn():
 
 
 @pytest.fixture
-def src_conn(src_db, src_db_config, src_store_config, get_conn):
-    with get_conn(src_db_config, "end", stores=[src_store_config]) as conn:
+def src_conn(src_db, src_db_spec, src_store_config, get_conn):
+    with get_conn(src_db_spec, "end", stores=[src_store_config]) as conn:
         yield conn
 
 
 @pytest.fixture
-def local_conn(local_db, local_db_config, local_store_config, src_store_config, get_conn):
-    with get_conn(local_db_config, "end", stores=[local_store_config, src_store_config]) as conn:
+def local_conn(local_db, local_db_spec, local_store_config, src_store_config, get_conn):
+    with get_conn(local_db_spec, "end", stores=[local_store_config, src_store_config]) as conn:
         yield conn
 
 
@@ -399,12 +418,12 @@ def create_and_cleanup_buckets(src_minio_client, local_minio_client, src_store_c
 
 
 @pytest.fixture
-def test_session(src_db_config, local_db_config, src_conn, local_conn, outbound_schema_name):
-    src_schema = LazySchema(src_db_config.schema_name, connection=src_conn)
-    local_schema = LazySchema(local_db_config.schema_name, connection=local_conn)
+def test_session(src_db_spec, local_db_spec, src_conn, local_conn, outbound_schema_name):
+    src_schema = LazySchema(src_db_spec.config.schema_name, connection=src_conn)
+    local_schema = LazySchema(local_db_spec.config.schema_name, connection=local_conn)
     yield dict(src=src_schema, local=local_schema)
     local_schema.drop(force=True)
-    with mysql_conn(src_db_config) as conn:
+    with mysql_conn(src_db_spec) as conn:
         with conn.cursor() as cursor:
             cursor.execute(f"DROP DATABASE IF EXISTS {outbound_schema_name};")
         conn.commit()
@@ -462,10 +481,10 @@ def src_table_with_data(src_schema, src_table_cls, src_data):
 
 
 @pytest.fixture
-def remote_schema(src_db_config):
-    os.environ["LINK_USER"] = src_db_config.users["dj_user"].name
-    os.environ["LINK_PASS"] = src_db_config.users["dj_user"].password
-    return LazySchema(src_db_config.schema_name, host=src_db_config.name)
+def remote_schema(src_db_spec):
+    os.environ["LINK_USER"] = src_db_spec.config.users["dj_user"].name
+    os.environ["LINK_PASS"] = src_db_spec.config.users["dj_user"].password
+    return LazySchema(src_db_spec.config.schema_name, host=src_db_spec.container.name)
 
 
 @pytest.fixture
