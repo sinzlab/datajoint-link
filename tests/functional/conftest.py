@@ -24,6 +24,7 @@ REMOVE = True
 NETWORK = os.environ["DOCKER_NETWORK"]
 DATABASE_IMAGE = "datajoint/mysql:latest"
 MINIO_IMAGE = "minio/minio:latest"
+DATABASE_ROOT_PASSWORD = "root"
 
 
 def pytest_collection_modifyitems(config, items):
@@ -145,7 +146,7 @@ def get_db_spec(create_user_configs):
                 health_check=HealthCheckConfig(),
             ),
             DatabaseConfig(
-                password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
+                password=DATABASE_ROOT_PASSWORD,
                 users=create_user_configs(schema_name),
                 schema_name=schema_name,
             ),
