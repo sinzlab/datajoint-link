@@ -33,7 +33,9 @@ def src_admin_conn(src_db_spec, get_conn):
 
 
 @pytest.fixture
-def outbound_table_cls(src_db, local_db, outbound_schema_name, src_table_name, local_table_cls, src_admin_conn):
+def outbound_table_cls(
+    src_db_spec, local_db_spec, outbound_schema_name, src_table_name, local_table_cls, src_admin_conn
+):
     module = dj.create_virtual_module("outbound_schema", outbound_schema_name, connection=src_admin_conn)
     return getattr(module, src_table_name + "Outbound")
 

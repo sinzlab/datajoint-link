@@ -126,11 +126,6 @@ def create_user_configs(outbound_schema_name):
     return _create_user_configs
 
 
-@pytest.fixture(scope=SCOPE)
-def src_db_spec(get_db_spec):
-    return get_db_spec("source")
-
-
 def create_random_string(length=6):
     return "".join(choices(ascii_lowercase, k=length))
 
@@ -153,11 +148,6 @@ def get_db_spec(create_user_configs):
         )
 
     return _get_db_spec
-
-
-@pytest.fixture(scope=SCOPE)
-def local_db_spec(get_db_spec):
-    return get_db_spec("local")
 
 
 @pytest.fixture(scope=SCOPE)
@@ -233,8 +223,9 @@ def get_runner_kwargs(docker_client):
 
 
 @pytest.fixture(scope=SCOPE)
-def create_db(get_runner_kwargs):
-    def _create_db(db_spec):
+def create_db(get_db_spec, get_runner_kwargs):
+    def _create_db(name):
+        db_spec = get_db_spec(name)
         with ContainerRunner(**get_runner_kwargs(db_spec)), mysql_conn(db_spec) as connection:
             with connection.cursor() as cursor:
                 for user in db_spec.config.users.values():
@@ -242,19 +233,19 @@ def create_db(get_runner_kwargs):
                     for grant in user.grants:
                         cursor.execute(grant)
             connection.commit()
-            yield
+            yield db_spec
 
     return _create_db
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(src_db_spec, create_db):
-    yield from create_db(src_db_spec)
+def src_db_spec(create_db):
+    yield from create_db("source")
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(local_db_spec, create_db):
-    yield from create_db(local_db_spec)
+def local_db_spec(create_db):
+    yield from create_db("local")
 
 
 @contextmanager
@@ -363,13 +354,13 @@ def get_conn():
 
 
 @pytest.fixture
-def src_conn(src_db, src_db_spec, src_store_config, get_conn):
+def src_conn(src_db_spec, src_store_config, get_conn):
     with get_conn(src_db_spec, "end", stores=[src_store_config]) as conn:
         yield conn
 
 
 @pytest.fixture
-def local_conn(local_db, local_db_spec, local_store_config, src_store_config, get_conn):
+def local_conn(local_db_spec, local_store_config, src_store_config, get_conn):
     with get_conn(local_db_spec, "end", stores=[local_store_config, src_store_config]) as conn:
         yield conn
 
