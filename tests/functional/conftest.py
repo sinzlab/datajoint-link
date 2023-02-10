@@ -132,12 +132,12 @@ def create_random_string(length=6):
 
 @pytest.fixture(scope=SCOPE)
 def get_db_spec(create_user_configs):
-    def _get_db_spec(kind):
+    def _get_db_spec(name):
         schema_name = "end_user_schema"
         return DatabaseSpec(
             ContainerConfig(
                 image=DATABASE_IMAGE,
-                name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
+                name=f"{name}-{create_random_string()}",
                 health_check=HealthCheckConfig(),
             ),
             DatabaseConfig(
