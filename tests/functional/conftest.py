@@ -151,31 +151,21 @@ def get_db_spec(create_user_configs):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_spec(get_minio_spec):
-    return get_minio_spec("source")
-
-
-@pytest.fixture(scope=SCOPE)
 def get_minio_spec():
-    def _get_minio_spec(kind):
+    def _get_minio_spec(name):
         return MinIOSpec(
             ContainerConfig(
                 image=MINIO_IMAGE,
-                name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
+                name=f"{name}-{create_random_string()}",
                 health_check=HealthCheckConfig(),
             ),
             MinIOConfig(
-                access_key=os.environ.get(kind.upper() + "_MINIO_ACCESS_KEY", kind + "_minio_access_key"),
-                secret_key=os.environ.get(kind.upper() + "_MINIO_SECRET_KEY", kind + "_minio_secret_key"),
+                access_key="access_key",
+                secret_key="secret_key",
             ),
         )
 
     return _get_minio_spec
-
-
-@pytest.fixture(scope=SCOPE)
-def local_minio_spec(get_minio_spec):
-    return get_minio_spec("local")
 
 
 @pytest.fixture(scope=SCOPE)
@@ -265,19 +255,27 @@ def mysql_conn(db_spec):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio(src_minio_spec, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(src_minio_spec)):
-        yield
+def create_minio(get_minio_spec, get_runner_kwargs):
+    def _create_minio(name):
+        spec = get_minio_spec(name)
+        with ContainerRunner(**get_runner_kwargs(spec)):
+            yield spec
+
+    return _create_minio
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio(local_minio_spec, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(local_minio_spec)):
-        yield
+def src_minio_spec(create_minio):
+    yield from create_minio("source")
+
+
+@pytest.fixture(scope=SCOPE)
+def local_minio_spec(create_minio):
+    yield from create_minio("local")
 
 
 @pytest.fixture
-def src_minio_client(src_minio, src_minio_spec):
+def src_minio_client(src_minio_spec):
     return get_minio_client(src_minio_spec)
 
 
@@ -291,7 +289,7 @@ def get_minio_client(minio_spec):
 
 
 @pytest.fixture
-def local_minio_client(local_minio, local_minio_spec):
+def local_minio_client(local_minio_spec):
     return get_minio_client(local_minio_spec)
 
 
