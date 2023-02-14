@@ -274,23 +274,17 @@ def local_minio_spec(create_minio):
     yield from create_minio("local")
 
 
-@pytest.fixture
-def src_minio_client(src_minio_spec):
-    return get_minio_client(src_minio_spec)
+@pytest.fixture(scope=SCOPE)
+def get_minio_client():
+    def _get_minio_client(spec):
+        return minio.Minio(
+            spec.container.name + ":9000",
+            access_key=spec.config.access_key,
+            secret_key=spec.config.secret_key,
+            secure=False,
+        )
 
-
-def get_minio_client(minio_spec):
-    return minio.Minio(
-        minio_spec.container.name + ":9000",
-        access_key=minio_spec.config.access_key,
-        secret_key=minio_spec.config.secret_key,
-        secure=False,
-    )
-
-
-@pytest.fixture
-def local_minio_client(local_minio_spec):
-    return get_minio_client(local_minio_spec)
+    return _get_minio_client
 
 
 @pytest.fixture
@@ -364,7 +358,11 @@ def local_conn(local_db_spec, local_store_config, src_store_config, get_conn):
 
 
 @pytest.fixture
-def create_and_cleanup_buckets(src_minio_client, local_minio_client, src_store_config, local_store_config):
+def create_and_cleanup_buckets(
+    get_minio_client, src_minio_spec, local_minio_spec, src_store_config, local_store_config
+):
+    local_minio_client = get_minio_client(local_minio_spec)
+    src_minio_client = get_minio_client(src_minio_spec)
     for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
         client.make_bucket(config.bucket)
     yield
