@@ -347,14 +347,14 @@ def local_store_config(get_store_config, local_minio_spec, local_store_name):
 @pytest.fixture
 def get_conn():
     @contextmanager
-    def _get_conn(db_spec, user_type, stores=None):
+    def _get_conn(db_spec, user, stores=None):
         if stores is None:
             stores = dict()
         conn = None
         try:
             dj.config["database.host"] = db_spec.container.name
-            dj.config["database.user"] = db_spec.config.users[user_type + "_user"].name
-            dj.config["database.password"] = db_spec.config.users[user_type + "_user"].password
+            dj.config["database.user"] = user.name
+            dj.config["database.password"] = user.password
             dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
             dj.config["safemode"] = False
             conn = dj.conn(reset=True)
@@ -368,13 +368,15 @@ def get_conn():
 
 @pytest.fixture
 def src_conn(src_db_spec, src_store_config, get_conn):
-    with get_conn(src_db_spec, "end", stores=[src_store_config]) as conn:
+    with get_conn(src_db_spec, src_db_spec.config.users["end_user"], stores=[src_store_config]) as conn:
         yield conn
 
 
 @pytest.fixture
 def local_conn(local_db_spec, local_store_config, src_store_config, get_conn):
-    with get_conn(local_db_spec, "end", stores=[local_store_config, src_store_config]) as conn:
+    with get_conn(
+        local_db_spec, local_db_spec.config.users["end_user"], stores=[local_store_config, src_store_config]
+    ) as conn:
         yield conn
 
 

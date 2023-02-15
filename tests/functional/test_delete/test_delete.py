@@ -28,7 +28,7 @@ def expected_local_deletion_requested_flags(deletion_requested_entities_primary_
 
 @pytest.fixture
 def src_admin_conn(src_db_spec, get_conn):
-    with get_conn(src_db_spec, "admin") as conn:
+    with get_conn(src_db_spec, src_db_spec.config.users["admin_user"]) as conn:
         yield conn
 
 

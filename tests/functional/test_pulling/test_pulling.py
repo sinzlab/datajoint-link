@@ -15,7 +15,7 @@ def test_pulling(pulled_data, expected_data):
 
 def test_pulling2(get_conn, src_db_spec, local_db_spec):
     expected = [{"foo": 1, "bar": "a"}, {"foo": 2, "bar": "b"}]
-    with get_conn(src_db_spec, "end") as connection:
+    with get_conn(src_db_spec, src_db_spec.config.users["end_user"]) as connection:
         source_schema = dj.schema("end_user_schema", connection=connection)
 
         @source_schema
