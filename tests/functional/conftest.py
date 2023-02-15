@@ -212,13 +212,12 @@ def get_runner_kwargs(docker_client):
     return _get_runner_kwargs
 
 
-def create_users(db_spec):
+def create_user(db_spec, user):
     with mysql_conn(db_spec) as connection:
         with connection.cursor() as cursor:
-            for user in db_spec.config.users.values():
-                cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
-                for grant in user.grants:
-                    cursor.execute(grant)
+            cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
+            for grant in user.grants:
+                cursor.execute(grant)
         connection.commit()
 
 
@@ -227,7 +226,8 @@ def create_db(get_db_spec, get_runner_kwargs):
     def _create_db(name):
         db_spec = get_db_spec(name)
         with ContainerRunner(**get_runner_kwargs(db_spec)):
-            create_users(db_spec)
+            for user in db_spec.config.users.values():
+                create_user(db_spec, user)
             yield db_spec
 
     return _create_db
