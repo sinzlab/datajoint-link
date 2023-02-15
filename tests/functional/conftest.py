@@ -212,17 +212,22 @@ def get_runner_kwargs(docker_client):
     return _get_runner_kwargs
 
 
+def create_users(db_spec):
+    with mysql_conn(db_spec) as connection:
+        with connection.cursor() as cursor:
+            for user in db_spec.config.users.values():
+                cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
+                for grant in user.grants:
+                    cursor.execute(grant)
+        connection.commit()
+
+
 @pytest.fixture(scope=SCOPE)
 def create_db(get_db_spec, get_runner_kwargs):
     def _create_db(name):
         db_spec = get_db_spec(name)
-        with ContainerRunner(**get_runner_kwargs(db_spec)), mysql_conn(db_spec) as connection:
-            with connection.cursor() as cursor:
-                for user in db_spec.config.users.values():
-                    cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
-                    for grant in user.grants:
-                        cursor.execute(grant)
-            connection.commit()
+        with ContainerRunner(**get_runner_kwargs(db_spec)):
+            create_users(db_spec)
             yield db_spec
 
     return _create_db
