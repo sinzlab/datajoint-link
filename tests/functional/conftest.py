@@ -226,21 +226,33 @@ def create_db(get_db_spec, get_runner_kwargs):
     def _create_db(name):
         db_spec = get_db_spec(name)
         with ContainerRunner(**get_runner_kwargs(db_spec)):
-            for user in db_spec.config.users.values():
-                create_user(db_spec, user)
             yield db_spec
 
     return _create_db
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db_spec(create_db):
+def source_db(create_db):
     yield from create_db("source")
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db_spec(create_db):
+def local_db(create_db):
     yield from create_db("local")
+
+
+@pytest.fixture(scope=SCOPE)
+def src_db_spec(source_db):
+    for user in source_db.config.users.values():
+        create_user(source_db, user)
+    return source_db
+
+
+@pytest.fixture(scope=SCOPE)
+def local_db_spec(local_db):
+    for user in local_db.config.users.values():
+        create_user(local_db, user)
+    return local_db
 
 
 @contextmanager
