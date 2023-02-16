@@ -2,11 +2,8 @@ import os
 from contextlib import contextmanager
 
 import datajoint as dj
-import pytest
 
 from dj_link import LazySchema, Link
-
-from ..conftest import UserConfig
 
 USES_EXTERNAL = False
 
@@ -29,10 +26,11 @@ def test_pulling(get_conn, source_db, local_db, create_user):
     source_schema_name = "cool"
     outbound_schema_name = "cool_outbound"
 
-    source_user = UserConfig(
-        "John", "apples", grants=[f"GRANT ALL PRIVILEGES ON `{source_schema_name}`.* TO 'John'@'%';"]
+    source_user = create_user(
+        source_db, "John", "apples", grants=[f"GRANT ALL PRIVILEGES ON `{source_schema_name}`.* TO 'John'@'%';"]
     )
-    link_user = UserConfig(
+    link_user = create_user(
+        source_db,
         "Link",
         "bananas",
         grants=[
@@ -40,11 +38,9 @@ def test_pulling(get_conn, source_db, local_db, create_user):
             f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO 'Link'@'%';",
         ],
     )
-    local_user = UserConfig("Amy", "pears", grants=[f"GRANT ALL PRIVILEGES ON `{local_schema_name}`.* TO 'Amy'@'%';"])
-
-    create_user(source_db, source_user)
-    create_user(source_db, link_user)
-    create_user(local_db, local_user)
+    local_user = create_user(
+        local_db, "Amy", "pears", grants=[f"GRANT ALL PRIVILEGES ON `{local_schema_name}`.* TO 'Amy'@'%';"]
+    )
 
     expected = [{"foo": 1, "bar": "a"}, {"foo": 2, "bar": "b"}]
     with get_conn(source_db, source_user) as connection:
