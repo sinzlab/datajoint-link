@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 
 import datajoint as dj
 import pytest
@@ -10,12 +11,20 @@ from ..conftest import UserConfig
 USES_EXTERNAL = False
 
 
-@pytest.mark.usefixtures("src_table_with_data")
-def test_pulling(pulled_data, expected_data):
-    assert pulled_data == expected_data
+@contextmanager
+def temp_env_var(name, value):
+    original_value = os.environ.get(name)
+    os.environ[name] = value
+    try:
+        yield
+    finally:
+        if original_value is not None:
+            os.environ[name] = original_value
+        else:
+            del os.environ[name]
 
 
-def test_pulling2(get_conn, source_db, local_db, create_user):
+def test_pulling(get_conn, source_db, local_db, create_user):
     local_schema_name = "awesome"
     source_schema_name = "cool"
     outbound_schema_name = "cool_outbound"
@@ -50,23 +59,20 @@ def test_pulling2(get_conn, source_db, local_db, create_user):
 
         SomeTable().insert(expected)
 
-    os.environ["LINK_USER"] = link_user.name
-    os.environ["LINK_PASS"] = link_user.password
-    os.environ["LINK_OUTBOUND"] = outbound_schema_name
-
     dj.config["database.host"] = local_db.container.name
     dj.config["database.user"] = local_user.name
     dj.config["database.password"] = local_user.password
 
-    dj.conn(reset=True)
+    with temp_env_var("LINK_USER", link_user.name), temp_env_var("LINK_PASS", link_user.password), temp_env_var(
+        "LINK_OUTBOUND", outbound_schema_name
+    ):
+        local_schema = LazySchema(local_schema_name)
+        source_schema = LazySchema(source_schema_name, host=source_db.container.name)
 
-    local_schema = LazySchema(local_schema_name)
-    source_schema = LazySchema(source_schema_name, host=source_db.container.name)
+        @Link(local_schema, source_schema)
+        class SomeTable(dj.Manual):
+            pass
 
-    @Link(local_schema, source_schema)
-    class SomeTable(dj.Manual):
-        pass
-
-    SomeTable().pull()
-    actual = SomeTable().fetch(as_dict=True)
-    assert actual == expected
+        SomeTable().pull()
+        actual = SomeTable().fetch(as_dict=True)
+        assert actual == expected
