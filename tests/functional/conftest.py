@@ -213,7 +213,7 @@ def get_runner_kwargs(docker_client):
 
 
 def create_user_config(name, grants):
-    return UserConfig(name, password=create_random_string(), grants=grants)
+    return UserConfig(name, password=create_random_string(), grants=[grant.replace("$name", name) for grant in grants])
 
 
 @pytest.fixture(scope=SCOPE)
