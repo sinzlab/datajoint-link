@@ -350,18 +350,20 @@ def get_conn():
     def _get_conn(db_spec, user, stores=None):
         if stores is None:
             stores = dict()
-        conn = None
         try:
-            dj.config["database.host"] = db_spec.container.name
-            dj.config["database.user"] = user.name
-            dj.config["database.password"] = user.password
-            dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
-            dj.config["safemode"] = False
-            conn = dj.conn(reset=True)
-            yield conn
+            with dj.config(
+                database__host=db_spec.container.name,
+                database__user=user.name,
+                database__password=user.password,
+                stores={s.pop("name"): s for s in [asdict(s) for s in stores]},
+                safemode=False,
+            ):
+                yield dj.conn(reset=True)
         finally:
-            if conn is not None:
-                conn.close()
+            try:
+                delattr(dj.conn, "connection")
+            except AttributeError:
+                pass
 
     return _get_conn
 
