@@ -105,20 +105,20 @@ def create_user_configs(outbound_schema_name):
                 "admin_user",
                 "admin_user_password",
                 grants=[
-                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO 'admin_user'@'%';",
+                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
                 ],
             ),
             end_user=UserConfig(
                 "end_user",
                 "end_user_password",
-                grants=[r"GRANT ALL PRIVILEGES ON `end_user\_%`.* TO 'end_user'@'%';"],
+                grants=[r"GRANT ALL PRIVILEGES ON `end_user\_%`.* TO '$name'@'%';"],
             ),
             dj_user=UserConfig(
                 "dj_user",
                 "dj_user_password",
                 grants=[
-                    f"GRANT SELECT, REFERENCES ON `{schema_name}`.* TO 'dj_user'@'%';",
-                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO 'dj_user'@'%';",
+                    f"GRANT SELECT, REFERENCES ON `{schema_name}`.* TO '$name'@'%';",
+                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
                 ],
             ),
         )
@@ -212,14 +212,17 @@ def get_runner_kwargs(docker_client):
     return _get_runner_kwargs
 
 
-def create_user_config(name, grants):
-    return UserConfig(name, password=create_random_string(), grants=[grant.replace("$name", name) for grant in grants])
+def create_user_config(grants):
+    name = create_random_string()
+    return UserConfig(
+        name=name, password=create_random_string(), grants=[grant.replace("$name", name) for grant in grants]
+    )
 
 
 @pytest.fixture(scope=SCOPE)
 def create_user():
-    def _create_user(db_spec, name, grants):
-        config = create_user_config(name, grants)
+    def _create_user(db_spec, grants):
+        config = create_user_config(grants)
         with mysql_conn(db_spec) as connection:
             with connection.cursor() as cursor:
                 cursor.execute(f"CREATE USER '{config.name}'@'%' IDENTIFIED BY '{config.password}';")
@@ -254,14 +257,14 @@ def local_db(create_db):
 @pytest.fixture(scope=SCOPE)
 def src_db_spec(source_db, create_user):
     for name, user in source_db.config.users.items():
-        source_db.config.users[name] = create_user(source_db, user.name, user.grants)
+        source_db.config.users[name] = create_user(source_db, user.grants)
     return source_db
 
 
 @pytest.fixture(scope=SCOPE)
 def local_db_spec(local_db, create_user):
     for name, user in local_db.config.users.items():
-        local_db.config.users[name] = create_user(local_db, user.name, user.grants)
+        local_db.config.users[name] = create_user(local_db, user.grants)
     return local_db
 
 
