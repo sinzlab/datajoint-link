@@ -27,20 +27,17 @@ def test_pulling(get_conn, source_db, local_db, create_user):
     outbound_schema_name = "cool_outbound"
 
     source_user = create_user(
-        source_db, "John", "apples", grants=[f"GRANT ALL PRIVILEGES ON `{source_schema_name}`.* TO 'John'@'%';"]
+        source_db, "John", grants=[f"GRANT ALL PRIVILEGES ON `{source_schema_name}`.* TO 'John'@'%';"]
     )
     link_user = create_user(
         source_db,
         "Link",
-        "bananas",
         grants=[
             f"GRANT SELECT, REFERENCES ON `{source_schema_name}`.* TO 'Link'@'%';",
             f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO 'Link'@'%';",
         ],
     )
-    local_user = create_user(
-        local_db, "Amy", "pears", grants=[f"GRANT ALL PRIVILEGES ON `{local_schema_name}`.* TO 'Amy'@'%';"]
-    )
+    local_user = create_user(local_db, "Amy", grants=[f"GRANT ALL PRIVILEGES ON `{local_schema_name}`.* TO 'Amy'@'%';"])
 
     expected = [{"foo": 1, "bar": "a"}, {"foo": 2, "bar": "b"}]
     with get_conn(source_db, source_user) as connection:
