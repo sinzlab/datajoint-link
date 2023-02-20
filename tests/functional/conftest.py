@@ -126,12 +126,16 @@ def create_user_configs(outbound_schema_name):
     return _create_user_configs
 
 
-def create_random_string(length=6):
-    return "".join(choices(ascii_lowercase, k=length))
+@pytest.fixture(scope=SCOPE)
+def create_random_string():
+    def _create_random_string(length=6):
+        return "".join(choices(ascii_lowercase, k=length))
+
+    return _create_random_string
 
 
 @pytest.fixture(scope=SCOPE)
-def get_db_spec(create_user_configs):
+def get_db_spec(create_random_string, create_user_configs):
     def _get_db_spec(name):
         schema_name = "end_user_schema"
         return DatabaseSpec(
@@ -151,7 +155,7 @@ def get_db_spec(create_user_configs):
 
 
 @pytest.fixture(scope=SCOPE)
-def get_minio_spec():
+def get_minio_spec(create_random_string):
     def _get_minio_spec(name):
         return MinIOSpec(
             ContainerConfig(
@@ -212,15 +216,19 @@ def get_runner_kwargs(docker_client):
     return _get_runner_kwargs
 
 
-def create_user_config(grants):
-    name = create_random_string()
-    return UserConfig(
-        name=name, password=create_random_string(), grants=[grant.replace("$name", name) for grant in grants]
-    )
+@pytest.fixture(scope=SCOPE)
+def create_user_config(create_random_string):
+    def _create_user_config(grants):
+        name = create_random_string()
+        return UserConfig(
+            name=name, password=create_random_string(), grants=[grant.replace("$name", name) for grant in grants]
+        )
+
+    return _create_user_config
 
 
 @pytest.fixture(scope=SCOPE)
-def create_user():
+def create_user(create_user_config):
     def _create_user(db_spec, grants):
         config = create_user_config(grants)
         with mysql_conn(db_spec) as connection:
