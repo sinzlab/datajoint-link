@@ -1,80 +1,9 @@
-import os
-from contextlib import contextmanager
-
 import datajoint as dj
 import pytest
 
 from dj_link import LazySchema, Link
 
 USES_EXTERNAL = False
-
-
-@pytest.fixture
-def temp_env_vars():
-    @contextmanager
-    def _temp_env_vars(**vars):
-        original_values = {name: os.environ.get(name) for name in vars}
-        os.environ.update(vars)
-        try:
-            yield
-        finally:
-            for name, value in original_values.items():
-                if value is None:
-                    del os.environ[name]
-                else:
-                    os.environ[name] = value
-
-    return _temp_env_vars
-
-
-@pytest.fixture
-def configured_environment(temp_env_vars):
-    @contextmanager
-    def _configured_environment(user_spec, schema_name):
-        with temp_env_vars(LINK_USER=user_spec.name, LINK_PASS=user_spec.password, LINK_OUTBOUND=schema_name):
-            yield
-
-    return _configured_environment
-
-
-@pytest.fixture
-def create_table(get_conn, create_random_string):
-    def _create_table(db_spec, user_spec, schema_name, definition, data=None):
-        if data is None:
-            data = []
-        with get_conn(db_spec, user_spec) as connection:
-            table_name = create_random_string().title()
-            table_cls = type(table_name, (dj.Manual,), {"definition": definition})
-            schema = dj.schema(schema_name, connection=connection)
-            schema(table_cls)
-            table_cls().insert(data)
-        return table_name
-
-    return _create_table
-
-
-@pytest.fixture
-def prepare_link(create_random_string, create_user, source_db, local_db):
-    def _prepare_link():
-        schema_names = {kind: create_random_string() for kind in ("source", "local", "outbound")}
-        user_specs = {
-            "source": create_user(
-                source_db, grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
-            ),
-            "local": create_user(
-                local_db, grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['local']}`.* TO '$name'@'%';"]
-            ),
-            "link": create_user(
-                source_db,
-                grants=[
-                    f"GRANT SELECT, REFERENCES ON `{schema_names['source']}`.* TO '$name'@'%';",
-                    f"GRANT ALL PRIVILEGES ON `{schema_names['outbound']}`.* TO '$name'@'%';",
-                ],
-            ),
-        }
-        return schema_names, user_specs
-
-    return _prepare_link
 
 
 def test_pulling(prepare_link, create_table, get_conn, source_db, local_db, configured_environment):
