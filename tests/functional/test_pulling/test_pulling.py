@@ -53,29 +53,41 @@ def create_table(get_conn, create_random_string):
     return _create_table
 
 
-def test_pulling(
-    create_random_string, create_table, get_conn, source_db, local_db, create_user, configured_environment
-):
-    local_schema_name, source_schema_name, outbound_schema_name = (create_random_string() for _ in range(3))
+@pytest.fixture
+def prepare_link(create_random_string, create_user, source_db, local_db):
+    def _prepare_link():
+        schema_names = {kind: create_random_string() for kind in ("source", "local", "outbound")}
+        user_specs = {
+            "source": create_user(
+                source_db, grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
+            ),
+            "local": create_user(
+                local_db, grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['local']}`.* TO '$name'@'%';"]
+            ),
+            "link": create_user(
+                source_db,
+                grants=[
+                    f"GRANT SELECT, REFERENCES ON `{schema_names['source']}`.* TO '$name'@'%';",
+                    f"GRANT ALL PRIVILEGES ON `{schema_names['outbound']}`.* TO '$name'@'%';",
+                ],
+            ),
+        }
+        return schema_names, user_specs
 
-    source_user = create_user(source_db, grants=[f"GRANT ALL PRIVILEGES ON `{source_schema_name}`.* TO '$name'@'%';"])
-    link_user = create_user(
-        source_db,
-        grants=[
-            f"GRANT SELECT, REFERENCES ON `{source_schema_name}`.* TO '$name'@'%';",
-            f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
-        ],
-    )
-    local_user = create_user(local_db, grants=[f"GRANT ALL PRIVILEGES ON `{local_schema_name}`.* TO '$name'@'%';"])
+    return _prepare_link
+
+
+def test_pulling(prepare_link, create_table, get_conn, source_db, local_db, configured_environment):
+    schema_names, user_specs = prepare_link()
 
     expected = [{"foo": 1, "bar": "a"}, {"foo": 2, "bar": "b"}]
     source_table_name = create_table(
-        source_db, source_user, source_schema_name, "foo: int\n---\nbar: varchar(64)", expected
+        source_db, user_specs["source"], schema_names["source"], "foo: int\n---\nbar: varchar(64)", expected
     )
 
-    with get_conn(local_db, local_user), configured_environment(link_user, outbound_schema_name):
-        local_schema = LazySchema(local_schema_name)
-        source_schema = LazySchema(source_schema_name, host=source_db.container.name)
+    with get_conn(local_db, user_specs["local"]), configured_environment(user_specs["link"], schema_names["outbound"]):
+        local_schema = LazySchema(schema_names["local"])
+        source_schema = LazySchema(schema_names["source"], host=source_db.container.name)
         local_table_cls = Link(local_schema, source_schema)(type(source_table_name, (dj.Manual,), {}))
         local_table_cls().pull()
         actual = local_table_cls().fetch(as_dict=True)
@@ -84,25 +96,17 @@ def test_pulling(
 
 @pytest.mark.xfail
 def test_if_source_attributes_of_different_local_tables_differ(
-    create_random_string, create_user, source_db, local_db, create_table, get_conn, configured_environment
+    prepare_link, source_db, local_db, create_table, get_conn, configured_environment
 ):
-    local_schema_name, source_schema_name, outbound_schema_name = (create_random_string() for _ in range(3))
+    schema_names, user_specs = prepare_link()
 
-    source_user = create_user(source_db, grants=[f"GRANT ALL PRIVILEGES ON `{source_schema_name}`.* TO '$name'@'%';"])
-    link_user = create_user(
-        source_db,
-        grants=[
-            f"GRANT SELECT, REFERENCES ON `{source_schema_name}`.* TO '$name'@'%';",
-            f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
-        ],
+    source_table_names = (
+        create_table(source_db, user_specs["source"], schema_names["source"], "foo: int\n---") for _ in range(2)
     )
-    local_user = create_user(local_db, grants=[f"GRANT ALL PRIVILEGES ON `{local_schema_name}`.* TO '$name'@'%';"])
 
-    source_table_names = (create_table(source_db, source_user, source_schema_name, "foo: int\n---") for _ in range(2))
-
-    with get_conn(local_db, local_user), configured_environment(link_user, outbound_schema_name):
-        local_schema = LazySchema(local_schema_name)
-        source_schema = LazySchema(source_schema_name, host=source_db.container.name)
+    with get_conn(local_db, user_specs["local"]), configured_environment(user_specs["link"], schema_names["outbound"]):
+        local_schema = LazySchema(schema_names["local"])
+        source_schema = LazySchema(schema_names["source"], host=source_db.container.name)
         link = Link(local_schema, source_schema)
         local_table_cls1, local_table_cls2 = (link(type(name, (dj.Manual,), {})) for name in source_table_names)
         assert local_table_cls1().source.full_table_name != local_table_cls2().source.full_table_name
