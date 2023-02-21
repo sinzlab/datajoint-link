@@ -9,17 +9,32 @@ from dj_link import LazySchema, Link
 USES_EXTERNAL = False
 
 
-@contextmanager
-def temp_env_var(name, value):
-    original_value = os.environ.get(name)
-    os.environ[name] = value
-    try:
-        yield
-    finally:
-        if original_value is not None:
-            os.environ[name] = original_value
-        else:
-            del os.environ[name]
+@pytest.fixture
+def temp_env_vars():
+    @contextmanager
+    def _temp_env_vars(**vars):
+        original_values = {name: os.environ.get(name) for name in vars}
+        os.environ.update(vars)
+        try:
+            yield
+        finally:
+            for name, value in original_values.items():
+                if value is None:
+                    del os.environ[name]
+                else:
+                    os.environ[name] = value
+
+    return _temp_env_vars
+
+
+@pytest.fixture
+def configured_environment(temp_env_vars):
+    @contextmanager
+    def _configured_environment(user_spec, schema_name):
+        with temp_env_vars(LINK_USER=user_spec.name, LINK_PASS=user_spec.password, LINK_OUTBOUND=schema_name):
+            yield
+
+    return _configured_environment
 
 
 @pytest.fixture
@@ -38,7 +53,9 @@ def create_table(get_conn, create_random_string):
     return _create_table
 
 
-def test_pulling(create_random_string, create_table, get_conn, source_db, local_db, create_user):
+def test_pulling(
+    create_random_string, create_table, get_conn, source_db, local_db, create_user, configured_environment
+):
     local_schema_name, source_schema_name, outbound_schema_name = (create_random_string() for _ in range(3))
 
     source_user = create_user(source_db, grants=[f"GRANT ALL PRIVILEGES ON `{source_schema_name}`.* TO '$name'@'%';"])
@@ -56,9 +73,7 @@ def test_pulling(create_random_string, create_table, get_conn, source_db, local_
         source_db, source_user, source_schema_name, "foo: int\n---\nbar: varchar(64)", expected
     )
 
-    with get_conn(local_db, local_user), temp_env_var("LINK_USER", link_user.name), temp_env_var(
-        "LINK_PASS", link_user.password
-    ), temp_env_var("LINK_OUTBOUND", outbound_schema_name):
+    with get_conn(local_db, local_user), configured_environment(link_user, outbound_schema_name):
         local_schema = LazySchema(local_schema_name)
         source_schema = LazySchema(source_schema_name, host=source_db.container.name)
         local_table_cls = Link(local_schema, source_schema)(type(source_table_name, (dj.Manual,), {}))
@@ -69,7 +84,7 @@ def test_pulling(create_random_string, create_table, get_conn, source_db, local_
 
 @pytest.mark.xfail
 def test_if_source_attributes_of_different_local_tables_differ(
-    create_random_string, create_user, source_db, local_db, create_table, get_conn
+    create_random_string, create_user, source_db, local_db, create_table, get_conn, configured_environment
 ):
     local_schema_name, source_schema_name, outbound_schema_name = (create_random_string() for _ in range(3))
 
@@ -85,9 +100,7 @@ def test_if_source_attributes_of_different_local_tables_differ(
 
     source_table_names = (create_table(source_db, source_user, source_schema_name, "foo: int\n---") for _ in range(2))
 
-    with get_conn(local_db, local_user), temp_env_var("LINK_USER", link_user.name), temp_env_var(
-        "LINK_PASS", link_user.password
-    ), temp_env_var("LINK_OUTBOUND", outbound_schema_name):
+    with get_conn(local_db, local_user), configured_environment(link_user, outbound_schema_name):
         local_schema = LazySchema(local_schema_name)
         source_schema = LazySchema(source_schema_name, host=source_db.container.name)
         link = Link(local_schema, source_schema)
