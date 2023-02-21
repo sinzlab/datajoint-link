@@ -6,8 +6,22 @@ from dj_link import LazySchema, Link
 USES_EXTERNAL = False
 
 
-def test_if_source_property_returns_source_table_cls(src_table_with_data, local_table_cls):
-    assert local_table_cls().source.full_table_name == src_table_with_data.full_table_name
+def test_if_source_attribute_returns_source_table_cls(
+    prepare_link, create_table, get_conn, source_db, local_db, configured_environment
+):
+    schema_names, user_specs = prepare_link()
+
+    source_table_name = create_table(source_db, user_specs["source"], schema_names["source"], "foo: int\n---")
+
+    with get_conn(local_db, user_specs["local"]), configured_environment(user_specs["link"], schema_names["outbound"]):
+        local_schema = LazySchema(schema_names["local"])
+        source_schema = LazySchema(schema_names["source"], host=source_db.container.name)
+        link = Link(local_schema, source_schema)
+        local_table_cls = link(type(source_table_name, (dj.Manual,), {}))
+        assert (
+            local_table_cls().source.full_table_name.replace("`", "")
+            == f"{schema_names['source']}.{source_table_name}".lower()
+        )
 
 
 @pytest.mark.xfail
