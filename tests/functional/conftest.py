@@ -378,9 +378,22 @@ def local_store_config(get_store_config, local_minio_spec, local_store_name):
 
 
 @pytest.fixture
-def get_conn():
+def dj_connection():
     @contextmanager
-    def _get_conn(db_spec, user, stores=None):
+    def _dj_connection(db_spec, user_spec):
+        connection = dj.Connection(db_spec.container.name, user_spec.name, user_spec.password)
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    return _dj_connection
+
+
+@pytest.fixture
+def dj_config():
+    @contextmanager
+    def _dj_config(db_spec, user, stores=None):
         if stores is None:
             stores = dict()
         try:
@@ -391,28 +404,15 @@ def get_conn():
                 stores={s.pop("name"): s for s in [asdict(s) for s in stores]},
                 safemode=False,
             ):
-                yield dj.conn(reset=True)
+                dj.conn(reset=True)
+                yield
         finally:
             try:
                 delattr(dj.conn, "connection")
             except AttributeError:
                 pass
 
-    return _get_conn
-
-
-@pytest.fixture
-def src_conn(src_db_spec, src_store_config, get_conn):
-    with get_conn(src_db_spec, src_db_spec.config.users["end_user"], stores=[src_store_config]) as conn:
-        yield conn
-
-
-@pytest.fixture
-def local_conn(local_db_spec, local_store_config, src_store_config, get_conn):
-    with get_conn(
-        local_db_spec, local_db_spec.config.users["end_user"], stores=[local_store_config, src_store_config]
-    ) as conn:
-        yield conn
+    return _dj_config
 
 
 @pytest.fixture
@@ -440,16 +440,18 @@ def create_and_cleanup_buckets(
 
 
 @pytest.fixture
-def test_session(src_db_spec, local_db_spec, src_conn, local_conn, outbound_schema_name):
-    src_schema = LazySchema(src_db_spec.config.schema_name, connection=src_conn)
-    local_schema = LazySchema(local_db_spec.config.schema_name, connection=local_conn)
-    yield dict(src=src_schema, local=local_schema)
-    local_schema.drop(force=True)
-    with mysql_conn(src_db_spec) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(f"DROP DATABASE IF EXISTS {outbound_schema_name};")
-        conn.commit()
-    src_schema.drop(force=True)
+def test_session(src_db_spec, local_db_spec, dj_connection, outbound_schema_name):
+    with dj_connection(src_db_spec, src_db_spec.config.users["end_user"]) as src_conn:
+        with dj_connection(local_db_spec, local_db_spec.config.users["end_user"]) as local_conn:
+            src_schema = LazySchema(src_db_spec.config.schema_name, connection=src_conn)
+            local_schema = LazySchema(local_db_spec.config.schema_name, connection=local_conn)
+            yield dict(src=src_schema, local=local_schema)
+            local_schema.drop(force=True)
+        with mysql_conn(src_db_spec) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(f"DROP DATABASE IF EXISTS {outbound_schema_name};")
+            conn.commit()
+        src_schema.drop(force=True)
 
 
 @pytest.fixture
@@ -496,9 +498,10 @@ def src_data(n_entities):
 
 
 @pytest.fixture
-def src_table_with_data(src_schema, src_table_cls, src_data):
-    src_table = src_schema(src_table_cls)
-    src_table().insert(src_data)
+def src_table_with_data(src_schema, src_table_cls, src_data, src_db_spec, dj_config, src_store_config):
+    with dj_config(src_db_spec, src_db_spec.config.users["end_user"], stores=[src_store_config]):
+        src_table = src_schema(src_table_cls)
+        src_table().insert(src_data)
     return src_table
 
 
@@ -516,17 +519,28 @@ def stores(request, local_store_name, src_store_name):
 
 
 @pytest.fixture
-def local_table_cls(local_schema, remote_schema, stores):
-    @Link(local_schema, remote_schema, stores=stores)
-    class Table:
-        """Local table."""
+def local_table_cls(
+    local_schema, remote_schema, stores, dj_config, local_db_spec, local_store_config, src_store_config
+):
+    with dj_config(
+        local_db_spec, local_db_spec.config.users["end_user"], stores=[local_store_config, src_store_config]
+    ):
+
+        @Link(local_schema, remote_schema, stores=stores)
+        class Table:
+            """Local table."""
 
     return Table
 
 
 @pytest.fixture
-def local_table_cls_with_pulled_data(src_table_with_data, local_table_cls):
-    local_table_cls().pull()
+def local_table_cls_with_pulled_data(
+    src_table_with_data, local_table_cls, dj_config, local_db_spec, src_store_config, local_store_config
+):
+    with dj_config(
+        local_db_spec, local_db_spec.config.users["end_user"], stores=[src_store_config, local_store_config]
+    ):
+        local_table_cls().pull()
     return local_table_cls
 
 
@@ -559,11 +573,11 @@ def configured_environment(temp_env_vars):
 
 
 @pytest.fixture
-def create_table(get_conn, create_random_string):
+def create_table(dj_connection, create_random_string):
     def _create_table(db_spec, user_spec, schema_name, definition, data=None):
         if data is None:
             data = []
-        with get_conn(db_spec, user_spec) as connection:
+        with dj_connection(db_spec, user_spec) as connection:
             table_name = create_random_string().title()
             table_cls = type(table_name, (dj.Manual,), {"definition": definition})
             schema = dj.schema(schema_name, connection=connection)

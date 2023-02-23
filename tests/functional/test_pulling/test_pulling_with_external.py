@@ -17,8 +17,11 @@ def src_data(src_data, file_paths):
 
 
 @pytest.fixture
-def pulled_data(local_table_cls, local_dir):
-    local_table_cls().pull()
+def pulled_data(local_table_cls, local_dir, dj_config, local_db_spec, src_store_config, local_store_config):
+    with dj_config(
+        local_db_spec, local_db_spec.config.users["end_user"], stores=[src_store_config, local_store_config]
+    ):
+        local_table_cls().pull()
     return local_table_cls().fetch(as_dict=True, download_path=local_dir)
 
 
