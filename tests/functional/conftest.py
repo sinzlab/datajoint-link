@@ -39,6 +39,14 @@ class ContainerConfig:
     image: str
     name: str
     health_check: HealthCheckConfig
+    ulimits: frozenset[Ulimit]
+
+
+@dataclass(frozen=True)
+class Ulimit:
+    name: str
+    soft: int
+    hard: int
 
 
 @dataclass(frozen=True)
@@ -143,6 +151,7 @@ def get_db_spec(create_random_string, create_user_configs):
                 image=DATABASE_IMAGE,
                 name=f"{name}-{create_random_string()}",
                 health_check=HealthCheckConfig(),
+                ulimits=frozenset([Ulimit("nofile", 262144, 262144)]),
             ),
             DatabaseConfig(
                 password=DATABASE_ROOT_PASSWORD,
@@ -162,6 +171,7 @@ def get_minio_spec(create_random_string):
                 image=MINIO_IMAGE,
                 name=f"{name}-{create_random_string()}",
                 health_check=HealthCheckConfig(),
+                ulimits=frozenset(),
             ),
             MinIOConfig(
                 access_key="access_key",
@@ -182,7 +192,13 @@ def outbound_schema_name():
 @pytest.fixture(scope=SCOPE)
 def get_runner_kwargs(docker_client):
     def _get_runner_kwargs(spec):
-        common = dict(detach=True, network=NETWORK, name=spec.container.name, image=spec.container.image)
+        common = dict(
+            detach=True,
+            network=NETWORK,
+            name=spec.container.name,
+            image=spec.container.image,
+            ulimits=[docker.types.Ulimit(**asdict(ulimit)) for ulimit in spec.container.ulimits],
+        )
         if isinstance(spec, DatabaseSpec):
             processed_container_config = dict(
                 environment=dict(MYSQL_ROOT_PASSWORD=spec.config.password),
