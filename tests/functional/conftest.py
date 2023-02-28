@@ -174,8 +174,8 @@ def get_minio_spec(create_random_string):
                 ulimits=frozenset(),
             ),
             MinIOConfig(
-                access_key="access_key",
-                secret_key="secret_key",
+                access_key=create_random_string(),
+                secret_key=create_random_string(8),
             ),
         )
 
