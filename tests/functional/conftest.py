@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import pathlib
 import warnings
+from concurrent import futures
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from random import choices
@@ -260,9 +261,29 @@ def create_user(create_user_config):
 
 @pytest.fixture(scope=SCOPE)
 def databases(get_db_spec, get_runner_kwargs):
-    dbs = {name: get_db_spec(name) for name in ["source", "local"]}
-    with ContainerRunner(**get_runner_kwargs(dbs["source"])), ContainerRunner(**get_runner_kwargs(dbs["local"])):
-        yield dbs
+    def execute_runner_method(method):
+        futures_to_names = create_futures_to_names(method)
+        for future in futures.as_completed(futures_to_names):
+            handle_result(future, f"Container {futures_to_names[future]} failed to {method}")
+
+    def create_futures_to_names(method):
+        return {
+            executor.submit(getattr(runner, method)): kinds_to_specs[kind].container.name
+            for kind, runner in kinds_to_runners.items()
+        }
+
+    def handle_result(future, message):
+        try:
+            future.result()
+        except Exception as exc:
+            raise RuntimeError(message) from exc
+
+    kinds_to_specs = {kind: get_db_spec(kind) for kind in ["source", "local"]}
+    kinds_to_runners = {kind: ContainerRunner(**get_runner_kwargs(spec)) for kind, spec in kinds_to_specs.items()}
+    with futures.ThreadPoolExecutor() as executor:
+        execute_runner_method("start")
+        yield kinds_to_specs
+        execute_runner_method("stop")
 
 
 @pytest.fixture(scope=SCOPE)
