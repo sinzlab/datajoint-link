@@ -266,27 +266,17 @@ def databases(get_db_spec, get_runner_kwargs):
 
 
 @pytest.fixture(scope=SCOPE)
-def source_db(databases):
+def src_db_spec(databases, create_user):
+    for name, user in databases["source"].config.users.items():
+        databases["source"].config.users[name] = create_user(databases["source"], user.grants)
     return databases["source"]
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(databases):
+def local_db_spec(databases, create_user):
+    for name, user in databases["local"].config.users.items():
+        databases["local"].config.users[name] = create_user(databases["local"], user.grants)
     return databases["local"]
-
-
-@pytest.fixture(scope=SCOPE)
-def src_db_spec(source_db, create_user):
-    for name, user in source_db.config.users.items():
-        source_db.config.users[name] = create_user(source_db, user.grants)
-    return source_db
-
-
-@pytest.fixture(scope=SCOPE)
-def local_db_spec(local_db, create_user):
-    for name, user in local_db.config.users.items():
-        local_db.config.users[name] = create_user(local_db, user.grants)
-    return local_db
 
 
 @contextmanager
@@ -586,18 +576,18 @@ def create_table(dj_connection, create_random_string):
 
 
 @pytest.fixture
-def prepare_link(create_random_string, create_user, source_db, local_db):
+def prepare_link(create_random_string, create_user, databases):
     def _prepare_link():
         schema_names = {kind: create_random_string() for kind in ("source", "local", "outbound")}
         user_specs = {
             "source": create_user(
-                source_db, grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
+                databases["source"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
             ),
             "local": create_user(
-                local_db, grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['local']}`.* TO '$name'@'%';"]
+                databases["local"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['local']}`.* TO '$name'@'%';"]
             ),
             "link": create_user(
-                source_db,
+                databases["source"],
                 grants=[
                     f"GRANT SELECT, REFERENCES ON `{schema_names['source']}`.* TO '$name'@'%';",
                     f"GRANT ALL PRIVILEGES ON `{schema_names['outbound']}`.* TO '$name'@'%';",
