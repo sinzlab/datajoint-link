@@ -259,23 +259,20 @@ def create_user(create_user_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def create_db(get_db_spec, get_runner_kwargs):
-    def _create_db(name):
-        db_spec = get_db_spec(name)
-        with ContainerRunner(**get_runner_kwargs(db_spec)):
-            yield db_spec
-
-    return _create_db
+def databases(get_db_spec, get_runner_kwargs):
+    dbs = {name: get_db_spec(name) for name in ["source", "local"]}
+    with ContainerRunner(**get_runner_kwargs(dbs["source"])), ContainerRunner(**get_runner_kwargs(dbs["local"])):
+        yield dbs
 
 
 @pytest.fixture(scope=SCOPE)
-def source_db(create_db):
-    yield from create_db("source")
+def source_db(databases):
+    return databases["source"]
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(create_db):
-    yield from create_db("local")
+def local_db(databases):
+    return databases["local"]
 
 
 @pytest.fixture(scope=SCOPE)
