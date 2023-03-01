@@ -60,11 +60,11 @@ class ContainerRunner(AbstractContextManager):
 
     def __enter__(self) -> Container:
         """Return the healthy container."""
-        self.run()
+        self.start()
         return self.container
 
-    def run(self) -> None:
-        """Run the container."""
+    def start(self) -> None:
+        """Start the container."""
         self._run_container()
         self._wait_until_healthy()
 
