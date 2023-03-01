@@ -52,7 +52,7 @@ class Ulimit:
 @dataclass(frozen=True)
 class HealthCheckConfig:
     start_period_seconds: int = 0  # period after which health is first checked
-    max_retries: int = 60  # max number of retries before raising an error
+    max_retries: int = 120  # max number of retries before raising an error
     interval_seconds: int = 1  # interval between health checks
     timeout_seconds: int = 5  # max time a health check test has to finish
 
