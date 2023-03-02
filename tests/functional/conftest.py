@@ -256,7 +256,7 @@ def create_user(create_user_config):
 
 
 @contextmanager
-def containers(docker_client, kinds_to_specs):
+def create_containers(docker_client, kinds_to_specs):
     def execute_runner_method(method):
         futures_to_names = create_futures_to_names(method)
         for future in futures.as_completed(futures_to_names):
@@ -285,13 +285,15 @@ def containers(docker_client, kinds_to_specs):
 
 @pytest.fixture(scope=SCOPE)
 def databases(get_db_spec, docker_client):
-    with containers(docker_client, {kind: get_db_spec(kind) for kind in ["source", "local"]}) as kinds_to_specs:
+    with create_containers(docker_client, {kind: get_db_spec(kind) for kind in ["source", "local"]}) as kinds_to_specs:
         yield kinds_to_specs
 
 
 @pytest.fixture(scope=SCOPE)
 def minios(get_minio_spec, docker_client):
-    with containers(docker_client, {kind: get_minio_spec(kind) for kind in ["source", "local"]}) as kinds_to_specs:
+    with create_containers(
+        docker_client, {kind: get_minio_spec(kind) for kind in ["source", "local"]}
+    ) as kinds_to_specs:
         yield kinds_to_specs
 
 
