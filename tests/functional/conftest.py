@@ -335,23 +335,13 @@ def mysql_conn(db_spec):
 
 
 @pytest.fixture(scope=SCOPE)
-def create_minio(get_minio_spec, get_runner_kwargs):
-    def _create_minio(name):
-        spec = get_minio_spec(name)
-        with ContainerRunner(**get_runner_kwargs(spec)):
-            yield spec
-
-    return _create_minio
+def src_minio_spec(minios):
+    return minios["source"]
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_spec(create_minio):
-    yield from create_minio("source")
-
-
-@pytest.fixture(scope=SCOPE)
-def local_minio_spec(create_minio):
-    yield from create_minio("local")
+def local_minio_spec(minios):
+    return minios["local"]
 
 
 @pytest.fixture(scope=SCOPE)
