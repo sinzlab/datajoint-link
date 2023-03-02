@@ -424,6 +424,16 @@ def dj_config():
 
 
 @pytest.fixture
+def stores():
+    @contextmanager
+    def _stores(stores):
+        with dj.config(stores={store.pop("name"): store for store in [asdict(store) for store in stores]}):
+            yield
+
+    return _stores
+
+
+@pytest.fixture
 def create_and_cleanup_buckets(
     get_minio_client, src_minio_spec, local_minio_spec, src_store_config, local_store_config
 ):
