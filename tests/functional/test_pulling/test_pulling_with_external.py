@@ -18,10 +18,17 @@ def src_data(src_data, file_paths):
 
 @pytest.mark.usefixtures("create_and_cleanup_buckets", "src_table_with_data")
 def test_pulling(
-    local_table_cls, local_dir, dj_config, local_db_spec, src_store_config, local_store_config, expected_data
+    local_table_cls,
+    local_dir,
+    dj_config,
+    stores_config,
+    local_db_spec,
+    src_store_config,
+    local_store_config,
+    expected_data,
 ):
-    with dj_config(
-        local_db_spec, local_db_spec.config.users["end_user"], stores=[src_store_config, local_store_config]
+    with dj_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
+        [src_store_config, local_store_config]
     ):
         local_table_cls().pull()
     pulled_data = local_table_cls().fetch(as_dict=True, download_path=local_dir)
