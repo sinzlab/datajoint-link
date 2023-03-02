@@ -190,47 +190,43 @@ def outbound_schema_name():
     return name
 
 
-@pytest.fixture(scope=SCOPE)
-def get_runner_kwargs(docker_client):
-    def _get_runner_kwargs(spec):
-        common = dict(
-            detach=True,
-            network=NETWORK,
-            name=spec.container.name,
-            image=spec.container.image,
-            ulimits=[docker.types.Ulimit(**asdict(ulimit)) for ulimit in spec.container.ulimits],
+def get_runner_kwargs(docker_client, spec):
+    common = dict(
+        detach=True,
+        network=NETWORK,
+        name=spec.container.name,
+        image=spec.container.image,
+        ulimits=[docker.types.Ulimit(**asdict(ulimit)) for ulimit in spec.container.ulimits],
+    )
+    if isinstance(spec, DatabaseSpec):
+        processed_container_config = dict(
+            environment=dict(MYSQL_ROOT_PASSWORD=spec.config.password),
+            **common,
         )
-        if isinstance(spec, DatabaseSpec):
-            processed_container_config = dict(
-                environment=dict(MYSQL_ROOT_PASSWORD=spec.config.password),
-                **common,
-            )
-        elif isinstance(spec, MinIOSpec):
-            processed_container_config = dict(
-                environment=dict(MINIO_ACCESS_KEY=spec.config.access_key, MINIO_SECRET_KEY=spec.config.secret_key),
-                command=["server", "/data"],
-                healthcheck=dict(
-                    test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
-                    start_period=int(spec.container.health_check.start_period_seconds * 1e9),  # nanoseconds
-                    interval=int(spec.container.health_check.interval_seconds * 1e9),  # nanoseconds
-                    retries=spec.container.health_check.max_retries,
-                    timeout=int(spec.container.health_check.timeout_seconds * 1e9),  # nanoseconds
-                ),
-                **common,
-            )
-        else:
-            raise ValueError
-        return {
-            "docker_client": docker_client,
-            "container_config": processed_container_config,
-            "health_check_config": {
-                "max_retries": spec.container.health_check.max_retries,
-                "interval": spec.container.health_check.interval_seconds,
-            },
-            "remove": REMOVE,
-        }
-
-    return _get_runner_kwargs
+    elif isinstance(spec, MinIOSpec):
+        processed_container_config = dict(
+            environment=dict(MINIO_ACCESS_KEY=spec.config.access_key, MINIO_SECRET_KEY=spec.config.secret_key),
+            command=["server", "/data"],
+            healthcheck=dict(
+                test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
+                start_period=int(spec.container.health_check.start_period_seconds * 1e9),  # nanoseconds
+                interval=int(spec.container.health_check.interval_seconds * 1e9),  # nanoseconds
+                retries=spec.container.health_check.max_retries,
+                timeout=int(spec.container.health_check.timeout_seconds * 1e9),  # nanoseconds
+            ),
+            **common,
+        )
+    else:
+        raise ValueError
+    return {
+        "docker_client": docker_client,
+        "container_config": processed_container_config,
+        "health_check_config": {
+            "max_retries": spec.container.health_check.max_retries,
+            "interval": spec.container.health_check.interval_seconds,
+        },
+        "remove": REMOVE,
+    }
 
 
 @pytest.fixture(scope=SCOPE)
@@ -260,7 +256,7 @@ def create_user(create_user_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def databases(get_db_spec, get_runner_kwargs):
+def databases(get_db_spec, docker_client):
     def execute_runner_method(method):
         futures_to_names = create_futures_to_names(method)
         for future in futures.as_completed(futures_to_names):
@@ -279,7 +275,9 @@ def databases(get_db_spec, get_runner_kwargs):
             raise RuntimeError(message) from exc
 
     kinds_to_specs = {kind: get_db_spec(kind) for kind in ["source", "local"]}
-    kinds_to_runners = {kind: ContainerRunner(**get_runner_kwargs(spec)) for kind, spec in kinds_to_specs.items()}
+    kinds_to_runners = {
+        kind: ContainerRunner(**get_runner_kwargs(docker_client, spec)) for kind, spec in kinds_to_specs.items()
+    }
     with futures.ThreadPoolExecutor() as executor:
         execute_runner_method("start")
         yield kinds_to_specs
@@ -287,7 +285,7 @@ def databases(get_db_spec, get_runner_kwargs):
 
 
 @pytest.fixture(scope=SCOPE)
-def minios(get_minio_spec, get_runner_kwargs):
+def minios(get_minio_spec, docker_client):
     def execute_runner_method(method):
         futures_to_names = create_futures_to_names(method)
         for future in futures.as_completed(futures_to_names):
@@ -306,7 +304,9 @@ def minios(get_minio_spec, get_runner_kwargs):
             raise RuntimeError(message) from exc
 
     kinds_to_specs = {kind: get_minio_spec(kind) for kind in ["source", "local"]}
-    kinds_to_runners = {kind: ContainerRunner(**get_runner_kwargs(spec)) for kind, spec in kinds_to_specs.items()}
+    kinds_to_runners = {
+        kind: ContainerRunner(**get_runner_kwargs(docker_client, spec)) for kind, spec in kinds_to_specs.items()
+    }
     with futures.ThreadPoolExecutor() as executor:
         execute_runner_method("start")
         yield kinds_to_specs
