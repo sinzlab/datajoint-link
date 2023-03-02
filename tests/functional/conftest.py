@@ -255,8 +255,8 @@ def create_user(create_user_config):
     return _create_user
 
 
-@pytest.fixture(scope=SCOPE)
-def databases(get_db_spec, docker_client):
+@contextmanager
+def containers(docker_client, kinds_to_specs):
     def execute_runner_method(method):
         futures_to_names = create_futures_to_names(method)
         for future in futures.as_completed(futures_to_names):
@@ -274,7 +274,6 @@ def databases(get_db_spec, docker_client):
         except Exception as exc:
             raise RuntimeError(message) from exc
 
-    kinds_to_specs = {kind: get_db_spec(kind) for kind in ["source", "local"]}
     kinds_to_runners = {
         kind: ContainerRunner(**get_runner_kwargs(docker_client, spec)) for kind, spec in kinds_to_specs.items()
     }
@@ -282,35 +281,18 @@ def databases(get_db_spec, docker_client):
         execute_runner_method("start")
         yield kinds_to_specs
         execute_runner_method("stop")
+
+
+@pytest.fixture(scope=SCOPE)
+def databases(get_db_spec, docker_client):
+    with containers(docker_client, {kind: get_db_spec(kind) for kind in ["source", "local"]}) as kinds_to_specs:
+        yield kinds_to_specs
 
 
 @pytest.fixture(scope=SCOPE)
 def minios(get_minio_spec, docker_client):
-    def execute_runner_method(method):
-        futures_to_names = create_futures_to_names(method)
-        for future in futures.as_completed(futures_to_names):
-            handle_result(future, f"Container {futures_to_names[future]} failed to {method}")
-
-    def create_futures_to_names(method):
-        return {
-            executor.submit(getattr(runner, method)): kinds_to_specs[kind].container.name
-            for kind, runner in kinds_to_runners.items()
-        }
-
-    def handle_result(future, message):
-        try:
-            future.result()
-        except Exception as exc:
-            raise RuntimeError(message) from exc
-
-    kinds_to_specs = {kind: get_minio_spec(kind) for kind in ["source", "local"]}
-    kinds_to_runners = {
-        kind: ContainerRunner(**get_runner_kwargs(docker_client, spec)) for kind, spec in kinds_to_specs.items()
-    }
-    with futures.ThreadPoolExecutor() as executor:
-        execute_runner_method("start")
+    with containers(docker_client, {kind: get_minio_spec(kind) for kind in ["source", "local"]}) as kinds_to_specs:
         yield kinds_to_specs
-        execute_runner_method("stop")
 
 
 @pytest.fixture(scope=SCOPE)
