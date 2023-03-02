@@ -287,6 +287,33 @@ def databases(get_db_spec, get_runner_kwargs):
 
 
 @pytest.fixture(scope=SCOPE)
+def minios(get_minio_spec, get_runner_kwargs):
+    def execute_runner_method(method):
+        futures_to_names = create_futures_to_names(method)
+        for future in futures.as_completed(futures_to_names):
+            handle_result(future, f"Container {futures_to_names[future]} failed to {method}")
+
+    def create_futures_to_names(method):
+        return {
+            executor.submit(getattr(runner, method)): kinds_to_specs[kind].container.name
+            for kind, runner in kinds_to_runners.items()
+        }
+
+    def handle_result(future, message):
+        try:
+            future.result()
+        except Exception as exc:
+            raise RuntimeError(message) from exc
+
+    kinds_to_specs = {kind: get_minio_spec(kind) for kind in ["source", "local"]}
+    kinds_to_runners = {kind: ContainerRunner(**get_runner_kwargs(spec)) for kind, spec in kinds_to_specs.items()}
+    with futures.ThreadPoolExecutor() as executor:
+        execute_runner_method("start")
+        yield kinds_to_specs
+        execute_runner_method("stop")
+
+
+@pytest.fixture(scope=SCOPE)
 def src_db_spec(databases, create_user):
     for name, user in databases["source"].config.users.items():
         databases["source"].config.users[name] = create_user(databases["source"], user.grants)
