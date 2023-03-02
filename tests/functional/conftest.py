@@ -256,17 +256,14 @@ def create_user(create_user_config):
 
 
 @contextmanager
-def create_containers(docker_client, kinds_to_specs):
+def create_containers(docker_client, specs):
     def execute_runner_method(method):
         futures_to_names = create_futures_to_names(method)
         for future in futures.as_completed(futures_to_names):
             handle_result(future, f"Container {futures_to_names[future]} failed to {method}")
 
     def create_futures_to_names(method):
-        return {
-            executor.submit(getattr(runner, method)): kinds_to_specs[kind].container.name
-            for kind, runner in kinds_to_runners.items()
-        }
+        return {executor.submit(getattr(runner, method)): name for name, runner in names_to_runners.items()}
 
     def handle_result(future, message):
         try:
@@ -274,12 +271,12 @@ def create_containers(docker_client, kinds_to_specs):
         except Exception as exc:
             raise RuntimeError(message) from exc
 
-    kinds_to_runners = {
-        kind: ContainerRunner(**get_runner_kwargs(docker_client, spec)) for kind, spec in kinds_to_specs.items()
+    names_to_runners = {
+        spec.container.name: ContainerRunner(**get_runner_kwargs(docker_client, spec)) for spec in specs
     }
     with futures.ThreadPoolExecutor() as executor:
         execute_runner_method("start")
-        yield kinds_to_specs
+        yield names_to_runners
         execute_runner_method("stop")
 
 
@@ -295,15 +292,15 @@ def containers(docker_client, get_db_spec, get_minio_spec):
 
 @pytest.fixture(scope=SCOPE)
 def databases(get_db_spec, docker_client):
-    with create_containers(docker_client, {kind: get_db_spec(kind) for kind in ["source", "local"]}) as kinds_to_specs:
+    kinds_to_specs = {kind: get_db_spec(kind) for kind in ["source", "local"]}
+    with create_containers(docker_client, kinds_to_specs.values()):
         yield kinds_to_specs
 
 
 @pytest.fixture(scope=SCOPE)
 def minios(get_minio_spec, docker_client):
-    with create_containers(
-        docker_client, {kind: get_minio_spec(kind) for kind in ["source", "local"]}
-    ) as kinds_to_specs:
+    kinds_to_specs = {kind: get_minio_spec(kind) for kind in ["source", "local"]}
+    with create_containers(docker_client, kinds_to_specs.values()):
         yield kinds_to_specs
 
 
