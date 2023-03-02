@@ -424,13 +424,13 @@ def dj_config():
 
 
 @pytest.fixture
-def stores():
+def stores_config():
     @contextmanager
-    def _stores(stores):
+    def _stores_config(stores):
         with dj.config(stores={store.pop("name"): store for store in [asdict(store) for store in stores]}):
             yield
 
-    return _stores
+    return _stores_config
 
 
 @pytest.fixture
