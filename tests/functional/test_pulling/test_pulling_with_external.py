@@ -20,14 +20,14 @@ def src_data(src_data, file_paths):
 def test_pulling(
     local_table_cls,
     local_dir,
-    dj_config,
+    connection_config,
     stores_config,
     local_db_spec,
     src_store_config,
     local_store_config,
     expected_data,
 ):
-    with dj_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
         [src_store_config, local_store_config]
     ):
         local_table_cls().pull()

@@ -399,9 +399,9 @@ def dj_connection():
 
 
 @pytest.fixture
-def dj_config():
+def connection_config():
     @contextmanager
-    def _dj_config(db_spec, user):
+    def _connection_config(db_spec, user):
         try:
             with dj.config(
                 database__host=db_spec.container.name,
@@ -417,7 +417,7 @@ def dj_config():
             except AttributeError:
                 pass
 
-    return _dj_config
+    return _connection_config
 
 
 @pytest.fixture
@@ -513,8 +513,10 @@ def src_data(n_entities):
 
 
 @pytest.fixture
-def src_table_with_data(src_schema, src_table_cls, src_data, src_db_spec, dj_config, src_store_config, stores_config):
-    with dj_config(src_db_spec, src_db_spec.config.users["end_user"]), stores_config([src_store_config]):
+def src_table_with_data(
+    src_schema, src_table_cls, src_data, src_db_spec, connection_config, src_store_config, stores_config
+):
+    with connection_config(src_db_spec, src_db_spec.config.users["end_user"]), stores_config([src_store_config]):
         src_table = src_schema(src_table_cls)
         src_table().insert(src_data)
     return src_table
@@ -535,9 +537,16 @@ def stores(request, local_store_name, src_store_name):
 
 @pytest.fixture
 def local_table_cls(
-    local_schema, remote_schema, stores, dj_config, stores_config, local_db_spec, local_store_config, src_store_config
+    local_schema,
+    remote_schema,
+    stores,
+    connection_config,
+    stores_config,
+    local_db_spec,
+    local_store_config,
+    src_store_config,
 ):
-    with dj_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
         [local_store_config, src_store_config]
     ):
 
@@ -550,9 +559,15 @@ def local_table_cls(
 
 @pytest.fixture
 def local_table_cls_with_pulled_data(
-    src_table_with_data, local_table_cls, dj_config, stores_config, local_db_spec, src_store_config, local_store_config
+    src_table_with_data,
+    local_table_cls,
+    connection_config,
+    stores_config,
+    local_db_spec,
+    src_store_config,
+    local_store_config,
 ):
-    with dj_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
         [src_store_config, local_store_config]
     ):
         local_table_cls().pull()

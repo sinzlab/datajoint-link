@@ -5,7 +5,7 @@ from dj_link import LazySchema, Link
 USES_EXTERNAL = False
 
 
-def test_pulling(prepare_link, create_table, dj_config, databases, configured_environment):
+def test_pulling(prepare_link, create_table, connection_config, databases, configured_environment):
     schema_names, user_specs = prepare_link()
 
     expected = [{"foo": 1, "bar": "a"}, {"foo": 2, "bar": "b"}]
@@ -13,7 +13,7 @@ def test_pulling(prepare_link, create_table, dj_config, databases, configured_en
         databases["source"], user_specs["source"], schema_names["source"], "foo: int\n---\nbar: varchar(64)", expected
     )
 
-    with dj_config(databases["local"], user_specs["local"]), configured_environment(
+    with connection_config(databases["local"], user_specs["local"]), configured_environment(
         user_specs["link"], schema_names["outbound"]
     ):
         local_schema = LazySchema(schema_names["local"])
