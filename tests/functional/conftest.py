@@ -401,15 +401,12 @@ def dj_connection():
 @pytest.fixture
 def dj_config():
     @contextmanager
-    def _dj_config(db_spec, user, stores=None):
-        if stores is None:
-            stores = dict()
+    def _dj_config(db_spec, user):
         try:
             with dj.config(
                 database__host=db_spec.container.name,
                 database__user=user.name,
                 database__password=user.password,
-                stores={s.pop("name"): s for s in [asdict(s) for s in stores]},
                 safemode=False,
             ):
                 dj.conn(reset=True)
