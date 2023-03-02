@@ -284,6 +284,16 @@ def create_containers(docker_client, kinds_to_specs):
 
 
 @pytest.fixture(scope=SCOPE)
+def containers(docker_client, get_db_spec, get_minio_spec):
+    containers = {
+        "databases": {kind: get_db_spec(kind) for kind in ["source", "local"]},
+        "minios": {kind: get_minio_spec(kind) for kind in ["source", "local"]},
+    }
+    with create_containers(docker_client, {**containers["databases"], **containers["minios"]}):
+        yield containers
+
+
+@pytest.fixture(scope=SCOPE)
 def databases(get_db_spec, docker_client):
     with create_containers(docker_client, {kind: get_db_spec(kind) for kind in ["source", "local"]}) as kinds_to_specs:
         yield kinds_to_specs
