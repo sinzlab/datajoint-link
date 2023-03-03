@@ -22,7 +22,6 @@ from dj_link.docker import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
 REMOVE = True
-NETWORK = os.environ["DOCKER_NETWORK"]
 DATABASE_IMAGE = "datajoint/mysql:latest"
 MINIO_IMAGE = "minio/minio:latest"
 DATABASE_ROOT_PASSWORD = "root"
@@ -41,6 +40,7 @@ class ContainerConfig:
     name: str
     health_check: HealthCheckConfig
     ulimits: frozenset[Ulimit]
+    network: str
 
 
 @dataclass(frozen=True)
@@ -144,7 +144,12 @@ def create_random_string():
 
 
 @pytest.fixture(scope=SCOPE)
-def get_db_spec(create_random_string, create_user_configs):
+def network():
+    return os.environ["DOCKER_NETWORK"]
+
+
+@pytest.fixture(scope=SCOPE)
+def get_db_spec(create_random_string, create_user_configs, network):
     def _get_db_spec(name):
         schema_name = "end_user_schema"
         return DatabaseSpec(
@@ -153,6 +158,7 @@ def get_db_spec(create_random_string, create_user_configs):
                 name=f"{name}-{create_random_string()}",
                 health_check=HealthCheckConfig(),
                 ulimits=frozenset([Ulimit("nofile", 262144, 262144)]),
+                network=network,
             ),
             DatabaseConfig(
                 password=DATABASE_ROOT_PASSWORD,
@@ -165,7 +171,7 @@ def get_db_spec(create_random_string, create_user_configs):
 
 
 @pytest.fixture(scope=SCOPE)
-def get_minio_spec(create_random_string):
+def get_minio_spec(create_random_string, network):
     def _get_minio_spec(name):
         return MinIOSpec(
             ContainerConfig(
@@ -173,6 +179,7 @@ def get_minio_spec(create_random_string):
                 name=f"{name}-{create_random_string()}",
                 health_check=HealthCheckConfig(),
                 ulimits=frozenset(),
+                network=network,
             ),
             MinIOConfig(
                 access_key=create_random_string(),
@@ -193,7 +200,7 @@ def outbound_schema_name():
 def get_runner_kwargs(docker_client, spec):
     common = dict(
         detach=True,
-        network=NETWORK,
+        network=spec.container.network,
         name=spec.container.name,
         image=spec.container.image,
         ulimits=[docker.types.Ulimit(**asdict(ulimit)) for ulimit in spec.container.ulimits],
