@@ -1,35 +1,25 @@
 version: "3.8"
 name: datajoint-link
 services:
-  dev:
-    build:
-      context: .
-      args:
-        BASE: cblessing24/python3.8:latest
+  functional_tests:
+    build: .
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - code:/src
-    environment:
-      DOCKER_NETWORK: datajoint-link_test
-    networks:
-      - test
-    env_file: .env
-    command: "tmux"
-  pytest:
-    image: cblessing24/datajoint-link:latest
-    volumes:
-      - code:/src
+      - $PWD/dj_link:/src/dj_link:ro
+      - $PWD/tests:/src/tests:ro
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DOCKER_NETWORK: datajoint-link_test
     networks:
       - test
     entrypoint: ["pdm", "run", "pytest"]
-  pytest_github:
-    image: cblessing24/datajoint-link:latest
+    command: ["tests/functional"]
+  tests_with_coverage:
+    build: .
     volumes:
+      - $PWD/dj_link:/src/dj_link:ro
+      - $PWD/tests:/src/tests:ro
+      - $PWD/reports:/src/reports
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./reports:/src/reports
     environment:
       DOCKER_NETWORK: datajoint-link_test
     networks:
@@ -41,37 +31,20 @@ services:
       "--cov-config=pyproject.toml", # Workaround for https://github.com/nedbat/coveragepy/issues/512
     ]
   black:
-    image: cblessing24/datajoint-link:latest
-    volumes:
-      - code:/src
-    entrypoint: ["pdm", "run", "black", "--check", "--diff"]
-    command: ["."]
+    build: .
+    command: ["lint_black"]
   isort:
-    image: cblessing24/datajoint-link:latest
-    volumes_from:
-      - black
-    entrypoint: ["pdm", "run", "isort", "--check-only", "--diff"]
-    command: ["."]
+    build: .
+    command: ["lint_isort"]
   mypy:
-    image: cblessing24/datajoint-link:latest
-    volumes_from:
-      - black
-    entrypoint: ["pdm", "run", "mypy"]
+    build: .
+    command: ["lint_mypy"]
   flake8:
-    image: cblessing24/datajoint-link:latest
-    volumes_from:
-      - black
-    entrypoint: ["pdm", "run", "flake8"]
-    command: ["."]
+    build: .
+    command: ["lint_flake8"]
   pylint:
-    image: cblessing24/datajoint-link:latest
-    volumes_from:
-      - black
-    entrypoint: ["pdm", "run", "pylint"]
-    command: ["dj_link"]
+    build: .
+    command: ["lint_pylint"]
 
 networks:
   test:
-
-volumes:
-  code:

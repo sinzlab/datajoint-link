@@ -19,7 +19,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Test code
-        run: touch .env && docker compose run pytest_github
+        run: touch .env && docker compose run tests_with_coverage
       - name: Upload coverage to codecov
         uses: codecov/codecov-action@v3
         with:
