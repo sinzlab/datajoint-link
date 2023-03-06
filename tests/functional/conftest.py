@@ -375,8 +375,8 @@ def local_store_name():
 
 
 @pytest.fixture
-def src_store_config(get_store_config, src_minio_spec, src_store_name):
-    return get_store_config(src_minio_spec, src_store_name)
+def src_store_config(get_store_config, src_minio_spec):
+    return get_store_config(src_minio_spec, "source")
 
 
 @pytest.fixture
@@ -396,8 +396,8 @@ def get_store_config(create_random_string):
 
 
 @pytest.fixture
-def local_store_config(get_store_config, local_minio_spec, local_store_name):
-    return get_store_config(local_minio_spec, local_store_name)
+def local_store_config(get_store_config, local_minio_spec):
+    return get_store_config(local_minio_spec, "local")
 
 
 @pytest.fixture
