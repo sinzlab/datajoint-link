@@ -4,8 +4,6 @@ import datajoint as dj
 
 from dj_link import LazySchema, Link
 
-USES_EXTERNAL = False
-
 
 def test_pulling(prepare_link, create_table, connection_config, databases, configured_environment):
     schema_names, user_specs = prepare_link()

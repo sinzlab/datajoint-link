@@ -3,8 +3,6 @@ import pytest
 
 from dj_link import LazySchema, Link
 
-USES_EXTERNAL = False
-
 
 def test_if_source_attribute_returns_source_table_cls(
     prepare_link, create_table, connection_config, databases, configured_environment
