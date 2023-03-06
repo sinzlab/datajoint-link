@@ -436,6 +436,42 @@ def stores_config():
 
 
 @pytest.fixture
+def temp_store(get_minio_client, get_store_spec):
+    @contextmanager
+    def _temp_store(minio_spec):
+        def create_bucket():
+            store_spec = get_store_spec(minio_spec)
+            get_minio_client(minio_spec).make_bucket(store_spec.bucket)
+            return store_spec
+
+        def delete_objects():
+            to_be_deleted = [
+                DeleteObject(object.object_name)
+                for object in get_minio_client(minio_spec).list_objects(store_spec.bucket, recursive=True)
+            ]
+            if deletion_errors := list(get_minio_client(minio_spec).remove_objects(store_spec.bucket, to_be_deleted)):
+                raise RuntimeError(f"Error(s) during object deletion: {deletion_errors}")
+
+        def cleanup_bucket():
+            try:
+                get_minio_client(minio_spec).remove_bucket(store_spec.bucket)
+            except minio.error.S3Error as error:
+                if error.code == "BucketNotEmpty":
+                    delete_objects()
+                    get_minio_client(minio_spec).remove_bucket(store_spec.bucket)
+                else:
+                    raise error
+
+        store_spec = create_bucket()
+        try:
+            yield store_spec
+        finally:
+            cleanup_bucket()
+
+    return _temp_store
+
+
+@pytest.fixture
 def create_and_cleanup_buckets(
     get_minio_client, src_minio_spec, local_minio_spec, src_store_config, local_store_config
 ):
