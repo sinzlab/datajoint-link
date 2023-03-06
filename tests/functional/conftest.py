@@ -365,8 +365,8 @@ def get_minio_client():
 
 
 @pytest.fixture
-def src_store_config(get_store_spec, src_minio_spec):
-    return get_store_spec(src_minio_spec)
+def src_store_config(temp_stores):
+    return temp_stores["source"]
 
 
 @pytest.fixture
@@ -386,8 +386,8 @@ def get_store_spec(create_random_string):
 
 
 @pytest.fixture
-def local_store_config(get_store_spec, local_minio_spec):
-    return get_store_spec(local_minio_spec)
+def local_store_config(temp_stores):
+    return temp_stores["local"]
 
 
 @pytest.fixture
@@ -472,27 +472,9 @@ def temp_store(get_minio_client, get_store_spec):
 
 
 @pytest.fixture
-def create_and_cleanup_buckets(
-    get_minio_client, src_minio_spec, local_minio_spec, src_store_config, local_store_config
-):
-    local_minio_client = get_minio_client(local_minio_spec)
-    src_minio_client = get_minio_client(src_minio_spec)
-    for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
-        client.make_bucket(config.bucket)
-    yield
-    for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
-        try:
-            client.remove_bucket(config.bucket)
-        except minio.error.S3Error as error:
-            if error.code == "NoSuchBucket":
-                warnings.warn(f"Tried to remove bucket '{config.bucket}' but it does not exist")
-            if error.code == "BucketNotEmpty":
-                delete_object_list = [
-                    DeleteObject(o.object_name) for o in client.list_objects(config.bucket, recursive=True)
-                ]
-                for del_err in client.remove_objects(config.bucket, delete_object_list):
-                    print(f"Deletion Error: {del_err}")
-                client.remove_bucket(config.bucket)
+def temp_stores(temp_store, src_minio_spec, local_minio_spec):
+    with temp_store(src_minio_spec) as src_store_spec, temp_store(local_minio_spec) as local_store_spec:
+        yield {"source": src_store_spec, "local": local_store_spec}
 
 
 @pytest.fixture

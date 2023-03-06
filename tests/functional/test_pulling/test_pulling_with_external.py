@@ -16,7 +16,7 @@ def src_data(src_data, file_paths):
     return [dict(e, ext_attr=f) for e, f in zip(src_data, file_paths)]
 
 
-@pytest.mark.usefixtures("create_and_cleanup_buckets", "src_table_with_data")
+@pytest.mark.usefixtures("src_table_with_data")
 def test_pulling(
     local_table_cls,
     local_dir,

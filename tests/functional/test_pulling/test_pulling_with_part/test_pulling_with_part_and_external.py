@@ -32,7 +32,6 @@ def expected_data(expected_data, local_dir):
 @pytest.mark.usefixtures(
     "src_db_spec",
     "local_db_spec",
-    "create_and_cleanup_buckets",
     "src_minio_spec",
     "local_minio_spec",
     "src_table_with_data",
