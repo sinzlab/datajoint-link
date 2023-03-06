@@ -628,10 +628,13 @@ def configured_environment(temp_env_vars):
 @pytest.fixture
 def create_table(dj_connection, create_random_string):
     def _create_table(db_spec, user_spec, schema_name, definition, data=None):
+        def create_random_table_name():
+            return create_random_string().title()
+
         if data is None:
             data = []
         with dj_connection(db_spec, user_spec) as connection:
-            table_name = create_random_string().title()
+            table_name = create_random_table_name()
             table_cls = type(table_name, (dj.Manual,), {"definition": definition})
             schema = dj.schema(schema_name, connection=connection)
             schema(table_cls)
