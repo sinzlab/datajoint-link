@@ -545,9 +545,9 @@ def remote_schema(src_db_spec):
 
 
 @pytest.fixture
-def stores(request, local_store_name, src_store_name):
+def stores(request, src_store_config, local_store_config):
     if getattr(request.module, "USES_EXTERNAL"):
-        return {local_store_name: src_store_name}
+        return {local_store_config.name: src_store_config.name}
 
 
 @pytest.fixture
