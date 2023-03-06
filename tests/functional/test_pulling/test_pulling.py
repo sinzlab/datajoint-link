@@ -32,7 +32,7 @@ def test_pulling_with_external(
     tmpdir,
     create_table,
     connection_config,
-    stores_config,
+    temp_dj_store_config,
     temp_store,
     databases,
     minios,
@@ -48,7 +48,7 @@ def test_pulling_with_external(
 
     schema_names, user_specs = prepare_link()
     with temp_store(minios["source"]) as source_store_spec, temp_store(minios["local"]) as local_store_spec:
-        with stores_config([source_store_spec]):
+        with temp_dj_store_config([source_store_spec]):
             source_table_name = create_table(
                 databases["source"],
                 user_specs["source"],
@@ -59,7 +59,7 @@ def test_pulling_with_external(
 
         with connection_config(databases["local"], user_specs["local"]), configured_environment(
             user_specs["link"], schema_names["outbound"]
-        ), stores_config([source_store_spec, local_store_spec]):
+        ), temp_dj_store_config([source_store_spec, local_store_spec]):
             local_schema = LazySchema(schema_names["local"])
             source_schema = LazySchema(schema_names["source"], host=databases["source"].container.name)
             local_table_cls = Link(local_schema, source_schema)(type(source_table_name, (dj.Manual,), {}))

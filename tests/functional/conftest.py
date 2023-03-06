@@ -426,13 +426,13 @@ def connection_config():
 
 
 @pytest.fixture
-def stores_config():
+def temp_dj_store_config():
     @contextmanager
-    def _stores_config(stores):
+    def _temp_dj_store_config(stores):
         with dj.config(stores={store.pop("name"): store for store in [asdict(store) for store in stores]}):
             yield
 
-    return _stores_config
+    return _temp_dj_store_config
 
 
 @pytest.fixture
@@ -537,9 +537,9 @@ def src_data(n_entities):
 
 @pytest.fixture
 def src_table_with_data(
-    src_schema, src_table_cls, src_data, src_db_spec, connection_config, src_store_config, stores_config
+    src_schema, src_table_cls, src_data, src_db_spec, connection_config, src_store_config, temp_dj_store_config
 ):
-    with connection_config(src_db_spec, src_db_spec.config.users["end_user"]), stores_config([src_store_config]):
+    with connection_config(src_db_spec, src_db_spec.config.users["end_user"]), temp_dj_store_config([src_store_config]):
         src_table = src_schema(src_table_cls)
         src_table().insert(src_data)
     return src_table
@@ -564,12 +564,12 @@ def local_table_cls(
     remote_schema,
     stores,
     connection_config,
-    stores_config,
+    temp_dj_store_config,
     local_db_spec,
     local_store_config,
     src_store_config,
 ):
-    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), temp_dj_store_config(
         [local_store_config, src_store_config]
     ):
 
@@ -585,12 +585,12 @@ def local_table_cls_with_pulled_data(
     src_table_with_data,
     local_table_cls,
     connection_config,
-    stores_config,
+    temp_dj_store_config,
     local_db_spec,
     src_store_config,
     local_store_config,
 ):
-    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), temp_dj_store_config(
         [src_store_config, local_store_config]
     ):
         local_table_cls().pull()

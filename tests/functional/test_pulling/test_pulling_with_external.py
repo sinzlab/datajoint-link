@@ -21,13 +21,13 @@ def test_pulling(
     local_table_cls,
     local_dir,
     connection_config,
-    stores_config,
+    temp_dj_store_config,
     local_db_spec,
     src_store_config,
     local_store_config,
     expected_data,
 ):
-    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), stores_config(
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), temp_dj_store_config(
         [src_store_config, local_store_config]
     ):
         local_table_cls().pull()
