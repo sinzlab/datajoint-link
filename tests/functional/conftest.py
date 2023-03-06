@@ -365,16 +365,6 @@ def get_minio_client():
 
 
 @pytest.fixture
-def src_store_name():
-    return os.environ.get("SOURCE_STORE_NAME", "source_store")
-
-
-@pytest.fixture
-def local_store_name():
-    return os.environ.get("LOCAL_STORE_NAME", "local_store")
-
-
-@pytest.fixture
 def src_store_config(get_store_config, src_minio_spec):
     return get_store_config(src_minio_spec, "source")
 
