@@ -365,15 +365,15 @@ def get_minio_client():
 
 
 @pytest.fixture
-def src_store_config(get_store_config, src_minio_spec):
-    return get_store_config(src_minio_spec, "source")
+def src_store_config(get_store_spec, src_minio_spec):
+    return get_store_spec(src_minio_spec)
 
 
 @pytest.fixture
-def get_store_config(create_random_string):
-    def _get_store_config(minio_spec, store_name, protocol="s3", port=9000):
+def get_store_spec(create_random_string):
+    def _get_store_spec(minio_spec, protocol="s3", port=9000):
         return StoreConfig(
-            name=store_name,
+            name=create_random_string(),
             protocol=protocol,
             endpoint=f"{minio_spec.container.name}:{port}",
             bucket=create_random_string(),
@@ -382,12 +382,12 @@ def get_store_config(create_random_string):
             secret_key=minio_spec.config.secret_key,
         )
 
-    return _get_store_config
+    return _get_store_spec
 
 
 @pytest.fixture
-def local_store_config(get_store_config, local_minio_spec):
-    return get_store_config(local_minio_spec, "local")
+def local_store_config(get_store_spec, local_minio_spec):
+    return get_store_spec(local_minio_spec)
 
 
 @pytest.fixture
