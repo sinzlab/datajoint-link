@@ -60,12 +60,20 @@ class ContainerRunner(AbstractContextManager):
 
     def __enter__(self) -> Container:
         """Return the healthy container."""
+        self.start()
+        return self.container
+
+    def start(self) -> None:
+        """Start the container."""
         self._run_container()
         self._wait_until_healthy()
-        return self.container
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Tear down the container."""
+        self.stop()
+
+    def stop(self) -> None:
+        """Stop the container."""
         self.container.stop()
         if self.remove:
             self.container.remove(v=True)

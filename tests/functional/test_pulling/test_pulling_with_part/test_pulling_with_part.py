@@ -9,6 +9,6 @@ def pulled_data(pulled_data, local_table_cls):
     return pulled_data
 
 
-@pytest.mark.usefixtures("src_db", "local_db", "src_table_with_data")
+@pytest.mark.usefixtures("src_db_spec", "local_db_spec", "src_table_with_data")
 def test_pulling(pulled_data, expected_data):
     assert pulled_data == expected_data

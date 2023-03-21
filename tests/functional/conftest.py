@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import pathlib
 import warnings
+from concurrent import futures
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from random import choices
@@ -20,6 +21,10 @@ from dj_link import LazySchema, Link
 from dj_link.docker import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
+REMOVE = True
+DATABASE_IMAGE = "datajoint/mysql:latest"
+MINIO_IMAGE = "minio/minio:latest"
+DATABASE_ROOT_PASSWORD = "root"
 
 
 def pytest_collection_modifyitems(config, items):
@@ -29,75 +34,71 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.slow)
 
 
-@pytest.fixture(scope=SCOPE)
-def container_config_cls(health_check_config_cls):
-    @dataclass
-    class ContainerConfig:
-        image_tag: str
-        name: str
-        network: str  # docker network to use for testing
-        health_check: health_check_config_cls
-        remove: bool  # container and associated volume will be removed if true
-
-    return ContainerConfig
+@dataclass(frozen=True)
+class ContainerConfig:
+    image: str
+    name: str
+    health_check: HealthCheckConfig
+    ulimits: frozenset[Ulimit]
+    network: str
 
 
-@pytest.fixture(scope=SCOPE)
-def health_check_config_cls():
-    @dataclass
-    class HealthCheckConfig:
-        start_period: int  # period after which health is first checked in seconds
-        max_retries: int  # max number of retries before raising an error
-        interval: int  # interval between health checks in seconds
-        timeout: int  # max time a health check test has to finish
-
-    return HealthCheckConfig
+@dataclass(frozen=True)
+class Ulimit:
+    name: str
+    soft: int
+    hard: int
 
 
-@pytest.fixture(scope=SCOPE)
-def database_config_cls(container_config_cls, user_config):
-    @dataclass
-    class DatabaseConfig(container_config_cls):
-        password: str  # MYSQL root user password
-        users: Dict[str, user_config]
-        schema_name: str
-
-    return DatabaseConfig
+@dataclass(frozen=True)
+class HealthCheckConfig:
+    start_period_seconds: int = 0  # period after which health is first checked
+    max_retries: int = 120  # max number of retries before raising an error
+    interval_seconds: int = 1  # interval between health checks
+    timeout_seconds: int = 5  # max time a health check test has to finish
 
 
-@pytest.fixture(scope=SCOPE)
-def user_config():
-    @dataclass
-    class UserConfig:
-        name: str
-        password: str
-
-    return UserConfig
+@dataclass(frozen=True)
+class DatabaseConfig:
+    password: str  # MYSQL root user password
+    users: Dict[str, UserConfig]
+    schema_name: str
 
 
-@pytest.fixture(scope=SCOPE)
-def minio_config_cls(container_config_cls):
-    @dataclass
-    class MinIOConfig(container_config_cls):
-        access_key: str
-        secret_key: str
-
-    return MinIOConfig
+@dataclass(frozen=True)
+class DatabaseSpec:
+    container: ContainerConfig
+    config: DatabaseConfig
 
 
-@pytest.fixture(scope=SCOPE)
-def store_config():
-    @dataclass
-    class StoreConfig:
-        name: str
-        protocol: str
-        endpoint: str
-        bucket: str
-        location: str
-        access_key: str
-        secret_key: str
+@dataclass(frozen=True)
+class UserConfig:
+    name: str
+    password: str
+    grants: list[str]
 
-    return StoreConfig
+
+@dataclass(frozen=True)
+class MinIOConfig:
+    access_key: str
+    secret_key: str
+
+
+@dataclass(frozen=True)
+class MinIOSpec:
+    container: ContainerConfig
+    config: MinIOConfig
+
+
+@dataclass(frozen=True)
+class StoreConfig:
+    name: str
+    protocol: str
+    endpoint: str
+    bucket: str
+    location: str
+    access_key: str
+    secret_key: str
 
 
 @pytest.fixture(scope=SCOPE)
@@ -106,207 +107,233 @@ def docker_client():
 
 
 @pytest.fixture(scope=SCOPE)
-def network_config():
+def create_user_configs(outbound_schema_name):
+    def _create_user_configs(schema_name):
+        return dict(
+            admin_user=UserConfig(
+                "admin_user",
+                "admin_user_password",
+                grants=[
+                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
+                ],
+            ),
+            end_user=UserConfig(
+                "end_user",
+                "end_user_password",
+                grants=[r"GRANT ALL PRIVILEGES ON `end_user\_%`.* TO '$name'@'%';"],
+            ),
+            dj_user=UserConfig(
+                "dj_user",
+                "dj_user_password",
+                grants=[
+                    f"GRANT SELECT, REFERENCES ON `{schema_name}`.* TO '$name'@'%';",
+                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
+                ],
+            ),
+        )
+
+    return _create_user_configs
+
+
+@pytest.fixture(scope=SCOPE)
+def create_random_string():
+    def _create_random_string(length=6):
+        return "".join(choices(ascii_lowercase, k=length))
+
+    return _create_random_string
+
+
+@pytest.fixture(scope=SCOPE)
+def network():
     return os.environ["DOCKER_NETWORK"]
 
 
-# noinspection PyArgumentList
 @pytest.fixture(scope=SCOPE)
-def health_check_config(health_check_config_cls):
-    return health_check_config_cls(
-        start_period=int(os.environ.get("DATABASE_HEALTH_CHECK_START_PERIOD", 0)),
-        max_retries=int(os.environ.get("DATABASE_HEALTH_CHECK_MAX_RETRIES", 60)),
-        interval=int(os.environ.get("DATABASE_HEALTH_CHECK_INTERVAL", 1)),
-        timeout=int(os.environ.get("DATABASE_HEALTH_CHECK_TIMEOUT", 5)),
-    )
-
-
-@pytest.fixture(scope=SCOPE)
-def remove():
-    return bool(int(os.environ.get("REMOVE", False)))
-
-
-# noinspection PyArgumentList
-@pytest.fixture(scope=SCOPE)
-def src_user_configs(user_config):
-    return dict(
-        admin_user=user_config(
-            os.environ.get("SOURCE_DATABASE_ADMIN_USER", "source_admin_user"),
-            os.environ.get("SOURCE_DATABASE_ADMIN_PASS", "source_admin_user_pass"),
-        ),
-        end_user=user_config(
-            os.environ.get("SOURCE_DATABASE_END_USER", "source_end_user"),
-            os.environ.get("SOURCE_DATABASE_END_PASS", "source_end_user_password"),
-        ),
-        dj_user=user_config(
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_USER", "source_datajoint_user"),
-            os.environ.get("SOURCE_DATABASE_DATAJOINT_PASS", "source_datajoint_user_password"),
-        ),
-    )
-
-
-# noinspection PyArgumentList
-@pytest.fixture(scope=SCOPE)
-def local_user_configs(user_config):
-    return dict(
-        end_user=user_config(
-            os.environ.get("LOCAL_DATABASE_END_USER", "local_end_user"),
-            os.environ.get("LOCAL_DATABASE_END_PASS", "local_end_user_password"),
-        ),
-    )
-
-
-@pytest.fixture(scope=SCOPE)
-def src_db_config(get_db_config, network_config, health_check_config, remove, src_user_configs):
-    return get_db_config("source", network_config, health_check_config, remove, src_user_configs)
-
-
-def create_random_string(length=6):
-    return "".join(choices(ascii_lowercase, k=length))
-
-
-@pytest.fixture(scope=SCOPE)
-def get_db_config(database_config_cls):
-    def _get_db_config(kind, network_config, health_check_config, remove, user_configs):
-        return database_config_cls(
-            image_tag=os.environ.get(kind.upper() + "_DATABASE_TAG", "latest"),
-            name=os.environ.get(f"{kind.upper()}_DATABASE_NAME", f"test-{kind}-database-{create_random_string()}"),
-            network=network_config,
-            health_check=health_check_config,
-            remove=remove,
-            password=os.environ.get(kind.upper() + "_DATABASE_ROOT_PASS", "root"),
-            users=user_configs,
-            schema_name=os.environ.get(kind.upper() + "_DATABASE_END_USER_SCHEMA", kind + "_end_user_schema"),
+def get_db_spec(create_random_string, create_user_configs, network):
+    def _get_db_spec(name):
+        schema_name = "end_user_schema"
+        return DatabaseSpec(
+            ContainerConfig(
+                image=DATABASE_IMAGE,
+                name=f"{name}-{create_random_string()}",
+                health_check=HealthCheckConfig(),
+                ulimits=frozenset([Ulimit("nofile", 262144, 262144)]),
+                network=network,
+            ),
+            DatabaseConfig(
+                password=DATABASE_ROOT_PASSWORD,
+                users=create_user_configs(schema_name),
+                schema_name=schema_name,
+            ),
         )
 
-    return _get_db_config
+    return _get_db_spec
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db_config(get_db_config, network_config, health_check_config, remove, local_user_configs):
-    return get_db_config("local", network_config, health_check_config, remove, local_user_configs)
-
-
-@pytest.fixture(scope=SCOPE)
-def src_minio_config(get_minio_config, network_config, health_check_config, remove):
-    return get_minio_config(network_config, health_check_config, remove, "source")
-
-
-@pytest.fixture(scope=SCOPE)
-def get_minio_config(minio_config_cls):
-    def _get_minio_config(network_config, health_check_config, remove, kind):
-        return minio_config_cls(
-            image_tag=os.environ.get(kind.upper() + "_MINIO_TAG", "latest"),
-            name=os.environ.get(f"{kind.upper()}_MINIO_NAME", f"test-{kind}-minio-{create_random_string()}"),
-            network=network_config,
-            health_check=health_check_config,
-            remove=remove,
-            access_key=os.environ.get(kind.upper() + "_MINIO_ACCESS_KEY", kind + "_minio_access_key"),
-            secret_key=os.environ.get(kind.upper() + "_MINIO_SECRET_KEY", kind + "_minio_secret_key"),
+def get_minio_spec(create_random_string, network):
+    def _get_minio_spec(name):
+        return MinIOSpec(
+            ContainerConfig(
+                image=MINIO_IMAGE,
+                name=f"{name}-{create_random_string()}",
+                health_check=HealthCheckConfig(),
+                ulimits=frozenset(),
+                network=network,
+            ),
+            MinIOConfig(
+                access_key=create_random_string(),
+                secret_key=create_random_string(8),
+            ),
         )
 
-    return _get_minio_config
+    return _get_minio_spec
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio_config(get_minio_config, network_config, health_check_config, remove):
-    return get_minio_config(network_config, health_check_config, remove, "local")
-
-
-@pytest.fixture(scope=SCOPE)
-def outbound_schema_name(src_db_config):
+def outbound_schema_name():
     name = "outbound_schema"
     os.environ["LINK_OUTBOUND"] = name
     return name
 
 
-@pytest.fixture(scope=SCOPE)
-def get_runner_kwargs(database_config_cls, minio_config_cls, docker_client):
-    def _get_runner_kwargs(container_config):
-        common = dict(detach=True, network=container_config.network)
-        if isinstance(container_config, database_config_cls):
-            processed_container_config = dict(
-                image="datajoint/mysql:" + container_config.image_tag,
-                name=container_config.name,
-                environment=dict(MYSQL_ROOT_PASSWORD=container_config.password),
-                **common,
-            )
-        elif isinstance(container_config, minio_config_cls):
-            processed_container_config = dict(
-                image="minio/minio:" + container_config.image_tag,
-                name=container_config.name,
-                environment=dict(
-                    MINIO_ACCESS_KEY=container_config.access_key, MINIO_SECRET_KEY=container_config.secret_key
-                ),
-                command=["server", "/data"],
-                healthcheck=dict(
-                    test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
-                    start_period=int(container_config.health_check.start_period * 1e9),  # nanoseconds
-                    interval=int(container_config.health_check.interval * 1e9),  # nanoseconds
-                    retries=container_config.health_check.max_retries,
-                    timeout=int(container_config.health_check.timeout * 1e9),  # nanoseconds
-                ),
-                **common,
-            )
-        else:
-            raise ValueError
-        return {
-            "docker_client": docker_client,
-            "container_config": processed_container_config,
-            "health_check_config": {
-                "max_retries": container_config.health_check.max_retries,
-                "interval": container_config.health_check.interval,
-            },
-            "remove": container_config.remove,
-        }
-
-    return _get_runner_kwargs
+def get_runner_kwargs(docker_client, spec):
+    common = dict(
+        detach=True,
+        network=spec.container.network,
+        name=spec.container.name,
+        image=spec.container.image,
+        ulimits=[docker.types.Ulimit(**asdict(ulimit)) for ulimit in spec.container.ulimits],
+    )
+    if isinstance(spec, DatabaseSpec):
+        processed_container_config = dict(
+            environment=dict(MYSQL_ROOT_PASSWORD=spec.config.password),
+            **common,
+        )
+    elif isinstance(spec, MinIOSpec):
+        processed_container_config = dict(
+            environment=dict(MINIO_ACCESS_KEY=spec.config.access_key, MINIO_SECRET_KEY=spec.config.secret_key),
+            command=["server", "/data"],
+            healthcheck=dict(
+                test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
+                start_period=int(spec.container.health_check.start_period_seconds * 1e9),  # nanoseconds
+                interval=int(spec.container.health_check.interval_seconds * 1e9),  # nanoseconds
+                retries=spec.container.health_check.max_retries,
+                timeout=int(spec.container.health_check.timeout_seconds * 1e9),  # nanoseconds
+            ),
+            **common,
+        )
+    else:
+        raise ValueError
+    return {
+        "docker_client": docker_client,
+        "container_config": processed_container_config,
+        "health_check_config": {
+            "max_retries": spec.container.health_check.max_retries,
+            "interval": spec.container.health_check.interval_seconds,
+        },
+        "remove": REMOVE,
+    }
 
 
 @pytest.fixture(scope=SCOPE)
-def src_db(src_db_config, get_runner_kwargs, outbound_schema_name):
-    with ContainerRunner(**get_runner_kwargs(src_db_config)), mysql_conn(src_db_config) as connection:
-        with connection.cursor() as cursor:
-            for user in src_db_config.users.values():
-                cursor.execute(f"CREATE USER '{user.name}'@'%' IDENTIFIED BY '{user.password}';")
-            sql_statements = (
-                rf"GRANT ALL PRIVILEGES ON `{src_db_config.users['end_user'].name}\_%`.* "
-                f"TO '{src_db_config.users['end_user'].name}'@'%';",
-                f"GRANT SELECT, REFERENCES ON `{src_db_config.schema_name}`.* "
-                f"TO '{src_db_config.users['dj_user'].name}'@'%';",
-                f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
-                f"TO '{src_db_config.users['dj_user'].name}'@'%';",
-                f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* "
-                f"TO '{src_db_config.users['admin_user'].name}'@'%';",
-            )
-            for sql_statement in sql_statements:
-                cursor.execute(sql_statement)
-        connection.commit()
-        yield
+def create_user_config(create_random_string):
+    def _create_user_config(grants):
+        name = create_random_string()
+        return UserConfig(
+            name=name, password=create_random_string(), grants=[grant.replace("$name", name) for grant in grants]
+        )
+
+    return _create_user_config
 
 
 @pytest.fixture(scope=SCOPE)
-def local_db(local_db_config, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(local_db_config)), mysql_conn(local_db_config) as connection:
-        with connection.cursor() as cursor:
-            for user in local_db_config.users.values():
-                cursor.execute(f"CREATE USER '{user.name}'@'%' " f"IDENTIFIED BY '{user.password}';")
-            cursor.execute(
-                (
-                    f"GRANT ALL PRIVILEGES ON `{local_db_config.schema_name}`.* "
-                    f"TO '{local_db_config.users['end_user'].name}'"
-                )
-            )
-        connection.commit()
-        yield
+def create_user(create_user_config):
+    def _create_user(db_spec, grants):
+        config = create_user_config(grants)
+        with mysql_conn(db_spec) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"CREATE USER '{config.name}'@'%' IDENTIFIED BY '{config.password}';")
+                for grant in config.grants:
+                    cursor.execute(grant)
+            connection.commit()
+        return config
+
+    return _create_user
 
 
 @contextmanager
-def mysql_conn(db_config):
+def create_containers(docker_client, specs):
+    def execute_runner_method(method):
+        futures_to_names = create_futures_to_names(method)
+        for future in futures.as_completed(futures_to_names):
+            handle_result(future, f"Container {futures_to_names[future]} failed to {method}")
+
+    def create_futures_to_names(method):
+        return {executor.submit(getattr(runner, method)): name for name, runner in names_to_runners.items()}
+
+    def handle_result(future, message):
+        try:
+            future.result()
+        except Exception as exc:
+            raise RuntimeError(message) from exc
+
+    names_to_runners = {
+        spec.container.name: ContainerRunner(**get_runner_kwargs(docker_client, spec)) for spec in specs
+    }
+    with futures.ThreadPoolExecutor() as executor:
+        execute_runner_method("start")
+        yield names_to_runners
+        execute_runner_method("stop")
+
+
+@pytest.fixture(scope=SCOPE)
+def containers(docker_client, get_db_spec, get_minio_spec):
+    containers = {
+        "databases": {kind: get_db_spec(kind) for kind in ["source", "local"]},
+        "minios": {kind: get_minio_spec(kind) for kind in ["source", "local"]},
+    }
+    with create_containers(docker_client, {**containers["databases"], **containers["minios"]}):
+        yield containers
+
+
+@pytest.fixture(scope=SCOPE)
+def databases(get_db_spec, docker_client):
+    kinds_to_specs = {kind: get_db_spec(kind) for kind in ["source", "local"]}
+    with create_containers(docker_client, kinds_to_specs.values()):
+        yield kinds_to_specs
+
+
+@pytest.fixture(scope=SCOPE)
+def minios(get_minio_spec, docker_client):
+    kinds_to_specs = {kind: get_minio_spec(kind) for kind in ["source", "local"]}
+    with create_containers(docker_client, kinds_to_specs.values()):
+        yield kinds_to_specs
+
+
+@pytest.fixture(scope=SCOPE)
+def src_db_spec(databases, create_user):
+    for name, user in databases["source"].config.users.items():
+        databases["source"].config.users[name] = create_user(databases["source"], user.grants)
+    return databases["source"]
+
+
+@pytest.fixture(scope=SCOPE)
+def local_db_spec(databases, create_user):
+    for name, user in databases["local"].config.users.items():
+        databases["local"].config.users[name] = create_user(databases["local"], user.grants)
+    return databases["local"]
+
+
+@contextmanager
+def mysql_conn(db_spec):
     connection = None
     try:
         connection = pymysql.connect(
-            host=db_config.name, user="root", password=db_config.password, cursorclass=pymysql.cursors.DictCursor
+            host=db_spec.container.name,
+            user="root",
+            password=db_spec.config.password,
+            cursorclass=pymysql.cursors.DictCursor,
         )
         yield connection
     finally:
@@ -315,138 +342,154 @@ def mysql_conn(db_config):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio(src_minio_config, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(src_minio_config)):
-        yield
+def src_minio_spec(minios):
+    return minios["source"]
 
 
 @pytest.fixture(scope=SCOPE)
-def local_minio(local_minio_config, get_runner_kwargs):
-    with ContainerRunner(**get_runner_kwargs(local_minio_config)):
-        yield
+def local_minio_spec(minios):
+    return minios["local"]
 
 
-@pytest.fixture
-def src_minio_client(src_minio, src_minio_config):
-    return get_minio_client(src_minio_config)
-
-
-def get_minio_client(minio_config):
-    return minio.Minio(
-        minio_config.name + ":9000",
-        access_key=minio_config.access_key,
-        secret_key=minio_config.secret_key,
-        secure=False,
-    )
-
-
-@pytest.fixture
-def local_minio_client(local_minio, local_minio_config):
-    return get_minio_client(local_minio_config)
-
-
-@pytest.fixture
-def src_store_name():
-    return os.environ.get("SOURCE_STORE_NAME", "source_store")
-
-
-@pytest.fixture
-def local_store_name():
-    return os.environ.get("LOCAL_STORE_NAME", "local_store")
-
-
-@pytest.fixture
-def src_store_config(get_store_config, src_minio_config, src_store_name):
-    return get_store_config(src_minio_config, "source", src_store_name)
-
-
-@pytest.fixture
-def get_store_config(store_config):
-    # noinspection PyArgumentList
-    def _get_store_config(minio_config, kind, store_name):
-        return store_config(
-            name=store_name,
-            protocol=os.environ.get(kind.upper() + "_STORE_PROTOCOL", "s3"),
-            endpoint=minio_config.name + ":9000",
-            bucket=os.environ.get(kind.upper() + "_STORE_BUCKET", kind + "-store-bucket"),
-            location=os.environ.get(kind.upper() + "_STORE_LOCATION", kind + "_store_location"),
-            access_key=minio_config.access_key,
-            secret_key=minio_config.secret_key,
+@pytest.fixture(scope=SCOPE)
+def get_minio_client():
+    def _get_minio_client(spec):
+        return minio.Minio(
+            spec.container.name + ":9000",
+            access_key=spec.config.access_key,
+            secret_key=spec.config.secret_key,
+            secure=False,
         )
 
-    return _get_store_config
+    return _get_minio_client
 
 
 @pytest.fixture
-def local_store_config(get_store_config, local_minio_config, local_store_name):
-    return get_store_config(local_minio_config, "local", local_store_name)
+def src_store_config(temp_stores):
+    return temp_stores["source"]
 
 
 @pytest.fixture
-def get_conn():
+def get_store_spec(create_random_string):
+    def _get_store_spec(minio_spec, protocol="s3", port=9000):
+        return StoreConfig(
+            name=create_random_string(),
+            protocol=protocol,
+            endpoint=f"{minio_spec.container.name}:{port}",
+            bucket=create_random_string(),
+            location=create_random_string(),
+            access_key=minio_spec.config.access_key,
+            secret_key=minio_spec.config.secret_key,
+        )
+
+    return _get_store_spec
+
+
+@pytest.fixture
+def local_store_config(temp_stores):
+    return temp_stores["local"]
+
+
+@pytest.fixture
+def dj_connection():
     @contextmanager
-    def _get_conn(db_config, user_type, stores=None):
-        if stores is None:
-            stores = dict()
-        conn = None
+    def _dj_connection(db_spec, user_spec):
+        connection = dj.Connection(db_spec.container.name, user_spec.name, user_spec.password)
         try:
-            dj.config["database.host"] = db_config.name
-            dj.config["database.user"] = db_config.users[user_type + "_user"].name
-            dj.config["database.password"] = db_config.users[user_type + "_user"].password
-            dj.config["stores"] = {s.pop("name"): s for s in [asdict(s) for s in stores]}
-            dj.config["safemode"] = False
-            conn = dj.conn(reset=True)
-            yield conn
+            yield connection
         finally:
-            if conn is not None:
-                conn.close()
+            connection.close()
 
-    return _get_conn
-
-
-@pytest.fixture
-def src_conn(src_db, src_db_config, src_store_config, get_conn):
-    with get_conn(src_db_config, "end", stores=[src_store_config]) as conn:
-        yield conn
+    return _dj_connection
 
 
 @pytest.fixture
-def local_conn(local_db, local_db_config, local_store_config, src_store_config, get_conn):
-    with get_conn(local_db_config, "end", stores=[local_store_config, src_store_config]) as conn:
-        yield conn
-
-
-@pytest.fixture
-def create_and_cleanup_buckets(src_minio_client, local_minio_client, src_store_config, local_store_config):
-    for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
-        client.make_bucket(config.bucket)
-    yield
-    for client, config in zip((src_minio_client, local_minio_client), (src_store_config, local_store_config)):
+def connection_config():
+    @contextmanager
+    def _connection_config(db_spec, user):
         try:
-            client.remove_bucket(config.bucket)
-        except minio.error.S3Error as error:
-            if error.code == "NoSuchBucket":
-                warnings.warn(f"Tried to remove bucket '{config.bucket}' but it does not exist")
-            if error.code == "BucketNotEmpty":
-                delete_object_list = [
-                    DeleteObject(o.object_name) for o in client.list_objects(config.bucket, recursive=True)
-                ]
-                for del_err in client.remove_objects(config.bucket, delete_object_list):
-                    print(f"Deletion Error: {del_err}")
-                client.remove_bucket(config.bucket)
+            with dj.config(
+                database__host=db_spec.container.name,
+                database__user=user.name,
+                database__password=user.password,
+                safemode=False,
+            ):
+                dj.conn(reset=True)
+                yield
+        finally:
+            try:
+                delattr(dj.conn, "connection")
+            except AttributeError:
+                pass
+
+    return _connection_config
 
 
 @pytest.fixture
-def test_session(src_db_config, local_db_config, src_conn, local_conn, outbound_schema_name):
-    src_schema = LazySchema(src_db_config.schema_name, connection=src_conn)
-    local_schema = LazySchema(local_db_config.schema_name, connection=local_conn)
-    yield dict(src=src_schema, local=local_schema)
-    local_schema.drop(force=True)
-    with mysql_conn(src_db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(f"DROP DATABASE IF EXISTS {outbound_schema_name};")
-        conn.commit()
-    src_schema.drop(force=True)
+def temp_dj_store_config():
+    @contextmanager
+    def _temp_dj_store_config(stores):
+        with dj.config(stores={store.pop("name"): store for store in [asdict(store) for store in stores]}):
+            yield
+
+    return _temp_dj_store_config
+
+
+@pytest.fixture
+def temp_store(get_minio_client, get_store_spec):
+    @contextmanager
+    def _temp_store(minio_spec):
+        def create_bucket():
+            store_spec = get_store_spec(minio_spec)
+            get_minio_client(minio_spec).make_bucket(store_spec.bucket)
+            return store_spec
+
+        def delete_objects():
+            to_be_deleted = [
+                DeleteObject(object.object_name)
+                for object in get_minio_client(minio_spec).list_objects(store_spec.bucket, recursive=True)
+            ]
+            if deletion_errors := list(get_minio_client(minio_spec).remove_objects(store_spec.bucket, to_be_deleted)):
+                raise RuntimeError(f"Error(s) during object deletion: {deletion_errors}")
+
+        def cleanup_bucket():
+            try:
+                get_minio_client(minio_spec).remove_bucket(store_spec.bucket)
+            except minio.error.S3Error as error:
+                if error.code == "BucketNotEmpty":
+                    delete_objects()
+                    get_minio_client(minio_spec).remove_bucket(store_spec.bucket)
+                else:
+                    raise error
+
+        store_spec = create_bucket()
+        try:
+            yield store_spec
+        finally:
+            cleanup_bucket()
+
+    return _temp_store
+
+
+@pytest.fixture
+def temp_stores(temp_store, src_minio_spec, local_minio_spec):
+    with temp_store(src_minio_spec) as src_store_spec, temp_store(local_minio_spec) as local_store_spec:
+        yield {"source": src_store_spec, "local": local_store_spec}
+
+
+@pytest.fixture
+def test_session(src_db_spec, local_db_spec, dj_connection, outbound_schema_name):
+    with dj_connection(src_db_spec, src_db_spec.config.users["end_user"]) as src_conn:
+        with dj_connection(local_db_spec, local_db_spec.config.users["end_user"]) as local_conn:
+            src_schema = LazySchema(src_db_spec.config.schema_name, connection=src_conn)
+            local_schema = LazySchema(local_db_spec.config.schema_name, connection=local_conn)
+            yield dict(src=src_schema, local=local_schema)
+            local_schema.drop(force=True)
+        with mysql_conn(src_db_spec) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(f"DROP DATABASE IF EXISTS {outbound_schema_name};")
+            conn.commit()
+        src_schema.drop(force=True)
 
 
 @pytest.fixture
@@ -493,35 +536,133 @@ def src_data(n_entities):
 
 
 @pytest.fixture
-def src_table_with_data(src_schema, src_table_cls, src_data):
-    src_table = src_schema(src_table_cls)
-    src_table().insert(src_data)
+def src_table_with_data(
+    src_schema, src_table_cls, src_data, src_db_spec, connection_config, src_store_config, temp_dj_store_config
+):
+    with connection_config(src_db_spec, src_db_spec.config.users["end_user"]), temp_dj_store_config([src_store_config]):
+        src_table = src_schema(src_table_cls)
+        src_table().insert(src_data)
     return src_table
 
 
 @pytest.fixture
-def remote_schema(src_db_config):
-    os.environ["LINK_USER"] = src_db_config.users["dj_user"].name
-    os.environ["LINK_PASS"] = src_db_config.users["dj_user"].password
-    return LazySchema(src_db_config.schema_name, host=src_db_config.name)
+def remote_schema(src_db_spec):
+    os.environ["LINK_USER"] = src_db_spec.config.users["dj_user"].name
+    os.environ["LINK_PASS"] = src_db_spec.config.users["dj_user"].password
+    return LazySchema(src_db_spec.config.schema_name, host=src_db_spec.container.name)
 
 
 @pytest.fixture
-def stores(request, local_store_name, src_store_name):
+def stores(request, src_store_config, local_store_config):
     if getattr(request.module, "USES_EXTERNAL"):
-        return {local_store_name: src_store_name}
+        return {local_store_config.name: src_store_config.name}
 
 
 @pytest.fixture
-def local_table_cls(local_schema, remote_schema, stores):
-    @Link(local_schema, remote_schema, stores=stores)
-    class Table:
-        """Local table."""
+def local_table_cls(
+    local_schema,
+    remote_schema,
+    stores,
+    connection_config,
+    temp_dj_store_config,
+    local_db_spec,
+    local_store_config,
+    src_store_config,
+):
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), temp_dj_store_config(
+        [local_store_config, src_store_config]
+    ):
+
+        @Link(local_schema, remote_schema, stores=stores)
+        class Table:
+            """Local table."""
 
     return Table
 
 
 @pytest.fixture
-def local_table_cls_with_pulled_data(src_table_with_data, local_table_cls):
-    local_table_cls().pull()
+def local_table_cls_with_pulled_data(
+    src_table_with_data,
+    local_table_cls,
+    connection_config,
+    temp_dj_store_config,
+    local_db_spec,
+    src_store_config,
+    local_store_config,
+):
+    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), temp_dj_store_config(
+        [src_store_config, local_store_config]
+    ):
+        local_table_cls().pull()
     return local_table_cls
+
+
+@pytest.fixture
+def temp_env_vars():
+    @contextmanager
+    def _temp_env_vars(**vars):
+        original_values = {name: os.environ.get(name) for name in vars}
+        os.environ.update(vars)
+        try:
+            yield
+        finally:
+            for name, value in original_values.items():
+                if value is None:
+                    del os.environ[name]
+                else:
+                    os.environ[name] = value
+
+    return _temp_env_vars
+
+
+@pytest.fixture
+def configured_environment(temp_env_vars):
+    @contextmanager
+    def _configured_environment(user_spec, schema_name):
+        with temp_env_vars(LINK_USER=user_spec.name, LINK_PASS=user_spec.password, LINK_OUTBOUND=schema_name):
+            yield
+
+    return _configured_environment
+
+
+@pytest.fixture
+def create_table(dj_connection, create_random_string):
+    def _create_table(db_spec, user_spec, schema_name, definition, data=None):
+        def create_random_table_name():
+            return create_random_string().title()
+
+        if data is None:
+            data = []
+        with dj_connection(db_spec, user_spec) as connection:
+            table_name = create_random_table_name()
+            table_cls = type(table_name, (dj.Manual,), {"definition": definition})
+            schema = dj.schema(schema_name, connection=connection)
+            schema(table_cls)
+            table_cls().insert(data)
+        return table_name
+
+    return _create_table
+
+
+@pytest.fixture
+def prepare_link(create_random_string, create_user, databases):
+    def _prepare_link():
+        schema_names = {kind: create_random_string() for kind in ("source", "local", "outbound")}
+        user_specs = {
+            "source": create_user(
+                databases["source"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
+            ),
+            "local": create_user(
+                databases["local"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['local']}`.* TO '$name'@'%';"]
+            ),
+            "link": create_user(
+                databases["source"],
+                grants=[
+                    f"GRANT SELECT, REFERENCES ON `{schema_names['source']}`.* TO '$name'@'%';",
+                    f"GRANT ALL PRIVILEGES ON `{schema_names['outbound']}`.* TO '$name'@'%';",
+                ],
+            ),
+        }
+        return schema_names, user_specs
+
+    return _prepare_link

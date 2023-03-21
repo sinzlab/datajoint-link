@@ -37,10 +37,20 @@ dev = [
     "flake8-docstrings~=1.6",
     "black>=22.10.0",
     "minio>=7.1.12",
+    "neovim>=0.3.1",
 ]
 profiling = [
     "gprof2dot~=2021.2",
 ]
+
+[tool.pdm.scripts]
+lint_black = "black --check --diff ."
+lint_isort = "isort --check-only --diff ."
+lint_mypy = "mypy"
+lint_flake8 = "flake8 ."
+lint_pylint = "pylint dj_link"
+tests = "pytest -m 'not slow'"
+functional_tests = "docker compose run functional_tests"
 
 [tool.black]
 line-length = 120

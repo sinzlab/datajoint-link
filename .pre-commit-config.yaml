@@ -3,70 +3,37 @@ repos:
     hooks:
       - id: black
         name: black
-        entry: docker
+        entry: pdm run lint_black
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "black",
-        ]
+        pass_filenames: false
       - id: isort
         name: isort
-        entry: docker
+        entry: pdm run lint_isort
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "isort",
-        ]
+        pass_filenames: false
       - id: mypy
         name: mypy
-        entry: docker
+        entry: pdm run lint_mypy
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "mypy",
-        ]
         pass_filenames: false
       - id: flake8
         name: flake8
-        entry: docker
+        entry: pdm run lint_flake8
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "flake8",
-        ]
+        pass_filenames: false
       - id: pylint
         name: pylint
-        entry: docker
+        entry: pdm run lint_pylint
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "pylint",
-        ]
+        pass_filenames: false
       - id: pytest
         name: pytest
-        entry: docker
+        entry: pdm run tests
         language: system
         types: [python]
-        args: [
-          "compose",
-          "run",
-          "--interactive=false",
-          "pytest",
-          "-m=not slow"
-        ]
         pass_filenames: false

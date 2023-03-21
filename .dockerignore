@@ -1,5 +1,5 @@
-**/.vscode
 .pdm.toml
-__pypackages__
+.venv
 dist/
 profiling/stats
+reports/

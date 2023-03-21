@@ -1,5 +1,4 @@
-ARG BASE=python:3.8
-FROM $BASE
+FROM python:3.8
 RUN pip install pdm
 WORKDIR src
 COPY . .
