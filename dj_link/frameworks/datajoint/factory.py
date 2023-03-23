@@ -105,8 +105,10 @@ class TableFactory(Base):
             for name, part_table_class in create_part_table_classes().items():
                 setattr(table_cls, name, part_table_class)
 
-        assert self.config.table_cls is not None, "No table class present"
+        def derive_table_class() -> Type[UserTable]:
+            assert self.config.table_cls is not None, "No table class present"
+            return type(self.config.table_name, (self.config.table_cls,), {"definition": self.config.table_definition})
+
         assert self.config.table_definition is not None, "No table definition present"
         add_part_table_classes(self.config.table_cls)
-        self.config.table_cls.definition = self.config.table_definition
-        return self.config.schema(self.config.table_cls)
+        return self.config.schema(derive_table_class())

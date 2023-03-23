@@ -285,7 +285,6 @@ class TestCall:
         # noinspection PyUnresolvedReferences
         assert factory().schema_applied
 
-    @pytest.mark.xfail
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
     def test_if_table_base_class_is_subclassed_before_being_passed_to_schema(
         self, factory, fake_schema, dummy_table_base_cls
