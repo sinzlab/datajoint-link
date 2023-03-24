@@ -101,14 +101,13 @@ class TableFactory(Base):
             part_table_classes.update(create_non_flag_part_table_classes())
             return part_table_classes
 
-        def add_part_table_classes(table_cls) -> None:
-            for name, part_table_class in create_part_table_classes().items():
-                setattr(table_cls, name, part_table_class)
-
         def derive_table_class() -> Type[UserTable]:
             assert self.config.table_cls is not None, "No table class present"
-            return type(self.config.table_name, (self.config.table_cls,), {"definition": self.config.table_definition})
+            return type(
+                self.config.table_name,
+                (self.config.table_cls,),
+                dict(definition=self.config.table_definition, **create_part_table_classes()),
+            )
 
         assert self.config.table_definition is not None, "No table definition present"
-        add_part_table_classes(self.config.table_cls)
         return self.config.schema(derive_table_class())
