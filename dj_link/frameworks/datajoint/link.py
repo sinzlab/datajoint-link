@@ -8,7 +8,7 @@ from datajoint.user_tables import UserTable
 from ...base import Base
 from ...schemas import LazySchema
 from .dj_helpers import replace_stores
-from .factory import TableFactory, TableFactoryConfig
+from .factory import TableFactory, TableFactoryConfig, TableTiers
 from .mixin import LocalTableMixin
 
 
@@ -79,9 +79,9 @@ class Link(Base):  # pylint: disable=too-few-public-methods
         if factory_type == "outbound":
             return dict(
                 create_basic_config(),
-                table_cls=self.base_table_cls,
                 table_definition="-> source_table",
                 context={"source_table": self.table_cls_factories["source"]()},
+                table_tier=TableTiers.LOOKUP,
             )
         if factory_type == "local":
 
@@ -96,8 +96,8 @@ class Link(Base):  # pylint: disable=too-few-public-methods
 
             return dict(
                 create_basic_config(),
-                table_cls=self.base_table_cls,
                 table_definition=create_definition(self.table_cls_factories["source"]()),
                 part_table_definitions=create_local_part_table_definitions(),
+                table_tier=TableTiers.LOOKUP,
             )
         raise ValueError("Unknown table factory type")

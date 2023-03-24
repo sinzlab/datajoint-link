@@ -2,13 +2,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Collection, Dict, Mapping, Optional, Tuple, Type
 
-from datajoint import Part, Schema
+from datajoint import Computed, Imported, Lookup, Manual, Part, Schema
 from datajoint.user_tables import UserTable
 
 from ...base import Base
 from .dj_helpers import get_part_table_classes
+
+
+class TableTiers(Enum):
+    """Table tiers that can be used in the table factory."""
+
+    MANUAL = Manual
+    LOOKUP = Lookup
+    COMPUTED = Computed
+    IMPORTED = Imported
 
 
 @dataclass
@@ -20,15 +30,15 @@ class TableFactoryConfig:  # pylint: disable=too-many-instance-attributes
     table_bases: Tuple[Type, ...] = field(default_factory=tuple)
     table_cls_attrs: Mapping[str, Any] = field(default_factory=dict)
     flag_table_names: Collection[str] = field(default_factory=list)
-    table_cls: Optional[Type[UserTable]] = None
-    context: Mapping[str, Any] = field(default_factory=dict)
+    table_tier: Optional[TableTiers] = None
     table_definition: Optional[str] = None
+    context: Mapping[str, Any] = field(default_factory=dict)
     part_table_definitions: Mapping[str, str] = field(default_factory=dict)
 
     @property
     def is_table_creation_possible(self) -> bool:
         """Return True if the configuration object contains the information necessary for table creation."""
-        return bool(self.table_cls) and bool(self.table_definition)
+        return bool(self.table_tier) and bool(self.table_definition)
 
 
 class TableFactory(Base):
@@ -103,10 +113,10 @@ class TableFactory(Base):
             return part_table_classes
 
         def derive_table_class() -> Type[UserTable]:
-            assert self.config.table_cls is not None, "No table class present"
+            assert self.config.table_tier is not None, "No table tier specified"
             return type(
                 self.config.table_name,
-                (self.config.table_cls,),
+                (self.config.table_tier.value,),
                 dict(definition=self.config.table_definition, **create_part_table_classes()),
             )
 

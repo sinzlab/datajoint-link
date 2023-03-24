@@ -7,7 +7,7 @@ import pytest
 from datajoint import Part
 
 from dj_link.base import Base
-from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig
+from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig, TableTiers
 
 
 class TestTableFactoryConfig:
@@ -27,36 +27,25 @@ class TestTableFactoryConfig:
     def test_if_flag_table_names_are_empty_list_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().flag_table_names == list()
 
-    def test_if_table_cls_is_none_if_not_provided(self, partial_config_cls):
-        assert partial_config_cls().table_cls is None
-
     def test_if_table_definition_is_none_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().table_definition is None
 
     def test_if_part_table_definitions_are_empty_dict_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().part_table_definitions == dict()
 
-    @pytest.fixture
-    def dummy_table_base_cls(self):
-        return MagicMock(name="dummy_table_base_cls")
-
-    def test_if_table_creation_is_possible_if_table_class_and_definition_are_provided(
-        self, partial_config_cls, dummy_table_base_cls
-    ):
+    def test_if_table_creation_is_possible_if_table_tier_and_definition_are_provided(self, partial_config_cls):
         assert (
-            partial_config_cls(table_cls=dummy_table_base_cls, table_definition="definition").is_table_creation_possible
+            partial_config_cls(table_tier=TableTiers.LOOKUP, table_definition="definition").is_table_creation_possible
             is True
         )
 
-    def test_if_table_creation_is_not_possible_if_table_class_is_not_provided(self, partial_config_cls):
+    def test_if_table_creation_is_not_possible_if_table_tier_is_not_provided(self, partial_config_cls):
         assert partial_config_cls(table_definition="definition").is_table_creation_possible is False
 
-    def test_if_table_creation_is_not_possible_if_table_definition_is_not_provided(
-        self, partial_config_cls, dummy_table_base_cls
-    ):
-        assert partial_config_cls(table_cls=dummy_table_base_cls).is_table_creation_possible is False
+    def test_if_table_creation_is_not_possible_if_table_definition_is_not_provided(self, partial_config_cls):
+        assert partial_config_cls(table_tier=TableTiers.LOOKUP).is_table_creation_possible is False
 
-    def test_if_table_creation_is_not_possible_if_table_class_and_definition_are_not_provided(self, partial_config_cls):
+    def test_if_table_creation_is_not_possible_if_table_tier_and_definition_are_not_provided(self, partial_config_cls):
         assert partial_config_cls().is_table_creation_possible is False
 
 
@@ -146,7 +135,6 @@ def configure_for_spawning(factory, fake_schema, table_name, table_bases, table_
     config.table_bases = table_bases
     config.table_cls_attrs = table_cls_attrs
     config.flag_table_names = flag_part_table_names
-    config.table_cls = None
     config.table_definition = None
     config.part_table_definitions = {}
     config.is_table_creation_possible = False
@@ -212,10 +200,10 @@ def configure_for_creating(
     config.table_bases = table_bases
     config.table_cls_attrs = table_cls_attrs
     config.flag_table_names = flag_part_table_names
-    config.table_cls = dummy_table_base_cls
     config.table_definition = table_definition
     config.context = {}
     config.part_table_definitions = non_flag_part_table_definitions
+    config.table_tier.value = dummy_table_base_cls
     config.is_table_creation_possible = True
     factory.config = config
 
