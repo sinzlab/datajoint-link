@@ -141,6 +141,8 @@ class TestInit:
 @pytest.fixture
 def prepare_env():
     os.environ["LINK_OUTBOUND"] = "outbound_schema"
+    yield
+    del os.environ["LINK_OUTBOUND"]
 
 
 @pytest.fixture
@@ -197,7 +199,7 @@ def initial_setup_required(table_cls_factory_spies):
     table_cls_factory_spies["local"].side_effect = [RuntimeError, "local_table_cls"]
 
 
-@pytest.mark.usefixtures("initial_setup_required", "linked_table")
+@pytest.mark.usefixtures("prepare_env", "initial_setup_required", "linked_table")
 class TestCallWithInitialSetup:
     def test_if_source_table_cls_factory_is_called(self, table_cls_factory_spies):
         assert table_cls_factory_spies["source"].call_args_list == [call(), call()]
