@@ -80,6 +80,7 @@ def fake_schema(dummy_table_cls):
     class FakeSchema:
         def __init__(self, table_classes):
             self.table_classes = set(table_classes)
+            self.database = "mydatabase"
 
         def spawn_missing_classes(self, context=None):
             for missing_class in self.table_classes:
@@ -87,7 +88,7 @@ def fake_schema(dummy_table_cls):
 
         def __call__(self, table_cls):
             self.table_classes.add(table_cls)
-            table_cls.schema_applied = True
+            table_cls.database = self.database
             return table_cls
 
     return FakeSchema([dummy_table_cls])
@@ -281,9 +282,8 @@ class TestCall:
         assert all(getattr(factory(), name) == value for name, value in table_cls_attrs.items())
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
-    def test_if_schema_is_applied_to_created_table_class(self, factory):
-        # noinspection PyUnresolvedReferences
-        assert factory().schema_applied
+    def test_if_schema_is_applied_to_created_table_class(self, factory, fake_schema):
+        assert factory().database == fake_schema.database
 
     @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
     def test_if_table_base_class_is_subclassed_before_being_passed_to_schema(
