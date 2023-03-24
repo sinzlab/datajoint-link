@@ -21,6 +21,7 @@ class TableFactoryConfig:  # pylint: disable=too-many-instance-attributes
     table_cls_attrs: Mapping[str, Any] = field(default_factory=dict)
     flag_table_names: Collection[str] = field(default_factory=list)
     table_cls: Optional[Type[UserTable]] = None
+    context: Mapping[str, Any] = field(default_factory=dict)
     table_definition: Optional[str] = None
     part_table_definitions: Mapping[str, str] = field(default_factory=dict)
 
@@ -110,4 +111,4 @@ class TableFactory(Base):
             )
 
         assert self.config.table_definition is not None, "No table definition present"
-        return self.config.schema(derive_table_class())
+        return self.config.schema(derive_table_class(), context=self.config.context)

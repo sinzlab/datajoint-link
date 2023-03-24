@@ -1,7 +1,7 @@
-from copy import deepcopy
+from contextlib import nullcontext as does_not_raise
 from dataclasses import is_dataclass
 from functools import partial
-from unittest.mock import DEFAULT, MagicMock, create_autospec
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 from datajoint import Part
@@ -86,7 +86,26 @@ def fake_schema(dummy_table_cls):
             for missing_class in self.table_classes:
                 context[missing_class.__name__] = missing_class
 
-        def __call__(self, table_cls):
+        def __call__(self, table_cls, *, context=None):
+            def resolve_foreign_key_references(table_cls):
+                def foreign_key_references(definition):
+                    def is_reference_line(line):
+                        return line.startswith("->")
+
+                    for line in definition.split("\n"):
+                        if not is_reference_line(line):
+                            continue
+                        yield line.split(" ")[-1]
+
+                for reference in foreign_key_references(table_cls.definition):
+                    try:
+                        eval(reference, context)
+                    except Exception as error:
+                        raise RuntimeError("Could not evaluate foreign key reference") from error
+
+            if context is None:
+                context = {}
+            resolve_foreign_key_references(table_cls)
             self.table_classes.add(table_cls)
             table_cls.database = self.database
             return table_cls
@@ -195,6 +214,7 @@ def configure_for_creating(
     config.flag_table_names = flag_part_table_names
     config.table_cls = dummy_table_base_cls
     config.table_definition = table_definition
+    config.context = {}
     config.part_table_definitions = non_flag_part_table_definitions
     config.is_table_creation_possible = True
     factory.config = config
@@ -291,6 +311,16 @@ class TestCall:
     ):
         factory()
         assert dummy_table_base_cls not in fake_schema.table_classes
+
+    @pytest.mark.usefixtures("configure_for_creating", "table_can_not_be_spawned")
+    def test_if_factory_passes_context_to_schema(self, factory):
+        class ParentTable:
+            pass
+
+        factory.config.table_definition = "-> ParentTable"
+        factory.config.context = {"ParentTable": ParentTable}
+        with does_not_raise():
+            factory()
 
 
 @pytest.mark.usefixtures("configure_for_spawning")
