@@ -2,13 +2,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Collection, Dict, Mapping, MutableMapping, Optional, Tuple, Type
+from enum import Enum
+from typing import Any, Collection, Dict, Mapping, Optional, Tuple, Type
 
-from datajoint import Part, Schema
+from datajoint import Computed, Imported, Lookup, Manual, Part, Schema
 from datajoint.user_tables import UserTable
 
 from ...base import Base
 from .dj_helpers import get_part_table_classes
+
+
+class TableTiers(Enum):
+    """Table tiers that can be used in the table factory."""
+
+    MANUAL = Manual
+    LOOKUP = Lookup
+    COMPUTED = Computed
+    IMPORTED = Imported
 
 
 @dataclass
@@ -16,18 +26,18 @@ class TableFactoryConfig:  # pylint: disable=too-many-instance-attributes
     """Configuration used by the table factory to spawn/create tables."""
 
     schema: Schema
-    table_name: str
-    table_bases: Tuple[Type, ...] = field(default_factory=tuple)
-    table_cls_attrs: Mapping[str, Any] = field(default_factory=dict)
+    name: str
+    bases: Tuple[Type, ...] = field(default_factory=tuple)
     flag_table_names: Collection[str] = field(default_factory=list)
-    table_cls: Optional[Type[UserTable]] = None
-    table_definition: Optional[str] = None
+    tier: Optional[TableTiers] = None
+    definition: Optional[str] = None
+    context: Mapping[str, Any] = field(default_factory=dict)
     part_table_definitions: Mapping[str, str] = field(default_factory=dict)
 
     @property
     def is_table_creation_possible(self) -> bool:
         """Return True if the configuration object contains the information necessary for table creation."""
-        return bool(self.table_cls) and bool(self.table_definition)
+        return bool(self.tier) and bool(self.definition)
 
 
 class TableFactory(Base):
@@ -50,13 +60,17 @@ class TableFactory(Base):
 
     def __call__(self) -> Type[UserTable]:
         """Spawn or create (if spawning fails) the table class according to the configuration object."""
+
+        def extend_table_cls(table_cls: Type[UserTable]) -> Type[UserTable]:
+            return type(self.config.name, self.config.bases + (table_cls,), {})
+
         try:
             table_cls = self._spawn_table_cls()
         except KeyError as error:
             if not self.config.is_table_creation_possible:
                 raise RuntimeError("Table could neither be spawned nor created") from error
             table_cls = self._create_table_cls()
-        return table_cls
+        return extend_table_cls(table_cls)
 
     @property
     def part_tables(self) -> Dict[str, Type[Part]]:
@@ -71,46 +85,35 @@ class TableFactory(Base):
     def _spawn_table_cls(self) -> Type[UserTable]:
         spawned_table_classes: Dict[str, Type[UserTable]] = {}
         self.config.schema.spawn_missing_classes(context=spawned_table_classes)
-        table_cls = spawned_table_classes[self.config.table_name]
-        return self._extend_table_cls(table_cls)
-
-    def _extend_table_cls(
-        self, table_cls: Type[UserTable], part_table_classes: Optional[Mapping[str, Type[Part]]] = None
-    ) -> Type[UserTable]:
-        if part_table_classes is None:
-            part_table_classes = {}
-        if self.config.table_definition:
-            table_cls_attrs = dict(self.config.table_cls_attrs, definition=self.config.table_definition)
-        else:
-            table_cls_attrs = dict(self.config.table_cls_attrs)
-        # noinspection PyTypeChecker
-        return type(
-            self.config.table_name, self.config.table_bases + (table_cls,), {**table_cls_attrs, **part_table_classes}
-        )
+        table_cls = spawned_table_classes[self.config.name]
+        return table_cls
 
     def _create_table_cls(self) -> Type[UserTable]:
-        part_table_classes: Dict[str, Type[Part]] = {}
-        self._create_flag_part_table_classes(part_table_classes)
-        self._create_non_flag_part_table_classes(part_table_classes)
-        assert self.config.table_cls is not None
-        extended_table_cls = self._extend_table_cls(self.config.table_cls, part_table_classes)
-        return self.config.schema(extended_table_cls)
+        def create_part_table_classes() -> Dict[str, Type[Part]]:
+            def create_part_table_classes(definitions: Mapping[str, str]) -> Dict[str, Type[Part]]:
+                def create_part_table_class(name: str, definition: str) -> Type[Part]:
+                    return type(name, (Part,), dict(definition=definition))
 
-    def _create_flag_part_table_classes(self, part_table_classes: MutableMapping[str, Type[Part]]) -> None:
-        part_table_classes.update(
-            self._create_part_table_classes({name: "-> master" for name in self.config.flag_table_names})
-        )
+                return {name: create_part_table_class(name, definition) for name, definition in definitions.items()}
 
-    def _create_non_flag_part_table_classes(self, part_table_classes: MutableMapping[str, Type[Part]]) -> None:
-        part_table_classes.update(self._create_part_table_classes(self.config.part_table_definitions))
+            def create_flag_part_table_classes() -> Dict[str, Type[Part]]:
+                return create_part_table_classes({name: "-> master" for name in self.config.flag_table_names})
 
-    def _create_part_table_classes(self, definitions: Mapping[str, str]) -> Dict[str, Type[Part]]:
-        part_tables = {}
-        for name, definition in definitions.items():
-            part_tables[name] = self._create_part_table_cls(name, definition)
-        return part_tables
+            def create_non_flag_part_table_classes() -> Dict[str, Type[Part]]:
+                return create_part_table_classes(self.config.part_table_definitions)
 
-    @staticmethod
-    def _create_part_table_cls(name: str, definition: str) -> Type[Part]:
-        # noinspection PyTypeChecker
-        return type(name, (Part,), dict(definition=definition))
+            part_table_classes: Dict[str, Type[Part]] = {}
+            part_table_classes.update(create_flag_part_table_classes())
+            part_table_classes.update(create_non_flag_part_table_classes())
+            return part_table_classes
+
+        def derive_table_class() -> Type[UserTable]:
+            assert self.config.tier is not None, "No table tier specified"
+            return type(
+                self.config.name,
+                (self.config.tier.value,),
+                dict(definition=self.config.definition, **create_part_table_classes()),
+            )
+
+        assert self.config.definition is not None, "No table definition present"
+        return self.config.schema(derive_table_class(), context=self.config.context)

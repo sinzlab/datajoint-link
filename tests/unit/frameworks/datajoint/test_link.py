@@ -6,7 +6,7 @@ from datajoint import Lookup, Schema
 
 from dj_link.base import Base
 from dj_link.frameworks.datajoint.dj_helpers import replace_stores
-from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig
+from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig, TableTiers
 from dj_link.frameworks.datajoint.link import Link, LocalTableMixin
 
 
@@ -88,13 +88,11 @@ def link(
     table_cls_factory_spies,
     schema_cls_spy,
     replace_stores_spy,
-    dummy_base_table_cls,
 ):
     link = Link(local_schema_stub, source_schema_stub, stores=stores)
     link.table_cls_factories = table_cls_factory_spies
     link.schema_cls = schema_cls_spy
     link.replace_stores_func = replace_stores_spy
-    link.base_table_cls = dummy_base_table_cls
     return link
 
 
@@ -120,10 +118,6 @@ def test_if_replace_stores_func_class_attribute_is_replace_stores():
     assert Link.replace_stores_func is replace_stores
 
 
-def test_if_base_table_class_is_lookup_table():
-    assert Link.base_table_cls is Lookup
-
-
 class TestInit:
     def test_if_local_schema_is_stored_as_instance_attribute(self, link, local_schema_stub):
         assert link.local_schema is local_schema_stub
@@ -141,6 +135,8 @@ class TestInit:
 @pytest.fixture
 def prepare_env():
     os.environ["LINK_OUTBOUND"] = "outbound_schema"
+    yield
+    del os.environ["LINK_OUTBOUND"]
 
 
 @pytest.fixture
@@ -152,7 +148,7 @@ def linked_table(link, dummy_cls):
 def basic_outbound_config(table_name, schema_cls_spy):
     return dict(
         schema=schema_cls_spy.return_value,
-        table_name=table_name + "Outbound",
+        name=table_name + "Outbound",
         flag_table_names=["DeletionRequested", "DeletionApproved"],
     )
 
@@ -161,8 +157,8 @@ def basic_outbound_config(table_name, schema_cls_spy):
 def basic_local_config(local_schema_stub, table_name):
     return dict(
         schema=local_schema_stub,
-        table_name=table_name,
-        table_bases=(LocalTableMixin,),
+        name=table_name,
+        bases=(LocalTableMixin,),
         flag_table_names=["DeletionRequested"],
     )
 
@@ -197,19 +193,19 @@ def initial_setup_required(table_cls_factory_spies):
     table_cls_factory_spies["local"].side_effect = [RuntimeError, "local_table_cls"]
 
 
-@pytest.mark.usefixtures("initial_setup_required", "linked_table")
+@pytest.mark.usefixtures("prepare_env", "initial_setup_required", "linked_table")
 class TestCallWithInitialSetup:
     def test_if_source_table_cls_factory_is_called(self, table_cls_factory_spies):
         assert table_cls_factory_spies["source"].call_args_list == [call(), call()]
 
     def test_if_configuration_of_outbound_table_cls_factory_is_correct(
-        self, table_cls_factory_spies, basic_outbound_config, dummy_base_table_cls, source_table_cls_stub
+        self, table_cls_factory_spies, basic_outbound_config, source_table_cls_stub
     ):
         assert table_cls_factory_spies["outbound"].config == TableFactoryConfig(
             **basic_outbound_config,
-            table_cls=dummy_base_table_cls,
-            table_cls_attrs=dict(source_table=source_table_cls_stub),
-            table_definition="-> self.source_table",
+            definition="-> source_table",
+            context={"source_table": source_table_cls_stub},
+            tier=TableTiers.LOOKUP,
         )
 
     def test_if_outbound_table_cls_factory_is_called(self, table_cls_factory_spies):
@@ -223,14 +219,12 @@ class TestCallWithInitialSetup:
             call("source_part_c_heading", stores),
         ]
 
-    def test_if_configuration_of_local_table_cls_factory_is_correct(
-        self, table_cls_factory_spies, basic_local_config, dummy_base_table_cls
-    ):
+    def test_if_configuration_of_local_table_cls_factory_is_correct(self, table_cls_factory_spies, basic_local_config):
         assert table_cls_factory_spies["local"].config == TableFactoryConfig(
             **basic_local_config,
-            table_cls=dummy_base_table_cls,
-            table_definition="replaced_heading",
+            definition="replaced_heading",
             part_table_definitions=dict(PartA="replaced_heading", PartB="replaced_heading", PartC="replaced_heading"),
+            tier=TableTiers.LOOKUP,
         )
 
     def test_if_calls_to_local_table_cls_factory_are_correct(self, table_cls_factory_spies):

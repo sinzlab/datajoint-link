@@ -153,6 +153,15 @@ version = "1.1.0"
 summary = "Get the currently executing AST node of a frame, and other information"
 
 [[package]]
+name = "fancycompleter"
+version = "0.9.1"
+summary = "colorful TAB completion for Python prompt"
+dependencies = [
+    "pyreadline; platform_system == \"Windows\"",
+    "pyrepl>=0.8.2",
+]
+
+[[package]]
 name = "flake8"
 version = "3.9.2"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
@@ -362,6 +371,16 @@ requires_python = ">=3.7"
 summary = "Utility library for gitignore style pattern matching of file paths."
 
 [[package]]
+name = "pdbpp"
+version = "0.10.3"
+summary = "pdb++, a drop-in replacement for pdb"
+dependencies = [
+    "fancycompleter>=0.8",
+    "pygments",
+    "wmctrl",
+]
+
+[[package]]
 name = "pexpect"
 version = "4.8.0"
 summary = "Pexpect allows easy control of interactive console applications."
@@ -490,6 +509,16 @@ name = "pyparsing"
 version = "3.0.9"
 requires_python = ">=3.6.8"
 summary = "pyparsing module - Classes and methods to define and execute parsing grammars"
+
+[[package]]
+name = "pyreadline"
+version = "2.1"
+summary = "A python implmementation of GNU readline."
+
+[[package]]
+name = "pyrepl"
+version = "0.9.0"
+summary = "A library for building flexible command line interfaces"
 
 [[package]]
 name = "pytest"
@@ -643,6 +672,11 @@ requires_python = ">=3.7"
 summary = "WebSocket client for Python with low level API options"
 
 [[package]]
+name = "wmctrl"
+version = "0.4"
+summary = "A tool to programmatically control windows inside X"
+
+[[package]]
 name = "wrapt"
 version = "1.14.1"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
@@ -650,7 +684,7 @@ summary = "Module for decorators, wrappers and monkey patching."
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:55f3dc29e3202e280f85492745da3ccdcefc66be596edb429125ad3510bc12f4"
+content_hash = "sha256:30f30ebe400879fec9893c53024418e9caf5f5cd9e36646ef78eb91b9cbdcce2"
 
 [metadata.files]
 "appnope 0.1.3" = [
@@ -861,6 +895,10 @@ content_hash = "sha256:55f3dc29e3202e280f85492745da3ccdcefc66be596edb429125ad351
 "executing 1.1.0" = [
     {url = "https://files.pythonhosted.org/packages/00/de/9222dd64c07608cfe7b43e0ced0c6317b003c8ebef8043a6938ea22d9796/executing-1.1.0-py2.py3-none-any.whl", hash = "sha256:4a6d96ba89eb3dcc11483471061b42b9006d8c9f81c584dd04246944cd022530"},
     {url = "https://files.pythonhosted.org/packages/95/96/f68d93c5d89d8c8966b12d89aff858bb33eac765296d2985363e16b5b8c5/executing-1.1.0.tar.gz", hash = "sha256:2c2c07d1ec4b2d8f9676b25170f1d8445c0ee2eb78901afb075a4b8d83608c6a"},
+]
+"fancycompleter 0.9.1" = [
+    {url = "https://files.pythonhosted.org/packages/38/ef/c08926112034d017633f693d3afc8343393a035134a29dfc12dcd71b0375/fancycompleter-0.9.1-py3-none-any.whl", hash = "sha256:dd076bca7d9d524cc7f25ec8f35ef95388ffef9ef46def4d3d25e9b044ad7080"},
+    {url = "https://files.pythonhosted.org/packages/a9/95/649d135442d8ecf8af5c7e235550c628056423c96c4bc6787348bdae9248/fancycompleter-0.9.1.tar.gz", hash = "sha256:09e0feb8ae242abdfd7ef2ba55069a46f011814a80fe5476be48f51b00247272"},
 ]
 "flake8 3.9.2" = [
     {url = "https://files.pythonhosted.org/packages/9e/47/15b267dfe7e03dca4c4c06e7eadbd55ef4dfd368b13a0bab36d708b14366/flake8-3.9.2.tar.gz", hash = "sha256:07528381786f2a6237b061f6e96610a4167b226cb926e2aa2b6b1d78057c576b"},
@@ -1291,6 +1329,10 @@ content_hash = "sha256:55f3dc29e3202e280f85492745da3ccdcefc66be596edb429125ad351
     {url = "https://files.pythonhosted.org/packages/24/9f/a9ae1e6efa11992dba2c4727d94602bd2f6ee5f0dedc29ee2d5d572c20f7/pathspec-0.10.1.tar.gz", hash = "sha256:7ace6161b621d31e7902eb6b5ae148d12cfd23f4a249b9ffb6b9fee12084323d"},
     {url = "https://files.pythonhosted.org/packages/63/82/2179fdc39bc1bb43296f638ae1dfe2581ec2617b4e87c28b0d23d44b997f/pathspec-0.10.1-py3-none-any.whl", hash = "sha256:46846318467efc4556ccfd27816e004270a9eeeeb4d062ce5e6fc7a87c573f93"},
 ]
+"pdbpp 0.10.3" = [
+    {url = "https://files.pythonhosted.org/packages/1f/a3/c4bd048256fd4b7d28767ca669c505e156f24d16355505c62e6fce3314df/pdbpp-0.10.3.tar.gz", hash = "sha256:d9e43f4fda388eeb365f2887f4e7b66ac09dce9b6236b76f63616530e2f669f5"},
+    {url = "https://files.pythonhosted.org/packages/93/ee/491e63a57fffa78b9de1c337b06c97d0cd0753e88c00571c7b011680332a/pdbpp-0.10.3-py2.py3-none-any.whl", hash = "sha256:79580568e33eb3d6f6b462b1187f53e10cd8e4538f7d31495c9181e2cf9665d1"},
+]
 "pexpect 4.8.0" = [
     {url = "https://files.pythonhosted.org/packages/39/7b/88dbb785881c28a102619d46423cb853b46dbccc70d3ac362d99773a78ce/pexpect-4.8.0-py2.py3-none-any.whl", hash = "sha256:0b48a55dcb3c05f3329815901ea4fc1537514d6ba867a152b581d69ae3710937"},
     {url = "https://files.pythonhosted.org/packages/e5/9b/ff402e0e930e70467a7178abb7c128709a30dfb22d8777c043e501bc1b10/pexpect-4.8.0.tar.gz", hash = "sha256:fc65a43959d153d0114afe13997d439c22823a27cefceb5ff35c2178c6784c0c"},
@@ -1418,6 +1460,12 @@ content_hash = "sha256:55f3dc29e3202e280f85492745da3ccdcefc66be596edb429125ad351
     {url = "https://files.pythonhosted.org/packages/6c/10/a7d0fa5baea8fe7b50f448ab742f26f52b80bfca85ac2be9d35cdd9a3246/pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
     {url = "https://files.pythonhosted.org/packages/71/22/207523d16464c40a0310d2d4d8926daffa00ac1f5b1576170a32db749636/pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
 ]
+"pyreadline 2.1" = [
+    {url = "https://files.pythonhosted.org/packages/bc/7c/d724ef1ec3ab2125f38a1d53285745445ec4a8f19b9bb0761b4064316679/pyreadline-2.1.zip", hash = "sha256:4530592fc2e85b25b1a9f79664433da09237c1a270e4d78ea5aa3a2c7229e2d1"},
+]
+"pyrepl 0.9.0" = [
+    {url = "https://files.pythonhosted.org/packages/05/1b/ea40363be0056080454cdbabe880773c3c5bd66d7b13f0c8b8b8c8da1e0c/pyrepl-0.9.0.tar.gz", hash = "sha256:292570f34b5502e871bbb966d639474f2b57fbfcd3373c2d6a2f3d56e681a775"},
+]
 "pytest 6.2.5" = [
     {url = "https://files.pythonhosted.org/packages/40/76/86f886e750b81a4357b6ed606b2bcf0ce6d6c27ad3c09ebf63ed674fc86e/pytest-6.2.5-py3-none-any.whl", hash = "sha256:7310f8d27bc79ced999e760ca304d69f6ba6c6649c0b60fb0e04a4a77cacc134"},
     {url = "https://files.pythonhosted.org/packages/4b/24/7d1f2d2537de114bdf1e6875115113ca80091520948d370c964b88070af2/pytest-6.2.5.tar.gz", hash = "sha256:131b36680866a76e6781d13f101efb86cf674ebb9762eb70d3082b6f29889e89"},
@@ -1507,6 +1555,9 @@ content_hash = "sha256:55f3dc29e3202e280f85492745da3ccdcefc66be596edb429125ad351
 "websocket-client 1.4.1" = [
     {url = "https://files.pythonhosted.org/packages/83/b8/95c2512818d6ddb9b97f4163e915b2afe2db42b620270aa59c5ee0b47245/websocket_client-1.4.1-py3-none-any.whl", hash = "sha256:398909eb7e261f44b8f4bd474785b6ec5f5b499d4953342fe9755e01ef624090"},
     {url = "https://files.pythonhosted.org/packages/99/11/01fe7ebcb7545a1990c53c11f31230afe1388b0b34256e3fd20e49482245/websocket-client-1.4.1.tar.gz", hash = "sha256:f9611eb65c8241a67fb373bef040b3cf8ad377a9f6546a12b620b6511e8ea9ef"},
+]
+"wmctrl 0.4" = [
+    {url = "https://files.pythonhosted.org/packages/a5/48/bd9b5c4c0d865e5d143f91020600f921c37f9755c8101336d292e1de1252/wmctrl-0.4.tar.gz", hash = "sha256:66cbff72b0ca06a22ec3883ac3a4d7c41078bdae4fb7310f52951769b10e14e0"},
 ]
 "wrapt 1.14.1" = [
     {url = "https://files.pythonhosted.org/packages/00/61/04422b7469534650b622d5baa1dd335c4b91d35c8d33548b272f33060519/wrapt-1.14.1-cp36-cp36m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5b02d65b9ccf0ef6c34cba6cf5bf2aab1bb2f49c6090bafeecc9cd81ad4ea1c1"},
