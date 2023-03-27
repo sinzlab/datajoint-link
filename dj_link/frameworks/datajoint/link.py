@@ -80,8 +80,8 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             return dict(
                 create_basic_config(),
                 table_cls=self.base_table_cls,
-                table_cls_attrs=dict(source_table=self.table_cls_factories["source"]()),
-                table_definition="-> self.source_table",
+                table_definition="-> source_table",
+                context={"source_table": self.table_cls_factories["source"]()},
             )
         if factory_type == "local":
 

@@ -210,8 +210,8 @@ class TestCallWithInitialSetup:
         assert table_cls_factory_spies["outbound"].config == TableFactoryConfig(
             **basic_outbound_config,
             table_cls=dummy_base_table_cls,
-            table_cls_attrs=dict(source_table=source_table_cls_stub),
-            table_definition="-> self.source_table",
+            table_definition="-> source_table",
+            context={"source_table": source_table_cls_stub},
         )
 
     def test_if_outbound_table_cls_factory_is_called(self, table_cls_factory_spies):
