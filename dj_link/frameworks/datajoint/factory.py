@@ -28,7 +28,6 @@ class TableFactoryConfig:  # pylint: disable=too-many-instance-attributes
     schema: Schema
     table_name: str
     table_bases: Tuple[Type, ...] = field(default_factory=tuple)
-    table_cls_attrs: Mapping[str, Any] = field(default_factory=dict)
     flag_table_names: Collection[str] = field(default_factory=list)
     table_tier: Optional[TableTiers] = None
     table_definition: Optional[str] = None
@@ -63,11 +62,7 @@ class TableFactory(Base):
         """Spawn or create (if spawning fails) the table class according to the configuration object."""
 
         def extend_table_cls(table_cls: Type[UserTable]) -> Type[UserTable]:
-            return type(
-                self.config.table_name,
-                self.config.table_bases + (table_cls,),
-                dict(self.config.table_cls_attrs),
-            )
+            return type(self.config.table_name, self.config.table_bases + (table_cls,), {})
 
         try:
             table_cls = self._spawn_table_cls()
