@@ -33,20 +33,17 @@ class TestTableFactoryConfig:
     def test_if_part_table_definitions_are_empty_dict_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().part_table_definitions == dict()
 
-    def test_if_table_creation_is_possible_if_table_tier_and_definition_are_provided(self, partial_config_cls):
-        assert (
-            partial_config_cls(table_tier=TableTiers.LOOKUP, table_definition="definition").is_table_creation_possible
-            is True
-        )
-
-    def test_if_table_creation_is_not_possible_if_table_tier_is_not_provided(self, partial_config_cls):
-        assert partial_config_cls(table_definition="definition").is_table_creation_possible is False
-
-    def test_if_table_creation_is_not_possible_if_table_definition_is_not_provided(self, partial_config_cls):
-        assert partial_config_cls(table_tier=TableTiers.LOOKUP).is_table_creation_possible is False
-
-    def test_if_table_creation_is_not_possible_if_table_tier_and_definition_are_not_provided(self, partial_config_cls):
-        assert partial_config_cls().is_table_creation_possible is False
+    @pytest.mark.parametrize(
+        "kwargs,expected",
+        [
+            ({"table_tier": TableTiers.LOOKUP, "table_definition": "definition"}, True),
+            ({"table_definition": "definition"}, False),
+            ({"table_tier": TableTiers.LOOKUP}, False),
+            ({}, False),
+        ],
+    )
+    def test_if_table_creation_is_possible(self, partial_config_cls, kwargs, expected):
+        assert partial_config_cls(**kwargs).is_table_creation_possible is expected
 
 
 @pytest.fixture
