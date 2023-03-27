@@ -26,18 +26,18 @@ class TableFactoryConfig:  # pylint: disable=too-many-instance-attributes
     """Configuration used by the table factory to spawn/create tables."""
 
     schema: Schema
-    table_name: str
-    table_bases: Tuple[Type, ...] = field(default_factory=tuple)
+    name: str
+    bases: Tuple[Type, ...] = field(default_factory=tuple)
     flag_table_names: Collection[str] = field(default_factory=list)
-    table_tier: Optional[TableTiers] = None
-    table_definition: Optional[str] = None
+    tier: Optional[TableTiers] = None
+    definition: Optional[str] = None
     context: Mapping[str, Any] = field(default_factory=dict)
     part_table_definitions: Mapping[str, str] = field(default_factory=dict)
 
     @property
     def is_table_creation_possible(self) -> bool:
         """Return True if the configuration object contains the information necessary for table creation."""
-        return bool(self.table_tier) and bool(self.table_definition)
+        return bool(self.tier) and bool(self.definition)
 
 
 class TableFactory(Base):
@@ -62,7 +62,7 @@ class TableFactory(Base):
         """Spawn or create (if spawning fails) the table class according to the configuration object."""
 
         def extend_table_cls(table_cls: Type[UserTable]) -> Type[UserTable]:
-            return type(self.config.table_name, self.config.table_bases + (table_cls,), {})
+            return type(self.config.name, self.config.bases + (table_cls,), {})
 
         try:
             table_cls = self._spawn_table_cls()
@@ -85,7 +85,7 @@ class TableFactory(Base):
     def _spawn_table_cls(self) -> Type[UserTable]:
         spawned_table_classes: Dict[str, Type[UserTable]] = {}
         self.config.schema.spawn_missing_classes(context=spawned_table_classes)
-        table_cls = spawned_table_classes[self.config.table_name]
+        table_cls = spawned_table_classes[self.config.name]
         return table_cls
 
     def _create_table_cls(self) -> Type[UserTable]:
@@ -108,12 +108,12 @@ class TableFactory(Base):
             return part_table_classes
 
         def derive_table_class() -> Type[UserTable]:
-            assert self.config.table_tier is not None, "No table tier specified"
+            assert self.config.tier is not None, "No table tier specified"
             return type(
-                self.config.table_name,
-                (self.config.table_tier.value,),
-                dict(definition=self.config.table_definition, **create_part_table_classes()),
+                self.config.name,
+                (self.config.tier.value,),
+                dict(definition=self.config.definition, **create_part_table_classes()),
             )
 
-        assert self.config.table_definition is not None, "No table definition present"
+        assert self.config.definition is not None, "No table definition present"
         return self.config.schema(derive_table_class(), context=self.config.context)

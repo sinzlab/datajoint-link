@@ -148,7 +148,7 @@ def linked_table(link, dummy_cls):
 def basic_outbound_config(table_name, schema_cls_spy):
     return dict(
         schema=schema_cls_spy.return_value,
-        table_name=table_name + "Outbound",
+        name=table_name + "Outbound",
         flag_table_names=["DeletionRequested", "DeletionApproved"],
     )
 
@@ -157,8 +157,8 @@ def basic_outbound_config(table_name, schema_cls_spy):
 def basic_local_config(local_schema_stub, table_name):
     return dict(
         schema=local_schema_stub,
-        table_name=table_name,
-        table_bases=(LocalTableMixin,),
+        name=table_name,
+        bases=(LocalTableMixin,),
         flag_table_names=["DeletionRequested"],
     )
 
@@ -203,9 +203,9 @@ class TestCallWithInitialSetup:
     ):
         assert table_cls_factory_spies["outbound"].config == TableFactoryConfig(
             **basic_outbound_config,
-            table_definition="-> source_table",
+            definition="-> source_table",
             context={"source_table": source_table_cls_stub},
-            table_tier=TableTiers.LOOKUP,
+            tier=TableTiers.LOOKUP,
         )
 
     def test_if_outbound_table_cls_factory_is_called(self, table_cls_factory_spies):
@@ -222,9 +222,9 @@ class TestCallWithInitialSetup:
     def test_if_configuration_of_local_table_cls_factory_is_correct(self, table_cls_factory_spies, basic_local_config):
         assert table_cls_factory_spies["local"].config == TableFactoryConfig(
             **basic_local_config,
-            table_definition="replaced_heading",
+            definition="replaced_heading",
             part_table_definitions=dict(PartA="replaced_heading", PartB="replaced_heading", PartC="replaced_heading"),
-            table_tier=TableTiers.LOOKUP,
+            tier=TableTiers.LOOKUP,
         )
 
     def test_if_calls_to_local_table_cls_factory_are_correct(self, table_cls_factory_spies):

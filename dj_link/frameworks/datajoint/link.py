@@ -54,18 +54,18 @@ class Link(Base):  # pylint: disable=too-few-public-methods
 
     def _create_basic_config(self, table_name: str, factory_type: str) -> Dict[str, Any]:
         if factory_type == "source":
-            return dict(schema=self.source_schema, table_name=table_name)
+            return dict(schema=self.source_schema, name=table_name)
         if factory_type == "outbound":
             return dict(
                 schema=self.schema_cls(os.environ["LINK_OUTBOUND"], connection=self.source_schema.connection),
-                table_name=table_name + "Outbound",
+                name=table_name + "Outbound",
                 flag_table_names=["DeletionRequested", "DeletionApproved"],
             )
         if factory_type == "local":
             return dict(
                 schema=self.local_schema,
-                table_name=table_name,
-                table_bases=(LocalTableMixin,),
+                name=table_name,
+                bases=(LocalTableMixin,),
                 flag_table_names=["DeletionRequested"],
             )
         raise ValueError("Unknown table factory type")
@@ -79,9 +79,9 @@ class Link(Base):  # pylint: disable=too-few-public-methods
         if factory_type == "outbound":
             return dict(
                 create_basic_config(),
-                table_definition="-> source_table",
+                definition="-> source_table",
                 context={"source_table": self.table_cls_factories["source"]()},
-                table_tier=TableTiers.LOOKUP,
+                tier=TableTiers.LOOKUP,
             )
         if factory_type == "local":
 
@@ -96,8 +96,8 @@ class Link(Base):  # pylint: disable=too-few-public-methods
 
             return dict(
                 create_basic_config(),
-                table_definition=create_definition(self.table_cls_factories["source"]()),
+                definition=create_definition(self.table_cls_factories["source"]()),
                 part_table_definitions=create_local_part_table_definitions(),
-                table_tier=TableTiers.LOOKUP,
+                tier=TableTiers.LOOKUP,
             )
         raise ValueError("Unknown table factory type")

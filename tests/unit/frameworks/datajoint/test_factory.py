@@ -18,14 +18,14 @@ class TestTableFactoryConfig:
     def partial_config_cls(self):
         return partial(TableFactoryConfig, MagicMock(name="dummy_schema"), "table_name")
 
-    def test_if_table_bases_are_empty_tuple_if_not_provided(self, partial_config_cls):
-        assert partial_config_cls().table_bases == tuple()
+    def test_if_bases_are_empty_tuple_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().bases == tuple()
 
     def test_if_flag_table_names_are_empty_list_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().flag_table_names == list()
 
-    def test_if_table_definition_is_none_if_not_provided(self, partial_config_cls):
-        assert partial_config_cls().table_definition is None
+    def test_if_definition_is_none_if_not_provided(self, partial_config_cls):
+        assert partial_config_cls().definition is None
 
     def test_if_part_table_definitions_are_empty_dict_if_not_provided(self, partial_config_cls):
         assert partial_config_cls().part_table_definitions == dict()
@@ -33,9 +33,9 @@ class TestTableFactoryConfig:
     @pytest.mark.parametrize(
         "kwargs,expected",
         [
-            ({"table_tier": TableTiers.LOOKUP, "table_definition": "definition"}, True),
-            ({"table_definition": "definition"}, False),
-            ({"table_tier": TableTiers.LOOKUP}, False),
+            ({"tier": TableTiers.LOOKUP, "definition": "definition"}, True),
+            ({"definition": "definition"}, False),
+            ({"tier": TableTiers.LOOKUP}, False),
             ({}, False),
         ],
     )
@@ -120,10 +120,10 @@ def flag_part_tables(flag_part_table_names):
 def configure_for_spawning(factory, fake_schema, table_name, table_bases, flag_part_table_names):
     config = create_autospec(TableFactoryConfig, instance=True)
     config.schema = fake_schema
-    config.table_name = table_name
-    config.table_bases = table_bases
+    config.name = table_name
+    config.bases = table_bases
     config.flag_table_names = flag_part_table_names
-    config.table_definition = None
+    config.definition = None
     config.part_table_definitions = {}
     config.is_table_creation_possible = False
     factory.config = config
@@ -183,13 +183,13 @@ def configure_for_creating(
 ):
     config = create_autospec(TableFactoryConfig, instance=True)
     config.schema = fake_schema
-    config.table_name = table_name
-    config.table_bases = table_bases
+    config.name = table_name
+    config.bases = table_bases
     config.flag_table_names = flag_part_table_names
-    config.table_definition = table_definition
+    config.definition = table_definition
     config.context = {}
     config.part_table_definitions = non_flag_part_table_definitions
-    config.table_tier.value = dummy_table_base_cls
+    config.tier.value = dummy_table_base_cls
     config.is_table_creation_possible = True
     factory.config = config
 
@@ -282,7 +282,7 @@ class TestCall:
         class ParentTable:
             pass
 
-        factory.config.table_definition = "-> ParentTable"
+        factory.config.definition = "-> ParentTable"
         factory.config.context = {"ParentTable": ParentTable}
         with does_not_raise():
             factory()
