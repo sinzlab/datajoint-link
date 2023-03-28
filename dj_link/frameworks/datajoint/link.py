@@ -7,11 +7,39 @@ from typing import Any, Dict, Optional, Type, Union
 from datajoint import Schema
 from datajoint.user_tables import UserTable
 
+from ...adapters.datajoint import initialize_adapters
+from ...adapters.datajoint.controller import Controller
 from ...base import Base
+from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
+from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
+from . import TableFacadeLink
 from .dj_helpers import replace_stores
+from .facade import TableFacade
 from .factory import TableFactory, TableFactoryConfig, TableTiers
-from .mixin import LocalTableMixin
+from .file import ReusableTemporaryDirectory
+from .mixin import LocalTableMixin, create_local_table_mixin_class
+from .printer import Printer
+
+
+def initialize() -> None:
+    """Initialize the system."""
+    temp_dir = ReusableTemporaryDirectory("link_")
+    factories = {facade_type: TableFactory() for facade_type in REPOSITORY_NAMES}
+    facades = {facade_type: TableFacade(table_factory, temp_dir) for facade_type, table_factory in factories.items()}
+    facade_link = TableFacadeLink(**facades)
+    gateway_link, view_model, presenter = initialize_adapters(facade_link)
+    output_ports = {name: getattr(presenter, name) for name in USE_CASES}
+    initialized_use_cases = initialize_use_cases(gateway_link, output_ports)
+
+    local_table_mixin = create_local_table_mixin_class()
+    local_table_mixin.temp_dir = temp_dir
+    local_table_mixin.source_table_factory = factories["source"]
+    local_table_mixin.controller = Controller(initialized_use_cases, REQUEST_MODELS, gateway_link)
+    local_table_mixin.printer = Printer(view_model)
+
+    Link.table_cls_factories = factories
+    Link.local_table_mixin = local_table_mixin
 
 
 class Link(Base):  # pylint: disable=too-few-public-methods
