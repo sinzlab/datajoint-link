@@ -7,7 +7,7 @@ from datajoint import Lookup, Schema
 from dj_link.base import Base
 from dj_link.frameworks.datajoint.dj_helpers import replace_stores
 from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig, TableTiers
-from dj_link.frameworks.datajoint.link import Link, LocalTableMixin
+from dj_link.frameworks.datajoint.link import Link
 
 
 @pytest.fixture
@@ -81,6 +81,14 @@ def dummy_base_table_cls():
 
 
 @pytest.fixture
+def dummy_local_table_mixin():
+    class DummyLocalTableMixin:
+        pass
+
+    return DummyLocalTableMixin
+
+
+@pytest.fixture
 def link(
     local_schema_stub,
     source_schema_stub,
@@ -88,11 +96,13 @@ def link(
     table_cls_factory_spies,
     schema_cls_spy,
     replace_stores_spy,
+    dummy_local_table_mixin,
 ):
     link = Link(local_schema_stub, source_schema_stub, stores=stores)
     link.table_cls_factories = table_cls_factory_spies
     link.schema_cls = schema_cls_spy
     link.replace_stores_func = replace_stores_spy
+    link.local_table_mixin = dummy_local_table_mixin
     return link
 
 
@@ -154,11 +164,11 @@ def basic_outbound_config(table_name, schema_cls_spy):
 
 
 @pytest.fixture
-def basic_local_config(local_schema_stub, table_name):
+def basic_local_config(local_schema_stub, table_name, dummy_local_table_mixin):
     return dict(
         schema=local_schema_stub,
         name=table_name,
-        bases=(LocalTableMixin,),
+        bases=(dummy_local_table_mixin,),
         flag_table_names=["DeletionRequested"],
     )
 

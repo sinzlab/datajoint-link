@@ -7,7 +7,7 @@ from .facade import TableFacade
 from .factory import TableFactory
 from .file import ReusableTemporaryDirectory
 from .link import Link
-from .mixin import LocalTableMixin
+from .mixin import create_local_table_mixin_class
 
 
 class TableFacadeLink(AbstractTableFacadeLink, Base):
@@ -43,6 +43,8 @@ def initialize_frameworks(facade_types: Tuple[str, str, str]) -> TableFacadeLink
 
     Link.table_cls_factories = factories
 
-    LocalTableMixin.temp_dir = temp_dir
-    LocalTableMixin.source_table_factory = factories["source"]
+    mixin_class = create_local_table_mixin_class()
+    mixin_class.temp_dir = temp_dir
+    mixin_class.source_table_factory = factories["source"]
+    Link.local_table_mixin = mixin_class
     return TableFacadeLink(**facades)

@@ -1,4 +1,6 @@
 """Contains the link class that is used by the user to establish a link."""
+from __future__ import annotations
+
 import os
 from typing import Any, Dict, Optional, Type, Union
 
@@ -18,6 +20,7 @@ class Link(Base):  # pylint: disable=too-few-public-methods
     schema_cls = Schema
     replace_stores_func = staticmethod(replace_stores)
     table_cls_factories: Dict[str, TableFactory]
+    local_table_mixin: type[LocalTableMixin]
 
     def __init__(
         self,
@@ -64,7 +67,7 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             return dict(
                 schema=self.local_schema,
                 name=table_name,
-                bases=(LocalTableMixin,),
+                bases=(self.local_table_mixin,),
                 flag_table_names=["DeletionRequested"],
             )
         raise ValueError("Unknown table factory type")

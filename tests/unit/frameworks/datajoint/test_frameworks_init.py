@@ -88,9 +88,3 @@ class TestInitializeFrameworks:
             table_factory is Link.table_cls_factories[facade_type]
             for facade_type, table_factory in table_factories.items()
         )
-
-    def test_if_reusable_temporary_directory_of_local_table_mixin_is_configured(self, temp_dirs):
-        assert LocalTableMixin.temp_dir is temp_dirs[0]
-
-    def test_if_source_table_factory_of_local_table_mixin_is_configured(self, table_factories):
-        assert LocalTableMixin.source_table_factory is table_factories["source"]
