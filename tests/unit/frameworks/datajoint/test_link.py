@@ -183,9 +183,6 @@ class TestCallWithInitialSetup:
             tier=TableTiers.LOOKUP,
         )
 
-    def test_if_outbound_table_cls_factory_is_called(self, table_cls_factory_spies):
-        table_cls_factory_spies["outbound"].assert_called_once_with()
-
     def test_if_calls_to_replace_stores_func_are_correct(self, replace_stores_spy, stores):
         assert replace_stores_spy.call_args_list == [
             call("source_master_heading", stores),

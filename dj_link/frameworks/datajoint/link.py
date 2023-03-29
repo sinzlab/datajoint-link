@@ -73,7 +73,6 @@ class Link(Base):  # pylint: disable=too-few-public-methods
         except RuntimeError:
             self._configure_table_factory(table_class.__name__, "outbound", initial=True)
             self._configure_table_factory(table_class.__name__, "local", initial=True)
-            self.table_cls_factories["outbound"]()
             return self.table_cls_factories["local"]()
 
     def _configure_table_factory(self, table_name: str, factory_type: str, initial: bool = False) -> None:
