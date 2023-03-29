@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfig, TableTiers
-from dj_link.frameworks.datajoint.link import Link
+from dj_link.frameworks.datajoint.link import Link, create_link_class
 
 
 @pytest.fixture
@@ -95,12 +95,12 @@ def link(
     replace_stores_spy,
     dummy_local_table_mixin,
 ):
-    link = Link(local_schema_stub, source_schema_stub, stores=stores)
-    link.table_cls_factories = table_cls_factory_spies
-    link.schema_cls = schema_cls_spy
-    link.replace_stores_func = replace_stores_spy
-    link.local_table_mixin = dummy_local_table_mixin
-    return link
+    return create_link_class(
+        table_cls_factory_spies,
+        dummy_local_table_mixin,
+        schema_class=schema_cls_spy,
+        replace_stores_func=replace_stores_spy,
+    )(local_schema_stub, source_schema_stub, stores=stores)
 
 
 @pytest.fixture
