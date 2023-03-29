@@ -41,26 +41,6 @@ def initialize() -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
     return factories, local_table_mixin
 
 
-def create_link_class(
-    table_factories: Mapping[str, TableFactory],
-    local_table_mixin: type[LocalTableMixin],
-    *,
-    schema_class: Schema = Schema,
-    replace_stores_func=replace_stores,
-) -> type[Link]:
-    """Create a fresh link class to be used by the user."""
-    return type(
-        Link.__name__,
-        (Link,),
-        {
-            "table_cls_factories": table_factories,
-            "local_table_mixin": local_table_mixin,
-            "schema_cls": schema_class,
-            "replace_stores_func": staticmethod(replace_stores_func),
-        },
-    )
-
-
 class Link(Base):  # pylint: disable=too-few-public-methods
     """Used by the user to establish a link between a source and a local table."""
 
