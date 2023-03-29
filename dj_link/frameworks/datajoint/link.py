@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from datajoint import Schema
 from datajoint.user_tables import UserTable
@@ -47,14 +47,14 @@ class Link(Base):  # pylint: disable=too-few-public-methods
 
     schema_cls = Schema
     replace_stores_func = staticmethod(replace_stores)
-    table_cls_factories: Dict[str, TableFactory]
+    table_cls_factories: dict[str, TableFactory]
     local_table_mixin: type[LocalTableMixin]
 
     def __init__(
         self,
         local_schema: Union[Schema, LazySchema],
         source_schema: Union[Schema, LazySchema],
-        stores: Optional[Dict[str, str]] = None,
+        stores: Optional[dict[str, str]] = None,
     ) -> None:
         """Initialize the link."""
         if stores is None:
@@ -63,17 +63,22 @@ class Link(Base):  # pylint: disable=too-few-public-methods
         self.source_schema = source_schema
         self.stores = stores
 
-    def __call__(self, table_class: Type) -> Type[UserTable]:
+    def __call__(self, table_class: type) -> type[UserTable]:
         """Initialize the tables and return the local table."""
-        self._configure_table_factory(table_class.__name__, "source")
-        self._configure_table_factory(table_class.__name__, "outbound")
-        self._configure_table_factory(table_class.__name__, "local")
+        return self._create_local_table_class(table_class.__name__)
+
+    def _create_local_table_class(self, table_name: str) -> type[UserTable]:
+        self._configure_table_factories(table_name)
         try:
             return self.table_cls_factories["local"]()
         except RuntimeError:
-            self._configure_table_factory(table_class.__name__, "outbound", initial=True)
-            self._configure_table_factory(table_class.__name__, "local", initial=True)
+            self._configure_table_factories(table_name, initial=True)
             return self.table_cls_factories["local"]()
+
+    def _configure_table_factories(self, table_name: str, *, initial: bool = False) -> None:
+        self._configure_table_factory(table_name, "source", initial=initial)
+        self._configure_table_factory(table_name, "outbound", initial=initial)
+        self._configure_table_factory(table_name, "local", initial=initial)
 
     def _configure_table_factory(self, table_name: str, factory_type: str, initial: bool = False) -> None:
         config = self._create_basic_config(table_name, factory_type)
@@ -81,7 +86,7 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             config = self._create_initial_config(table_name, factory_type)
         self.table_cls_factories[factory_type].config = TableFactoryConfig(**config)
 
-    def _create_basic_config(self, table_name: str, factory_type: str) -> Dict[str, Any]:
+    def _create_basic_config(self, table_name: str, factory_type: str) -> dict[str, Any]:
         if factory_type == "source":
             return dict(schema=self.source_schema, name=table_name)
         if factory_type == "outbound":
@@ -99,8 +104,8 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             )
         raise ValueError("Unknown table factory type")
 
-    def _create_initial_config(self, table_name: str, factory_type: str) -> Dict[str, Any]:
-        def create_basic_config() -> Dict[str, Any]:
+    def _create_initial_config(self, table_name: str, factory_type: str) -> dict[str, Any]:
+        def create_basic_config() -> dict[str, Any]:
             return self._create_basic_config(table_name, factory_type)
 
         if factory_type == "source":
@@ -114,13 +119,13 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             )
         if factory_type == "local":
 
-            def create_local_part_table_definitions() -> Dict[str, str]:
+            def create_local_part_table_definitions() -> dict[str, str]:
                 return {
                     name: create_definition(part)
                     for name, part in self.table_cls_factories["source"].part_tables.items()
                 }
 
-            def create_definition(table_cls: Type[UserTable]) -> str:
+            def create_definition(table_cls: type[UserTable]) -> str:
                 return self.replace_stores_func(str(table_cls().heading), self.stores)
 
             return dict(
