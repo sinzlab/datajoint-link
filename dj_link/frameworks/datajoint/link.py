@@ -22,7 +22,7 @@ from .mixin import LocalTableMixin, create_local_table_mixin_class
 from .printer import Printer
 
 
-def initialize() -> type[Link]:
+def initialize() -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
     """Initialize the system."""
     temp_dir = ReusableTemporaryDirectory("link_")
     factories = {facade_type: TableFactory() for facade_type in REPOSITORY_NAMES}
@@ -38,7 +38,7 @@ def initialize() -> type[Link]:
     local_table_mixin.controller = Controller(initialized_use_cases, REQUEST_MODELS, gateway_link)
     local_table_mixin.printer = Printer(view_model)
 
-    return create_link_class(factories, local_table_mixin)
+    return factories, local_table_mixin
 
 
 def create_link_class(
@@ -66,8 +66,6 @@ class Link(Base):  # pylint: disable=too-few-public-methods
 
     schema_cls = Schema
     replace_stores_func: staticmethod[str] = staticmethod(replace_stores)
-    table_cls_factories: dict[str, TableFactory]
-    local_table_mixin: type[LocalTableMixin]
 
     def __init__(
         self,
@@ -78,19 +76,23 @@ class Link(Base):  # pylint: disable=too-few-public-methods
         """Initialize the link."""
         if stores is None:
             stores = {}
-        self.local_table_creator = LocalTableCreator(
-            local_schema,
-            source_schema,
-            stores,
-            table_classes=self.table_cls_factories,
-            mixin_class=self.local_table_mixin,
-        )
-        self.local_table_creator.schema_class = self.schema_cls
-        self.local_table_creator.replace_stores = self.replace_stores_func
+        self.local_schema = local_schema
+        self.source_schema = source_schema
+        self.stores = stores
 
     def __call__(self, table_class: type) -> type[UserTable]:
         """Initialize the tables and return the local table."""
-        return self.local_table_creator.create(table_class.__name__)
+        table_classes, mixin_class = initialize()
+        table_creator = LocalTableCreator(
+            self.local_schema,
+            self.source_schema,
+            self.stores,
+            table_classes=table_classes,
+            mixin_class=mixin_class,
+        )
+        table_creator.schema_class = self.schema_cls
+        table_creator.replace_stores = self.replace_stores_func
+        return table_creator.create(table_class.__name__)
 
 
 class LocalTableCreator:  # pylint: disable=too-few-public-methods

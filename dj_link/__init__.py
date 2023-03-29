@@ -1,8 +1,5 @@
 """A tool for linking two DataJoint tables located on different database servers."""
-from .frameworks.datajoint.link import initialize
+from .frameworks.datajoint.link import Link
 from .schemas import LazySchema
 
-__all__ = ["LazySchema"]
-
-
-Link = initialize()
+__all__ = ["LazySchema", "Link"]
