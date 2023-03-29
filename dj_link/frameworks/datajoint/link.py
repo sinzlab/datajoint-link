@@ -2,7 +2,7 @@
 import os
 from typing import Any, Dict, Optional, Type, Union
 
-from datajoint import Lookup, Schema
+from datajoint import Schema
 from datajoint.user_tables import UserTable
 
 from ...base import Base
@@ -17,7 +17,6 @@ class Link(Base):  # pylint: disable=too-few-public-methods
 
     schema_cls = Schema
     replace_stores_func = staticmethod(replace_stores)
-    base_table_cls: Type[UserTable] = Lookup
     table_cls_factories: Dict[str, TableFactory]
 
     def __init__(
