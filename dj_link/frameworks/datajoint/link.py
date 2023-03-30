@@ -9,7 +9,6 @@ from datajoint.user_tables import UserTable
 
 from ...adapters.datajoint import initialize_adapters
 from ...adapters.datajoint.controller import Controller
-from ...base import Base
 from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
 from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
@@ -41,33 +40,28 @@ def initialize() -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
     return factories, local_table_mixin
 
 
-class Link(Base):  # pylint: disable=too-few-public-methods
-    """Used by the user to establish a link between a source and a local table."""
+def link(
+    local_schema: Union[Schema, LazySchema],
+    source_schema: Union[Schema, LazySchema],
+    stores: Optional[dict[str, str]] = None,
+):
+    """Link the table to a table with the same name in the source schema."""
 
-    def __init__(
-        self,
-        local_schema: Union[Schema, LazySchema],
-        source_schema: Union[Schema, LazySchema],
-        stores: Optional[dict[str, str]] = None,
-    ) -> None:
-        """Initialize the link."""
-        if stores is None:
-            stores = {}
-        self.local_schema = local_schema
-        self.source_schema = source_schema
-        self.stores = stores
-
-    def __call__(self, table_class: type) -> type[UserTable]:
-        """Initialize the tables and return the local table."""
+    def create_local_table(table_class: type) -> type[UserTable]:
         table_classes, mixin_class = initialize()
+        assert stores is not None, "Stores must be a mapping"
         table_creator = LocalTableCreator(
-            self.local_schema,
-            self.source_schema,
-            self.stores,
+            local_schema,
+            source_schema,
+            stores,
             table_classes=table_classes,
             mixin_class=mixin_class,
         )
         return table_creator.create(table_class.__name__)
+
+    if stores is None:
+        stores = {}
+    return create_local_table
 
 
 class LocalTableCreator:  # pylint: disable=too-few-public-methods
