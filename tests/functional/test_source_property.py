@@ -1,5 +1,4 @@
 import datajoint as dj
-import pytest
 
 from dj_link import LazySchema, Link
 
@@ -24,7 +23,6 @@ def test_if_source_attribute_returns_source_table_cls(
         )
 
 
-@pytest.mark.xfail
 def test_if_source_attributes_of_different_local_tables_differ(
     prepare_link, databases, create_table, connection_config, configured_environment
 ):

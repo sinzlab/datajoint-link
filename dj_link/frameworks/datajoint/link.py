@@ -1,63 +1,117 @@
 """Contains the link class that is used by the user to establish a link."""
-import os
-from typing import Any, Dict, Optional, Type, Union
+from __future__ import annotations
 
-from datajoint import Lookup, Schema
+import os
+from typing import Any, Mapping, Optional, Union
+
+from datajoint import Schema
 from datajoint.user_tables import UserTable
 
-from ...base import Base
+from ...adapters.datajoint import initialize_adapters
+from ...adapters.datajoint.controller import Controller
+from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
-from .dj_helpers import replace_stores
+from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
+from . import TableFacadeLink
+from .dj_helpers import replace_stores  # noqa: F401
+from .facade import TableFacade
 from .factory import TableFactory, TableFactoryConfig, TableTiers
-from .mixin import LocalTableMixin
+from .file import ReusableTemporaryDirectory
+from .mixin import LocalTableMixin, create_local_table_mixin_class
+from .printer import Printer
 
 
-class Link(Base):  # pylint: disable=too-few-public-methods
-    """Used by the user to establish a link between a source and a local table."""
+def initialize() -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
+    """Initialize the system."""
+    temp_dir = ReusableTemporaryDirectory("link_")
+    factories = {facade_type: TableFactory() for facade_type in REPOSITORY_NAMES}
+    facades = {facade_type: TableFacade(table_factory, temp_dir) for facade_type, table_factory in factories.items()}
+    facade_link = TableFacadeLink(**facades)
+    gateway_link, view_model, presenter = initialize_adapters(facade_link)
+    output_ports = {name: getattr(presenter, name) for name in USE_CASES}
+    initialized_use_cases = initialize_use_cases(gateway_link, output_ports)
 
-    schema_cls = Schema
-    replace_stores_func = staticmethod(replace_stores)
-    base_table_cls: Type[UserTable] = Lookup
-    table_cls_factories: Dict[str, TableFactory]
+    local_table_mixin = create_local_table_mixin_class()
+    local_table_mixin.temp_dir = temp_dir
+    local_table_mixin.source_table_factory = factories["source"]
+    local_table_mixin.controller = Controller(initialized_use_cases, REQUEST_MODELS, gateway_link)
+    local_table_mixin.printer = Printer(view_model)
+
+    return factories, local_table_mixin
+
+
+def link(
+    local_schema: Union[Schema, LazySchema],
+    source_schema: Union[Schema, LazySchema],
+    stores: Optional[dict[str, str]] = None,
+):
+    """Link the table to a table with the same name in the source schema."""
+
+    def create_local_table(table_class: type) -> type[UserTable]:
+        table_classes, mixin_class = initialize()
+        assert stores is not None, "Stores must be a mapping"
+        table_creator = LocalTableCreator(
+            local_schema,
+            source_schema,
+            stores,
+            table_classes=table_classes,
+            mixin_class=mixin_class,
+        )
+        return table_creator.create(table_class.__name__)
+
+    if stores is None:
+        stores = {}
+    return create_local_table
+
+
+class LocalTableCreator:  # pylint: disable=too-few-public-methods
+    """Creates the local table."""
+
+    schema_class = Schema
+    replace_stores: staticmethod[str] = staticmethod(replace_stores)  # noqa: F811
 
     def __init__(
         self,
         local_schema: Union[Schema, LazySchema],
         source_schema: Union[Schema, LazySchema],
-        stores: Optional[Dict[str, str]] = None,
+        stores: Mapping[str, str],
+        *,
+        table_classes: dict[str, TableFactory],
+        mixin_class: type[LocalTableMixin],
     ) -> None:
-        """Initialize the link."""
-        if stores is None:
-            stores = {}
+        """Initialize the creator."""
         self.local_schema = local_schema
         self.source_schema = source_schema
         self.stores = stores
+        self.table_classes = table_classes
+        self.mixin_class = mixin_class
 
-    def __call__(self, table_class: Type) -> Type[UserTable]:
-        """Initialize the tables and return the local table."""
-        self._configure_table_factory(table_class.__name__, "source")
-        self._configure_table_factory(table_class.__name__, "outbound")
-        self._configure_table_factory(table_class.__name__, "local")
+    def create(self, table_name: str) -> type[UserTable]:
+        """Create the local table class."""
+        self._configure_table_factories(table_name)
         try:
-            return self.table_cls_factories["local"]()
+            return self.table_classes["local"]()
         except RuntimeError:
-            self._configure_table_factory(table_class.__name__, "outbound", initial=True)
-            self._configure_table_factory(table_class.__name__, "local", initial=True)
-            self.table_cls_factories["outbound"]()
-            return self.table_cls_factories["local"]()
+            self._configure_table_factories(table_name, initial=True)
+            return self.table_classes["local"]()
+
+    def _configure_table_factories(self, table_name: str, *, initial: bool = False) -> None:
+        self._configure_table_factory(table_name, "source", initial=initial)
+        self._configure_table_factory(table_name, "outbound", initial=initial)
+        self._configure_table_factory(table_name, "local", initial=initial)
 
     def _configure_table_factory(self, table_name: str, factory_type: str, initial: bool = False) -> None:
         config = self._create_basic_config(table_name, factory_type)
         if initial:
             config = self._create_initial_config(table_name, factory_type)
-        self.table_cls_factories[factory_type].config = TableFactoryConfig(**config)
+        self.table_classes[factory_type].config = TableFactoryConfig(**config)
 
-    def _create_basic_config(self, table_name: str, factory_type: str) -> Dict[str, Any]:
+    def _create_basic_config(self, table_name: str, factory_type: str) -> dict[str, Any]:
         if factory_type == "source":
             return dict(schema=self.source_schema, name=table_name)
         if factory_type == "outbound":
             return dict(
-                schema=self.schema_cls(os.environ["LINK_OUTBOUND"], connection=self.source_schema.connection),
+                schema=self.schema_class(os.environ["LINK_OUTBOUND"], connection=self.source_schema.connection),
                 name=table_name + "Outbound",
                 flag_table_names=["DeletionRequested", "DeletionApproved"],
             )
@@ -65,13 +119,13 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             return dict(
                 schema=self.local_schema,
                 name=table_name,
-                bases=(LocalTableMixin,),
+                bases=(self.mixin_class,),
                 flag_table_names=["DeletionRequested"],
             )
         raise ValueError("Unknown table factory type")
 
-    def _create_initial_config(self, table_name: str, factory_type: str) -> Dict[str, Any]:
-        def create_basic_config() -> Dict[str, Any]:
+    def _create_initial_config(self, table_name: str, factory_type: str) -> dict[str, Any]:
+        def create_basic_config() -> dict[str, Any]:
             return self._create_basic_config(table_name, factory_type)
 
         if factory_type == "source":
@@ -80,23 +134,22 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             return dict(
                 create_basic_config(),
                 definition="-> source_table",
-                context={"source_table": self.table_cls_factories["source"]()},
+                context={"source_table": self.table_classes["source"]()},
                 tier=TableTiers.LOOKUP,
             )
         if factory_type == "local":
 
-            def create_local_part_table_definitions() -> Dict[str, str]:
+            def create_local_part_table_definitions() -> dict[str, str]:
                 return {
-                    name: create_definition(part)
-                    for name, part in self.table_cls_factories["source"].part_tables.items()
+                    name: create_definition(part) for name, part in self.table_classes["source"].part_tables.items()
                 }
 
-            def create_definition(table_cls: Type[UserTable]) -> str:
-                return self.replace_stores_func(str(table_cls().heading), self.stores)
+            def create_definition(table_cls: type[UserTable]) -> str:
+                return self.replace_stores(str(table_cls().heading), self.stores)
 
             return dict(
                 create_basic_config(),
-                definition=create_definition(self.table_cls_factories["source"]()),
+                definition=create_definition(self.table_classes["source"]()),
                 part_table_definitions=create_local_part_table_definitions(),
                 tier=TableTiers.LOOKUP,
             )

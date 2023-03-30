@@ -1,5 +1,5 @@
 """Contains mixins that add functionality to DataJoint tables."""
-from typing import Type
+from __future__ import annotations
 
 from datajoint import AndList
 from datajoint.user_tables import UserTable
@@ -38,6 +38,11 @@ class LocalTableMixin:
         self.printer()
 
     @property
-    def source(self) -> Type[UserTable]:
+    def source(self) -> type[UserTable]:
         """Return the source table class."""
         return self.source_table_factory()
+
+
+def create_local_table_mixin_class() -> type[LocalTableMixin]:
+    """Create a new subclass of the local table mixin."""
+    return type(LocalTableMixin.__name__, (LocalTableMixin,), {})
