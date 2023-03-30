@@ -14,7 +14,7 @@ from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
 from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
 from . import TableFacadeLink
-from .dj_helpers import replace_stores
+from .dj_helpers import replace_stores  # noqa: F401
 from .facade import TableFacade
 from .factory import TableFactory, TableFactoryConfig, TableTiers
 from .file import ReusableTemporaryDirectory
@@ -44,9 +44,6 @@ def initialize() -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
 class Link(Base):  # pylint: disable=too-few-public-methods
     """Used by the user to establish a link between a source and a local table."""
 
-    schema_cls = Schema
-    replace_stores_func: staticmethod[str] = staticmethod(replace_stores)
-
     def __init__(
         self,
         local_schema: Union[Schema, LazySchema],
@@ -70,16 +67,14 @@ class Link(Base):  # pylint: disable=too-few-public-methods
             table_classes=table_classes,
             mixin_class=mixin_class,
         )
-        table_creator.schema_class = self.schema_cls
-        table_creator.replace_stores = self.replace_stores_func
         return table_creator.create(table_class.__name__)
 
 
 class LocalTableCreator:  # pylint: disable=too-few-public-methods
     """Creates the local table."""
 
-    schema_class: Schema
-    replace_stores: staticmethod[str]
+    schema_class = Schema
+    replace_stores: staticmethod[str] = staticmethod(replace_stores)  # noqa: F811
 
     def __init__(
         self,
