@@ -1,6 +1,11 @@
 version: "3.8"
 name: datajoint-link
 services:
+  build:
+    build: .
+    volumes:
+      - $PWD/dist:/src/dist
+    entrypoint: ["pdm", "build"]
   functional_tests:
     build: .
     volumes:
