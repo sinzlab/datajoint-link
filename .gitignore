@@ -146,7 +146,7 @@ data/
 .idea/
 temp/
 .vscode/
-.pdm.toml
+.pdm-python
 profiling/stats
 profiling/figs
 pyrightconfig.json
