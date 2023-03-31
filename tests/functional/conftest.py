@@ -645,15 +645,21 @@ def create_table(dj_connection, create_random_string):
 
 
 @pytest.fixture
-def prepare_link(create_random_string, create_user, databases):
-    def _prepare_link():
-        schema_names = {kind: create_random_string() for kind in ("source", "local", "outbound")}
+def prepare_multiple_links(create_random_string, create_user, databases):
+    def _prepare_multiple_links(n_local_schemas):
+        def create_schema_names():
+            names = {kind: create_random_string() for kind in ("source", "outbound")}
+            names["local"] = [create_random_string() for _ in range(n_local_schemas)]
+            return names
+
+        schema_names = create_schema_names()
         user_specs = {
             "source": create_user(
                 databases["source"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
             ),
             "local": create_user(
-                databases["local"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['local']}`.* TO '$name'@'%';"]
+                databases["local"],
+                grants=[f"GRANT ALL PRIVILEGES ON `{name}`.* TO '$name'@'%';" for name in schema_names["local"]],
             ),
             "link": create_user(
                 databases["source"],
@@ -663,6 +669,16 @@ def prepare_link(create_random_string, create_user, databases):
                 ],
             ),
         }
+        return schema_names, user_specs
+
+    return _prepare_multiple_links
+
+
+@pytest.fixture
+def prepare_link(prepare_multiple_links):
+    def _prepare_link():
+        schema_names, user_specs = prepare_multiple_links(1)
+        schema_names["local"] = schema_names["local"][0]
         return schema_names, user_specs
 
     return _prepare_link
