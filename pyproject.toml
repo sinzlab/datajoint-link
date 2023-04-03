@@ -76,10 +76,18 @@ disable = ["cyclic-import", "logging-fstring-interpolation", "duplicate-code"]
 [tool.mypy]
 python_version = "3.8"
 files = [
-    "dj_link"
+    "dj_link", 
+    "tests",
 ]
 strict = false
 mypy_path = "stubs"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "dj_link.*",
+]
+ignore_errors = false
 
 [[tool.mypy.overrides]]
 module = [
