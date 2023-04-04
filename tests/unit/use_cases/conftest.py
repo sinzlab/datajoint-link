@@ -5,6 +5,7 @@ import pytest
 
 from dj_link.entities.flag_manager import FlagManager
 from dj_link.use_cases import REQUEST_MODELS, RESPONSE_MODELS, USE_CASES, RepositoryLink, RepositoryLinkFactory
+from dj_link.use_cases.gateway import GatewayLink
 
 
 @pytest.fixture
@@ -48,6 +49,24 @@ def repo_link_factory_stub(repo_link_spy):
 @pytest.fixture
 def output_port_spy():
     return MagicMock(name="output_port_spy")
+
+
+@pytest.fixture
+def fake_gateway_link():
+    class FakeGatewayLink(GatewayLink):
+        @property
+        def local(self):
+            pass
+
+        @property
+        def outbound(self):
+            pass
+
+        @property
+        def source(self):
+            pass
+
+    return FakeGatewayLink()
 
 
 @pytest.fixture
