@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from dj_link.use_cases import REQUEST_MODELS, USE_CASES, AbstractGatewayLink, initialize_use_cases
+from dj_link.use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
+from dj_link.use_cases.gateway import GatewayLink
 
 
 @pytest.fixture
@@ -29,7 +30,7 @@ def processed_config(config, create_identifiers):
 
 @pytest.fixture
 def gateway_link_spy(processed_config):
-    spy = create_autospec(AbstractGatewayLink, instance=True)
+    spy = create_autospec(GatewayLink, instance=True)
     for repo_name, identifiers in processed_config["identifiers"].items():
         getattr(spy, repo_name).identifiers = identifiers
         getattr(spy, repo_name).__iter__.return_value = iter(identifiers)

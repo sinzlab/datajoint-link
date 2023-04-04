@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Generic, TypeVar
 
 from ..base import Base
+from .gateway import GatewayLink
 
 if TYPE_CHECKING:
     from . import RepositoryLink, RepositoryLinkFactory
@@ -30,9 +31,13 @@ class AbstractUseCase(ABC, Base, Generic[RequestModel]):
     name: str
 
     def __init__(
-        self, repo_link_factory: RepositoryLinkFactory, output_port: Callable[[AbstractResponseModel], None]
+        self,
+        gateway_link: GatewayLink,
+        repo_link_factory: RepositoryLinkFactory,
+        output_port: Callable[[AbstractResponseModel], None],
     ) -> None:
         """Initialize the use-case."""
+        self.gateway_link = gateway_link
         self.repo_link_factory = repo_link_factory
         self.output_port = output_port
 
