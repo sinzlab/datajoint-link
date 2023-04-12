@@ -1,6 +1,6 @@
 from collections.abc import MutableMapping
 from dataclasses import is_dataclass
-from unittest.mock import MagicMock, call, create_autospec
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import pathlib
-import warnings
 from concurrent import futures
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
