@@ -1,15 +1,22 @@
-from typing import Iterable
+from __future__ import annotations
+
+from typing import Iterable, Protocol, Union
 
 import pytest
 
 
+class IdentifierCreator(Protocol):
+    def __call__(self, spec: Union[int, Iterable]) -> list[str]:
+        ...
+
+
 @pytest.fixture
-def create_identifiers():
-    def _create_identifiers(spec):
+def create_identifiers() -> IdentifierCreator:
+    def _create_identifiers(spec: Union[int, Iterable]) -> list[str]:
         if isinstance(spec, int):
-            indexes = range(spec)
+            indexes = list(range(spec))
         elif isinstance(spec, Iterable):
-            indexes = spec
+            indexes = list(spec)
         else:
             raise RuntimeError("Invalid type for 'spec'")
         return ["identifier" + str(i) for i in indexes]
