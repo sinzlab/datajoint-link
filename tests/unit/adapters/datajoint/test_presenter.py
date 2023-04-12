@@ -3,7 +3,6 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.adapters.datajoint.presenter import Presenter, ViewModel
 from dj_link.base import Base
 from dj_link.use_cases import RESPONSE_MODELS
