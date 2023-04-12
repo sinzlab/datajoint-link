@@ -25,7 +25,10 @@ class AbstractResponseModel(ABC):  # pylint: disable=too-few-public-methods
     """ABC for response models."""
 
 
-class AbstractUseCase(ABC, Base, Generic[RequestModel]):
+ResponseModel = TypeVar("ResponseModel", bound=AbstractResponseModel)
+
+
+class AbstractUseCase(ABC, Base, Generic[RequestModel, ResponseModel]):
     """Specifies the interface for use-cases."""
 
     name: str
@@ -34,7 +37,7 @@ class AbstractUseCase(ABC, Base, Generic[RequestModel]):
         self,
         gateway_link: GatewayLink,
         repo_link_factory: RepositoryLinkFactory,
-        output_port: Callable[[AbstractResponseModel], None],
+        output_port: Callable[[ResponseModel], None],
     ) -> None:
         """Initialize the use-case."""
         self.gateway_link = gateway_link
@@ -49,5 +52,5 @@ class AbstractUseCase(ABC, Base, Generic[RequestModel]):
         self.output_port(response_model)
 
     @abstractmethod
-    def execute(self, repo_link: RepositoryLink, request_model: RequestModel) -> AbstractResponseModel:
+    def execute(self, repo_link: RepositoryLink, request_model: RequestModel) -> ResponseModel:
         """Execute the use-case."""
