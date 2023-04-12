@@ -86,6 +86,7 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = [
     "dj_link.*",
+    "tests.conftest",
 ]
 ignore_errors = false
 
