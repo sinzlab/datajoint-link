@@ -96,12 +96,14 @@ strict_concatenate = true
 module = [
     "dj_link.*",
     "tests.conftest",
+    "tests.integration.test_pull",
 ]
 ignore_errors = false
 
 [[tool.mypy.overrides]]
 module = [
     "tests.conftest",
+    "tests.integration.test_pull",
 ]
 disallow_any_generics = true
 disallow_untyped_calls = true
