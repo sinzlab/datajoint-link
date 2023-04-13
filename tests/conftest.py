@@ -6,13 +6,13 @@ import pytest
 
 
 class IdentifierCreator(Protocol):
-    def __call__(self, spec: Union[int, Iterable]) -> list[str]:
+    def __call__(self, spec: Union[int, Iterable[int]]) -> list[str]:
         ...
 
 
 @pytest.fixture
 def create_identifiers() -> IdentifierCreator:
-    def _create_identifiers(spec: Union[int, Iterable]) -> list[str]:
+    def _create_identifiers(spec: Union[int, Iterable[int]]) -> list[str]:
         if isinstance(spec, int):
             indexes = list(range(spec))
         elif isinstance(spec, Iterable):

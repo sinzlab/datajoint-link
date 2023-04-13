@@ -100,7 +100,9 @@ module = [
 ignore_errors = false
 
 [[tool.mypy.overrides]]
-module = []
+module = [
+    "tests.conftest",
+]
 disallow_any_generics = true
 disallow_untyped_calls = true
 disallow_untyped_defs = true
