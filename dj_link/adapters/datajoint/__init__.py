@@ -4,7 +4,7 @@ from typing import Tuple
 
 from ...base import Base
 from ...globals import REPOSITORY_NAMES
-from ...use_cases import AbstractGatewayLink
+from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
 from .gateway import DataJointGateway
 from .identification import IdentificationTranslator
@@ -30,7 +30,7 @@ class AbstractTableFacadeLink(ABC):
         """Return the table facade corresponding to the local table."""
 
 
-class DataJointGatewayLink(AbstractGatewayLink, Base):
+class DataJointGatewayLink(GatewayLink, Base):
     """Contains the three DataJoint gateways corresponding to the three table types."""
 
     def __init__(self, source: DataJointGateway, outbound: DataJointGateway, local: DataJointGateway):

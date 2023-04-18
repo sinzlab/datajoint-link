@@ -6,6 +6,7 @@ import pytest
 from dj_link import use_cases
 from dj_link.base import Base
 from dj_link.entities.repository import RepositoryFactory
+from dj_link.use_cases.gateway import GatewayLink
 
 
 @pytest.fixture
@@ -27,7 +28,7 @@ def repo_factory_cls_spy(repos):
 
 @pytest.fixture
 def gateway_link_stub():
-    return MagicMock(name="gateway_link_stub", spec=use_cases.AbstractGatewayLink)
+    return MagicMock(name="gateway_link_stub", spec=GatewayLink)
 
 
 @pytest.fixture

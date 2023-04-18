@@ -44,7 +44,7 @@ class PullResponseModel(AbstractResponseModel):
         return len(self.invalid)
 
 
-class PullUseCase(AbstractUseCase[PullRequestModel]):  # pylint: disable=too-few-public-methods
+class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pylint: disable=too-few-public-methods
     """Use-case that pulls entities from the source to the local table."""
 
     name = "pull"

@@ -51,8 +51,8 @@ def output_port_spy():
 
 
 @pytest.fixture
-def use_case(use_case_cls, repo_link_factory_stub, output_port_spy):
-    return use_case_cls(repo_link_factory_stub, output_port_spy)
+def use_case(use_case_cls, fake_gateway_link, repo_link_factory_stub, output_port_spy):
+    return use_case_cls(fake_gateway_link, repo_link_factory_stub, output_port_spy)
 
 
 @pytest.fixture
