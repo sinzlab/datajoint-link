@@ -97,6 +97,7 @@ module = [
     "dj_link.*",
     "tests.conftest",
     "tests.integration.test_pull",
+    "tests.unit.frameworks.datajoint.test_facade",
 ]
 ignore_errors = false
 

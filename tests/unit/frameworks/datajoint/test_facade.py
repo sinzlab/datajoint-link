@@ -4,8 +4,9 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from datajoint import Part, Table
 
+from dj_link.adapters.datajoint.gateway import EntityDTO
 from dj_link.base import Base
-from dj_link.frameworks.datajoint.facade import EntityDTO, TableFacade
+from dj_link.frameworks.datajoint.facade import TableFacade
 from dj_link.frameworks.datajoint.factory import TableFactory
 from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
 
@@ -302,8 +303,6 @@ def execute(request, table_facade):
 
 @pytest.mark.usefixtures("execute")
 class TestTransaction:
-    method_name = None
-
     @pytest.fixture(params=["start_transaction", "commit_transaction", "cancel_transaction"], autouse=True)
     def method_name(self, request):
         request.cls.method_name = request.param
