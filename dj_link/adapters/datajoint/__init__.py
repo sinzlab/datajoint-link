@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from ...base import Base
+from ...entities.link import Transfer
 from ...globals import REPOSITORY_NAMES
 from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
@@ -53,6 +54,10 @@ class DataJointGatewayLink(GatewayLink, Base):
     def local(self) -> DataJointGateway:
         """Return the local gateway."""
         return self._local
+
+    def transfer(self, spec: Transfer) -> None:
+        """Transfer an entity from one table in the link to another."""
+        raise NotImplementedError
 
 
 def initialize_adapters(

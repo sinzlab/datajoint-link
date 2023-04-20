@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 
 from ..entities.abstract_gateway import AbstractGateway
+from ..entities.link import Transfer
 
 
 class GatewayLink(ABC):
@@ -21,3 +22,7 @@ class GatewayLink(ABC):
     @abstractmethod
     def local(self) -> AbstractGateway:
         """Return the local gateway."""
+
+    @abstractmethod
+    def transfer(self, spec: Transfer) -> None:
+        """Transfer an entity from one component in the link to another."""
