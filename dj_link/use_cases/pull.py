@@ -70,7 +70,7 @@ class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pyli
             destination = gateway_map[transfer.destination]
             entity = origin.fetch(transfer.identifier)
             if transfer.identifier_only:
-                entity.create_identifier_only_copy()
+                entity = entity.create_identifier_only_copy()
             destination.insert(entity)
         return self.response_model_cls(
             requested=set(request_model.identifiers),
