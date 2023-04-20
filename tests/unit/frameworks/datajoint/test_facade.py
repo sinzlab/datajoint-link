@@ -4,8 +4,9 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from datajoint import Part, Table
 
+from dj_link.adapters.datajoint.gateway import EntityDTO
 from dj_link.base import Base
-from dj_link.frameworks.datajoint.facade import EntityDTO, TableFacade
+from dj_link.frameworks.datajoint.facade import TableFacade
 from dj_link.frameworks.datajoint.factory import TableFactory
 from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
 
@@ -52,7 +53,7 @@ def table_spy(primary_key_names, flag_table_spies, master_entity):
     table_spy.proj.return_value.__and__.return_value.fetch.return_value = "primary_keys_in_restriction"
     table_spy.__and__.return_value.fetch1.return_value = master_entity
     table_spy.__len__.return_value = 1
-    table_spy.__iter__.return_value = "table_iterator"
+    table_spy.proj.return_value.__iter__.return_value = "table_iterator"
     table_spy.proj.return_value.__contains__.return_value = True
     for name, flag_table_spy in flag_table_spies.items():
         setattr(table_spy, name, flag_table_spy)
@@ -302,8 +303,6 @@ def execute(request, table_facade):
 
 @pytest.mark.usefixtures("execute")
 class TestTransaction:
-    method_name = None
-
     @pytest.fixture(params=["start_transaction", "commit_transaction", "cancel_transaction"], autouse=True)
     def method_name(self, request):
         request.cls.method_name = request.param
@@ -336,7 +335,7 @@ class TestIter:
 
     def test_if_call_to_iter_method_of_table_is_correct(self, table_facade, table_spy):
         iter(table_facade)
-        table_spy.__iter__.assert_called_once_with()
+        table_spy.proj.return_value.__iter__.assert_called_once_with()
 
     def test_if_correct_value_is_returned(self, table_facade):
         assert list(iter(table_facade)) == list(iter("table_iterator"))
