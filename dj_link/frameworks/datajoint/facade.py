@@ -80,4 +80,4 @@ class TableFacade(AbstractTableFacade, Base):
 
     def __iter__(self) -> Iterator[PrimaryKey]:
         """Iterate over all primary keys in the corresponding table."""
-        return iter(self.table_factory())
+        return iter(self.table_factory().proj())
