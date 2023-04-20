@@ -32,17 +32,19 @@ def create_identifiers() -> IdentifierCreator:
 @dataclass(frozen=True)
 class FakeEntityDTO(AbstractEntityDTO):
     identifier: str
+    identifier_only: bool = False
 
     def create_identifier_only_copy(self) -> FakeEntityDTO:
-        return FakeEntityDTO(self.identifier)
+        return FakeEntityDTO(self.identifier, identifier_only=True)
 
 
 class FakeGateway(AbstractGateway[FakeEntityDTO]):
-    def __init__(self, entities: Optional[dict[str, FakeEntityDTO]] = None) -> None:
+    def __init__(self, entities: Optional[dict[str, FakeEntityDTO]] = None, *, identifier_only: bool = False) -> None:
         if entities is None:
             entities = {}
         self.__flags: dict[str, dict[str, bool]] = defaultdict(dict)
         self.__entities: dict[str, FakeEntityDTO] = entities
+        self.__identifier_only = identifier_only
 
     def get_flags(self, identifier: str) -> dict[str, bool]:
         return self.__flags[identifier]
@@ -51,6 +53,7 @@ class FakeGateway(AbstractGateway[FakeEntityDTO]):
         return self.__entities[identifier]
 
     def insert(self, entity_dto: FakeEntityDTO) -> None:
+        assert self.__identifier_only is entity_dto.identifier_only, "Identifier only mismatch"
         self.__entities[entity_dto.identifier] = entity_dto
 
     def delete(self, identifier: str) -> None:
@@ -75,8 +78,10 @@ class FakeGateway(AbstractGateway[FakeEntityDTO]):
         return iter(self.__entities)
 
     @classmethod
-    def from_identifiers(cls, identifiers: Iterable[str]) -> FakeGateway:
-        return cls({identifier: FakeEntityDTO(identifier) for identifier in identifiers})
+    def from_identifiers(cls, identifiers: Iterable[str], identifier_only: bool = False) -> FakeGateway:
+        return cls(
+            {identifier: FakeEntityDTO(identifier) for identifier in identifiers}, identifier_only=identifier_only
+        )
 
 
 class GatewayLinkIdentifiers(TypedDict):
@@ -117,7 +122,7 @@ class FakeGatewayLink(GatewayLink):
     def from_identifiers(cls, identifiers: GatewayLinkIdentifiers) -> FakeGatewayLink:
         return FakeGatewayLink(
             source=FakeGateway.from_identifiers(identifiers["source"]),
-            outbound=FakeGateway.from_identifiers(identifiers["outbound"]),
+            outbound=FakeGateway.from_identifiers(identifiers["outbound"], identifier_only=True),
             local=FakeGateway.from_identifiers(identifiers["local"]),
         )
 

@@ -95,16 +95,20 @@ strict_concatenate = true
 [[tool.mypy.overrides]]
 module = [
     "dj_link.*",
+    "dj_link.entities.link",
     "tests.conftest",
     "tests.integration.test_pull",
+    "tests.unit.entities.test_link",
     "tests.unit.frameworks.datajoint.test_facade",
 ]
 ignore_errors = false
 
 [[tool.mypy.overrides]]
 module = [
+    "dj_link.entities.link",
     "tests.conftest",
     "tests.integration.test_pull",
+    "tests.unit.entities.test_link",
 ]
 disallow_any_generics = true
 disallow_untyped_calls = true
