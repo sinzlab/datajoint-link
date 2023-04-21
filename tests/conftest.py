@@ -7,7 +7,7 @@ from typing import Iterable, Iterator, Optional, Protocol, TypedDict, Union
 import pytest
 
 from dj_link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
-from dj_link.entities.link import Transfer
+from dj_link.entities.link import Components, Transfer
 from dj_link.use_cases.gateway import GatewayLink
 
 
@@ -106,6 +106,11 @@ class FakeGatewayLink(GatewayLink):
         self.__source = validate_gateway(source)
         self.__outbound = validate_gateway(outbound)
         self.__local = validate_gateway(local)
+        self.__gateway_map = {
+            Components.SOURCE: self.__source,
+            Components.OUTBOUND: self.__outbound,
+            Components.LOCAL: self.__local,
+        }
 
     @property
     def source(self) -> FakeGateway:
@@ -128,7 +133,12 @@ class FakeGatewayLink(GatewayLink):
         )
 
     def transfer(self, spec: Transfer) -> None:
-        raise NotImplementedError
+        origin = self.__gateway_map[spec.origin]
+        destination = self.__gateway_map[spec.destination]
+        entity = origin.fetch(spec.identifier)
+        if spec.identifier_only:
+            entity = entity.create_identifier_only_copy()
+        destination.insert(entity)
 
 
 @pytest.fixture
