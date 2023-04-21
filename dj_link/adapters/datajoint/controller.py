@@ -4,7 +4,7 @@ from typing import Mapping
 from ...base import Base
 from ...use_cases import RequestModelClasses
 from ...use_cases.base import AbstractUseCase
-from . import DataJointGatewayLink
+from .gateway import DataJointGatewayLink
 
 
 class Controller(Base):

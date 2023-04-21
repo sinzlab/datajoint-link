@@ -7,6 +7,8 @@ from typing import Any, Dict, Iterator, List
 
 from ...base import Base
 from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
+from ...entities.link import Transfer
+from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
 
@@ -110,3 +112,32 @@ class DataJointGateway(AbstractGateway[EntityDTO], Base):
         """Iterate over all identifiers in the table."""
         for primary_key in self.table_facade:
             yield self.translator.to_identifier(primary_key)
+
+
+class DataJointGatewayLink(GatewayLink, Base):
+    """Contains the three DataJoint gateways corresponding to the three table types."""
+
+    def __init__(self, source: DataJointGateway, outbound: DataJointGateway, local: DataJointGateway):
+        """Initialize the DataJoint gateway link."""
+        self._source = source
+        self._outbound = outbound
+        self._local = local
+
+    @property
+    def source(self) -> DataJointGateway:
+        """Return the source gateway."""
+        return self._source
+
+    @property
+    def outbound(self) -> DataJointGateway:
+        """Return the outbound gateway."""
+        return self._outbound
+
+    @property
+    def local(self) -> DataJointGateway:
+        """Return the local gateway."""
+        return self._local
+
+    def transfer(self, spec: Transfer) -> None:
+        """Transfer an entity from one table in the link to another."""
+        raise NotImplementedError
