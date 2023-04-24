@@ -1,4 +1,4 @@
 """Contains custom types."""
-from typing import Dict, Union
+from typing import Mapping, Union
 
-PrimaryKey = Dict[str, Union[str, int, float]]
+PrimaryKey = Mapping[str, Union[str, int, float]]
