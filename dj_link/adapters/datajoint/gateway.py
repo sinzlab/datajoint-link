@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterator, List
 
 from ...base import Base
 from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
-from ...entities.link import Transfer
+from ...entities.link import Components, Transfer
 from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator
@@ -140,4 +140,14 @@ class DataJointGatewayLink(GatewayLink, Base):
 
     def transfer(self, spec: Transfer) -> None:
         """Transfer an entity from one table in the link to another."""
-        raise NotImplementedError
+        gateway_map = {
+            Components.SOURCE: self._source,
+            Components.OUTBOUND: self._outbound,
+            Components.LOCAL: self._local,
+        }
+        origin = gateway_map[spec.origin]
+        destination = gateway_map[spec.destination]
+        entity = origin.fetch(spec.identifier)
+        if spec.identifier_only:
+            entity = entity.create_identifier_only_copy()
+        destination.insert(entity)

@@ -7,9 +7,10 @@ from typing import Any, Optional
 import pytest
 
 from dj_link.adapters.datajoint.abstract_facade import AbstractTableFacade
-from dj_link.adapters.datajoint.gateway import DataJointGateway, EntityDTO
+from dj_link.adapters.datajoint.gateway import DataJointGateway, DataJointGatewayLink, EntityDTO
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.custom_types import PrimaryKey
+from dj_link.entities.link import Components, Identifier, Transfer
 
 
 @dataclass
@@ -165,3 +166,35 @@ def test_can_get_identifiers_in_restriction() -> None:
     for entity in entities:
         gateway.insert(entity)
     assert set(gateway.get_identifiers_in_restriction("a = 1")) == set(identifiers[:2])
+
+
+def test_can_transfer_entity() -> None:
+    facades = {"source": FakeTableFacade(), "outbound": FakeTableFacade(), "local": FakeTableFacade()}
+    translator = IdentificationTranslator()
+    gateways = {c: DataJointGateway(f, translator) for c, f in facades.items()}
+    link = DataJointGatewayLink(**gateways)
+    primary_key = {"a": 1, "b": 2}
+    entity = EntityDTO(list(primary_key), dict(**primary_key, c=3))
+    gateways["source"].insert(entity)
+    identifier = translator.to_identifier(primary_key)
+    spec = Transfer(
+        Identifier(identifier), origin=Components.SOURCE, destination=Components.LOCAL, identifier_only=False
+    )
+    link.transfer(spec)
+    assert gateways["local"].fetch(identifier) == entity
+
+
+def test_can_transfer_identifier_only() -> None:
+    facades = {"source": FakeTableFacade(), "outbound": FakeTableFacade(), "local": FakeTableFacade()}
+    translator = IdentificationTranslator()
+    gateways = {c: DataJointGateway(f, translator) for c, f in facades.items()}
+    link = DataJointGatewayLink(**gateways)
+    primary_key = {"a": 1, "b": 2}
+    entity = EntityDTO(list(primary_key), dict(**primary_key, c=3))
+    gateways["source"].insert(entity)
+    identifier = translator.to_identifier(primary_key)
+    spec = Transfer(
+        Identifier(identifier), origin=Components.SOURCE, destination=Components.OUTBOUND, identifier_only=True
+    )
+    link.transfer(spec)
+    assert gateways["outbound"].fetch(identifier) == EntityDTO(list(primary_key), primary_key)
