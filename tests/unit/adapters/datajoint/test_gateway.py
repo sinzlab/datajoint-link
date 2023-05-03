@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Mapping, Optional, Union, overload
 
 import pytest
 
@@ -101,6 +101,42 @@ def test_fetch_raises_key_error_if_entity_is_missing() -> None:
     gateway = DataJointGateway(FakeTableFacade(), IdentificationTranslator())
     with pytest.raises(KeyError):
         gateway.fetch("identifier")
+
+
+Entity = Mapping[str, int]
+
+
+@overload
+def create_translations(
+    primary_key_attributes: Iterable[str],
+    entities: Entity,
+) -> tuple[IdentificationTranslator, str, EntityDTO]:
+    ...
+
+
+@overload
+def create_translations(
+    primary_key_attributes: Iterable[str],
+    entities: Iterable[Entity],
+) -> tuple[IdentificationTranslator, list[str], list[EntityDTO]]:
+    ...
+
+
+def create_translations(
+    primary_key_attributes: Iterable[str],
+    entities: Union[Entity, Iterable[Entity]],
+) -> tuple[IdentificationTranslator, Union[str, list[str]], Union[EntityDTO, list[EntityDTO]]]:
+    if isinstance(entities, Mapping):
+        entities = [entities]
+    else:
+        entities = list(entities)
+    translator = IdentificationTranslator()
+    primary_keys = [{k: v for k, v in entity.items() if k in primary_key_attributes} for entity in entities]
+    identifiers = [translator.to_identifier(primary_key) for primary_key in primary_keys]
+    dtos = [EntityDTO(list(primary_key), dict(entity)) for primary_key, entity in zip(primary_keys, entities)]
+    if len(entities) == 1:
+        return translator, identifiers[0], dtos[0]
+    return translator, identifiers, dtos
 
 
 def test_fetch_returns_correct_entity() -> None:
