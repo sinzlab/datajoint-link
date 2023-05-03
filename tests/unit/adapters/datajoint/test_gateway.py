@@ -140,82 +140,82 @@ def create_translations(
 
 
 def test_fetch_returns_correct_entity() -> None:
-    translator, identifier, entity = create_translations("ab", {"a": 1, "b": 2, "c": 3})
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    gateway.insert(entity)
-    assert gateway.fetch(identifier) == entity
+    gateway.insert(dto)
+    assert gateway.fetch(identifier) == dto
 
 
 def test_can_delete_entity() -> None:
-    translator, identifier, entity = create_translations("ab", {"a": 1, "b": 2, "c": 3})
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    gateway.insert(entity)
+    gateway.insert(dto)
     gateway.delete(identifier)
     with pytest.raises(KeyError):
         gateway.fetch(identifier)
 
 
 def test_if_iteration_yields_correct_identifiers() -> None:
-    translator, identifiers, entities = create_translations(
+    translator, identifiers, dtos = create_translations(
         "ab", [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4, "c": 3}, {"a": 2, "b": 4, "c": 3}]
     )
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    for entity in entities:
-        gateway.insert(entity)
+    for dto in dtos:
+        gateway.insert(dto)
     assert set(gateway) == set(identifiers)
 
 
 def test_if_length_is_correct() -> None:
-    translator, _, entities = create_translations(
+    translator, _, dtos = create_translations(
         "ab", [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4, "c": 3}, {"a": 2, "b": 4, "c": 3}]
     )
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    for entity in entities:
-        gateway.insert(entity)
+    for dto in dtos:
+        gateway.insert(dto)
     assert len(gateway) == 3
 
 
 @pytest.mark.parametrize("is_enabled", [True, False])
 def test_can_set_flag(is_enabled: bool) -> None:
-    translator, identifier, entity = create_translations("ab", {"a": 1, "b": 2, "c": 3})
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    gateway.insert(entity)
+    gateway.insert(dto)
     gateway.set_flag(identifier, "some_flag", is_enabled)
     assert gateway.get_flags(identifier) == {"some_flag": is_enabled}
 
 
 def test_can_get_identifiers_in_restriction() -> None:
-    translator, identifiers, entities = create_translations(
+    translator, identifiers, dtos = create_translations(
         "ab", [{"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 3}, {"a": 5, "b": 1, "c": 3}]
     )
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    for entity in entities:
-        gateway.insert(entity)
+    for dto in dtos:
+        gateway.insert(dto)
     assert set(gateway.get_identifiers_in_restriction("a = 1")) == set(identifiers[:2])
 
 
 def test_can_transfer_entity() -> None:
-    translator, identifier, entity = create_translations("ab", {"a": 1, "b": 2, "c": 3})
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
     facades = {"source": FakeTableFacade(), "outbound": FakeTableFacade(), "local": FakeTableFacade()}
     gateways = {c: DataJointGateway(f, translator) for c, f in facades.items()}
     link = DataJointGatewayLink(**gateways)
-    gateways["source"].insert(entity)
+    gateways["source"].insert(dto)
     spec = Transfer(
         Identifier(identifier), origin=Components.SOURCE, destination=Components.LOCAL, identifier_only=False
     )
 
     link.transfer(spec)
 
-    assert gateways["local"].fetch(identifier) == entity
+    assert gateways["local"].fetch(identifier) == dto
 
 
 def test_can_transfer_identifier_only() -> None:
     primary_key = {"a": 1, "b": 2}
-    translator, identifier, entity = create_translations("ab", dict(**primary_key, c=3))
+    translator, identifier, dto = create_translations("ab", dict(**primary_key, c=3))
     facades = {"source": FakeTableFacade(), "outbound": FakeTableFacade(), "local": FakeTableFacade()}
     gateways = {c: DataJointGateway(f, translator) for c, f in facades.items()}
     link = DataJointGatewayLink(**gateways)
-    gateways["source"].insert(entity)
+    gateways["source"].insert(dto)
     spec = Transfer(
         Identifier(identifier), origin=Components.SOURCE, destination=Components.OUTBOUND, identifier_only=True
     )
