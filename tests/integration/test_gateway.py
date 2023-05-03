@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Mapping, Optional, Union, overload
 
 import pytest
 
 from dj_link.adapters.datajoint.abstract_facade import AbstractTableFacade
-from dj_link.adapters.datajoint.gateway import DataJointGateway, EntityDTO
+from dj_link.adapters.datajoint.gateway import DataJointGateway, DataJointGatewayLink, EntityDTO
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.custom_types import PrimaryKey
+from dj_link.entities.link import Components, Identifier, Transfer
 
 
 @dataclass
@@ -102,66 +103,123 @@ def test_fetch_raises_key_error_if_entity_is_missing() -> None:
         gateway.fetch("identifier")
 
 
-def test_fetch_returns_correct_entity() -> None:
+Entity = Mapping[str, int]
+
+
+@overload
+def create_translations(
+    primary_key_attributes: Iterable[str],
+    entities: Entity,
+) -> tuple[IdentificationTranslator, str, EntityDTO]:
+    ...
+
+
+@overload
+def create_translations(
+    primary_key_attributes: Iterable[str],
+    entities: Iterable[Entity],
+) -> tuple[IdentificationTranslator, list[str], list[EntityDTO]]:
+    ...
+
+
+def create_translations(
+    primary_key_attributes: Iterable[str],
+    entities: Union[Entity, Iterable[Entity]],
+) -> tuple[IdentificationTranslator, Union[str, list[str]], Union[EntityDTO, list[EntityDTO]]]:
+    if isinstance(entities, Mapping):
+        entities = [entities]
+    else:
+        entities = list(entities)
     translator = IdentificationTranslator()
-    primary_key = {"a": 1, "b": 2}
-    identifier = translator.to_identifier(primary_key)
-    entity = EntityDTO(list(primary_key), dict(**primary_key, c=3))
+    primary_keys = [{k: v for k, v in entity.items() if k in primary_key_attributes} for entity in entities]
+    identifiers = [translator.to_identifier(primary_key) for primary_key in primary_keys]
+    dtos = [EntityDTO(list(primary_key), dict(entity)) for primary_key, entity in zip(primary_keys, entities)]
+    if len(entities) == 1:
+        return translator, identifiers[0], dtos[0]
+    return translator, identifiers, dtos
+
+
+def test_fetch_returns_correct_entity() -> None:
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    gateway.insert(entity)
-    assert gateway.fetch(identifier) == entity
+    gateway.insert(dto)
+    assert gateway.fetch(identifier) == dto
 
 
 def test_can_delete_entity() -> None:
-    translator = IdentificationTranslator()
-    primary_key = {"a": 1, "b": 2}
-    identifier = translator.to_identifier(primary_key)
-    entity = EntityDTO(list(primary_key), dict(**primary_key, c=3))
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    gateway.insert(entity)
+    gateway.insert(dto)
     gateway.delete(identifier)
     with pytest.raises(KeyError):
         gateway.fetch(identifier)
 
 
 def test_if_iteration_yields_correct_identifiers() -> None:
-    translator = IdentificationTranslator()
-    primary_keys = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 2, "b": 4}]
-    identifiers = {translator.to_identifier(k) for k in primary_keys}
-    entities = [EntityDTO(list(k), dict(**k, c=3)) for k in primary_keys]
+    translator, identifiers, dtos = create_translations(
+        "ab", [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4, "c": 3}, {"a": 2, "b": 4, "c": 3}]
+    )
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    for entity in entities:
-        gateway.insert(entity)
-    assert set(gateway) == identifiers
+    for dto in dtos:
+        gateway.insert(dto)
+    assert set(gateway) == set(identifiers)
 
 
 def test_if_length_is_correct() -> None:
-    primary_keys = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 2, "b": 4}]
-    entities = [EntityDTO(list(k), dict(**k, c=3)) for k in primary_keys]
-    gateway = DataJointGateway(FakeTableFacade(), IdentificationTranslator())
-    for entity in entities:
-        gateway.insert(entity)
+    translator, _, dtos = create_translations(
+        "ab", [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4, "c": 3}, {"a": 2, "b": 4, "c": 3}]
+    )
+    gateway = DataJointGateway(FakeTableFacade(), translator)
+    for dto in dtos:
+        gateway.insert(dto)
     assert len(gateway) == 3
 
 
 @pytest.mark.parametrize("is_enabled", [True, False])
 def test_can_set_flag(is_enabled: bool) -> None:
-    translator = IdentificationTranslator()
-    primary_key = {"a": 1, "b": 2}
-    identifier = translator.to_identifier(primary_key)
-    entity = EntityDTO(list(primary_key), dict(**primary_key, c=3))
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    gateway.insert(entity)
+    gateway.insert(dto)
     gateway.set_flag(identifier, "some_flag", is_enabled)
     assert gateway.get_flags(identifier) == {"some_flag": is_enabled}
 
 
 def test_can_get_identifiers_in_restriction() -> None:
-    translator = IdentificationTranslator()
-    primary_keys = [{"a": 1, "b": 2}, {"a": 1, "b": 3}, {"a": 5, "b": 1}]
-    identifiers = [translator.to_identifier(k) for k in primary_keys]
-    entities = [EntityDTO(list(k), dict(**k, c=3)) for k in primary_keys]
+    translator, identifiers, dtos = create_translations(
+        "ab", [{"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 3}, {"a": 5, "b": 1, "c": 3}]
+    )
     gateway = DataJointGateway(FakeTableFacade(), translator)
-    for entity in entities:
-        gateway.insert(entity)
+    for dto in dtos:
+        gateway.insert(dto)
     assert set(gateway.get_identifiers_in_restriction("a = 1")) == set(identifiers[:2])
+
+
+def test_can_transfer_entity() -> None:
+    translator, identifier, dto = create_translations("ab", {"a": 1, "b": 2, "c": 3})
+    facades = {"source": FakeTableFacade(), "outbound": FakeTableFacade(), "local": FakeTableFacade()}
+    gateways = {c: DataJointGateway(f, translator) for c, f in facades.items()}
+    link = DataJointGatewayLink(**gateways)
+    gateways["source"].insert(dto)
+    spec = Transfer(
+        Identifier(identifier), origin=Components.SOURCE, destination=Components.LOCAL, identifier_only=False
+    )
+
+    link.transfer(spec)
+
+    assert gateways["local"].fetch(identifier) == dto
+
+
+def test_can_transfer_identifier_only() -> None:
+    primary_key = {"a": 1, "b": 2}
+    translator, identifier, dto = create_translations("ab", dict(**primary_key, c=3))
+    facades = {"source": FakeTableFacade(), "outbound": FakeTableFacade(), "local": FakeTableFacade()}
+    gateways = {c: DataJointGateway(f, translator) for c, f in facades.items()}
+    link = DataJointGatewayLink(**gateways)
+    gateways["source"].insert(dto)
+    spec = Transfer(
+        Identifier(identifier), origin=Components.SOURCE, destination=Components.OUTBOUND, identifier_only=True
+    )
+
+    link.transfer(spec)
+
+    assert gateways["outbound"].fetch(identifier) == EntityDTO(list(primary_key), primary_key)

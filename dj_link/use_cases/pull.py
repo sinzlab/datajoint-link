@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Set
 
-from ..entities.link import Components, Identifier, Link, pull
+from ..entities.link import Identifier, Link, pull
 from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
@@ -60,18 +60,8 @@ class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pyli
             local={Identifier(i) for i in self.gateway_link.local},
         )
         transfers = pull(link, requested=valid_identifiers)
-        gateway_map = {
-            Components.SOURCE: self.gateway_link.source,
-            Components.OUTBOUND: self.gateway_link.outbound,
-            Components.LOCAL: self.gateway_link.local,
-        }
         for transfer in transfers:
-            origin = gateway_map[transfer.origin]
-            destination = gateway_map[transfer.destination]
-            entity = origin.fetch(transfer.identifier)
-            if transfer.identifier_only:
-                entity = entity.create_identifier_only_copy()
-            destination.insert(entity)
+            self.gateway_link.transfer(transfer)
         return self.response_model_cls(
             requested=set(request_model.identifiers),
             valid={str(i) for i in valid_identifiers},

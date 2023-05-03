@@ -2,11 +2,9 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from ...base import Base
 from ...globals import REPOSITORY_NAMES
-from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
-from .gateway import DataJointGateway
+from .gateway import DataJointGateway, DataJointGatewayLink
 from .identification import IdentificationTranslator
 from .presenter import Presenter, ViewModel
 
@@ -28,31 +26,6 @@ class AbstractTableFacadeLink(ABC):
     @abstractmethod
     def local(self) -> AbstractTableFacade:
         """Return the table facade corresponding to the local table."""
-
-
-class DataJointGatewayLink(GatewayLink, Base):
-    """Contains the three DataJoint gateways corresponding to the three table types."""
-
-    def __init__(self, source: DataJointGateway, outbound: DataJointGateway, local: DataJointGateway):
-        """Initialize the DataJoint gateway link."""
-        self._source = source
-        self._outbound = outbound
-        self._local = local
-
-    @property
-    def source(self) -> DataJointGateway:
-        """Return the source gateway."""
-        return self._source
-
-    @property
-    def outbound(self) -> DataJointGateway:
-        """Return the outbound gateway."""
-        return self._outbound
-
-    @property
-    def local(self) -> DataJointGateway:
-        """Return the local gateway."""
-        return self._local
 
 
 def initialize_adapters(
