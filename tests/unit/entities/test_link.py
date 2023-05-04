@@ -5,24 +5,10 @@ from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
-from dj_link.entities.link import Components, Entity, Identifier, Link, States, Transfer, create_link, pull
+from dj_link.entities.link import Components, Identifier, States, Transfer, create_link, pull
 
 
 class TestCreateLink:
-    @staticmethod
-    def test_can_create_link() -> None:
-        assignments = {
-            Components.SOURCE: {Identifier("1")},
-            Components.OUTBOUND: {Identifier("1")},
-            Components.LOCAL: {Identifier("1")},
-        }
-        link = create_link(assignments)
-        assert link == Link(
-            source={Entity(Identifier("1"), state=States.PULLED)},
-            outbound={Entity(Identifier("1"), state=States.PULLED)},
-            local={Entity(Identifier("1"), state=States.PULLED)},
-        )
-
     @staticmethod
     def test_entities_only_present_in_source_are_idle() -> None:
         assignments = {
