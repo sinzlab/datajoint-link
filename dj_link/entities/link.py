@@ -18,6 +18,13 @@ class Components(Enum):
 Identifier = NewType("Identifier", str)
 
 
+@dataclass(frozen=True)
+class Entity:
+    """An entity in a link."""
+
+    identifier: Identifier
+
+
 def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     """Create a new link instance."""
     return Link(
