@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext as does_not_raise
-from typing import ContextManager
+from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
@@ -18,36 +18,55 @@ def test_can_create_link() -> None:
     assert link == Link(source={Identifier("1")}, outbound={Identifier("1")}, local={Identifier("1")})
 
 
-class TestLink:
+class TestCreateLink:
     @staticmethod
     @pytest.mark.parametrize(
-        "source,outbound,local,expectation",
+        "assignments,expectation",
         [
-            (set(), {Identifier("1")}, {Identifier("1")}, pytest.raises(AssertionError)),
-            (set(), set(), set(), does_not_raise()),
-            ({Identifier("1")}, set(), set(), does_not_raise()),
+            (
+                {Components.SOURCE: set(), Components.OUTBOUND: {Identifier("1")}, Components.LOCAL: {Identifier("1")}},
+                pytest.raises(AssertionError),
+            ),
+            ({Components.SOURCE: set(), Components.OUTBOUND: set(), Components.LOCAL: set()}, does_not_raise()),
+            (
+                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
+                does_not_raise(),
+            ),
         ],
     )
     def test_outbound_identifiers_can_not_be_superset_of_source_identifiers(
-        source: set[Identifier], outbound: set[Identifier], local: set[Identifier], expectation: ContextManager[None]
+        assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            Link(source=source, outbound=outbound, local=local)
+            create_link(assignments)
 
     @staticmethod
     @pytest.mark.parametrize(
-        "source,outbound,local,expectation",
+        "assignments,expectation",
         [
-            ({Identifier("1")}, {Identifier("1")}, {Identifier("1")}, does_not_raise()),
-            ({Identifier("1")}, {Identifier("1")}, set(), pytest.raises(AssertionError)),
-            ({Identifier("1")}, set(), {Identifier("1")}, pytest.raises(AssertionError)),
+            (
+                {
+                    Components.SOURCE: {Identifier("1")},
+                    Components.OUTBOUND: {Identifier("1")},
+                    Components.LOCAL: {Identifier("1")},
+                },
+                does_not_raise(),
+            ),
+            (
+                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: {Identifier("1")}, Components.LOCAL: set()},
+                pytest.raises(AssertionError),
+            ),
+            (
+                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: {Identifier("1")}},
+                pytest.raises(AssertionError),
+            ),
         ],
     )
     def test_local_identifiers_must_be_identical_to_outbound_identifiers(
-        source: set[Identifier], outbound: set[Identifier], local: set[Identifier], expectation: ContextManager[None]
+        assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            Link(source=source, outbound=outbound, local=local)
+            create_link(assignments)
 
 
 class TestTransfer:
@@ -99,23 +118,43 @@ class TestTransfer:
 class TestPull:
     @staticmethod
     @pytest.mark.parametrize(
-        "source,requested,expectation",
+        "assignments,requested,expectation",
         [
-            ({Identifier("1")}, {Identifier("1"), Identifier("2")}, pytest.raises(AssertionError)),
-            ({Identifier("1")}, {Identifier("1")}, does_not_raise()),
-            ({Identifier("1"), Identifier("2")}, {Identifier("1")}, does_not_raise()),
+            (
+                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
+                {Identifier("1"), Identifier("2")},
+                pytest.raises(AssertionError),
+            ),
+            (
+                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
+                {Identifier("1")},
+                does_not_raise(),
+            ),
+            (
+                {
+                    Components.SOURCE: {Identifier("1"), Identifier("2")},
+                    Components.OUTBOUND: set(),
+                    Components.LOCAL: set(),
+                },
+                {Identifier("1")},
+                does_not_raise(),
+            ),
         ],
     )
     def test_requested_identifiers_can_not_be_superset_of_source_identifiers(
-        source: set[Identifier], requested: set[Identifier], expectation: ContextManager[None]
+        assignments: Mapping[Components, Iterable[Identifier]],
+        requested: set[Identifier],
+        expectation: ContextManager[None],
     ) -> None:
-        link = Link(source=source, outbound=set(), local=set())
+        link = create_link(assignments)
         with expectation:
             pull(link, requested=requested)
 
     @staticmethod
     def test_if_correct_transfer_specifications_are_returned() -> None:
-        link = Link(source={Identifier("1"), Identifier("2")}, outbound=set(), local=set())
+        link = create_link(
+            {Components.SOURCE: {Identifier("1"), Identifier("2")}, Components.OUTBOUND: set(), Components.LOCAL: set()}
+        )
         expected = {
             Transfer(Identifier("1"), Components.SOURCE, Components.OUTBOUND, identifier_only=True),
             Transfer(Identifier("1"), Components.SOURCE, Components.LOCAL, identifier_only=False),
