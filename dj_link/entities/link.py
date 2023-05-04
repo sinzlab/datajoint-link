@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from typing import NewType
+from typing import Mapping, NewType
 
 
 class Components(Enum):
@@ -16,6 +16,15 @@ class Components(Enum):
 
 
 Identifier = NewType("Identifier", str)
+
+
+def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
+    """Create a new link instance."""
+    return Link(
+        source=set(assignments[Components.SOURCE]),
+        outbound=set(assignments[Components.OUTBOUND]),
+        local=set(assignments[Components.LOCAL]),
+    )
 
 
 @dataclass(frozen=True)
