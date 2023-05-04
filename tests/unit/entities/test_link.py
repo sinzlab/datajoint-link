@@ -22,6 +22,10 @@ class TestCreateLink:
         )
 
     @staticmethod
+    def test_idle_entities_can_only_be_in_source() -> None:
+        pass
+
+    @staticmethod
     @pytest.mark.parametrize(
         "assignments,expectation",
         [

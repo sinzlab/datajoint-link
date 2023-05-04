@@ -15,6 +15,13 @@ class Components(Enum):
     LOCAL = 3
 
 
+class States(Enum):
+    """Names for the different states of an entity."""
+
+    IDLE = 1
+    PULLED = 2
+
+
 Identifier = NewType("Identifier", str)
 
 
