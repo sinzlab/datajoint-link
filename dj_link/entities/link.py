@@ -37,6 +37,13 @@ class Entity:
 
 def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     """Create a new link instance."""
+    assert set(assignments[Components.OUTBOUND]) <= set(
+        assignments[Components.SOURCE]
+    ), "Outbound must not be superset of source."
+    assert set(assignments[Components.LOCAL]) == set(
+        assignments[Components.OUTBOUND]
+    ), "Local and outbound must be identical."
+
     presence_map = {
         frozenset({Components.SOURCE}): States.IDLE,
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
@@ -45,11 +52,7 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     entities: list[Entity] = []
     for identifier in all_identifiers:
         presence = frozenset(component for component, identifiers in assignments.items() if identifier in identifiers)
-        try:
-            state = presence_map[presence]
-        except KeyError as error:
-            raise AssertionError from error
-        entities.append(Entity(identifier, state=state))
+        entities.append(Entity(identifier, state=presence_map[presence]))
     component_entities_map: Mapping[Components, set[Entity]] = defaultdict(set)
     for entity in entities:
         for component in Components:
@@ -69,11 +72,6 @@ class Link:
     source: set[Entity]
     outbound: set[Entity]
     local: set[Entity]
-
-    def __post_init__(self) -> None:
-        """Validate the created link."""
-        assert self.outbound <= self.source, "Outbound must not be superset of source."
-        assert self.local == self.outbound, "Local and outbound must be identical."
 
 
 @dataclass(frozen=True)
