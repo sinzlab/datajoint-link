@@ -8,17 +8,17 @@ import pytest
 from dj_link.entities.link import Components, Identifier, Link, Transfer, create_link, pull
 
 
-def test_can_create_link() -> None:
-    assignments = {
-        Components.SOURCE: {Identifier("1")},
-        Components.OUTBOUND: {Identifier("1")},
-        Components.LOCAL: {Identifier("1")},
-    }
-    link = create_link(assignments)
-    assert link == Link(source={Identifier("1")}, outbound={Identifier("1")}, local={Identifier("1")})
-
-
 class TestCreateLink:
+    @staticmethod
+    def test_can_create_link() -> None:
+        assignments = {
+            Components.SOURCE: {Identifier("1")},
+            Components.OUTBOUND: {Identifier("1")},
+            Components.LOCAL: {Identifier("1")},
+        }
+        link = create_link(assignments)
+        assert link == Link(source={Identifier("1")}, outbound={Identifier("1")}, local={Identifier("1")})
+
     @staticmethod
     @pytest.mark.parametrize(
         "assignments,expectation",
