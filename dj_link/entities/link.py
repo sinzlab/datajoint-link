@@ -28,9 +28,9 @@ class Entity:
 def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     """Create a new link instance."""
     return Link(
-        source=set(assignments[Components.SOURCE]),
-        outbound=set(assignments[Components.OUTBOUND]),
-        local=set(assignments[Components.LOCAL]),
+        source={Entity(i) for i in assignments[Components.SOURCE]},
+        outbound={Entity(i) for i in assignments[Components.OUTBOUND]},
+        local={Entity(i) for i in assignments[Components.LOCAL]},
     )
 
 
@@ -38,9 +38,9 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
 class Link:
     """The state of a link between two databases."""
 
-    source: set[Identifier]
-    outbound: set[Identifier]
-    local: set[Identifier]
+    source: set[Entity]
+    outbound: set[Entity]
+    local: set[Entity]
 
     def __post_init__(self) -> None:
         """Validate the created link."""
@@ -73,9 +73,9 @@ def pull(
     requested: Iterable[Identifier],
 ) -> set[Transfer]:
     """Create the transfer specifications needed for pulling the requested identifiers."""
-    assert set(requested) <= link.source, "Requested must not be superset of source."
-    outbound_destined = set(requested) - link.outbound
-    local_destined = set(requested) - link.local
+    assert set(requested) <= {entity.identifier for entity in link.source}, "Requested must not be superset of source."
+    outbound_destined = set(requested) - {entity.identifier for entity in link.outbound}
+    local_destined = set(requested) - {entity.identifier for entity in link.local}
     outbound_transfers = {
         Transfer(i, origin=Components.SOURCE, destination=Components.OUTBOUND, identifier_only=True)
         for i in outbound_destined
