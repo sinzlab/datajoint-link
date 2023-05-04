@@ -34,6 +34,16 @@ class TestCreateLink:
         assert {entity.identifier for entity in link.source if entity.state is States.IDLE} == {Identifier("2")}
 
     @staticmethod
+    def test_entities_present_in_all_components_are_pulled() -> None:
+        assignments = {
+            Components.SOURCE: {Identifier("1"), Identifier("2")},
+            Components.OUTBOUND: {Identifier("1")},
+            Components.LOCAL: {Identifier("1")},
+        }
+        link = create_link(assignments)
+        assert {entity.identifier for entity in link.source if entity.state is States.PULLED} == {Identifier("1")}
+
+    @staticmethod
     @pytest.mark.parametrize(
         "assignments,expectation",
         [
