@@ -30,14 +30,15 @@ class Entity:
     """An entity in a link."""
 
     identifier: Identifier
+    state: States
 
 
 def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     """Create a new link instance."""
     return Link(
-        source={Entity(i) for i in assignments[Components.SOURCE]},
-        outbound={Entity(i) for i in assignments[Components.OUTBOUND]},
-        local={Entity(i) for i in assignments[Components.LOCAL]},
+        source={Entity(i, state=States.IDLE) for i in assignments[Components.SOURCE]},
+        outbound={Entity(i, state=States.IDLE) for i in assignments[Components.OUTBOUND]},
+        local={Entity(i, state=States.IDLE) for i in assignments[Components.LOCAL]},
     )
 
 

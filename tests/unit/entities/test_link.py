@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
-from dj_link.entities.link import Components, Entity, Identifier, Link, Transfer, create_link, pull
+from dj_link.entities.link import Components, Entity, Identifier, Link, States, Transfer, create_link, pull
 
 
 class TestCreateLink:
@@ -18,7 +18,9 @@ class TestCreateLink:
         }
         link = create_link(assignments)
         assert link == Link(
-            source={Entity(Identifier("1"))}, outbound={Entity(Identifier("1"))}, local={Entity(Identifier("1"))}
+            source={Entity(Identifier("1"), state=States.IDLE)},
+            outbound={Entity(Identifier("1"), state=States.IDLE)},
+            local={Entity(Identifier("1"), state=States.IDLE)},
         )
 
     @staticmethod
