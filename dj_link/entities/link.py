@@ -1,7 +1,6 @@
 """Contains the link class."""
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
@@ -37,31 +36,43 @@ class Entity:
 
 def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     """Create a new link instance."""
-    assert set(assignments[Components.OUTBOUND]) <= set(
-        assignments[Components.SOURCE]
-    ), "Outbound must not be superset of source."
-    assert set(assignments[Components.LOCAL]) == set(
-        assignments[Components.OUTBOUND]
-    ), "Local and outbound must be identical."
 
-    presence_map = {
-        frozenset({Components.SOURCE}): States.IDLE,
-        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
-    }
-    all_identifiers = reduce(lambda x, y: set(x) | set(y), assignments.values())
-    entities: list[Entity] = []
-    for identifier in all_identifiers:
-        presence = frozenset(component for component, identifiers in assignments.items() if identifier in identifiers)
-        entities.append(Entity(identifier, state=presence_map[presence]))
-    component_entities_map: Mapping[Components, set[Entity]] = defaultdict(set)
-    for entity in entities:
-        for component in Components:
-            if entity.identifier in assignments[component]:
-                component_entities_map[component].add(entity)
+    def validate_assignments(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
+        assert set(assignments[Components.OUTBOUND]) <= set(
+            assignments[Components.SOURCE]
+        ), "Outbound must not be superset of source."
+        assert set(assignments[Components.LOCAL]) == set(
+            assignments[Components.OUTBOUND]
+        ), "Local and outbound must be identical."
+
+    def create_entities(assignments: Mapping[Components, Iterable[Identifier]]) -> set[Entity]:
+        def create_identifier_union(assignments: Mapping[Components, Iterable[Identifier]]) -> Iterable[Identifier]:
+            return reduce(lambda x, y: set(x) | set(y), assignments.values())
+
+        def create_entity(identifier: Identifier) -> Entity:
+            presence = frozenset(
+                component for component, identifiers in assignments.items() if identifier in identifiers
+            )
+            return Entity(identifier, state=presence_map[presence])
+
+        presence_map = {
+            frozenset({Components.SOURCE}): States.IDLE,
+            frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
+        }
+        return {create_entity(identifier) for identifier in create_identifier_union(assignments)}
+
+    def assign_entities(entities: Iterable[Entity]) -> dict[Components, set[Entity]]:
+        def assign_to_component(component: Components) -> set[Entity]:
+            return {entity for entity in entities if entity.identifier in assignments[component]}
+
+        return {component: assign_to_component(component) for component in Components}
+
+    validate_assignments(assignments)
+    entity_assignments = assign_entities(create_entities(assignments))
     return Link(
-        source=component_entities_map[Components.SOURCE],
-        outbound=component_entities_map[Components.OUTBOUND],
-        local=component_entities_map[Components.LOCAL],
+        source=entity_assignments[Components.SOURCE],
+        outbound=entity_assignments[Components.OUTBOUND],
+        local=entity_assignments[Components.LOCAL],
     )
 
 
