@@ -18,14 +18,20 @@ class TestCreateLink:
         }
         link = create_link(assignments)
         assert link == Link(
-            source={Entity(Identifier("1"), state=States.IDLE)},
-            outbound={Entity(Identifier("1"), state=States.IDLE)},
-            local={Entity(Identifier("1"), state=States.IDLE)},
+            source={Entity(Identifier("1"), state=States.PULLED)},
+            outbound={Entity(Identifier("1"), state=States.PULLED)},
+            local={Entity(Identifier("1"), state=States.PULLED)},
         )
 
     @staticmethod
-    def test_idle_entities_can_only_be_in_source() -> None:
-        pass
+    def test_entities_only_present_in_source_are_idle() -> None:
+        assignments = {
+            Components.SOURCE: {Identifier("1"), Identifier("2")},
+            Components.OUTBOUND: {Identifier("1")},
+            Components.LOCAL: {Identifier("1")},
+        }
+        link = create_link(assignments)
+        assert {entity.identifier for entity in link.source if entity.state is States.IDLE} == {Identifier("2")}
 
     @staticmethod
     @pytest.mark.parametrize(

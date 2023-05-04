@@ -1,9 +1,11 @@
 """Contains the link class."""
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
+from functools import reduce
 from typing import Mapping, NewType
 
 
@@ -35,10 +37,28 @@ class Entity:
 
 def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     """Create a new link instance."""
+    presence_map = {
+        frozenset({Components.SOURCE}): States.IDLE,
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
+    }
+    all_identifiers = reduce(lambda x, y: set(x) | set(y), assignments.values())
+    entities: list[Entity] = []
+    for identifier in all_identifiers:
+        presence = frozenset(component for component, identifiers in assignments.items() if identifier in identifiers)
+        try:
+            state = presence_map[presence]
+        except KeyError as error:
+            raise AssertionError from error
+        entities.append(Entity(identifier, state=state))
+    component_entities_map: Mapping[Components, set[Entity]] = defaultdict(set)
+    for entity in entities:
+        for component in Components:
+            if entity.identifier in assignments[component]:
+                component_entities_map[component].add(entity)
     return Link(
-        source={Entity(i, state=States.IDLE) for i in assignments[Components.SOURCE]},
-        outbound={Entity(i, state=States.IDLE) for i in assignments[Components.OUTBOUND]},
-        local={Entity(i, state=States.IDLE) for i in assignments[Components.LOCAL]},
+        source=component_entities_map[Components.SOURCE],
+        outbound=component_entities_map[Components.OUTBOUND],
+        local=component_entities_map[Components.LOCAL],
     )
 
 
