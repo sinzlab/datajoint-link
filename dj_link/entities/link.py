@@ -70,9 +70,9 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     validate_assignments(assignments)
     entity_assignments = assign_entities(create_entities(assignments))
     return Link(
-        source=entity_assignments[Components.SOURCE],
-        outbound=entity_assignments[Components.OUTBOUND],
-        local=entity_assignments[Components.LOCAL],
+        source=frozenset(entity_assignments[Components.SOURCE]),
+        outbound=frozenset(entity_assignments[Components.OUTBOUND]),
+        local=frozenset(entity_assignments[Components.LOCAL]),
     )
 
 
@@ -80,9 +80,9 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
 class Link:
     """The state of a link between two databases."""
 
-    source: set[Entity]
-    outbound: set[Entity]
-    local: set[Entity]
+    source: frozenset[Entity]
+    outbound: frozenset[Entity]
+    local: frozenset[Entity]
 
 
 @dataclass(frozen=True)
