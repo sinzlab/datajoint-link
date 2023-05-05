@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
-from dj_link.entities.link import Component, Components, Entity, Identifier, States, Transfer, create_link, pull
+from dj_link.entities.link import Components, Entity, Identifier, States, Transfer, create_link, pull
 
 
 class TestCreateLink:
@@ -91,9 +91,10 @@ class TestLink:
             Components.LOCAL: {Identifier("1")},
         }
         link = create_link(assignments)
-        assert link[Components.SOURCE] == Component(
-            {Entity(Identifier("1"), state=States.PULLED), Entity(Identifier("2"), state=States.IDLE)}
-        )
+        assert set(link[Components.SOURCE]) == {
+            Entity(Identifier("1"), state=States.PULLED),
+            Entity(Identifier("2"), state=States.IDLE),
+        }
 
     @staticmethod
     def test_can_get_identifiers_of_entities_in_component() -> None:
@@ -103,7 +104,7 @@ class TestLink:
             Components.LOCAL: {Identifier("1")},
         }
         link = create_link(assignments)
-        assert link[Components.SOURCE].identifiers == frozenset({Identifier("1"), Identifier("2")})
+        assert set(link[Components.SOURCE].identifiers) == {Identifier("1"), Identifier("2")}
 
 
 class TestTransfer:
