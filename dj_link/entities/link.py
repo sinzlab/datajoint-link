@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import Mapping, NewType
+from typing import FrozenSet, Mapping, NewType
 
 
 class Components(Enum):
@@ -70,9 +70,9 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
     validate_assignments(assignments)
     entity_assignments = assign_entities(create_entities(assignments))
     return Link(
-        source=frozenset(entity_assignments[Components.SOURCE]),
-        outbound=frozenset(entity_assignments[Components.OUTBOUND]),
-        local=frozenset(entity_assignments[Components.LOCAL]),
+        source=Component(entity_assignments[Components.SOURCE]),
+        outbound=Component(entity_assignments[Components.OUTBOUND]),
+        local=Component(entity_assignments[Components.LOCAL]),
     )
 
 
@@ -80,9 +80,27 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
 class Link:
     """The state of a link between two databases."""
 
-    source: frozenset[Entity]
-    outbound: frozenset[Entity]
-    local: frozenset[Entity]
+    source: Component
+    outbound: Component
+    local: Component
+
+    def __getitem__(self, component: Components) -> Component:
+        """Return the entities in the given component."""
+        component_map = {
+            Components.SOURCE: self.source,
+            Components.OUTBOUND: self.outbound,
+            Components.LOCAL: self.local,
+        }
+        return component_map[component]
+
+
+class Component(FrozenSet[Entity]):
+    """Contains all entities present in a component."""
+
+    @property
+    def identifiers(self) -> frozenset[Identifier]:
+        """Return all identifiers of entities in the component."""
+        return frozenset(entity.identifier for entity in self)
 
 
 @dataclass(frozen=True)
@@ -110,12 +128,12 @@ def pull(
     requested: Iterable[Identifier],
 ) -> set[Transfer]:
     """Create the transfer specifications needed for pulling the requested identifiers."""
-    assert set(requested) <= {entity.identifier for entity in link.source}, "Requested must not be superset of source."
+    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested must not be superset of source."
     assert all(
-        entity.state is States.IDLE for entity in link.source if entity.identifier in set(requested)
+        entity.state is States.IDLE for entity in link[Components.SOURCE] if entity.identifier in set(requested)
     ), "Requested entities must be idle."
-    outbound_destined = set(requested) - {entity.identifier for entity in link.outbound}
-    local_destined = set(requested) - {entity.identifier for entity in link.local}
+    outbound_destined = set(requested) - link[Components.OUTBOUND].identifiers
+    local_destined = set(requested) - link[Components.LOCAL].identifiers
     outbound_transfers = {
         Transfer(i, origin=Components.SOURCE, destination=Components.OUTBOUND, identifier_only=True)
         for i in outbound_destined
