@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Set
 
-from ..entities.link import Identifier, Link, pull
+from ..entities.link import Components, Identifier, create_link, pull
 from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
@@ -54,10 +54,12 @@ class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pyli
     def execute(self, repo_link: RepositoryLink, request_model: PullRequestModel) -> PullResponseModel:
         """Pull the entities specified by the provided identifiers if they were not already pulled."""
         valid_identifiers = {Identifier(i) for i in request_model.identifiers if i not in self.gateway_link.outbound}
-        link = Link(
-            source={Identifier(i) for i in self.gateway_link.source},
-            outbound={Identifier(i) for i in self.gateway_link.outbound},
-            local={Identifier(i) for i in self.gateway_link.local},
+        link = create_link(
+            {
+                Components.SOURCE: {Identifier(i) for i in self.gateway_link.source},
+                Components.OUTBOUND: {Identifier(i) for i in self.gateway_link.outbound},
+                Components.LOCAL: {Identifier(i) for i in self.gateway_link.local},
+            },
         )
         transfers = pull(link, requested=valid_identifiers)
         for transfer in transfers:
