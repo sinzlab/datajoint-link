@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
-from dj_link.entities.link import Components, Entity, Identifier, States, Transfer, create_link, pull
+from dj_link.entities.link import Component, Components, Entity, Identifier, States, Transfer, create_link, pull
 
 
 class TestCreateLink:
@@ -30,7 +30,7 @@ class TestCreateLink:
         assignments: Mapping[Components, Iterable[Identifier]], state: States, expected: Iterable[Identifier]
     ) -> None:
         link = create_link(assignments)
-        assert {entity.identifier for entity in link.source if entity.state is state} == set(expected)
+        assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -89,9 +89,19 @@ def test_can_get_entities_in_component() -> None:
         Components.LOCAL: {Identifier("1")},
     }
     link = create_link(assignments)
-    assert link[Components.SOURCE] == frozenset(
+    assert link[Components.SOURCE] == Component(
         {Entity(Identifier("1"), state=States.PULLED), Entity(Identifier("2"), state=States.IDLE)}
     )
+
+
+def test_can_get_identifiers_of_entities_in_component() -> None:
+    assignments = {
+        Components.SOURCE: {Identifier("1"), Identifier("2")},
+        Components.OUTBOUND: {Identifier("1")},
+        Components.LOCAL: {Identifier("1")},
+    }
+    link = create_link(assignments)
+    assert link[Components.SOURCE].identifiers == frozenset({Identifier("1"), Identifier("2")})
 
 
 class TestTransfer:
