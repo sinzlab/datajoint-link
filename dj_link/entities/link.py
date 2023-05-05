@@ -84,6 +84,15 @@ class Link:
     outbound: frozenset[Entity]
     local: frozenset[Entity]
 
+    def __getitem__(self, component: Components) -> frozenset[Entity]:
+        """Return the entities in the given component."""
+        component_map = {
+            Components.SOURCE: self.source,
+            Components.OUTBOUND: self.outbound,
+            Components.LOCAL: self.local,
+        }
+        return component_map[component]
+
 
 @dataclass(frozen=True)
 class Transfer:

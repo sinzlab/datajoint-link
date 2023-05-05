@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
-from dj_link.entities.link import Components, Identifier, States, Transfer, create_link, pull
+from dj_link.entities.link import Components, Entity, Identifier, States, Transfer, create_link, pull
 
 
 class TestCreateLink:
@@ -80,6 +80,18 @@ class TestCreateLink:
     ) -> None:
         with expectation:
             create_link(assignments)
+
+
+def test_can_get_entities_in_component() -> None:
+    assignments = {
+        Components.SOURCE: {Identifier("1"), Identifier("2")},
+        Components.OUTBOUND: {Identifier("1")},
+        Components.LOCAL: {Identifier("1")},
+    }
+    link = create_link(assignments)
+    assert link[Components.SOURCE] == frozenset(
+        {Entity(Identifier("1"), state=States.PULLED), Entity(Identifier("2"), state=States.IDLE)}
+    )
 
 
 class TestTransfer:
