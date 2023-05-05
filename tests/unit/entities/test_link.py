@@ -84,12 +84,16 @@ class TestCreateLink:
 
 class TestLink:
     @staticmethod
-    def test_can_get_entities_in_component() -> None:
-        assignments = {
+    @pytest.fixture
+    def assignments() -> dict[Components, set[Identifier]]:
+        return {
             Components.SOURCE: {Identifier("1"), Identifier("2")},
             Components.OUTBOUND: {Identifier("1")},
             Components.LOCAL: {Identifier("1")},
         }
+
+    @staticmethod
+    def test_can_get_entities_in_component(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
         link = create_link(assignments)
         assert set(link[Components.SOURCE]) == {
             Entity(Identifier("1"), state=States.PULLED),
@@ -97,12 +101,9 @@ class TestLink:
         }
 
     @staticmethod
-    def test_can_get_identifiers_of_entities_in_component() -> None:
-        assignments = {
-            Components.SOURCE: {Identifier("1"), Identifier("2")},
-            Components.OUTBOUND: {Identifier("1")},
-            Components.LOCAL: {Identifier("1")},
-        }
+    def test_can_get_identifiers_of_entities_in_component(
+        assignments: Mapping[Components, Iterable[Identifier]]
+    ) -> None:
         link = create_link(assignments)
         assert set(link[Components.SOURCE].identifiers) == {Identifier("1"), Identifier("2")}
 
