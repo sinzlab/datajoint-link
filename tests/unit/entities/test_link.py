@@ -10,24 +10,27 @@ from dj_link.entities.link import Components, Identifier, States, Transfer, crea
 
 class TestCreateLink:
     @staticmethod
-    def test_entities_only_present_in_source_are_idle() -> None:
-        assignments = {
+    @pytest.fixture
+    def assignments() -> dict[Components, set[Identifier]]:
+        return {
             Components.SOURCE: {Identifier("1"), Identifier("2")},
             Components.OUTBOUND: {Identifier("1")},
             Components.LOCAL: {Identifier("1")},
         }
-        link = create_link(assignments)
-        assert {entity.identifier for entity in link.source if entity.state is States.IDLE} == {Identifier("2")}
 
     @staticmethod
-    def test_entities_present_in_all_components_are_pulled() -> None:
-        assignments = {
-            Components.SOURCE: {Identifier("1"), Identifier("2")},
-            Components.OUTBOUND: {Identifier("1")},
-            Components.LOCAL: {Identifier("1")},
-        }
+    @pytest.mark.parametrize(
+        "state,expected",
+        [
+            (States.IDLE, {Identifier("2")}),
+            (States.PULLED, {Identifier("1")}),
+        ],
+    )
+    def test_entities_get_correct_state_assigned(
+        assignments: Mapping[Components, Iterable[Identifier]], state: States, expected: Iterable[Identifier]
+    ) -> None:
         link = create_link(assignments)
-        assert {entity.identifier for entity in link.source if entity.state is States.PULLED} == {Identifier("1")}
+        assert {entity.identifier for entity in link.source if entity.state is state} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(
