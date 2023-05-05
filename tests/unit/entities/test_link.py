@@ -82,26 +82,28 @@ class TestCreateLink:
             create_link(assignments)
 
 
-def test_can_get_entities_in_component() -> None:
-    assignments = {
-        Components.SOURCE: {Identifier("1"), Identifier("2")},
-        Components.OUTBOUND: {Identifier("1")},
-        Components.LOCAL: {Identifier("1")},
-    }
-    link = create_link(assignments)
-    assert link[Components.SOURCE] == Component(
-        {Entity(Identifier("1"), state=States.PULLED), Entity(Identifier("2"), state=States.IDLE)}
-    )
+class TestLink:
+    @staticmethod
+    def test_can_get_entities_in_component() -> None:
+        assignments = {
+            Components.SOURCE: {Identifier("1"), Identifier("2")},
+            Components.OUTBOUND: {Identifier("1")},
+            Components.LOCAL: {Identifier("1")},
+        }
+        link = create_link(assignments)
+        assert link[Components.SOURCE] == Component(
+            {Entity(Identifier("1"), state=States.PULLED), Entity(Identifier("2"), state=States.IDLE)}
+        )
 
-
-def test_can_get_identifiers_of_entities_in_component() -> None:
-    assignments = {
-        Components.SOURCE: {Identifier("1"), Identifier("2")},
-        Components.OUTBOUND: {Identifier("1")},
-        Components.LOCAL: {Identifier("1")},
-    }
-    link = create_link(assignments)
-    assert link[Components.SOURCE].identifiers == frozenset({Identifier("1"), Identifier("2")})
+    @staticmethod
+    def test_can_get_identifiers_of_entities_in_component() -> None:
+        assignments = {
+            Components.SOURCE: {Identifier("1"), Identifier("2")},
+            Components.OUTBOUND: {Identifier("1")},
+            Components.LOCAL: {Identifier("1")},
+        }
+        link = create_link(assignments)
+        assert link[Components.SOURCE].identifiers == frozenset({Identifier("1"), Identifier("2")})
 
 
 class TestTransfer:
