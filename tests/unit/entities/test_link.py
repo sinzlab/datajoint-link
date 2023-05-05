@@ -164,6 +164,35 @@ class TestPull:
             pull(link, requested=requested)
 
     @staticmethod
+    @pytest.mark.parametrize(
+        "assignments,requested,expectation",
+        [
+            (
+                {
+                    Components.SOURCE: {Identifier("1")},
+                    Components.OUTBOUND: {Identifier("1")},
+                    Components.LOCAL: {Identifier("1")},
+                },
+                {Identifier("1")},
+                pytest.raises(AssertionError),
+            ),
+            (
+                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
+                {Identifier("1")},
+                does_not_raise(),
+            ),
+        ],
+    )
+    def test_can_not_pull_already_pulled_entities(
+        assignments: Mapping[Components, Iterable[Identifier]],
+        requested: Iterable[Identifier],
+        expectation: ContextManager[None],
+    ) -> None:
+        link = create_link(assignments)
+        with expectation:
+            pull(link, requested=requested)
+
+    @staticmethod
     def test_if_correct_transfer_specifications_are_returned() -> None:
         link = create_link(
             {Components.SOURCE: {Identifier("1"), Identifier("2")}, Components.OUTBOUND: set(), Components.LOCAL: set()}

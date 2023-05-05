@@ -100,6 +100,9 @@ def pull(
 ) -> set[Transfer]:
     """Create the transfer specifications needed for pulling the requested identifiers."""
     assert set(requested) <= {entity.identifier for entity in link.source}, "Requested must not be superset of source."
+    assert all(
+        entity.state is States.IDLE for entity in link.source if entity.identifier in set(requested)
+    ), "Requested entities must be idle."
     outbound_destined = set(requested) - {entity.identifier for entity in link.outbound}
     local_destined = set(requested) - {entity.identifier for entity in link.local}
     outbound_transfers = {
