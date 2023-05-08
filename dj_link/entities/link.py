@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import FrozenSet, Mapping, NewType
+from typing import FrozenSet, Mapping, NewType, Optional
 
 
 class Components(Enum):
@@ -21,6 +21,7 @@ class States(Enum):
 
     IDLE = 1
     PULLED = 2
+    TAINTED = 3
 
 
 Identifier = NewType("Identifier", str)
@@ -34,7 +35,9 @@ class Entity:
     state: States
 
 
-def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
+def create_link(
+    assignments: Mapping[Components, Iterable[Identifier]], *, tainted: Optional[Iterable[Identifier]] = None
+) -> Link:
     """Create a new link instance."""
 
     def validate_assignments(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
@@ -45,11 +48,15 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
             assignments[Components.OUTBOUND]
         ), "Local and outbound must be identical."
 
-    def create_entities(assignments: Mapping[Components, Iterable[Identifier]]) -> set[Entity]:
+    def create_entities(
+        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+    ) -> set[Entity]:
         def create_identifier_union(assignments: Mapping[Components, Iterable[Identifier]]) -> Iterable[Identifier]:
             return reduce(lambda x, y: set(x) | set(y), assignments.values())
 
         def create_entity(identifier: Identifier) -> Entity:
+            if identifier in tainted:
+                return Entity(identifier, state=States.TAINTED)
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
@@ -68,7 +75,9 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
         return {component: assign_to_component(component) for component in Components}
 
     validate_assignments(assignments)
-    entity_assignments = assign_entities(create_entities(assignments))
+    if tainted is None:
+        tainted = set()
+    entity_assignments = assign_entities(create_entities(assignments, tainted))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),

@@ -27,6 +27,18 @@ class TestCreateLink:
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
     @staticmethod
+    def test_tainted_entities_get_correct_state_assigned() -> None:
+        assignments = {
+            Components.SOURCE: {Identifier("1"), Identifier("2"), Identifier("3")},
+            Components.OUTBOUND: {Identifier("1"), Identifier("3")},
+            Components.LOCAL: {Identifier("1"), Identifier("3")},
+        }
+        link = create_link(assignments, tainted={Identifier("3")})
+        assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is States.TAINTED} == {
+            Identifier("3")
+        }
+
+    @staticmethod
     @pytest.mark.parametrize(
         "assignments,expectation",
         [
