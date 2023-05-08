@@ -40,13 +40,16 @@ def create_link(
 ) -> Link:
     """Create a new link instance."""
 
-    def validate_assignments(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
+    def validate_assignments(
+        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+    ) -> None:
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
         ), "Outbound must not be superset of source."
         assert set(assignments[Components.LOCAL]) == set(
             assignments[Components.OUTBOUND]
         ), "Local and outbound must be identical."
+        assert set(tainted) <= set(assignments[Components.SOURCE])
 
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
@@ -76,9 +79,9 @@ def create_link(
 
         return {component: assign_to_component(component) for component in Components}
 
-    validate_assignments(assignments)
     if tainted is None:
         tainted = set()
+    validate_assignments(assignments, tainted)
     entity_assignments = assign_entities(create_entities(assignments, tainted))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),

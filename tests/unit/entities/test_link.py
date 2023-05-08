@@ -67,6 +67,38 @@ class TestCreateLink:
         "assignments,expectation",
         [
             (
+                {Components.SOURCE: set(), Components.OUTBOUND: set(), Components.LOCAL: set()},
+                pytest.raises(AssertionError),
+            ),
+            (
+                {
+                    Components.SOURCE: {Identifier("1")},
+                    Components.OUTBOUND: {Identifier("1")},
+                    Components.LOCAL: {Identifier("1")},
+                },
+                does_not_raise(),
+            ),
+            (
+                {
+                    Components.SOURCE: {Identifier("1"), Identifier("2")},
+                    Components.OUTBOUND: {Identifier("1"), Identifier("2")},
+                    Components.LOCAL: {Identifier("1"), Identifier("2")},
+                },
+                does_not_raise(),
+            ),
+        ],
+    )
+    def test_tainted_identifiers_can_not_be_superset_of_source_identifiers(
+        assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
+    ) -> None:
+        with expectation:
+            create_link(assignments, tainted={Identifier("1")})
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "assignments,expectation",
+        [
+            (
                 {Components.SOURCE: set(), Components.OUTBOUND: {Identifier("1")}, Components.LOCAL: {Identifier("1")}},
                 pytest.raises(AssertionError),
             ),
