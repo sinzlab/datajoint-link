@@ -37,11 +37,9 @@ class TestCreateLink:
     def test_entities_get_correct_state_assigned(
         tainted: Iterable[Identifier], state: States, expected: Iterable[Identifier]
     ) -> None:
-        assignments = {
-            Components.SOURCE: {Identifier("1"), Identifier("2")},
-            Components.OUTBOUND: {Identifier("1")},
-            Components.LOCAL: {Identifier("1")},
-        }
+        assignments = create_assignments(
+            {Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}
+        )
         link = create_link(assignments, tainted=tainted)
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
@@ -49,16 +47,9 @@ class TestCreateLink:
     @pytest.mark.parametrize(
         "assignments,expectation",
         [
+            (create_assignments({Components.SOURCE: {"1"}}), pytest.raises(AssertionError)),
             (
-                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
-                pytest.raises(AssertionError),
-            ),
-            (
-                {
-                    Components.SOURCE: {Identifier("1")},
-                    Components.OUTBOUND: {Identifier("1")},
-                    Components.LOCAL: {Identifier("1")},
-                },
+                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
                 does_not_raise(),
             ),
         ],
@@ -73,24 +64,15 @@ class TestCreateLink:
     @pytest.mark.parametrize(
         "assignments,expectation",
         [
+            (create_assignments(), pytest.raises(AssertionError)),
             (
-                {Components.SOURCE: set(), Components.OUTBOUND: set(), Components.LOCAL: set()},
-                pytest.raises(AssertionError),
-            ),
-            (
-                {
-                    Components.SOURCE: {Identifier("1")},
-                    Components.OUTBOUND: {Identifier("1")},
-                    Components.LOCAL: {Identifier("1")},
-                },
+                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
                 does_not_raise(),
             ),
             (
-                {
-                    Components.SOURCE: {Identifier("1"), Identifier("2")},
-                    Components.OUTBOUND: {Identifier("1"), Identifier("2")},
-                    Components.LOCAL: {Identifier("1"), Identifier("2")},
-                },
+                create_assignments(
+                    {Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"1", "2"}, Components.LOCAL: {"1", "2"}}
+                ),
                 does_not_raise(),
             ),
         ],
@@ -105,15 +87,9 @@ class TestCreateLink:
     @pytest.mark.parametrize(
         "assignments,expectation",
         [
-            (
-                {Components.SOURCE: set(), Components.OUTBOUND: {Identifier("1")}, Components.LOCAL: {Identifier("1")}},
-                pytest.raises(AssertionError),
-            ),
-            ({Components.SOURCE: set(), Components.OUTBOUND: set(), Components.LOCAL: set()}, does_not_raise()),
-            (
-                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
-                does_not_raise(),
-            ),
+            (create_assignments({Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
+            (create_assignments(), does_not_raise()),
+            (create_assignments({Components.SOURCE: {"1"}}), does_not_raise()),
         ],
     )
     def test_outbound_identifiers_can_not_be_superset_of_source_identifiers(
@@ -127,21 +103,11 @@ class TestCreateLink:
         "assignments,expectation",
         [
             (
-                {
-                    Components.SOURCE: {Identifier("1")},
-                    Components.OUTBOUND: {Identifier("1")},
-                    Components.LOCAL: {Identifier("1")},
-                },
+                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
                 does_not_raise(),
             ),
-            (
-                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: {Identifier("1")}, Components.LOCAL: set()},
-                pytest.raises(AssertionError),
-            ),
-            (
-                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: {Identifier("1")}},
-                pytest.raises(AssertionError),
-            ),
+            (create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}), pytest.raises(AssertionError)),
+            (create_assignments({Components.SOURCE: {"1"}, Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
         ],
     )
     def test_local_identifiers_must_be_identical_to_outbound_identifiers(
@@ -155,11 +121,7 @@ class TestLink:
     @staticmethod
     @pytest.fixture
     def assignments() -> dict[Components, set[Identifier]]:
-        return {
-            Components.SOURCE: {Identifier("1"), Identifier("2")},
-            Components.OUTBOUND: {Identifier("1")},
-            Components.LOCAL: {Identifier("1")},
-        }
+        return create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
 
     @staticmethod
     def test_can_get_entities_in_component(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
@@ -229,24 +191,12 @@ class TestPull:
         "assignments,requested,expectation",
         [
             (
-                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
+                create_assignments({Components.SOURCE: {"1"}}),
                 {Identifier("1"), Identifier("2")},
                 pytest.raises(AssertionError),
             ),
-            (
-                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
-                {Identifier("1")},
-                does_not_raise(),
-            ),
-            (
-                {
-                    Components.SOURCE: {Identifier("1"), Identifier("2")},
-                    Components.OUTBOUND: set(),
-                    Components.LOCAL: set(),
-                },
-                {Identifier("1")},
-                does_not_raise(),
-            ),
+            (create_assignments({Components.SOURCE: {Identifier("1")}}), {Identifier("1")}, does_not_raise()),
+            (create_assignments({Components.SOURCE: {"1", "2"}}), {Identifier("1")}, does_not_raise()),
         ],
     )
     def test_requested_identifiers_can_not_be_superset_of_source_identifiers(
@@ -263,19 +213,11 @@ class TestPull:
         "assignments,requested,expectation",
         [
             (
-                {
-                    Components.SOURCE: {Identifier("1")},
-                    Components.OUTBOUND: {Identifier("1")},
-                    Components.LOCAL: {Identifier("1")},
-                },
+                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
                 {Identifier("1")},
                 pytest.raises(AssertionError),
             ),
-            (
-                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
-                {Identifier("1")},
-                does_not_raise(),
-            ),
+            (create_assignments({Components.SOURCE: {"1"}}), {Identifier("1")}, does_not_raise()),
         ],
     )
     def test_can_not_pull_already_pulled_entities(
@@ -289,9 +231,7 @@ class TestPull:
 
     @staticmethod
     def test_if_correct_transfer_specifications_are_returned() -> None:
-        link = create_link(
-            {Components.SOURCE: {Identifier("1"), Identifier("2")}, Components.OUTBOUND: set(), Components.LOCAL: set()}
-        )
+        link = create_link(create_assignments({Components.SOURCE: {"1", "2"}}))
         expected = {
             Transfer(Identifier("1"), Components.SOURCE, Components.OUTBOUND, identifier_only=True),
             Transfer(Identifier("1"), Components.SOURCE, Components.LOCAL, identifier_only=False),
