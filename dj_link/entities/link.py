@@ -55,12 +55,14 @@ def create_link(
             return reduce(lambda x, y: set(x) | set(y), assignments.values())
 
         def create_entity(identifier: Identifier) -> Entity:
-            if identifier in tainted:
-                return Entity(identifier, state=States.TAINTED)
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
-            return Entity(identifier, state=presence_map[presence])
+            state = presence_map[presence]
+            if identifier in tainted:
+                assert state == States.PULLED, "Only pulled entities can be tainted."
+                return Entity(identifier, state=States.TAINTED)
+            return Entity(identifier, state=state)
 
         presence_map = {
             frozenset({Components.SOURCE}): States.IDLE,

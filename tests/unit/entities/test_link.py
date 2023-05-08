@@ -43,6 +43,30 @@ class TestCreateLink:
         "assignments,expectation",
         [
             (
+                {Components.SOURCE: {Identifier("1")}, Components.OUTBOUND: set(), Components.LOCAL: set()},
+                pytest.raises(AssertionError),
+            ),
+            (
+                {
+                    Components.SOURCE: {Identifier("1")},
+                    Components.OUTBOUND: {Identifier("1")},
+                    Components.LOCAL: {Identifier("1")},
+                },
+                does_not_raise(),
+            ),
+        ],
+    )
+    def test_only_pulled_entities_can_be_tainted(
+        assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
+    ) -> None:
+        with expectation:
+            create_link(assignments, tainted={Identifier("1")})
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "assignments,expectation",
+        [
+            (
                 {Components.SOURCE: set(), Components.OUTBOUND: {Identifier("1")}, Components.LOCAL: {Identifier("1")}},
                 pytest.raises(AssertionError),
             ),
