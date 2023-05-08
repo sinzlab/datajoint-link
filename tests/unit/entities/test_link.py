@@ -10,15 +10,6 @@ from dj_link.entities.link import Components, Entity, Identifier, States, Transf
 
 class TestCreateLink:
     @staticmethod
-    @pytest.fixture
-    def assignments() -> dict[Components, set[Identifier]]:
-        return {
-            Components.SOURCE: {Identifier("1"), Identifier("2")},
-            Components.OUTBOUND: {Identifier("1")},
-            Components.LOCAL: {Identifier("1")},
-        }
-
-    @staticmethod
     @pytest.mark.parametrize(
         "state,expected",
         [
@@ -26,9 +17,12 @@ class TestCreateLink:
             (States.PULLED, {Identifier("1")}),
         ],
     )
-    def test_entities_get_correct_state_assigned(
-        assignments: Mapping[Components, Iterable[Identifier]], state: States, expected: Iterable[Identifier]
-    ) -> None:
+    def test_entities_get_correct_state_assigned(state: States, expected: Iterable[Identifier]) -> None:
+        assignments = {
+            Components.SOURCE: {Identifier("1"), Identifier("2")},
+            Components.OUTBOUND: {Identifier("1")},
+            Components.LOCAL: {Identifier("1")},
+        }
         link = create_link(assignments)
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
