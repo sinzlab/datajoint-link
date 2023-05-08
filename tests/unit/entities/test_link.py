@@ -1,11 +1,27 @@
 from __future__ import annotations
 
 from contextlib import nullcontext as does_not_raise
-from typing import ContextManager, Iterable, Mapping
+from typing import ContextManager, Iterable, Mapping, Optional
 
 import pytest
 
 from dj_link.entities.link import Components, Entity, Identifier, States, Transfer, create_link, pull
+
+
+def create_assignments(
+    assignments: Optional[Mapping[Components, Iterable[str]]] = None
+) -> dict[Components, set[Identifier]]:
+    if assignments is None:
+        assignments = {}
+    else:
+        assignments = dict(assignments)
+    for component in Components:
+        if component not in assignments:
+            assignments[component] = set()
+    return {
+        component: {Identifier(identifier) for identifier in identifiers}
+        for component, identifiers in assignments.items()
+    }
 
 
 class TestCreateLink:
