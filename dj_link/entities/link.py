@@ -4,7 +4,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from functools import reduce
 from typing import FrozenSet, Mapping, NewType, Optional
 
 
@@ -54,9 +53,6 @@ def create_link(
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
     ) -> set[Entity]:
-        def create_identifier_union(assignments: Mapping[Components, Iterable[Identifier]]) -> Iterable[Identifier]:
-            return reduce(lambda x, y: set(x) | set(y), assignments.values())
-
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
@@ -71,7 +67,7 @@ def create_link(
             frozenset({Components.SOURCE}): States.IDLE,
             frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
         }
-        return {create_entity(identifier) for identifier in create_identifier_union(assignments)}
+        return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
     def assign_entities(entities: Iterable[Entity]) -> dict[Components, set[Entity]]:
         def assign_to_component(component: Components) -> set[Entity]:
