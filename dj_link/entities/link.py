@@ -4,8 +4,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from functools import reduce
-from typing import FrozenSet, Mapping, NewType
+from typing import FrozenSet, Mapping, NewType, Optional
 
 
 class Components(Enum):
@@ -21,6 +20,7 @@ class States(Enum):
 
     IDLE = 1
     PULLED = 2
+    TAINTED = 3
 
 
 Identifier = NewType("Identifier", str)
@@ -34,32 +34,40 @@ class Entity:
     state: States
 
 
-def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
+def create_link(
+    assignments: Mapping[Components, Iterable[Identifier]], *, tainted: Optional[Iterable[Identifier]] = None
+) -> Link:
     """Create a new link instance."""
 
-    def validate_assignments(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
+    def validate_assignments(
+        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+    ) -> None:
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
         ), "Outbound must not be superset of source."
         assert set(assignments[Components.LOCAL]) == set(
             assignments[Components.OUTBOUND]
         ), "Local and outbound must be identical."
+        assert set(tainted) <= set(assignments[Components.SOURCE])
 
-    def create_entities(assignments: Mapping[Components, Iterable[Identifier]]) -> set[Entity]:
-        def create_identifier_union(assignments: Mapping[Components, Iterable[Identifier]]) -> Iterable[Identifier]:
-            return reduce(lambda x, y: set(x) | set(y), assignments.values())
-
+    def create_entities(
+        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+    ) -> set[Entity]:
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
-            return Entity(identifier, state=presence_map[presence])
+            state = presence_map[presence]
+            if identifier in tainted:
+                assert state == States.PULLED, "Only pulled entities can be tainted."
+                return Entity(identifier, state=States.TAINTED)
+            return Entity(identifier, state=state)
 
         presence_map = {
             frozenset({Components.SOURCE}): States.IDLE,
             frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
         }
-        return {create_entity(identifier) for identifier in create_identifier_union(assignments)}
+        return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
     def assign_entities(entities: Iterable[Entity]) -> dict[Components, set[Entity]]:
         def assign_to_component(component: Components) -> set[Entity]:
@@ -67,8 +75,10 @@ def create_link(assignments: Mapping[Components, Iterable[Identifier]]) -> Link:
 
         return {component: assign_to_component(component) for component in Components}
 
-    validate_assignments(assignments)
-    entity_assignments = assign_entities(create_entities(assignments))
+    if tainted is None:
+        tainted = set()
+    validate_assignments(assignments, tainted)
+    entity_assignments = assign_entities(create_entities(assignments, tainted))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),
