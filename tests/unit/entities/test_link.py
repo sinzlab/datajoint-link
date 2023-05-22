@@ -27,21 +27,24 @@ def create_assignments(
 class TestCreateLink:
     @staticmethod
     @pytest.mark.parametrize(
-        "tainted,state,expected",
+        "transiting_identifiers,tainted,state,expected",
         [
-            (set(), States.IDLE, {Identifier("2")}),
-            (set(), States.PULLED, {Identifier("1")}),
-            (set(), States.ACTIVATED, {Identifier("3")}),
-            ({Identifier("1")}, States.TAINTED, {Identifier("1")}),
+            (set({Identifier("3")}), set(), States.IDLE, {Identifier("2")}),
+            (set({Identifier("3")}), set(), States.PULLED, {Identifier("1")}),
+            ({Identifier("3")}, set(), States.ACTIVATED, {Identifier("3")}),
+            (set(Identifier("3")), {Identifier("1")}, States.TAINTED, {Identifier("1")}),
         ],
     )
     def test_entities_get_correct_state_assigned(
-        tainted: Iterable[Identifier], state: States, expected: Iterable[Identifier]
+        transiting_identifiers: Iterable[Identifier],
+        tainted: Iterable[Identifier],
+        state: States,
+        expected: Iterable[Identifier],
     ) -> None:
         assignments = create_assignments(
             {Components.SOURCE: {"1", "2", "3"}, Components.OUTBOUND: {"1", "3"}, Components.LOCAL: {"1"}}
         )
-        link = create_link(assignments, tainted=tainted)
+        link = create_link(assignments, tainted=tainted, transiting_identifiers=transiting_identifiers)
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
     @staticmethod
@@ -49,7 +52,7 @@ class TestCreateLink:
         assignments = create_assignments(
             {Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}
         )
-        link = create_link(assignments, in_transit={Identifier("1")})
+        link = create_link(assignments, transiting_identifiers={Identifier("1")})
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is States.RECEIVED} == {
             Identifier("1")
         }
@@ -69,7 +72,7 @@ class TestCreateLink:
         assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            create_link(assignments, in_transit={Identifier("1")})
+            create_link(assignments, transiting_identifiers={Identifier("1")})
 
     @staticmethod
     @pytest.mark.parametrize(

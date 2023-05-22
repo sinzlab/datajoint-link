@@ -36,11 +36,49 @@ class Entity:
     state: States
 
 
+@dataclass(frozen=True)
+class PersistentState:
+    """The persistent state of an entity."""
+
+    presence: frozenset[Components]
+    is_tainted: bool
+    is_transiting: bool
+
+
+STATE_MAP = {
+    PersistentState(
+        frozenset({Components.SOURCE}),
+        is_tainted=False,
+        is_transiting=False,
+    ): States.IDLE,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND}),
+        is_tainted=False,
+        is_transiting=True,
+    ): States.ACTIVATED,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=False,
+        is_transiting=True,
+    ): States.RECEIVED,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=False,
+        is_transiting=False,
+    ): States.PULLED,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=True,
+        is_transiting=False,
+    ): States.TAINTED,
+}
+
+
 def create_link(
     assignments: Mapping[Components, Iterable[Identifier]],
     *,
     tainted: Optional[Iterable[Identifier]] = None,
-    in_transit: Optional[Iterable[Identifier]] = None,
+    transiting_identifiers: Optional[Iterable[Identifier]] = None,
 ) -> Link:
     """Create a new link instance."""
 
@@ -58,26 +96,21 @@ def create_link(
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]],
         tainted: Iterable[Identifier],
-        in_transit: Iterable[Identifier],
+        transiting_identifiers: Iterable[Identifier],
     ) -> set[Entity]:
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
-            state = presence_map[presence]
-            if identifier in in_transit:
-                assert state == States.PULLED
-                return Entity(identifier, state=States.RECEIVED)
-            if identifier in tainted:
-                assert state == States.PULLED, "Only pulled entities can be tainted."
-                return Entity(identifier, state=States.TAINTED)
+            persistent_state = PersistentState(
+                presence, is_tainted=identifier in tainted, is_transiting=identifier in transiting_identifiers
+            )
+            try:
+                state = STATE_MAP[persistent_state]
+            except KeyError as error:
+                raise AssertionError from error
             return Entity(identifier, state=state)
 
-        presence_map = {
-            frozenset({Components.SOURCE}): States.IDLE,
-            frozenset({Components.SOURCE, Components.OUTBOUND}): States.ACTIVATED,
-            frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
-        }
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
     def assign_entities(entities: Iterable[Entity]) -> dict[Components, set[Entity]]:
@@ -88,10 +121,10 @@ def create_link(
 
     if tainted is None:
         tainted = set()
-    if in_transit is None:
-        in_transit = set()
+    if transiting_identifiers is None:
+        transiting_identifiers = set()
     validate_assignments(assignments, tainted)
-    entity_assignments = assign_entities(create_entities(assignments, tainted, in_transit))
+    entity_assignments = assign_entities(create_entities(assignments, tainted, transiting_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),
