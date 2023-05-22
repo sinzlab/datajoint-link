@@ -45,9 +45,9 @@ def create_link(
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
         ), "Outbound must not be superset of source."
-        assert set(assignments[Components.LOCAL]) == set(
+        assert set(assignments[Components.LOCAL]) <= set(
             assignments[Components.OUTBOUND]
-        ), "Local and outbound must be identical."
+        ), "Local must not be superset of source."
         assert set(tainted) <= set(assignments[Components.SOURCE])
 
     def create_entities(
