@@ -20,8 +20,9 @@ class States(Enum):
 
     IDLE = 1
     ACTIVATED = 2
-    PULLED = 3
-    TAINTED = 4
+    RECEIVED = 3
+    PULLED = 4
+    TAINTED = 5
 
 
 Identifier = NewType("Identifier", str)
@@ -36,7 +37,10 @@ class Entity:
 
 
 def create_link(
-    assignments: Mapping[Components, Iterable[Identifier]], *, tainted: Optional[Iterable[Identifier]] = None
+    assignments: Mapping[Components, Iterable[Identifier]],
+    *,
+    tainted: Optional[Iterable[Identifier]] = None,
+    in_transit: Optional[Iterable[Identifier]] = None,
 ) -> Link:
     """Create a new link instance."""
 
@@ -52,13 +56,17 @@ def create_link(
         assert set(tainted) <= set(assignments[Components.SOURCE])
 
     def create_entities(
-        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+        assignments: Mapping[Components, Iterable[Identifier]],
+        tainted: Iterable[Identifier],
+        in_transit: Iterable[Identifier],
     ) -> set[Entity]:
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
             state = presence_map[presence]
+            if identifier in in_transit:
+                return Entity(identifier, state=States.RECEIVED)
             if identifier in tainted:
                 assert state == States.PULLED, "Only pulled entities can be tainted."
                 return Entity(identifier, state=States.TAINTED)
@@ -79,8 +87,10 @@ def create_link(
 
     if tainted is None:
         tainted = set()
+    if in_transit is None:
+        in_transit = set()
     validate_assignments(assignments, tainted)
-    entity_assignments = assign_entities(create_entities(assignments, tainted))
+    entity_assignments = assign_entities(create_entities(assignments, tainted, in_transit))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),

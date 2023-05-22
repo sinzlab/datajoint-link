@@ -45,6 +45,16 @@ class TestCreateLink:
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
     @staticmethod
+    def test_received_entities_get_correct_state_assigned() -> None:
+        assignments = create_assignments(
+            {Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}
+        )
+        link = create_link(assignments, in_transit={Identifier("1")})
+        assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is States.RECEIVED} == {
+            Identifier("1")
+        }
+
+    @staticmethod
     @pytest.mark.parametrize(
         "assignments,expectation",
         [
