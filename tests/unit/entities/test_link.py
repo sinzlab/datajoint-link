@@ -31,6 +31,7 @@ class TestCreateLink:
         [
             (set(), States.IDLE, {Identifier("2")}),
             (set(), States.PULLED, {Identifier("1")}),
+            (set(), States.ACTIVATED, {Identifier("3")}),
             ({Identifier("1")}, States.TAINTED, {Identifier("1")}),
         ],
     )
@@ -38,7 +39,7 @@ class TestCreateLink:
         tainted: Iterable[Identifier], state: States, expected: Iterable[Identifier]
     ) -> None:
         assignments = create_assignments(
-            {Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}
+            {Components.SOURCE: {"1", "2", "3"}, Components.OUTBOUND: {"1", "3"}, Components.LOCAL: {"1"}}
         )
         link = create_link(assignments, tainted=tainted)
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)

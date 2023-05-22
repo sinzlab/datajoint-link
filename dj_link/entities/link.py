@@ -19,8 +19,9 @@ class States(Enum):
     """Names for the different states of an entity."""
 
     IDLE = 1
-    PULLED = 2
-    TAINTED = 3
+    ACTIVATED = 2
+    PULLED = 3
+    TAINTED = 4
 
 
 Identifier = NewType("Identifier", str)
@@ -65,6 +66,7 @@ def create_link(
 
         presence_map = {
             frozenset({Components.SOURCE}): States.IDLE,
+            frozenset({Components.SOURCE, Components.OUTBOUND}): States.ACTIVATED,
             frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
         }
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
