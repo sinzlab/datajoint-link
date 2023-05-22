@@ -65,6 +65,23 @@ class TestCreateLink:
             ),
         ],
     )
+    def test_only_entities_present_in_all_components_can_be_received(
+        assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
+    ) -> None:
+        with expectation:
+            create_link(assignments, in_transit={Identifier("1")})
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "assignments,expectation",
+        [
+            (create_assignments({Components.SOURCE: {"1"}}), pytest.raises(AssertionError)),
+            (
+                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+                does_not_raise(),
+            ),
+        ],
+    )
     def test_only_pulled_entities_can_be_tainted(
         assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:

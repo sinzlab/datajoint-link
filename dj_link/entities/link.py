@@ -66,6 +66,7 @@ def create_link(
             )
             state = presence_map[presence]
             if identifier in in_transit:
+                assert state == States.PULLED
                 return Entity(identifier, state=States.RECEIVED)
             if identifier in tainted:
                 assert state == States.PULLED, "Only pulled entities can be tainted."
