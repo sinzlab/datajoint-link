@@ -105,11 +105,7 @@ def create_link(
             persistent_state = PersistentState(
                 presence, is_tainted=identifier in tainted, is_transiting=identifier in transiting_identifiers
             )
-            try:
-                state = STATE_MAP[persistent_state]
-            except KeyError as error:
-                raise AssertionError from error
-            return Entity(identifier, state=state)
+            return Entity(identifier, state=STATE_MAP[persistent_state])
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
