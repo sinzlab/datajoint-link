@@ -48,7 +48,9 @@ class TestCreateLink:
             }
         )
         link = create_link(
-            assignments, tainted={Identifier("5")}, transiting_identifiers={Identifier("2"), Identifier("3")}
+            assignments,
+            tainted_identifiers={Identifier("5")},
+            transiting_identifiers={Identifier("2"), Identifier("3")},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
@@ -84,7 +86,7 @@ class TestCreateLink:
         assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            create_link(assignments, tainted={Identifier("1")})
+            create_link(assignments, tainted_identifiers={Identifier("1")})
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -107,7 +109,7 @@ class TestCreateLink:
         assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            create_link(assignments, tainted={Identifier("1")})
+            create_link(assignments, tainted_identifiers={Identifier("1")})
 
     @staticmethod
     @pytest.mark.parametrize(

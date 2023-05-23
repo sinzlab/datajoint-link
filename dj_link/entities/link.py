@@ -77,7 +77,7 @@ STATE_MAP = {
 def create_link(
     assignments: Mapping[Components, Iterable[Identifier]],
     *,
-    tainted: Optional[Iterable[Identifier]] = None,
+    tainted_identifiers: Optional[Iterable[Identifier]] = None,
     transiting_identifiers: Optional[Iterable[Identifier]] = None,
 ) -> Link:
     """Create a new link instance."""
@@ -119,12 +119,12 @@ def create_link(
 
         return {component: assign_to_component(component) for component in Components}
 
-    if tainted is None:
-        tainted = set()
+    if tainted_identifiers is None:
+        tainted_identifiers = set()
     if transiting_identifiers is None:
         transiting_identifiers = set()
-    validate_assignments(assignments, tainted)
-    entity_assignments = assign_entities(create_entities(assignments, tainted, transiting_identifiers))
+    validate_assignments(assignments, tainted_identifiers)
+    entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers, transiting_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),
