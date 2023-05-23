@@ -27,35 +27,30 @@ def create_assignments(
 class TestCreateLink:
     @staticmethod
     @pytest.mark.parametrize(
-        "transiting_identifiers,tainted,state,expected",
+        "state,expected",
         [
-            (set({Identifier("3")}), set(), States.IDLE, {Identifier("2")}),
-            (set({Identifier("3")}), set(), States.PULLED, {Identifier("1")}),
-            ({Identifier("3")}, set(), States.ACTIVATED, {Identifier("3")}),
-            (set(Identifier("3")), {Identifier("1")}, States.TAINTED, {Identifier("1")}),
+            (States.IDLE, {Identifier("1")}),
+            (States.ACTIVATED, {Identifier("2")}),
+            (States.RECEIVED, {Identifier("3")}),
+            (States.PULLED, {Identifier("4")}),
+            (States.TAINTED, {Identifier("5")}),
         ],
     )
     def test_entities_get_correct_state_assigned(
-        transiting_identifiers: Iterable[Identifier],
-        tainted: Iterable[Identifier],
         state: States,
         expected: Iterable[Identifier],
     ) -> None:
         assignments = create_assignments(
-            {Components.SOURCE: {"1", "2", "3"}, Components.OUTBOUND: {"1", "3"}, Components.LOCAL: {"1"}}
+            {
+                Components.SOURCE: {"1", "2", "3", "4", "5"},
+                Components.OUTBOUND: {"2", "3", "4", "5"},
+                Components.LOCAL: {"3", "4", "5"},
+            }
         )
-        link = create_link(assignments, tainted=tainted, transiting_identifiers=transiting_identifiers)
+        link = create_link(
+            assignments, tainted={Identifier("5")}, transiting_identifiers={Identifier("2"), Identifier("3")}
+        )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
-
-    @staticmethod
-    def test_received_entities_get_correct_state_assigned() -> None:
-        assignments = create_assignments(
-            {Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}
-        )
-        link = create_link(assignments, transiting_identifiers={Identifier("1")})
-        assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is States.RECEIVED} == {
-            Identifier("1")
-        }
 
     @staticmethod
     @pytest.mark.parametrize(
