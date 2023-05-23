@@ -34,6 +34,7 @@ class TestCreateLink:
             (States.RECEIVED, {Identifier("3")}),
             (States.PULLED, {Identifier("4")}),
             (States.TAINTED, {Identifier("5")}),
+            (States.DEPRECATED, {Identifier("6")}),
         ],
     )
     def test_entities_get_correct_state_assigned(
@@ -42,14 +43,14 @@ class TestCreateLink:
     ) -> None:
         assignments = create_assignments(
             {
-                Components.SOURCE: {"1", "2", "3", "4", "5"},
+                Components.SOURCE: {"1", "2", "3", "4", "5", "6"},
                 Components.OUTBOUND: {"2", "3", "4", "5"},
                 Components.LOCAL: {"3", "4", "5"},
             }
         )
         link = create_link(
             assignments,
-            tainted_identifiers={Identifier("5")},
+            tainted_identifiers={Identifier("5"), Identifier("6")},
             transiting_identifiers={Identifier("2"), Identifier("3")},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)

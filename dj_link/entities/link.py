@@ -23,6 +23,7 @@ class States(Enum):
     RECEIVED = 3
     PULLED = 4
     TAINTED = 5
+    DEPRECATED = 6
 
 
 Identifier = NewType("Identifier", str)
@@ -71,6 +72,11 @@ STATE_MAP = {
         is_tainted=True,
         is_transiting=False,
     ): States.TAINTED,
+    PersistentState(
+        frozenset({Components.SOURCE}),
+        is_tainted=True,
+        is_transiting=False,
+    ): States.DEPRECATED,
 }
 
 
