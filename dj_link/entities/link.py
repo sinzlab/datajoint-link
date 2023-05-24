@@ -19,8 +19,11 @@ class States(Enum):
     """Names for the different states of an entity."""
 
     IDLE = 1
-    PULLED = 2
-    TAINTED = 3
+    ACTIVATED = 2
+    RECEIVED = 3
+    PULLED = 4
+    TAINTED = 5
+    DEPRECATED = 6
 
 
 Identifier = NewType("Identifier", str)
@@ -34,8 +37,54 @@ class Entity:
     state: States
 
 
+@dataclass(frozen=True)
+class PersistentState:
+    """The persistent state of an entity."""
+
+    presence: frozenset[Components]
+    is_tainted: bool
+    is_transiting: bool
+
+
+STATE_MAP = {
+    PersistentState(
+        frozenset({Components.SOURCE}),
+        is_tainted=False,
+        is_transiting=False,
+    ): States.IDLE,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND}),
+        is_tainted=False,
+        is_transiting=True,
+    ): States.ACTIVATED,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=False,
+        is_transiting=True,
+    ): States.RECEIVED,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=False,
+        is_transiting=False,
+    ): States.PULLED,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=True,
+        is_transiting=False,
+    ): States.TAINTED,
+    PersistentState(
+        frozenset({Components.SOURCE}),
+        is_tainted=True,
+        is_transiting=False,
+    ): States.DEPRECATED,
+}
+
+
 def create_link(
-    assignments: Mapping[Components, Iterable[Identifier]], *, tainted: Optional[Iterable[Identifier]] = None
+    assignments: Mapping[Components, Iterable[Identifier]],
+    *,
+    tainted_identifiers: Optional[Iterable[Identifier]] = None,
+    transiting_identifiers: Optional[Iterable[Identifier]] = None,
 ) -> Link:
     """Create a new link instance."""
 
@@ -45,28 +94,25 @@ def create_link(
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
         ), "Outbound must not be superset of source."
-        assert set(assignments[Components.LOCAL]) == set(
+        assert set(assignments[Components.LOCAL]) <= set(
             assignments[Components.OUTBOUND]
-        ), "Local and outbound must be identical."
+        ), "Local must not be superset of source."
         assert set(tainted) <= set(assignments[Components.SOURCE])
 
     def create_entities(
-        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+        assignments: Mapping[Components, Iterable[Identifier]],
+        tainted: Iterable[Identifier],
+        transiting_identifiers: Iterable[Identifier],
     ) -> set[Entity]:
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
-            state = presence_map[presence]
-            if identifier in tainted:
-                assert state == States.PULLED, "Only pulled entities can be tainted."
-                return Entity(identifier, state=States.TAINTED)
-            return Entity(identifier, state=state)
+            persistent_state = PersistentState(
+                presence, is_tainted=identifier in tainted, is_transiting=identifier in transiting_identifiers
+            )
+            return Entity(identifier, state=STATE_MAP[persistent_state])
 
-        presence_map = {
-            frozenset({Components.SOURCE}): States.IDLE,
-            frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}): States.PULLED,
-        }
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
     def assign_entities(entities: Iterable[Entity]) -> dict[Components, set[Entity]]:
@@ -75,10 +121,12 @@ def create_link(
 
         return {component: assign_to_component(component) for component in Components}
 
-    if tainted is None:
-        tainted = set()
-    validate_assignments(assignments, tainted)
-    entity_assignments = assign_entities(create_entities(assignments, tainted))
+    if tainted_identifiers is None:
+        tainted_identifiers = set()
+    if transiting_identifiers is None:
+        transiting_identifiers = set()
+    validate_assignments(assignments, tainted_identifiers)
+    entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers, transiting_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),

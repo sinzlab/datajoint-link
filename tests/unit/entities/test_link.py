@@ -27,38 +27,33 @@ def create_assignments(
 class TestCreateLink:
     @staticmethod
     @pytest.mark.parametrize(
-        "tainted,state,expected",
+        "state,expected",
         [
-            (set(), States.IDLE, {Identifier("2")}),
-            (set(), States.PULLED, {Identifier("1")}),
-            ({Identifier("1")}, States.TAINTED, {Identifier("1")}),
+            (States.IDLE, {Identifier("1")}),
+            (States.ACTIVATED, {Identifier("2")}),
+            (States.RECEIVED, {Identifier("3")}),
+            (States.PULLED, {Identifier("4")}),
+            (States.TAINTED, {Identifier("5")}),
+            (States.DEPRECATED, {Identifier("6")}),
         ],
     )
     def test_entities_get_correct_state_assigned(
-        tainted: Iterable[Identifier], state: States, expected: Iterable[Identifier]
+        state: States,
+        expected: Iterable[Identifier],
     ) -> None:
         assignments = create_assignments(
-            {Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}
+            {
+                Components.SOURCE: {"1", "2", "3", "4", "5", "6"},
+                Components.OUTBOUND: {"2", "3", "4", "5"},
+                Components.LOCAL: {"3", "4", "5"},
+            }
         )
-        link = create_link(assignments, tainted=tainted)
+        link = create_link(
+            assignments,
+            tainted_identifiers={Identifier("5"), Identifier("6")},
+            transiting_identifiers={Identifier("2"), Identifier("3")},
+        )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
-
-    @staticmethod
-    @pytest.mark.parametrize(
-        "assignments,expectation",
-        [
-            (create_assignments({Components.SOURCE: {"1"}}), pytest.raises(AssertionError)),
-            (
-                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
-                does_not_raise(),
-            ),
-        ],
-    )
-    def test_only_pulled_entities_can_be_tainted(
-        assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
-    ) -> None:
-        with expectation:
-            create_link(assignments, tainted={Identifier("1")})
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -81,7 +76,7 @@ class TestCreateLink:
         assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            create_link(assignments, tainted={Identifier("1")})
+            create_link(assignments, tainted_identifiers={Identifier("1")})
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -100,21 +95,24 @@ class TestCreateLink:
 
     @staticmethod
     @pytest.mark.parametrize(
-        "assignments,expectation",
+        "transiting_identifiers,assignments,expectation",
         [
+            (set(), create_assignments({Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
+            (set(), create_assignments(), does_not_raise()),
             (
-                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+                {Identifier("1")},
+                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
                 does_not_raise(),
             ),
-            (create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}), pytest.raises(AssertionError)),
-            (create_assignments({Components.SOURCE: {"1"}, Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
         ],
     )
-    def test_local_identifiers_must_be_identical_to_outbound_identifiers(
-        assignments: Mapping[Components, Iterable[Identifier]], expectation: ContextManager[None]
+    def test_local_identifiers_can_not_be_superset_of_outbound_identifiers(
+        transiting_identifiers: Iterable[Identifier],
+        assignments: Mapping[Components, Iterable[Identifier]],
+        expectation: ContextManager[None],
     ) -> None:
         with expectation:
-            create_link(assignments)
+            create_link(assignments, transiting_identifiers=transiting_identifiers)
 
 
 class TestLink:
