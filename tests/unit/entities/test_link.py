@@ -51,7 +51,7 @@ class TestCreateLink:
         link = create_link(
             assignments,
             tainted_identifiers={Identifier("5"), Identifier("6")},
-            transiting_identifiers={Identifier("2"), Identifier("3")},
+            marks={Marks.PULL: {Identifier("2"), Identifier("3")}},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
@@ -65,7 +65,6 @@ class TestCreateLink:
                     Components.LOCAL: {"3", "4"},
                 }
             ),
-            transiting_identifiers={Identifier("1"), Identifier("2"), Identifier("3"), Identifier("4")},
             marks={Marks.PULL: {Identifier("1"), Identifier("3")}, Marks.DELETE: {Identifier("2"), Identifier("4")}},
         )
         expected = {
@@ -117,24 +116,24 @@ class TestCreateLink:
 
     @staticmethod
     @pytest.mark.parametrize(
-        "transiting_identifiers,assignments,expectation",
+        "marks,assignments,expectation",
         [
-            (set(), create_assignments({Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
-            (set(), create_assignments(), does_not_raise()),
+            ({}, create_assignments({Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
+            ({}, create_assignments(), does_not_raise()),
             (
-                {Identifier("1")},
+                {Marks.PULL: {Identifier("1")}},
                 create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
                 does_not_raise(),
             ),
         ],
     )
     def test_local_identifiers_can_not_be_superset_of_outbound_identifiers(
-        transiting_identifiers: Iterable[Identifier],
+        marks: Mapping[Marks, Iterable[Identifier]],
         assignments: Mapping[Components, Iterable[Identifier]],
         expectation: ContextManager[None],
     ) -> None:
         with expectation:
-            create_link(assignments, transiting_identifiers=transiting_identifiers)
+            create_link(assignments, marks=marks)
 
 
 class TestLink:

@@ -51,39 +51,39 @@ class PersistentState:
 
     presence: frozenset[Components]
     is_tainted: bool
-    is_transiting: bool
+    has_mark: bool
 
 
 STATE_MAP = {
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=False,
-        is_transiting=False,
+        has_mark=False,
     ): States.IDLE,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=False,
-        is_transiting=True,
+        has_mark=True,
     ): States.ACTIVATED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        is_transiting=True,
+        has_mark=True,
     ): States.RECEIVED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        is_transiting=False,
+        has_mark=False,
     ): States.PULLED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
-        is_transiting=False,
+        has_mark=False,
     ): States.TAINTED,
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=True,
-        is_transiting=False,
+        has_mark=False,
     ): States.DEPRECATED,
 }
 
@@ -92,7 +92,6 @@ def create_link(
     assignments: Mapping[Components, Iterable[Identifier]],
     *,
     tainted_identifiers: Optional[Iterable[Identifier]] = None,
-    transiting_identifiers: Optional[Iterable[Identifier]] = None,
     marks: Optional[Mapping[Marks, Iterable[Identifier]]] = None,
 ) -> Link:
     """Create a new link instance."""
@@ -111,14 +110,13 @@ def create_link(
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]],
         tainted: Iterable[Identifier],
-        transiting_identifiers: Iterable[Identifier],
     ) -> set[Entity]:
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
             persistent_state = PersistentState(
-                presence, is_tainted=identifier in tainted, is_transiting=identifier in transiting_identifiers
+                presence, is_tainted=identifier in tainted, has_mark=identifier in marks_map
             )
             state = STATE_MAP[persistent_state]
             try:
@@ -137,13 +135,11 @@ def create_link(
 
     if tainted_identifiers is None:
         tainted_identifiers = set()
-    if transiting_identifiers is None:
-        transiting_identifiers = set()
     if marks is None:
         marks = {}
     marks_map = {identifier: mark for mark, identifiers in marks.items() for identifier in identifiers}
     validate_assignments(assignments, tainted_identifiers)
-    entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers, transiting_identifiers))
+    entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),
