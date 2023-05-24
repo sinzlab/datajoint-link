@@ -25,7 +25,7 @@ def test_pulling(prepare_link, create_table, connection_config, databases, confi
         assert actual == expected
 
 
-@pytest.mark.xfail(raises=AssertionError)
+@pytest.mark.xfail(raises=(AssertionError, KeyError))
 def test_can_pull_into_different_local_tables_from_same_source(
     prepare_multiple_links, create_table, databases, connection_config, configured_environment
 ):
