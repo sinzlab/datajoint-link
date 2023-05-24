@@ -15,15 +15,32 @@ class Components(Enum):
     LOCAL = 3
 
 
-class States(Enum):
-    """Names for the different states of an entity."""
+class State:  # pylint: disable=too-few-public-methods
+    """An entity's state."""
 
-    IDLE = 1
-    ACTIVATED = 2
-    RECEIVED = 3
-    PULLED = 4
-    TAINTED = 5
-    DEPRECATED = 6
+
+class Idle(State):  # pylint: disable=too-few-public-methods
+    """The default state of an entity."""
+
+
+class Activated(State):  # pylint: disable=too-few-public-methods
+    """The state of an activated entity."""
+
+
+class Received(State):  # pylint: disable=too-few-public-methods
+    """The state of an received entity."""
+
+
+class Pulled(State):  # pylint: disable=too-few-public-methods
+    """The state of an entity that has been copied to the local side."""
+
+
+class Tainted(State):  # pylint: disable=too-few-public-methods
+    """The state of an entity that has been flagged as faulty by the source side."""
+
+
+class Deprecated(State):  # pylint: disable=too-few-public-methods
+    """The state of a faulty entity that was deleted by the local side."""
 
 
 class Operations(Enum):
@@ -41,7 +58,7 @@ class Entity:
     """An entity in a link."""
 
     identifier: Identifier
-    state: States
+    state: type[State]
     operation: Optional[Operations]
 
 
@@ -59,32 +76,32 @@ STATE_MAP = {
         frozenset({Components.SOURCE}),
         is_tainted=False,
         has_operation=False,
-    ): States.IDLE,
+    ): Idle,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=False,
         has_operation=True,
-    ): States.ACTIVATED,
+    ): Activated,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
         has_operation=True,
-    ): States.RECEIVED,
+    ): Received,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
         has_operation=False,
-    ): States.PULLED,
+    ): Pulled,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
         has_operation=False,
-    ): States.TAINTED,
+    ): Tainted,
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=True,
         has_operation=False,
-    ): States.DEPRECATED,
+    ): Deprecated,
 }
 
 
@@ -210,7 +227,7 @@ def pull(
     """Create the transfer specifications needed for pulling the requested identifiers."""
     assert set(requested) <= link[Components.SOURCE].identifiers, "Requested must not be superset of source."
     assert all(
-        entity.state is States.IDLE for entity in link[Components.SOURCE] if entity.identifier in set(requested)
+        entity.state is Idle for entity in link[Components.SOURCE] if entity.identifier in set(requested)
     ), "Requested entities must be idle."
     outbound_destined = set(requested) - link[Components.OUTBOUND].identifiers
     local_destined = set(requested) - link[Components.LOCAL].identifiers

@@ -5,7 +5,21 @@ from typing import ContextManager, Iterable, Mapping, Optional
 
 import pytest
 
-from dj_link.entities.link import Components, Identifier, Operations, States, Transfer, create_link, pull
+from dj_link.entities.link import (
+    Activated,
+    Components,
+    Deprecated,
+    Identifier,
+    Idle,
+    Operations,
+    Pulled,
+    Received,
+    State,
+    Tainted,
+    Transfer,
+    create_link,
+    pull,
+)
 
 
 def create_assignments(
@@ -29,16 +43,16 @@ class TestCreateLink:
     @pytest.mark.parametrize(
         "state,expected",
         [
-            (States.IDLE, {Identifier("1")}),
-            (States.ACTIVATED, {Identifier("2")}),
-            (States.RECEIVED, {Identifier("3")}),
-            (States.PULLED, {Identifier("4")}),
-            (States.TAINTED, {Identifier("5")}),
-            (States.DEPRECATED, {Identifier("6")}),
+            (Idle, {Identifier("1")}),
+            (Activated, {Identifier("2")}),
+            (Received, {Identifier("3")}),
+            (Pulled, {Identifier("4")}),
+            (Tainted, {Identifier("5")}),
+            (Deprecated, {Identifier("6")}),
         ],
     )
     def test_entities_get_correct_state_assigned(
-        state: States,
+        state: type[State],
         expected: Iterable[Identifier],
     ) -> None:
         assignments = create_assignments(
