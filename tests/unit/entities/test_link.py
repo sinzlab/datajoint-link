@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping, Optional
 
 import pytest
 
-from dj_link.entities.link import Components, Entity, Identifier, States, Transfer, create_link, pull
+from dj_link.entities.link import Components, Entity, Identifier, Marks, States, Transfer, create_link, pull
 
 
 def create_assignments(
@@ -54,6 +54,28 @@ class TestCreateLink:
             transiting_identifiers={Identifier("2"), Identifier("3")},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
+
+    @staticmethod
+    def test_entities_get_correct_mark_assigned() -> None:
+        link = create_link(
+            create_assignments(
+                {
+                    Components.SOURCE: {"1", "2", "3", "4", "5"},
+                    Components.OUTBOUND: {"1", "2", "3", "4"},
+                    Components.LOCAL: {"3", "4"},
+                }
+            ),
+            transiting_identifiers={Identifier("1"), Identifier("2"), Identifier("3"), Identifier("4")},
+            marks={Marks.PULL: {Identifier("1"), Identifier("3")}, Marks.DELETE: {Identifier("2"), Identifier("4")}},
+        )
+        expected = {
+            (Identifier("1"), Marks.PULL),
+            (Identifier("2"), Marks.DELETE),
+            (Identifier("3"), Marks.PULL),
+            (Identifier("4"), Marks.DELETE),
+            (Identifier("5"), None),
+        }
+        assert {(entity.identifier, entity.mark) for entity in link[Components.SOURCE]} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(

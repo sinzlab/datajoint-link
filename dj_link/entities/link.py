@@ -26,6 +26,13 @@ class States(Enum):
     DEPRECATED = 6
 
 
+class Marks(Enum):
+    """Names for the different marks an entity can have."""
+
+    PULL = 1
+    DELETE = 2
+
+
 Identifier = NewType("Identifier", str)
 
 
@@ -35,6 +42,7 @@ class Entity:
 
     identifier: Identifier
     state: States
+    mark: Optional[Marks] = None
 
 
 @dataclass(frozen=True)
@@ -85,6 +93,7 @@ def create_link(
     *,
     tainted_identifiers: Optional[Iterable[Identifier]] = None,
     transiting_identifiers: Optional[Iterable[Identifier]] = None,
+    marks: Optional[Mapping[Marks, Iterable[Identifier]]] = None,
 ) -> Link:
     """Create a new link instance."""
 
@@ -111,7 +120,12 @@ def create_link(
             persistent_state = PersistentState(
                 presence, is_tainted=identifier in tainted, is_transiting=identifier in transiting_identifiers
             )
-            return Entity(identifier, state=STATE_MAP[persistent_state])
+            state = STATE_MAP[persistent_state]
+            try:
+                mark = marks_map[identifier]
+            except KeyError:
+                mark = None
+            return Entity(identifier, state=state, mark=mark)
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
@@ -125,6 +139,9 @@ def create_link(
         tainted_identifiers = set()
     if transiting_identifiers is None:
         transiting_identifiers = set()
+    if marks is None:
+        marks = {}
+    marks_map = {identifier: mark for mark, identifiers in marks.items() for identifier in identifiers}
     validate_assignments(assignments, tainted_identifiers)
     entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers, transiting_identifiers))
     return Link(
