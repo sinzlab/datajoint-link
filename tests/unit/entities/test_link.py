@@ -7,10 +7,12 @@ import pytest
 
 from dj_link.entities.link import (
     Activated,
+    AddToOutbound,
     Components,
     Deprecated,
     Identifier,
     Idle,
+    MarkAsPulled,
     Operations,
     Pulled,
     Received,
@@ -288,3 +290,9 @@ class TestPull:
         }
         actual = pull(link, requested={Identifier("1")})
         assert actual == expected
+
+
+def test_pulling_idle_entity_returns_correct_commands() -> None:
+    link = create_link(create_assignments({Components.SOURCE: {"1"}}))
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.pull() == {AddToOutbound(Identifier("1")), MarkAsPulled(Identifier("1"))}

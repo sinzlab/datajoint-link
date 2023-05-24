@@ -18,9 +18,17 @@ class Components(Enum):
 class State:  # pylint: disable=too-few-public-methods
     """An entity's state."""
 
+    def pull(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+        """Return the commands needed to pull an entity."""
+        return set()
+
 
 class Idle(State):  # pylint: disable=too-few-public-methods
     """The default state of an entity."""
+
+    def pull(self, entity: Entity) -> set[Command]:
+        """Return the commands needed to pull an idle entity."""
+        return {command(entity.identifier) for command in TRANSITION_MAP[Transition(self.__class__, Activated)]}
 
 
 class Activated(State):  # pylint: disable=too-few-public-methods
@@ -60,6 +68,10 @@ class Entity:
     identifier: Identifier
     state: type[State]
     operation: Optional[Operations]
+
+    def pull(self) -> set[Command]:
+        """Pull the entity."""
+        return self.state().pull(self)
 
 
 @dataclass(frozen=True)
@@ -103,6 +115,34 @@ STATE_MAP = {
         has_operation=False,
     ): Deprecated,
 }
+
+
+@dataclass(frozen=True)
+class Transition:
+    """A transition between two entity states."""
+
+    current: type[State]
+    next: type[State]
+
+
+@dataclass(frozen=True)
+class Command:
+    """A command to be executed by the persistence layer and produced by an entity undergoing a state transition."""
+
+    identifier: Identifier
+
+
+@dataclass(frozen=True)
+class AddToOutbound(Command):
+    """A command to add an entity to the outbound component."""
+
+
+@dataclass(frozen=True)
+class MarkAsPulled(Command):
+    """A command to mark an entity as currently undergoing a pull."""
+
+
+TRANSITION_MAP = {Transition(Idle, Activated): {AddToOutbound, MarkAsPulled}}
 
 
 def create_link(
