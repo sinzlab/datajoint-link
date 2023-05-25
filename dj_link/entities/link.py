@@ -32,10 +32,7 @@ class Idle(State):
 
     def pull(self, entity: Entity) -> set[Command]:
         """Return the commands needed to pull an idle entity."""
-        return {
-            command(entity.identifier)
-            for command in TRANSITION_MAP[Transition(self.__class__, Activated, operation=entity.operation)]
-        }
+        return {command(entity.identifier) for command in (AddToOutbound, StartPullOperation)}
 
 
 class Activated(State):
@@ -43,17 +40,13 @@ class Activated(State):
 
     def pull(self, entity: Entity) -> set[Command]:
         """Return the commands needed to pull an activated entity."""
-        return {
-            command(entity.identifier)
-            for command in TRANSITION_MAP.get(Transition(self.__class__, Received, operation=entity.operation), set())
-        }
+        if entity.operation is not Operations.PULL:
+            return super().pull(entity)
+        return {command(entity.identifier) for command in (AddToLocal,)}
 
     def delete(self, entity: Entity) -> set[Command]:
         """Return the commands needed to delete an activated entity."""
-        return {
-            command(entity.identifier)
-            for command in TRANSITION_MAP[Transition(self.__class__, Idle, operation=entity.operation)]
-        }
+        return {command(entity.identifier) for command in (RemoveFromOutbound, FinishDeleteOperation)}
 
 
 class Received(State):
@@ -61,10 +54,7 @@ class Received(State):
 
     def pull(self, entity: Entity) -> set[Command]:
         """Return the commands needed to pull a received entity."""
-        return {
-            command(entity.identifier)
-            for command in TRANSITION_MAP[Transition(self.__class__, Pulled, operation=entity.operation)]
-        }
+        return {command(entity.identifier) for command in (FinishPullOperation,)}
 
 
 class Pulled(State):
@@ -150,15 +140,6 @@ STATE_MAP = {
 
 
 @dataclass(frozen=True)
-class Transition:
-    """A transition between two entity states."""
-
-    current: type[State]
-    next: type[State]
-    operation: Optional[Operations]
-
-
-@dataclass(frozen=True)
 class Command:
     """A command to be executed by the persistence layer and produced by an entity undergoing a state transition."""
 
@@ -193,14 +174,6 @@ class FinishPullOperation(Command):
 @dataclass(frozen=True)
 class FinishDeleteOperation(Command):
     """A command finishing the delete operation on an entity."""
-
-
-TRANSITION_MAP: dict[Transition, set[type[Command]]] = {
-    Transition(Idle, Activated, operation=None): {AddToOutbound, StartPullOperation},
-    Transition(Activated, Idle, operation=Operations.DELETE): {RemoveFromOutbound, FinishDeleteOperation},
-    Transition(Activated, Received, operation=Operations.PULL): {AddToLocal},
-    Transition(Received, Pulled, operation=Operations.PULL): {FinishPullOperation},
-}
 
 
 def create_link(
