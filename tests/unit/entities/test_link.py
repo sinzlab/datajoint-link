@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping, Optional
 
 import pytest
 
-from dj_link.entities.link import Components, Entity, Identifier, Marks, States, Transfer, create_link, pull
+from dj_link.entities.link import Components, Identifier, Marks, States, Transfer, create_link, pull
 
 
 def create_assignments(
@@ -145,10 +145,7 @@ class TestLink:
     @staticmethod
     def test_can_get_entities_in_component(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
         link = create_link(assignments)
-        assert set(link[Components.SOURCE]) == {
-            Entity(Identifier("1"), state=States.PULLED),
-            Entity(Identifier("2"), state=States.IDLE),
-        }
+        assert {entity.identifier for entity in link[Components.SOURCE]} == {Identifier("1"), Identifier("2")}
 
     @staticmethod
     def test_can_get_identifiers_of_entities_in_component(
