@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from typing import FrozenSet, Mapping, NewType, Optional
+from typing import Any, FrozenSet, Mapping, NewType, Optional
 
 
 class Components(Enum):
@@ -42,7 +42,7 @@ class Entity:
 
     identifier: Identifier
     state: States
-    mark: Optional[Marks] = None
+    mark: Optional[Marks]
 
 
 @dataclass(frozen=True)
@@ -96,8 +96,14 @@ def create_link(
 ) -> Link:
     """Create a new link instance."""
 
-    def validate_assignments(
-        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+    def pairwise_disjoint(sets: Iterable[Iterable[Any]]) -> bool:
+        union = set().union(*sets)
+        return len(union) == sum(len(set(s)) for s in sets)
+
+    def validate_arguments(
+        assignments: Mapping[Components, Iterable[Identifier]],
+        tainted: Iterable[Identifier],
+        marks: Mapping[Marks, Iterable[Identifier]],
     ) -> None:
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
@@ -106,6 +112,7 @@ def create_link(
             assignments[Components.OUTBOUND]
         ), "Local must not be superset of source."
         assert set(tainted) <= set(assignments[Components.SOURCE])
+        assert pairwise_disjoint(marks.values()), "Identifiers must be associated with zero or one marks."
 
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]],
@@ -137,8 +144,8 @@ def create_link(
         tainted_identifiers = set()
     if marks is None:
         marks = {}
+    validate_arguments(assignments, tainted_identifiers, marks)
     marks_map = {identifier: mark for mark, identifiers in marks.items() for identifier in identifiers}
-    validate_assignments(assignments, tainted_identifiers)
     entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),

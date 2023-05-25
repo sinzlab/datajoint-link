@@ -56,6 +56,20 @@ class TestCreateLink:
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
     @staticmethod
+    @pytest.mark.parametrize(
+        "marks,expectation",
+        [
+            ({Marks.PULL: {Identifier("1")}, Marks.DELETE: {Identifier("1")}}, pytest.raises(AssertionError)),
+            ({Marks.PULL: {Identifier("1")}}, does_not_raise()),
+        ],
+    )
+    def test_identifiers_can_only_be_associated_with_single_mark(
+        marks: Mapping[Marks, Iterable[Identifier]], expectation: ContextManager[None]
+    ) -> None:
+        with expectation:
+            create_link(create_assignments(), marks=marks)
+
+    @staticmethod
     def test_entities_get_correct_mark_assigned() -> None:
         link = create_link(
             create_assignments(
