@@ -28,7 +28,10 @@ class Idle(State):  # pylint: disable=too-few-public-methods
 
     def pull(self, entity: Entity) -> set[Command]:
         """Return the commands needed to pull an idle entity."""
-        return {command(entity.identifier) for command in TRANSITION_MAP[Transition(self.__class__, Activated)]}
+        return {
+            command(entity.identifier)
+            for command in TRANSITION_MAP[Transition(self.__class__, Activated, operation=entity.operation)]
+        }
 
 
 class Activated(State):  # pylint: disable=too-few-public-methods
@@ -123,6 +126,7 @@ class Transition:
 
     current: type[State]
     next: type[State]
+    operation: Optional[Operations]
 
 
 @dataclass(frozen=True)
@@ -142,7 +146,7 @@ class MarkAsPulled(Command):
     """A command to mark an entity as currently undergoing a pull."""
 
 
-TRANSITION_MAP = {Transition(Idle, Activated): {AddToOutbound, MarkAsPulled}}
+TRANSITION_MAP = {Transition(Idle, Activated, operation=None): {AddToOutbound, MarkAsPulled}}
 
 
 def create_link(
