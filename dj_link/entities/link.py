@@ -126,11 +126,7 @@ def create_link(
                 presence, is_tainted=identifier in tainted, has_operation=identifier in operations_map
             )
             state = STATE_MAP[persistent_state]
-            try:
-                mark = operations_map[identifier]
-            except KeyError:
-                mark = None
-            return Entity(identifier, state=state, operation=mark)
+            return Entity(identifier, state=state, operation=operations_map.get(identifier))
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
