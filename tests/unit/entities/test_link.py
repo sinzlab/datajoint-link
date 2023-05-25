@@ -14,10 +14,10 @@ from dj_link.entities.link import (
     FinishPullOperation,
     Identifier,
     Idle,
-    MarkAsPulled,
     Operations,
     Pulled,
     Received,
+    StartPullOperation,
     State,
     Tainted,
     Transfer,
@@ -297,7 +297,7 @@ class TestPull:
 def test_pulling_idle_entity_returns_correct_commands() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.pull() == {AddToOutbound(Identifier("1")), MarkAsPulled(Identifier("1"))}
+    assert entity.pull() == {AddToOutbound(Identifier("1")), StartPullOperation(Identifier("1"))}
 
 
 def test_pulling_activated_entity_returns_correct_commands() -> None:

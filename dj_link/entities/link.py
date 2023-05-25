@@ -161,8 +161,8 @@ class AddToLocal(Command):
 
 
 @dataclass(frozen=True)
-class MarkAsPulled(Command):
-    """A command to mark an entity as currently undergoing a pull."""
+class StartPullOperation(Command):
+    """A command starting the pull operation on an entity."""
 
 
 @dataclass(frozen=True)
@@ -171,7 +171,7 @@ class FinishPullOperation(Command):
 
 
 TRANSITION_MAP: dict[Transition, set[type[Command]]] = {
-    Transition(Idle, Activated, operation=None): {AddToOutbound, MarkAsPulled},
+    Transition(Idle, Activated, operation=None): {AddToOutbound, StartPullOperation},
     Transition(Activated, Received, operation=Operations.PULL): {AddToLocal},
     Transition(Received, Pulled, operation=Operations.PULL): {FinishPullOperation},
 }
