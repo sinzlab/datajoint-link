@@ -300,13 +300,22 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     assert entity.pull() == {AddToOutbound(Identifier("1")), StartPullOperation(Identifier("1"))}
 
 
-def test_pulling_activated_entity_returns_correct_commands() -> None:
+def test_pulling_activated_entity_undergoing_pull_operation_returns_correct_commands() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         operations={Operations.PULL: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.pull() == {AddToLocal(Identifier("1"))}
+
+
+def test_pulling_activated_entity_undergoing_delete_operation_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        operations={Operations.DELETE: {Identifier("1")}},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.pull() == set()
 
 
 def test_pulling_received_entity_returns_correct_commands() -> None:

@@ -41,7 +41,7 @@ class Activated(State):  # pylint: disable=too-few-public-methods
         """Return the commands needed to pull an activated entity."""
         return {
             command(entity.identifier)
-            for command in TRANSITION_MAP[Transition(self.__class__, Received, operation=entity.operation)]
+            for command in TRANSITION_MAP.get(Transition(self.__class__, Received, operation=entity.operation), set())
         }
 
 
