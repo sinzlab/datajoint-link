@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, FrozenSet, Mapping, NewType, Optional
+from typing import Any, FrozenSet, Mapping, NewType, Optional, TypeVar
 
 
 class Components(Enum):
@@ -100,6 +100,12 @@ def create_link(
         union = set().union(*sets)
         return len(union) == sum(len(set(s)) for s in sets)
 
+    T = TypeVar("T")
+    V = TypeVar("V")
+
+    def invert_mapping(mapping: Mapping[T, Iterable[V]]) -> dict[V, T]:
+        return {z: x for x, y in mapping.items() for z in y}
+
     def validate_arguments(
         assignments: Mapping[Components, Iterable[Identifier]],
         tainted: Iterable[Identifier],
@@ -141,7 +147,7 @@ def create_link(
     if operations is None:
         operations = {}
     validate_arguments(assignments, tainted_identifiers, operations)
-    operations_map = {identifier: mark for mark, identifiers in operations.items() for identifier in identifiers}
+    operations_map = invert_mapping(operations)
     entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
