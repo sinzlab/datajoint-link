@@ -26,8 +26,8 @@ class States(Enum):
     DEPRECATED = 6
 
 
-class Marks(Enum):
-    """Names for the different marks an entity can have."""
+class Operations(Enum):
+    """Names for operations that pull/delete entities into/from the local side."""
 
     PULL = 1
     DELETE = 2
@@ -42,7 +42,7 @@ class Entity:
 
     identifier: Identifier
     state: States
-    mark: Optional[Marks]
+    operation: Optional[Operations]
 
 
 @dataclass(frozen=True)
@@ -51,39 +51,39 @@ class PersistentState:
 
     presence: frozenset[Components]
     is_tainted: bool
-    has_mark: bool
+    has_operation: bool
 
 
 STATE_MAP = {
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=False,
-        has_mark=False,
+        has_operation=False,
     ): States.IDLE,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=False,
-        has_mark=True,
+        has_operation=True,
     ): States.ACTIVATED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        has_mark=True,
+        has_operation=True,
     ): States.RECEIVED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        has_mark=False,
+        has_operation=False,
     ): States.PULLED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
-        has_mark=False,
+        has_operation=False,
     ): States.TAINTED,
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=True,
-        has_mark=False,
+        has_operation=False,
     ): States.DEPRECATED,
 }
 
@@ -92,7 +92,7 @@ def create_link(
     assignments: Mapping[Components, Iterable[Identifier]],
     *,
     tainted_identifiers: Optional[Iterable[Identifier]] = None,
-    marks: Optional[Mapping[Marks, Iterable[Identifier]]] = None,
+    operations: Optional[Mapping[Operations, Iterable[Identifier]]] = None,
 ) -> Link:
     """Create a new link instance."""
 
@@ -103,7 +103,7 @@ def create_link(
     def validate_arguments(
         assignments: Mapping[Components, Iterable[Identifier]],
         tainted: Iterable[Identifier],
-        marks: Mapping[Marks, Iterable[Identifier]],
+        operations: Mapping[Operations, Iterable[Identifier]],
     ) -> None:
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
@@ -112,7 +112,7 @@ def create_link(
             assignments[Components.OUTBOUND]
         ), "Local must not be superset of source."
         assert set(tainted) <= set(assignments[Components.SOURCE])
-        assert pairwise_disjoint(marks.values()), "Identifiers must be associated with zero or one marks."
+        assert pairwise_disjoint(operations.values()), "Identifiers can not undergo more than one operation."
 
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]],
@@ -123,14 +123,14 @@ def create_link(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
             persistent_state = PersistentState(
-                presence, is_tainted=identifier in tainted, has_mark=identifier in marks_map
+                presence, is_tainted=identifier in tainted, has_operation=identifier in operations_map
             )
             state = STATE_MAP[persistent_state]
             try:
-                mark = marks_map[identifier]
+                mark = operations_map[identifier]
             except KeyError:
                 mark = None
-            return Entity(identifier, state=state, mark=mark)
+            return Entity(identifier, state=state, operation=mark)
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
@@ -142,10 +142,10 @@ def create_link(
 
     if tainted_identifiers is None:
         tainted_identifiers = set()
-    if marks is None:
-        marks = {}
-    validate_arguments(assignments, tainted_identifiers, marks)
-    marks_map = {identifier: mark for mark, identifiers in marks.items() for identifier in identifiers}
+    if operations is None:
+        operations = {}
+    validate_arguments(assignments, tainted_identifiers, operations)
+    operations_map = {identifier: mark for mark, identifiers in operations.items() for identifier in identifiers}
     entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),

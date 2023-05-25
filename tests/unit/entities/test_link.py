@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping, Optional
 
 import pytest
 
-from dj_link.entities.link import Components, Identifier, Marks, States, Transfer, create_link, pull
+from dj_link.entities.link import Components, Identifier, Operations, States, Transfer, create_link, pull
 
 
 def create_assignments(
@@ -51,26 +51,29 @@ class TestCreateLink:
         link = create_link(
             assignments,
             tainted_identifiers={Identifier("5"), Identifier("6")},
-            marks={Marks.PULL: {Identifier("2"), Identifier("3")}},
+            operations={Operations.PULL: {Identifier("2"), Identifier("3")}},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(
-        "marks,expectation",
+        "operations,expectation",
         [
-            ({Marks.PULL: {Identifier("1")}, Marks.DELETE: {Identifier("1")}}, pytest.raises(AssertionError)),
-            ({Marks.PULL: {Identifier("1")}}, does_not_raise()),
+            (
+                {Operations.PULL: {Identifier("1")}, Operations.DELETE: {Identifier("1")}},
+                pytest.raises(AssertionError),
+            ),
+            ({Operations.PULL: {Identifier("1")}}, does_not_raise()),
         ],
     )
-    def test_identifiers_can_only_be_associated_with_single_mark(
-        marks: Mapping[Marks, Iterable[Identifier]], expectation: ContextManager[None]
+    def test_identifiers_can_only_be_associated_with_single_operation(
+        operations: Mapping[Operations, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            create_link(create_assignments(), marks=marks)
+            create_link(create_assignments(), operations=operations)
 
     @staticmethod
-    def test_entities_get_correct_mark_assigned() -> None:
+    def test_entities_get_correct_operation_assigned() -> None:
         link = create_link(
             create_assignments(
                 {
@@ -79,16 +82,19 @@ class TestCreateLink:
                     Components.LOCAL: {"3", "4"},
                 }
             ),
-            marks={Marks.PULL: {Identifier("1"), Identifier("3")}, Marks.DELETE: {Identifier("2"), Identifier("4")}},
+            operations={
+                Operations.PULL: {Identifier("1"), Identifier("3")},
+                Operations.DELETE: {Identifier("2"), Identifier("4")},
+            },
         )
         expected = {
-            (Identifier("1"), Marks.PULL),
-            (Identifier("2"), Marks.DELETE),
-            (Identifier("3"), Marks.PULL),
-            (Identifier("4"), Marks.DELETE),
+            (Identifier("1"), Operations.PULL),
+            (Identifier("2"), Operations.DELETE),
+            (Identifier("3"), Operations.PULL),
+            (Identifier("4"), Operations.DELETE),
             (Identifier("5"), None),
         }
-        assert {(entity.identifier, entity.mark) for entity in link[Components.SOURCE]} == set(expected)
+        assert {(entity.identifier, entity.operation) for entity in link[Components.SOURCE]} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -130,24 +136,24 @@ class TestCreateLink:
 
     @staticmethod
     @pytest.mark.parametrize(
-        "marks,assignments,expectation",
+        "operations,assignments,expectation",
         [
             ({}, create_assignments({Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
             ({}, create_assignments(), does_not_raise()),
             (
-                {Marks.PULL: {Identifier("1")}},
+                {Operations.PULL: {Identifier("1")}},
                 create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
                 does_not_raise(),
             ),
         ],
     )
     def test_local_identifiers_can_not_be_superset_of_outbound_identifiers(
-        marks: Mapping[Marks, Iterable[Identifier]],
+        operations: Mapping[Operations, Iterable[Identifier]],
         assignments: Mapping[Components, Iterable[Identifier]],
         expectation: ContextManager[None],
     ) -> None:
         with expectation:
-            create_link(assignments, marks=marks)
+            create_link(assignments, operations=operations)
 
 
 class TestLink:
