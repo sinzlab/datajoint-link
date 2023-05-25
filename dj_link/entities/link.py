@@ -37,9 +37,23 @@ class Idle(State):  # pylint: disable=too-few-public-methods
 class Activated(State):  # pylint: disable=too-few-public-methods
     """The state of an activated entity."""
 
+    def pull(self, entity: Entity) -> set[Command]:
+        """Return the commands needed to pull an activated entity."""
+        return {
+            command(entity.identifier)
+            for command in TRANSITION_MAP[Transition(self.__class__, Received, operation=entity.operation)]
+        }
+
 
 class Received(State):  # pylint: disable=too-few-public-methods
     """The state of an received entity."""
+
+    def pull(self, entity: Entity) -> set[Command]:
+        """Return the commands needed to pull a received entity."""
+        return {
+            command(entity.identifier)
+            for command in TRANSITION_MAP[Transition(self.__class__, Pulled, operation=entity.operation)]
+        }
 
 
 class Pulled(State):  # pylint: disable=too-few-public-methods
@@ -142,11 +156,25 @@ class AddToOutbound(Command):
 
 
 @dataclass(frozen=True)
+class AddToLocal(Command):
+    """A command to add an entity to the outbound component."""
+
+
+@dataclass(frozen=True)
 class MarkAsPulled(Command):
     """A command to mark an entity as currently undergoing a pull."""
 
 
-TRANSITION_MAP = {Transition(Idle, Activated, operation=None): {AddToOutbound, MarkAsPulled}}
+@dataclass(frozen=True)
+class FinishPullOperation(Command):
+    """A command finishing the pull operation on an entity."""
+
+
+TRANSITION_MAP: dict[Transition, set[type[Command]]] = {
+    Transition(Idle, Activated, operation=None): {AddToOutbound, MarkAsPulled},
+    Transition(Activated, Received, operation=Operations.PULL): {AddToLocal},
+    Transition(Received, Pulled, operation=Operations.PULL): {FinishPullOperation},
+}
 
 
 def create_link(

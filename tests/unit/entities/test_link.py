@@ -7,9 +7,11 @@ import pytest
 
 from dj_link.entities.link import (
     Activated,
+    AddToLocal,
     AddToOutbound,
     Components,
     Deprecated,
+    FinishPullOperation,
     Identifier,
     Idle,
     MarkAsPulled,
@@ -296,3 +298,21 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link[Components.SOURCE]))
     assert entity.pull() == {AddToOutbound(Identifier("1")), MarkAsPulled(Identifier("1"))}
+
+
+def test_pulling_activated_entity_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        operations={Operations.PULL: {Identifier("1")}},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.pull() == {AddToLocal(Identifier("1"))}
+
+
+def test_pulling_received_entity_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        operations={Operations.PULL: {Identifier("1")}},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.pull() == {FinishPullOperation(Identifier("1"))}
