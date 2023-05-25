@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from typing import FrozenSet, Mapping, NewType, Optional
+from typing import Any, FrozenSet, Mapping, NewType, Optional, TypeVar
 
 
 class Components(Enum):
@@ -26,6 +26,13 @@ class States(Enum):
     DEPRECATED = 6
 
 
+class Operations(Enum):
+    """Names for operations that pull/delete entities into/from the local side."""
+
+    PULL = 1
+    DELETE = 2
+
+
 Identifier = NewType("Identifier", str)
 
 
@@ -35,6 +42,7 @@ class Entity:
 
     identifier: Identifier
     state: States
+    operation: Optional[Operations]
 
 
 @dataclass(frozen=True)
@@ -43,39 +51,39 @@ class PersistentState:
 
     presence: frozenset[Components]
     is_tainted: bool
-    is_transiting: bool
+    has_operation: bool
 
 
 STATE_MAP = {
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=False,
-        is_transiting=False,
+        has_operation=False,
     ): States.IDLE,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=False,
-        is_transiting=True,
+        has_operation=True,
     ): States.ACTIVATED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        is_transiting=True,
+        has_operation=True,
     ): States.RECEIVED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        is_transiting=False,
+        has_operation=False,
     ): States.PULLED,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
-        is_transiting=False,
+        has_operation=False,
     ): States.TAINTED,
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=True,
-        is_transiting=False,
+        has_operation=False,
     ): States.DEPRECATED,
 }
 
@@ -84,12 +92,24 @@ def create_link(
     assignments: Mapping[Components, Iterable[Identifier]],
     *,
     tainted_identifiers: Optional[Iterable[Identifier]] = None,
-    transiting_identifiers: Optional[Iterable[Identifier]] = None,
+    operations: Optional[Mapping[Operations, Iterable[Identifier]]] = None,
 ) -> Link:
     """Create a new link instance."""
 
-    def validate_assignments(
-        assignments: Mapping[Components, Iterable[Identifier]], tainted: Iterable[Identifier]
+    def pairwise_disjoint(sets: Iterable[Iterable[Any]]) -> bool:
+        union = set().union(*sets)
+        return len(union) == sum(len(set(s)) for s in sets)
+
+    T = TypeVar("T")
+    V = TypeVar("V")
+
+    def invert_mapping(mapping: Mapping[T, Iterable[V]]) -> dict[V, T]:
+        return {z: x for x, y in mapping.items() for z in y}
+
+    def validate_arguments(
+        assignments: Mapping[Components, Iterable[Identifier]],
+        tainted: Iterable[Identifier],
+        operations: Mapping[Operations, Iterable[Identifier]],
     ) -> None:
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
@@ -98,20 +118,21 @@ def create_link(
             assignments[Components.OUTBOUND]
         ), "Local must not be superset of source."
         assert set(tainted) <= set(assignments[Components.SOURCE])
+        assert pairwise_disjoint(operations.values()), "Identifiers can not undergo more than one operation."
 
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]],
         tainted: Iterable[Identifier],
-        transiting_identifiers: Iterable[Identifier],
     ) -> set[Entity]:
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
             persistent_state = PersistentState(
-                presence, is_tainted=identifier in tainted, is_transiting=identifier in transiting_identifiers
+                presence, is_tainted=identifier in tainted, has_operation=identifier in operations_map
             )
-            return Entity(identifier, state=STATE_MAP[persistent_state])
+            state = STATE_MAP[persistent_state]
+            return Entity(identifier, state=state, operation=operations_map.get(identifier))
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
@@ -123,10 +144,11 @@ def create_link(
 
     if tainted_identifiers is None:
         tainted_identifiers = set()
-    if transiting_identifiers is None:
-        transiting_identifiers = set()
-    validate_assignments(assignments, tainted_identifiers)
-    entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers, transiting_identifiers))
+    if operations is None:
+        operations = {}
+    validate_arguments(assignments, tainted_identifiers, operations)
+    operations_map = invert_mapping(operations)
+    entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),

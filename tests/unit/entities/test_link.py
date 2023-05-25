@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, Mapping, Optional
 
 import pytest
 
-from dj_link.entities.link import Components, Entity, Identifier, States, Transfer, create_link, pull
+from dj_link.entities.link import Components, Identifier, Operations, States, Transfer, create_link, pull
 
 
 def create_assignments(
@@ -51,9 +51,50 @@ class TestCreateLink:
         link = create_link(
             assignments,
             tainted_identifiers={Identifier("5"), Identifier("6")},
-            transiting_identifiers={Identifier("2"), Identifier("3")},
+            operations={Operations.PULL: {Identifier("2"), Identifier("3")}},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "operations,expectation",
+        [
+            (
+                {Operations.PULL: {Identifier("1")}, Operations.DELETE: {Identifier("1")}},
+                pytest.raises(AssertionError),
+            ),
+            ({Operations.PULL: {Identifier("1")}}, does_not_raise()),
+        ],
+    )
+    def test_identifiers_can_only_be_associated_with_single_operation(
+        operations: Mapping[Operations, Iterable[Identifier]], expectation: ContextManager[None]
+    ) -> None:
+        with expectation:
+            create_link(create_assignments(), operations=operations)
+
+    @staticmethod
+    def test_entities_get_correct_operation_assigned() -> None:
+        link = create_link(
+            create_assignments(
+                {
+                    Components.SOURCE: {"1", "2", "3", "4", "5"},
+                    Components.OUTBOUND: {"1", "2", "3", "4"},
+                    Components.LOCAL: {"3", "4"},
+                }
+            ),
+            operations={
+                Operations.PULL: {Identifier("1"), Identifier("3")},
+                Operations.DELETE: {Identifier("2"), Identifier("4")},
+            },
+        )
+        expected = {
+            (Identifier("1"), Operations.PULL),
+            (Identifier("2"), Operations.DELETE),
+            (Identifier("3"), Operations.PULL),
+            (Identifier("4"), Operations.DELETE),
+            (Identifier("5"), None),
+        }
+        assert {(entity.identifier, entity.operation) for entity in link[Components.SOURCE]} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -95,24 +136,24 @@ class TestCreateLink:
 
     @staticmethod
     @pytest.mark.parametrize(
-        "transiting_identifiers,assignments,expectation",
+        "operations,assignments,expectation",
         [
-            (set(), create_assignments({Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
-            (set(), create_assignments(), does_not_raise()),
+            ({}, create_assignments({Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
+            ({}, create_assignments(), does_not_raise()),
             (
-                {Identifier("1")},
+                {Operations.PULL: {Identifier("1")}},
                 create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
                 does_not_raise(),
             ),
         ],
     )
     def test_local_identifiers_can_not_be_superset_of_outbound_identifiers(
-        transiting_identifiers: Iterable[Identifier],
+        operations: Mapping[Operations, Iterable[Identifier]],
         assignments: Mapping[Components, Iterable[Identifier]],
         expectation: ContextManager[None],
     ) -> None:
         with expectation:
-            create_link(assignments, transiting_identifiers=transiting_identifiers)
+            create_link(assignments, operations=operations)
 
 
 class TestLink:
@@ -124,10 +165,7 @@ class TestLink:
     @staticmethod
     def test_can_get_entities_in_component(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
         link = create_link(assignments)
-        assert set(link[Components.SOURCE]) == {
-            Entity(Identifier("1"), state=States.PULLED),
-            Entity(Identifier("2"), state=States.IDLE),
-        }
+        assert {entity.identifier for entity in link[Components.SOURCE]} == {Identifier("1"), Identifier("2")}
 
     @staticmethod
     def test_can_get_identifiers_of_entities_in_component(
