@@ -11,12 +11,14 @@ from dj_link.entities.link import (
     AddToOutbound,
     Components,
     Deprecated,
+    FinishDeleteOperation,
     FinishPullOperation,
     Identifier,
     Idle,
     Operations,
     Pulled,
     Received,
+    RemoveFromOutbound,
     StartPullOperation,
     State,
     Tainted,
@@ -316,6 +318,15 @@ def test_pulling_activated_entity_undergoing_delete_operation_returns_correct_co
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.pull() == set()
+
+
+def test_deleting_activated_untainted_entity_undergoing_delete_operation_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        operations={Operations.DELETE: {Identifier("1")}},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.delete() == {RemoveFromOutbound(Identifier("1")), FinishDeleteOperation(Identifier("1"))}
 
 
 def test_pulling_received_entity_returns_correct_commands() -> None:

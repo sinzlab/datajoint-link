@@ -15,15 +15,19 @@ class Components(Enum):
     LOCAL = 3
 
 
-class State:  # pylint: disable=too-few-public-methods
+class State:
     """An entity's state."""
 
     def pull(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
         """Return the commands needed to pull an entity."""
         return set()
 
+    def delete(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+        """Return the commands needed to delete the entity."""
+        return set()
 
-class Idle(State):  # pylint: disable=too-few-public-methods
+
+class Idle(State):
     """The default state of an entity."""
 
     def pull(self, entity: Entity) -> set[Command]:
@@ -34,7 +38,7 @@ class Idle(State):  # pylint: disable=too-few-public-methods
         }
 
 
-class Activated(State):  # pylint: disable=too-few-public-methods
+class Activated(State):
     """The state of an activated entity."""
 
     def pull(self, entity: Entity) -> set[Command]:
@@ -44,8 +48,15 @@ class Activated(State):  # pylint: disable=too-few-public-methods
             for command in TRANSITION_MAP.get(Transition(self.__class__, Received, operation=entity.operation), set())
         }
 
+    def delete(self, entity: Entity) -> set[Command]:
+        """Return the commands needed to delete an activated entity."""
+        return {
+            command(entity.identifier)
+            for command in TRANSITION_MAP[Transition(self.__class__, Idle, operation=entity.operation)]
+        }
 
-class Received(State):  # pylint: disable=too-few-public-methods
+
+class Received(State):
     """The state of an received entity."""
 
     def pull(self, entity: Entity) -> set[Command]:
@@ -56,15 +67,15 @@ class Received(State):  # pylint: disable=too-few-public-methods
         }
 
 
-class Pulled(State):  # pylint: disable=too-few-public-methods
+class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
 
-class Tainted(State):  # pylint: disable=too-few-public-methods
+class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
 
-class Deprecated(State):  # pylint: disable=too-few-public-methods
+class Deprecated(State):
     """The state of a faulty entity that was deleted by the local side."""
 
 
@@ -89,6 +100,10 @@ class Entity:
     def pull(self) -> set[Command]:
         """Pull the entity."""
         return self.state().pull(self)
+
+    def delete(self) -> set[Command]:
+        """Delete the entity."""
+        return self.state().delete(self)
 
 
 @dataclass(frozen=True)
@@ -156,6 +171,11 @@ class AddToOutbound(Command):
 
 
 @dataclass(frozen=True)
+class RemoveFromOutbound(Command):
+    """A command to remove an entity from the outbound component."""
+
+
+@dataclass(frozen=True)
 class AddToLocal(Command):
     """A command to add an entity to the outbound component."""
 
@@ -170,8 +190,14 @@ class FinishPullOperation(Command):
     """A command finishing the pull operation on an entity."""
 
 
+@dataclass(frozen=True)
+class FinishDeleteOperation(Command):
+    """A command finishing the delete operation on an entity."""
+
+
 TRANSITION_MAP: dict[Transition, set[type[Command]]] = {
     Transition(Idle, Activated, operation=None): {AddToOutbound, StartPullOperation},
+    Transition(Activated, Idle, operation=Operations.DELETE): {RemoveFromOutbound, FinishDeleteOperation},
     Transition(Activated, Received, operation=Operations.PULL): {AddToLocal},
     Transition(Received, Pulled, operation=Operations.PULL): {FinishPullOperation},
 }
