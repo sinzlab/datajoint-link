@@ -13,16 +13,20 @@ from dj_link.entities.link import (
     Deprecated,
     FinishDeleteOperation,
     FinishPullOperation,
+    Flag,
     Identifier,
     Idle,
     Operations,
     Pulled,
     Received,
+    RemoveFromLocal,
     RemoveFromOutbound,
+    StartDeleteOperation,
     StartPullOperation,
     State,
     Tainted,
     Transfer,
+    Unflag,
     create_link,
     pull,
 )
@@ -327,3 +331,55 @@ def test_processing_received_entity_undergoing_pull_operation_returns_correct_co
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == {FinishPullOperation(Identifier("1"))}
+
+
+def test_processing_received_entity_undergoing_delete_operation_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        operations={Operations.DELETE: {Identifier("1")}},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.process() == {RemoveFromLocal(Identifier("1"))}
+
+
+def test_deleting_pulled_entity_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.delete() == {StartDeleteOperation(Identifier("1"))}
+
+
+def test_flagging_pulled_entity_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.flag() == {Flag(Identifier("1"))}
+
+
+def test_unflagging_tainted_entity_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        tainted_identifiers={Identifier("1")},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.unflag() == {Unflag(Identifier("1"))}
+
+
+def test_deleting_tainted_entity_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        tainted_identifiers={Identifier("1")},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.delete() == {StartDeleteOperation(Identifier("1"))}
+
+
+def test_unflagging_deprecated_entity_returns_correct_commands() -> None:
+    link = create_link(
+        create_assignments({Components.SOURCE: {"1"}}),
+        tainted_identifiers={Identifier("1")},
+    )
+    entity = next(iter(link[Components.SOURCE]))
+    assert entity.unflag() == {Unflag(Identifier("1"))}
