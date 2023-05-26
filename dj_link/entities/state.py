@@ -9,14 +9,6 @@ from typing import NewType, Optional
 from . import command
 
 
-class Components(Enum):
-    """Names for the different components in a link."""
-
-    SOURCE = 1
-    OUTBOUND = 2
-    LOCAL = 3
-
-
 class State:
     """An entity's state."""
 
@@ -117,6 +109,14 @@ class Operations(Enum):
 
     PULL = 1
     DELETE = 2
+
+
+class Components(Enum):
+    """Names for the different components in a link."""
+
+    SOURCE = 1
+    OUTBOUND = 2
+    LOCAL = 3
 
 
 @dataclass(frozen=True)
