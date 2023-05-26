@@ -38,13 +38,16 @@ class State:
         """Return the commands needed to unflag the entity."""
         return set()
 
+    def _construct_commands(self, identifier: Identifier, commands: Iterable[type[Command]]) -> set[Command]:
+        return {command(identifier) for command in commands}
+
 
 class Idle(State):
     """The default state of an entity."""
 
     def pull(self, entity: Entity) -> set[Command]:
         """Return the commands needed to pull an idle entity."""
-        return {command(entity.identifier) for command in (AddToOutbound, StartPullOperation)}
+        return self._construct_commands(entity.identifier, (AddToOutbound, StartPullOperation))
 
 
 class Activated(State):
@@ -57,7 +60,7 @@ class Activated(State):
             commands = (AddToLocal,)
         elif entity.operation is Operations.DELETE:
             commands = (RemoveFromOutbound, FinishDeleteOperation)
-        return {command(entity.identifier) for command in commands}
+        return self._construct_commands(entity.identifier, commands)
 
 
 class Received(State):
@@ -70,7 +73,7 @@ class Received(State):
             commands = (FinishPullOperation,)
         elif entity.operation is Operations.DELETE:
             commands = (RemoveFromLocal,)
-        return {command(entity.identifier) for command in commands}
+        return self._construct_commands(entity.identifier, commands)
 
 
 class Pulled(State):
@@ -78,11 +81,11 @@ class Pulled(State):
 
     def delete(self, entity: Entity) -> set[Command]:
         """Return the commands needed to delete a pulled entity."""
-        return {command(entity.identifier) for command in (StartDeleteOperation,)}
+        return self._construct_commands(entity.identifier, (StartDeleteOperation,))
 
     def flag(self, entity: Entity) -> set[Command]:
         """Return the commands needed to flag a pulled entity."""
-        return {command(entity.identifier) for command in (Flag,)}
+        return self._construct_commands(entity.identifier, (Flag,))
 
 
 class Tainted(State):
@@ -90,11 +93,11 @@ class Tainted(State):
 
     def delete(self, entity: Entity) -> set[Command]:
         """Return the commands needed to delete a tainted entity."""
-        return {command(entity.identifier) for command in (StartDeleteOperation,)}
+        return self._construct_commands(entity.identifier, (StartDeleteOperation,))
 
     def unflag(self, entity: Entity) -> set[Command]:
         """Return the commands needed to unflag a tainted entity."""
-        return {command(entity.identifier) for command in (Unflag,)}
+        return self._construct_commands(entity.identifier, (Unflag,))
 
 
 class Deprecated(State):
@@ -102,7 +105,7 @@ class Deprecated(State):
 
     def unflag(self, entity: Entity) -> set[Command]:
         """Return the commands to unflag a deprecated entity."""
-        return {command(entity.identifier) for command in (Unflag,)}
+        return self._construct_commands(entity.identifier, (Unflag,))
 
 
 class Operations(Enum):
