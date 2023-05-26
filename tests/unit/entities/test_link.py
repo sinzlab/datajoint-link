@@ -302,37 +302,28 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     assert entity.pull() == {AddToOutbound(Identifier("1")), StartPullOperation(Identifier("1"))}
 
 
-def test_pulling_activated_entity_undergoing_pull_operation_returns_correct_commands() -> None:
+def test_processing_activated_entity_undergoing_pull_operation_returns_correct_commands() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         operations={Operations.PULL: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.pull() == {AddToLocal(Identifier("1"))}
+    assert entity.process() == {AddToLocal(Identifier("1"))}
 
 
-def test_pulling_activated_entity_undergoing_delete_operation_returns_correct_commands() -> None:
+def test_processing_activated_entity_undergoing_delete_operation_returns_correct_commands() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         operations={Operations.DELETE: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.pull() == set()
+    assert entity.process() == {RemoveFromOutbound(Identifier("1")), FinishDeleteOperation(Identifier("1"))}
 
 
-def test_deleting_activated_untainted_entity_undergoing_delete_operation_returns_correct_commands() -> None:
-    link = create_link(
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
-        operations={Operations.DELETE: {Identifier("1")}},
-    )
-    entity = next(iter(link[Components.SOURCE]))
-    assert entity.delete() == {RemoveFromOutbound(Identifier("1")), FinishDeleteOperation(Identifier("1"))}
-
-
-def test_pulling_received_entity_returns_correct_commands() -> None:
+def test_processing_received_entity_undergoing_pull_operation_returns_correct_commands() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
         operations={Operations.PULL: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.pull() == {FinishPullOperation(Identifier("1"))}
+    assert entity.process() == {FinishPullOperation(Identifier("1"))}

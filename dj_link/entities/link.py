@@ -26,6 +26,10 @@ class State:
         """Return the commands needed to delete the entity."""
         return set()
 
+    def process(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+        """Return the commands needed to process the entity."""
+        return set()
+
 
 class Idle(State):
     """The default state of an entity."""
@@ -38,22 +42,21 @@ class Idle(State):
 class Activated(State):
     """The state of an activated entity."""
 
-    def pull(self, entity: Entity) -> set[Command]:
-        """Return the commands needed to pull an activated entity."""
-        if entity.operation is not Operations.PULL:
-            return super().pull(entity)
-        return {command(entity.identifier) for command in (AddToLocal,)}
-
-    def delete(self, entity: Entity) -> set[Command]:
-        """Return the commands needed to delete an activated entity."""
-        return {command(entity.identifier) for command in (RemoveFromOutbound, FinishDeleteOperation)}
+    def process(self, entity: Entity) -> set[Command]:
+        """Return the commands needed to process an activated entity."""
+        commands: tuple[type[Command], ...]
+        if entity.operation is Operations.PULL:
+            commands = (AddToLocal,)
+        elif entity.operation is Operations.DELETE:
+            commands = (RemoveFromOutbound, FinishDeleteOperation)
+        return {command(entity.identifier) for command in commands}
 
 
 class Received(State):
     """The state of an received entity."""
 
-    def pull(self, entity: Entity) -> set[Command]:
-        """Return the commands needed to pull a received entity."""
+    def process(self, entity: Entity) -> set[Command]:
+        """Return the commands needed to process a received entity."""
         return {command(entity.identifier) for command in (FinishPullOperation,)}
 
 
@@ -94,6 +97,10 @@ class Entity:
     def delete(self) -> set[Command]:
         """Delete the entity."""
         return self.state().delete(self)
+
+    def process(self) -> set[Command]:
+        """Process the entity."""
+        return self.state().process(self)
 
 
 @dataclass(frozen=True)
