@@ -35,22 +35,22 @@ def test_processing_activated_entity_returns_correct_commands(
     assert entity.process() == {command(Identifier("1")) for command in commands}
 
 
-def test_processing_received_entity_undergoing_pull_operation_returns_correct_commands() -> None:
+@pytest.mark.parametrize(
+    "operation,commands",
+    [
+        (Operations.PULL, {command.FinishPullOperation}),
+        (Operations.DELETE, {command.RemoveFromLocal}),
+    ],
+)
+def test_processing_received_entity_returns_correct_commands(
+    operation: Operations, commands: Iterable[type[command.Command]]
+) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
-        operations={Operations.PULL: {Identifier("1")}},
+        operations={operation: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.process() == {command.FinishPullOperation(Identifier("1"))}
-
-
-def test_processing_received_entity_undergoing_delete_operation_returns_correct_commands() -> None:
-    link = create_link(
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
-        operations={Operations.DELETE: {Identifier("1")}},
-    )
-    entity = next(iter(link[Components.SOURCE]))
-    assert entity.process() == {command.RemoveFromLocal(Identifier("1"))}
+    assert entity.process() == {command(Identifier("1")) for command in commands}
 
 
 def test_deleting_pulled_entity_returns_correct_commands() -> None:
