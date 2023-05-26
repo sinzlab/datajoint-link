@@ -119,38 +119,6 @@ class Operations(Enum):
     DELETE = 2
 
 
-Identifier = NewType("Identifier", str)
-
-
-@dataclass(frozen=True)
-class Entity:
-    """An entity in a link."""
-
-    identifier: Identifier
-    state: type[State]
-    operation: Optional[Operations]
-
-    def pull(self) -> set[command.Command]:
-        """Pull the entity."""
-        return self.state().pull(self)
-
-    def delete(self) -> set[command.Command]:
-        """Delete the entity."""
-        return self.state().delete(self)
-
-    def process(self) -> set[command.Command]:
-        """Process the entity."""
-        return self.state().process(self)
-
-    def flag(self) -> set[command.Command]:
-        """Flag the entity."""
-        return self.state().flag(self)
-
-    def unflag(self) -> set[command.Command]:
-        """Unflag the entity."""
-        return self.state().unflag(self)
-
-
 @dataclass(frozen=True)
 class PersistentState:
     """The persistent state of an entity."""
@@ -192,6 +160,37 @@ STATE_MAP = {
         has_operation=False,
     ): Deprecated,
 }
+
+Identifier = NewType("Identifier", str)
+
+
+@dataclass(frozen=True)
+class Entity:
+    """An entity in a link."""
+
+    identifier: Identifier
+    state: type[State]
+    operation: Optional[Operations]
+
+    def pull(self) -> set[command.Command]:
+        """Pull the entity."""
+        return self.state().pull(self)
+
+    def delete(self) -> set[command.Command]:
+        """Delete the entity."""
+        return self.state().delete(self)
+
+    def process(self) -> set[command.Command]:
+        """Process the entity."""
+        return self.state().process(self)
+
+    def flag(self) -> set[command.Command]:
+        """Flag the entity."""
+        return self.state().flag(self)
+
+    def unflag(self) -> set[command.Command]:
+        """Unflag the entity."""
+        return self.state().unflag(self)
 
 
 def create_link(
