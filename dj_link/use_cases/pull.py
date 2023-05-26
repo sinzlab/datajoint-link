@@ -5,7 +5,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Set
 
-from ..entities.link import Components, Identifier, create_link, pull
+from ..entities.link import create_link, pull
+from ..entities.state import Components, Identifier
 from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:

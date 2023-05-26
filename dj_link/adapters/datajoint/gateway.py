@@ -7,7 +7,8 @@ from typing import Any, Dict, Iterator, List
 
 from ...base import Base
 from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
-from ...entities.link import Components, Transfer
+from ...entities.link import Transfer
+from ...entities.state import Components
 from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
 from .identification import IdentificationTranslator

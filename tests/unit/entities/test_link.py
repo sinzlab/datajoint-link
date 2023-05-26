@@ -6,7 +6,8 @@ from typing import ContextManager, Iterable, Mapping, Optional
 import pytest
 
 from dj_link.entities import command
-from dj_link.entities.link import (
+from dj_link.entities.link import Transfer, create_link, pull
+from dj_link.entities.state import (
     Activated,
     Components,
     Deprecated,
@@ -17,9 +18,6 @@ from dj_link.entities.link import (
     Received,
     State,
     Tainted,
-    Transfer,
-    create_link,
-    pull,
 )
 
 

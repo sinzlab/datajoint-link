@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .link import Identifier
+    from .state import Identifier
 
 
 @dataclass(frozen=True)
