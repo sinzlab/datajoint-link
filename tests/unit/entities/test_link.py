@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext as does_not_raise
-from typing import ContextManager, Iterable, Mapping, Optional
+from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
@@ -20,21 +20,7 @@ from dj_link.entities.state import (
     Tainted,
 )
 
-
-def create_assignments(
-    assignments: Optional[Mapping[Components, Iterable[str]]] = None
-) -> dict[Components, set[Identifier]]:
-    if assignments is None:
-        assignments = {}
-    else:
-        assignments = dict(assignments)
-    for component in Components:
-        if component not in assignments:
-            assignments[component] = set()
-    return {
-        component: {Identifier(identifier) for identifier in identifiers}
-        for component, identifiers in assignments.items()
-    }
+from .assignments import create_assignments
 
 
 class TestCreateLink:
