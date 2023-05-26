@@ -7,7 +7,8 @@ from typing import Iterable, Iterator, Optional, Protocol, TypedDict, Union
 import pytest
 
 from dj_link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
-from dj_link.entities.link import Components, Transfer
+from dj_link.entities.link import Transfer
+from dj_link.entities.state import Components
 from dj_link.use_cases.gateway import GatewayLink
 
 

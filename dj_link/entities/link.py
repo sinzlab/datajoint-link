@@ -1,91 +1,11 @@
 """Contains the link class."""
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, FrozenSet, Mapping, NewType, Optional, TypeVar
+from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
-
-class Components(Enum):
-    """Names for the different components in a link."""
-
-    SOURCE = 1
-    OUTBOUND = 2
-    LOCAL = 3
-
-
-class States(Enum):
-    """Names for the different states of an entity."""
-
-    IDLE = 1
-    ACTIVATED = 2
-    RECEIVED = 3
-    PULLED = 4
-    TAINTED = 5
-    DEPRECATED = 6
-
-
-class Operations(Enum):
-    """Names for operations that pull/delete entities into/from the local side."""
-
-    PULL = 1
-    DELETE = 2
-
-
-Identifier = NewType("Identifier", str)
-
-
-@dataclass(frozen=True)
-class Entity:
-    """An entity in a link."""
-
-    identifier: Identifier
-    state: States
-    operation: Optional[Operations]
-
-
-@dataclass(frozen=True)
-class PersistentState:
-    """The persistent state of an entity."""
-
-    presence: frozenset[Components]
-    is_tainted: bool
-    has_operation: bool
-
-
-STATE_MAP = {
-    PersistentState(
-        frozenset({Components.SOURCE}),
-        is_tainted=False,
-        has_operation=False,
-    ): States.IDLE,
-    PersistentState(
-        frozenset({Components.SOURCE, Components.OUTBOUND}),
-        is_tainted=False,
-        has_operation=True,
-    ): States.ACTIVATED,
-    PersistentState(
-        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
-        is_tainted=False,
-        has_operation=True,
-    ): States.RECEIVED,
-    PersistentState(
-        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
-        is_tainted=False,
-        has_operation=False,
-    ): States.PULLED,
-    PersistentState(
-        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
-        is_tainted=True,
-        has_operation=False,
-    ): States.TAINTED,
-    PersistentState(
-        frozenset({Components.SOURCE}),
-        is_tainted=True,
-        has_operation=False,
-    ): States.DEPRECATED,
-}
+from .custom_types import Identifier
+from .state import STATE_MAP, Components, Entity, Idle, Operations, PersistentState
 
 
 def create_link(
@@ -210,7 +130,7 @@ def pull(
     """Create the transfer specifications needed for pulling the requested identifiers."""
     assert set(requested) <= link[Components.SOURCE].identifiers, "Requested must not be superset of source."
     assert all(
-        entity.state is States.IDLE for entity in link[Components.SOURCE] if entity.identifier in set(requested)
+        entity.state is Idle for entity in link[Components.SOURCE] if entity.identifier in set(requested)
     ), "Requested entities must be idle."
     outbound_destined = set(requested) - link[Components.OUTBOUND].identifiers
     local_destined = set(requested) - link[Components.LOCAL].identifiers
