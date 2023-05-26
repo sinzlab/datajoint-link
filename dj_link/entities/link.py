@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, FrozenSet, Mapping, NewType, Optional, TypeVar
 
+from . import command
+
 
 class Components(Enum):
     """Names for the different components in a link."""
@@ -18,94 +20,96 @@ class Components(Enum):
 class State:
     """An entity's state."""
 
-    def pull(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+    def pull(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
         """Return the commands needed to pull an entity."""
         return set()
 
-    def delete(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+    def delete(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
         """Return the commands needed to delete the entity."""
         return set()
 
-    def process(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+    def process(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
         """Return the commands needed to process the entity."""
         return set()
 
-    def flag(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+    def flag(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
         """Return the commands needed to flag the entity."""
         return set()
 
-    def unflag(self, entity: Entity) -> set[Command]:  # pylint: disable=unused-argument
+    def unflag(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
         """Return the commands needed to unflag the entity."""
         return set()
 
-    def _construct_commands(self, identifier: Identifier, commands: Iterable[type[Command]]) -> set[Command]:
+    def _construct_commands(
+        self, identifier: Identifier, commands: Iterable[type[command.Command]]
+    ) -> set[command.Command]:
         return {command(identifier) for command in commands}
 
 
 class Idle(State):
     """The default state of an entity."""
 
-    def pull(self, entity: Entity) -> set[Command]:
+    def pull(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to pull an idle entity."""
-        return self._construct_commands(entity.identifier, (AddToOutbound, StartPullOperation))
+        return self._construct_commands(entity.identifier, (command.AddToOutbound, command.StartPullOperation))
 
 
 class Activated(State):
     """The state of an activated entity."""
 
-    def process(self, entity: Entity) -> set[Command]:
+    def process(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to process an activated entity."""
-        commands: tuple[type[Command], ...]
+        commands: tuple[type[command.Command], ...]
         if entity.operation is Operations.PULL:
-            commands = (AddToLocal,)
+            commands = (command.AddToLocal,)
         elif entity.operation is Operations.DELETE:
-            commands = (RemoveFromOutbound, FinishDeleteOperation)
+            commands = (command.RemoveFromOutbound, command.FinishDeleteOperation)
         return self._construct_commands(entity.identifier, commands)
 
 
 class Received(State):
     """The state of an received entity."""
 
-    def process(self, entity: Entity) -> set[Command]:
+    def process(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to process a received entity."""
-        commands: tuple[type[Command], ...]
+        commands: tuple[type[command.Command], ...]
         if entity.operation is Operations.PULL:
-            commands = (FinishPullOperation,)
+            commands = (command.FinishPullOperation,)
         elif entity.operation is Operations.DELETE:
-            commands = (RemoveFromLocal,)
+            commands = (command.RemoveFromLocal,)
         return self._construct_commands(entity.identifier, commands)
 
 
 class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
-    def delete(self, entity: Entity) -> set[Command]:
+    def delete(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to delete a pulled entity."""
-        return self._construct_commands(entity.identifier, (StartDeleteOperation,))
+        return self._construct_commands(entity.identifier, (command.StartDeleteOperation,))
 
-    def flag(self, entity: Entity) -> set[Command]:
+    def flag(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to flag a pulled entity."""
-        return self._construct_commands(entity.identifier, (Flag,))
+        return self._construct_commands(entity.identifier, (command.Flag,))
 
 
 class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
-    def delete(self, entity: Entity) -> set[Command]:
+    def delete(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to delete a tainted entity."""
-        return self._construct_commands(entity.identifier, (StartDeleteOperation,))
+        return self._construct_commands(entity.identifier, (command.StartDeleteOperation,))
 
-    def unflag(self, entity: Entity) -> set[Command]:
+    def unflag(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to unflag a tainted entity."""
-        return self._construct_commands(entity.identifier, (Unflag,))
+        return self._construct_commands(entity.identifier, (command.Unflag,))
 
 
 class Deprecated(State):
     """The state of a faulty entity that was deleted by the local side."""
 
-    def unflag(self, entity: Entity) -> set[Command]:
+    def unflag(self, entity: Entity) -> set[command.Command]:
         """Return the commands to unflag a deprecated entity."""
-        return self._construct_commands(entity.identifier, (Unflag,))
+        return self._construct_commands(entity.identifier, (command.Unflag,))
 
 
 class Operations(Enum):
@@ -126,23 +130,23 @@ class Entity:
     state: type[State]
     operation: Optional[Operations]
 
-    def pull(self) -> set[Command]:
+    def pull(self) -> set[command.Command]:
         """Pull the entity."""
         return self.state().pull(self)
 
-    def delete(self) -> set[Command]:
+    def delete(self) -> set[command.Command]:
         """Delete the entity."""
         return self.state().delete(self)
 
-    def process(self) -> set[Command]:
+    def process(self) -> set[command.Command]:
         """Process the entity."""
         return self.state().process(self)
 
-    def flag(self) -> set[Command]:
+    def flag(self) -> set[command.Command]:
         """Flag the entity."""
         return self.state().flag(self)
 
-    def unflag(self) -> set[Command]:
+    def unflag(self) -> set[command.Command]:
         """Unflag the entity."""
         return self.state().unflag(self)
 
@@ -188,63 +192,6 @@ STATE_MAP = {
         has_operation=False,
     ): Deprecated,
 }
-
-
-@dataclass(frozen=True)
-class Command:
-    """A command to be executed by the persistence layer and produced by an entity undergoing a state transition."""
-
-    identifier: Identifier
-
-
-@dataclass(frozen=True)
-class AddToOutbound(Command):
-    """A command to add an entity to the outbound component."""
-
-
-@dataclass(frozen=True)
-class RemoveFromOutbound(Command):
-    """A command to remove an entity from the outbound component."""
-
-
-@dataclass(frozen=True)
-class AddToLocal(Command):
-    """A command to add an entity to the outbound component."""
-
-
-@dataclass(frozen=True)
-class RemoveFromLocal(Command):
-    """A command to remove an entity from the outbound component."""
-
-
-@dataclass(frozen=True)
-class StartPullOperation(Command):
-    """A command starting the pull operation on an entity."""
-
-
-@dataclass(frozen=True)
-class FinishPullOperation(Command):
-    """A command finishing the pull operation on an entity."""
-
-
-@dataclass(frozen=True)
-class StartDeleteOperation(Command):
-    """A command starting the delete operation on an entity."""
-
-
-@dataclass(frozen=True)
-class FinishDeleteOperation(Command):
-    """A command finishing the delete operation on an entity."""
-
-
-@dataclass(frozen=True)
-class Flag(Command):
-    """A command flagging an entity for deletion."""
-
-
-@dataclass(frozen=True)
-class Unflag(Command):
-    """A command unflagging an entity for deletion."""
 
 
 def create_link(

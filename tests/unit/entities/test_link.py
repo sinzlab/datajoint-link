@@ -5,28 +5,19 @@ from typing import ContextManager, Iterable, Mapping, Optional
 
 import pytest
 
+from dj_link.entities import command
 from dj_link.entities.link import (
     Activated,
-    AddToLocal,
-    AddToOutbound,
     Components,
     Deprecated,
-    FinishDeleteOperation,
-    FinishPullOperation,
-    Flag,
     Identifier,
     Idle,
     Operations,
     Pulled,
     Received,
-    RemoveFromLocal,
-    RemoveFromOutbound,
-    StartDeleteOperation,
-    StartPullOperation,
     State,
     Tainted,
     Transfer,
-    Unflag,
     create_link,
     pull,
 )
@@ -303,7 +294,7 @@ class TestPull:
 def test_pulling_idle_entity_returns_correct_commands() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.pull() == {AddToOutbound(Identifier("1")), StartPullOperation(Identifier("1"))}
+    assert entity.pull() == {command.AddToOutbound(Identifier("1")), command.StartPullOperation(Identifier("1"))}
 
 
 def test_processing_activated_entity_undergoing_pull_operation_returns_correct_commands() -> None:
@@ -312,7 +303,7 @@ def test_processing_activated_entity_undergoing_pull_operation_returns_correct_c
         operations={Operations.PULL: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.process() == {AddToLocal(Identifier("1"))}
+    assert entity.process() == {command.AddToLocal(Identifier("1"))}
 
 
 def test_processing_activated_entity_undergoing_delete_operation_returns_correct_commands() -> None:
@@ -321,7 +312,10 @@ def test_processing_activated_entity_undergoing_delete_operation_returns_correct
         operations={Operations.DELETE: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.process() == {RemoveFromOutbound(Identifier("1")), FinishDeleteOperation(Identifier("1"))}
+    assert entity.process() == {
+        command.RemoveFromOutbound(Identifier("1")),
+        command.FinishDeleteOperation(Identifier("1")),
+    }
 
 
 def test_processing_received_entity_undergoing_pull_operation_returns_correct_commands() -> None:
@@ -330,7 +324,7 @@ def test_processing_received_entity_undergoing_pull_operation_returns_correct_co
         operations={Operations.PULL: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.process() == {FinishPullOperation(Identifier("1"))}
+    assert entity.process() == {command.FinishPullOperation(Identifier("1"))}
 
 
 def test_processing_received_entity_undergoing_delete_operation_returns_correct_commands() -> None:
@@ -339,7 +333,7 @@ def test_processing_received_entity_undergoing_delete_operation_returns_correct_
         operations={Operations.DELETE: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.process() == {RemoveFromLocal(Identifier("1"))}
+    assert entity.process() == {command.RemoveFromLocal(Identifier("1"))}
 
 
 def test_deleting_pulled_entity_returns_correct_commands() -> None:
@@ -347,7 +341,7 @@ def test_deleting_pulled_entity_returns_correct_commands() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.delete() == {StartDeleteOperation(Identifier("1"))}
+    assert entity.delete() == {command.StartDeleteOperation(Identifier("1"))}
 
 
 def test_flagging_pulled_entity_returns_correct_commands() -> None:
@@ -355,7 +349,7 @@ def test_flagging_pulled_entity_returns_correct_commands() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.flag() == {Flag(Identifier("1"))}
+    assert entity.flag() == {command.Flag(Identifier("1"))}
 
 
 def test_unflagging_tainted_entity_returns_correct_commands() -> None:
@@ -364,7 +358,7 @@ def test_unflagging_tainted_entity_returns_correct_commands() -> None:
         tainted_identifiers={Identifier("1")},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.unflag() == {Unflag(Identifier("1"))}
+    assert entity.unflag() == {command.Unflag(Identifier("1"))}
 
 
 def test_deleting_tainted_entity_returns_correct_commands() -> None:
@@ -373,7 +367,7 @@ def test_deleting_tainted_entity_returns_correct_commands() -> None:
         tainted_identifiers={Identifier("1")},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.delete() == {StartDeleteOperation(Identifier("1"))}
+    assert entity.delete() == {command.StartDeleteOperation(Identifier("1"))}
 
 
 def test_unflagging_deprecated_entity_returns_correct_commands() -> None:
@@ -382,4 +376,4 @@ def test_unflagging_deprecated_entity_returns_correct_commands() -> None:
         tainted_identifiers={Identifier("1")},
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.unflag() == {Unflag(Identifier("1"))}
+    assert entity.unflag() == {command.Unflag(Identifier("1"))}
