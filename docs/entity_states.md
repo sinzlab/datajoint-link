@@ -7,8 +7,8 @@ Each entity is in one of the following states at any given time:
 * Activated: The entity is in the process of being pulled/deleted to/from the local side. It is only present in the source side of the link.
 * Received: The entity is in the process of being pulled/deleted to/from the local side. It is present in both sides of the link.
 * Pulled: The entity has been copied from the source to the local side.
-* Tainted: The entity was marked by the source side as faulty indicating to the local side to delete it.
-* Deprecated: The entity was marked as tainted by the source side and subsequently deleted by the local side.
+* Tainted: The entity was flagged by the source side indicating to the local side to delete it.
+* Deprecated: The entity was flagged by the source side and subsequently deleted by the local side.
 
 ## Transitions
 The following state diagram shows the different states that entities can be in and how they can transition between these states:
@@ -16,17 +16,17 @@ The following state diagram shows the different states that entities can be in a
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> Activated: pulled / add to outbound, add pull operation
-    Activated --> Received: processed [has pull operation] / add to local
-    Received --> Pulled: processed [has pull operation] / remove pull operation
-    Received --> Activated: processed [has delete operation] / remove from local
-    Activated --> Idle: processed [has delete operation and not tainted] / remove from outbound, remove delete operation
-    Pulled --> Received: deleted / add delete operation
-    Pulled --> Tainted: tainted / add tainted flag
-    Tainted --> Pulled: tainted / remove tainted flag
-    Tainted --> Received: deleted / add delete operation
-    Activated --> Deprecated: processed [has delete operation and tainted] / remove from outbound, remove delete operation
-    Deprecated --> Idle: restored / remove tainted flag
+    Idle --> Activated: pulled / add to outbound, start pull operation
+    Activated --> Received: processed [in pull operation] / add to local
+    Received --> Pulled: processed [in pull operation] / finish pull operation
+    Pulled --> Received: deleted / start delete operation
+    Received --> Activated: processed [in delete operation] / remove from local
+    Activated --> Idle: processed [in delete operation and not flagged] / remove from outbound, finish delete operation
+    Pulled --> Tainted: flagged / flag
+    Tainted --> Pulled: unflagged / unflag
+    Tainted --> Received: deleted / start delete operation
+    Activated --> Deprecated: processed [in delete operation and flagged] / remove from outbound, finish delete operation
+    Deprecated --> Idle: unflagged / unflag
 ```
 
 The diagram adheres to the following rule to avoid entities with invalid states due to interruptions (e.g. connection losses):
@@ -40,7 +40,7 @@ Storing an entity's state directly in the persistent layer is problematic becaus
 
 The following table illustrates the chosen mapping:
 
-| In source | In outbound | In local | Has operation | Is tainted | State |
+| In source | In outbound | In local | Has operation | Is flagged | State |
 |--------|----------|-------|--------|---------|---------|
 | :white_check_mark: | :x: | :x: | :x: | :x: | Idle |
 | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: | :x: | Activated |
