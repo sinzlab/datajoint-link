@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .state import Identifier
+from .custom_types import Identifier
 
 
 @dataclass(frozen=True)

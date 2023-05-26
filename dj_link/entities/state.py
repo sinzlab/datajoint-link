@@ -4,9 +4,10 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from typing import NewType, Optional
+from typing import Optional
 
 from . import command
+from .custom_types import Identifier
 
 
 class State:
@@ -160,8 +161,6 @@ STATE_MAP = {
         has_operation=False,
     ): Deprecated,
 }
-
-Identifier = NewType("Identifier", str)
 
 
 @dataclass(frozen=True)

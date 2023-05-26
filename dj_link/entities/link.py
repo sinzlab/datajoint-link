@@ -4,7 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
-from .state import STATE_MAP, Components, Entity, Identifier, Idle, Operations, PersistentState
+from .custom_types import Identifier
+from .state import STATE_MAP, Components, Entity, Idle, Operations, PersistentState
 
 
 def create_link(

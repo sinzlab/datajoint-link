@@ -5,19 +5,9 @@ from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
+from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Transfer, create_link, pull
-from dj_link.entities.state import (
-    Activated,
-    Components,
-    Deprecated,
-    Identifier,
-    Idle,
-    Operations,
-    Pulled,
-    Received,
-    State,
-    Tainted,
-)
+from dj_link.entities.state import Activated, Components, Deprecated, Idle, Operations, Pulled, Received, State, Tainted
 
 from .assignments import create_assignments
 
