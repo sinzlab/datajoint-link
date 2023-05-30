@@ -34,18 +34,23 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
 
 
 @pytest.mark.parametrize(
-    "operation,new_state,commands",
+    "operation,tainted_identifiers,new_state,commands",
     [
-        (Operations.PULL, Received, {command.AddToLocal}),
-        (Operations.DELETE, Idle, {command.RemoveFromOutbound, command.FinishDeleteOperation}),
+        (Operations.PULL, set(), Received, {command.AddToLocal}),
+        (Operations.DELETE, set(), Idle, {command.RemoveFromOutbound, command.FinishDeleteOperation}),
+        (Operations.DELETE, {Identifier("1")}, Deprecated, {command.RemoveFromOutbound, command.FinishDeleteOperation}),
     ],
 )
 def test_processing_activated_entity_returns_correct_commands(
-    operation: Operations, new_state: type[State], commands: Iterable[type[command.Command]]
+    operation: Operations,
+    tainted_identifiers: Iterable[Identifier],
+    new_state: type[State],
+    commands: Iterable[type[command.Command]],
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         operations={operation: {Identifier("1")}},
+        tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == Update(

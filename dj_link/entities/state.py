@@ -58,7 +58,10 @@ class Activated(State):
         if entity.operation is Operations.PULL:
             transition = Transition(self.__class__, Received)
         elif entity.operation is Operations.DELETE:
-            transition = Transition(self.__class__, Idle)
+            if entity.is_tainted:
+                transition = Transition(self.__class__, Deprecated)
+            else:
+                transition = Transition(self.__class__, Idle)
         return Update(
             transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
         )
@@ -137,6 +140,7 @@ TRANSITION_MAP: dict[Transition, set[type[command.Command]]] = {
     Transition(Idle, Activated): {command.AddToOutbound, command.StartPullOperation},
     Transition(Activated, Received): {command.AddToLocal},
     Transition(Activated, Idle): {command.RemoveFromOutbound, command.FinishDeleteOperation},
+    Transition(Activated, Deprecated): {command.RemoveFromOutbound, command.FinishDeleteOperation},
     Transition(Received, Pulled): {command.FinishPullOperation},
     Transition(Received, Activated): {command.RemoveFromLocal},
     Transition(Pulled, Received): {command.StartDeleteOperation},
