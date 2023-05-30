@@ -6,20 +6,7 @@ import pytest
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import create_link
-from dj_link.entities.state import (
-    Activated,
-    Commands,
-    Components,
-    Deprecated,
-    Idle,
-    Operations,
-    Pulled,
-    Received,
-    State,
-    Tainted,
-    Transition,
-    Update,
-)
+from dj_link.entities.state import Commands, Components, Operations, State, Transition, Update, states
 
 from .assignments import create_assignments
 
@@ -29,7 +16,7 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     entity = next(iter(link[Components.SOURCE]))
     assert entity.pull() == Update(
         Identifier("1"),
-        Transition(Idle, Activated),
+        Transition(states.Idle, states.Activated),
         commands=frozenset({Commands.ADD_TO_OUTBOUND, Commands.START_PULL_OPERATION}),
     )
 
@@ -37,12 +24,12 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
 @pytest.mark.parametrize(
     "operation,tainted_identifiers,new_state,commands",
     [
-        (Operations.PULL, set(), Received, {Commands.ADD_TO_LOCAL}),
-        (Operations.DELETE, set(), Idle, {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION}),
+        (Operations.PULL, set(), states.Received, {Commands.ADD_TO_LOCAL}),
+        (Operations.DELETE, set(), states.Idle, {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION}),
         (
             Operations.DELETE,
             {Identifier("1")},
-            Deprecated,
+            states.Deprecated,
             {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION},
         ),
     ],
@@ -61,7 +48,7 @@ def test_processing_activated_entity_returns_correct_commands(
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == Update(
         Identifier("1"),
-        Transition(Activated, new_state),
+        Transition(states.Activated, new_state),
         commands=frozenset(commands),
     )
 
@@ -69,8 +56,8 @@ def test_processing_activated_entity_returns_correct_commands(
 @pytest.mark.parametrize(
     "operation,new_state,commands",
     [
-        (Operations.PULL, Pulled, {Commands.FINISH_PULL_OPERATION}),
-        (Operations.DELETE, Activated, {Commands.REMOVE_FROM_LOCAL}),
+        (Operations.PULL, states.Pulled, {Commands.FINISH_PULL_OPERATION}),
+        (Operations.DELETE, states.Activated, {Commands.REMOVE_FROM_LOCAL}),
     ],
 )
 def test_processing_received_entity_returns_correct_commands(
@@ -83,7 +70,7 @@ def test_processing_received_entity_returns_correct_commands(
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == Update(
         Identifier("1"),
-        Transition(Received, new_state),
+        Transition(states.Received, new_state),
         commands=frozenset(commands),
     )
 
@@ -95,7 +82,7 @@ def test_deleting_pulled_entity_returns_correct_commands() -> None:
     entity = next(iter(link[Components.SOURCE]))
     assert entity.delete() == Update(
         Identifier("1"),
-        Transition(Pulled, Received),
+        Transition(states.Pulled, states.Received),
         commands=frozenset({Commands.START_DELETE_OPERATION}),
     )
 
@@ -105,7 +92,9 @@ def test_flagging_pulled_entity_returns_correct_commands() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     entity = next(iter(link[Components.SOURCE]))
-    assert entity.flag() == Update(Identifier("1"), Transition(Pulled, Tainted), commands=frozenset({Commands.FLAG}))
+    assert entity.flag() == Update(
+        Identifier("1"), Transition(states.Pulled, states.Tainted), commands=frozenset({Commands.FLAG})
+    )
 
 
 def test_unflagging_tainted_entity_returns_correct_commands() -> None:
@@ -115,7 +104,7 @@ def test_unflagging_tainted_entity_returns_correct_commands() -> None:
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.unflag() == Update(
-        Identifier("1"), Transition(Tainted, Pulled), commands=frozenset({Commands.UNFLAG})
+        Identifier("1"), Transition(states.Tainted, states.Pulled), commands=frozenset({Commands.UNFLAG})
     )
 
 
@@ -127,7 +116,7 @@ def test_deleting_tainted_entity_returns_correct_commands() -> None:
     entity = next(iter(link[Components.SOURCE]))
     assert entity.delete() == Update(
         Identifier("1"),
-        Transition(Tainted, Received),
+        Transition(states.Tainted, states.Received),
         commands=frozenset({Commands.START_DELETE_OPERATION}),
     )
 
@@ -139,5 +128,5 @@ def test_unflagging_deprecated_entity_returns_correct_commands() -> None:
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.unflag() == Update(
-        Identifier("1"), Transition(Deprecated, Idle), commands=frozenset({Commands.UNFLAG})
+        Identifier("1"), Transition(states.Deprecated, states.Idle), commands=frozenset({Commands.UNFLAG})
     )

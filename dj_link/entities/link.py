@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
-from .state import STATE_MAP, Components, Entity, Idle, Operations, PersistentState
+from .state import STATE_MAP, Components, Entity, Operations, PersistentState, states
 
 
 def create_link(
@@ -135,7 +135,7 @@ def pull(
     """Create the transfer specifications needed for pulling the requested identifiers."""
     assert set(requested) <= link[Components.SOURCE].identifiers, "Requested must not be superset of source."
     assert all(
-        entity.state is Idle for entity in link[Components.SOURCE] if entity.identifier in set(requested)
+        entity.state is states.Idle for entity in link[Components.SOURCE] if entity.identifier in set(requested)
     ), "Requested entities must be idle."
     outbound_destined = set(requested) - link[Components.OUTBOUND].identifiers
     local_destined = set(requested) - link[Components.LOCAL].identifiers

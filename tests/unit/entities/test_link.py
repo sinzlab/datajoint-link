@@ -7,7 +7,7 @@ import pytest
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Transfer, create_link, pull
-from dj_link.entities.state import Activated, Components, Deprecated, Idle, Operations, Pulled, Received, State, Tainted
+from dj_link.entities.state import Components, Operations, State, states
 
 from .assignments import create_assignments
 
@@ -17,12 +17,12 @@ class TestCreateLink:
     @pytest.mark.parametrize(
         "state,expected",
         [
-            (Idle, {Identifier("1")}),
-            (Activated, {Identifier("2"), Identifier("7")}),
-            (Received, {Identifier("3"), Identifier("8")}),
-            (Pulled, {Identifier("4")}),
-            (Tainted, {Identifier("5")}),
-            (Deprecated, {Identifier("6")}),
+            (states.Idle, {Identifier("1")}),
+            (states.Activated, {Identifier("2"), Identifier("7")}),
+            (states.Received, {Identifier("3"), Identifier("8")}),
+            (states.Pulled, {Identifier("4")}),
+            (states.Tainted, {Identifier("5")}),
+            (states.Deprecated, {Identifier("6")}),
         ],
     )
     def test_entities_get_correct_state_assigned(

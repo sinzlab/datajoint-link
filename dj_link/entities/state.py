@@ -50,6 +50,25 @@ class State:
         )
 
 
+class States:
+    """A namespace containing all states."""
+
+    def __init__(self) -> None:
+        """Initialize the namespace."""
+        self.__states: dict[str, type[State]] = {}
+
+    def __getattr__(self, name: str) -> type[State]:
+        """Return the state corresponding to the given name."""
+        return self.__states[name]
+
+    def register(self, state: type[State]) -> None:
+        """Add the given state to the namespace."""
+        self.__states[state.__name__] = state
+
+
+states = States()
+
+
 class Idle(State):
     """The default state of an entity."""
 
@@ -57,6 +76,9 @@ class Idle(State):
     def pull(cls, entity: Entity) -> Update:
         """Return the commands needed to pull an idle entity."""
         return cls._create_update(entity.identifier, Activated)
+
+
+states.register(Idle)
 
 
 class Activated(State):
@@ -76,6 +98,9 @@ class Activated(State):
         return cls._create_update(entity.identifier, new_state)
 
 
+states.register(Activated)
+
+
 class Received(State):
     """The state of an received entity."""
 
@@ -88,6 +113,9 @@ class Received(State):
         elif entity.operation is Operations.DELETE:
             new_state = Activated
         return cls._create_update(entity.identifier, new_state)
+
+
+states.register(Received)
 
 
 class Pulled(State):
@@ -104,6 +132,9 @@ class Pulled(State):
         return cls._create_update(entity.identifier, Tainted)
 
 
+states.register(Pulled)
+
+
 class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
@@ -118,6 +149,9 @@ class Tainted(State):
         return cls._create_update(entity.identifier, Pulled)
 
 
+states.register(Tainted)
+
+
 class Deprecated(State):
     """The state of a faulty entity that was deleted by the local side."""
 
@@ -125,6 +159,9 @@ class Deprecated(State):
     def unflag(cls, entity: Entity) -> Update:
         """Return the commands to unflag a deprecated entity."""
         return cls._create_update(entity.identifier, Idle)
+
+
+states.register(Deprecated)
 
 
 @dataclass(frozen=True)
