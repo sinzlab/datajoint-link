@@ -18,8 +18,8 @@ class TestCreateLink:
         "state,expected",
         [
             (Idle, {Identifier("1")}),
-            (Activated, {Identifier("2")}),
-            (Received, {Identifier("3")}),
+            (Activated, {Identifier("2"), Identifier("7")}),
+            (Received, {Identifier("3"), Identifier("8")}),
             (Pulled, {Identifier("4")}),
             (Tainted, {Identifier("5")}),
             (Deprecated, {Identifier("6")}),
@@ -31,15 +31,15 @@ class TestCreateLink:
     ) -> None:
         assignments = create_assignments(
             {
-                Components.SOURCE: {"1", "2", "3", "4", "5", "6"},
-                Components.OUTBOUND: {"2", "3", "4", "5"},
-                Components.LOCAL: {"3", "4", "5"},
+                Components.SOURCE: {"1", "2", "3", "4", "5", "6", "7", "8"},
+                Components.OUTBOUND: {"2", "3", "4", "5", "7", "8"},
+                Components.LOCAL: {"3", "4", "5", "8"},
             }
         )
         link = create_link(
             assignments,
-            tainted_identifiers={Identifier("5"), Identifier("6")},
-            operations={Operations.PULL: {Identifier("2"), Identifier("3")}},
+            tainted_identifiers={Identifier("5"), Identifier("6"), Identifier("7"), Identifier("8")},
+            operations={Operations.PULL: {Identifier("2"), Identifier("3"), Identifier("7"), Identifier("8")}},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 

@@ -141,8 +141,18 @@ STATE_MAP = {
         has_operation=True,
     ): Activated,
     PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND}),
+        is_tainted=True,
+        has_operation=True,
+    ): Activated,
+    PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
+        has_operation=True,
+    ): Received,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=True,
         has_operation=True,
     ): Received,
     PersistentState(
