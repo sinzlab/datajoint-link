@@ -88,9 +88,9 @@ class Activated(State):
     def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process an activated entity."""
         new_state: type[State]
-        if entity.operation is Operations.PULL:
+        if entity.current_process is Processes.PULL:
             new_state = Received
-        elif entity.operation is Operations.DELETE:
+        elif entity.current_process is Processes.DELETE:
             if entity.is_tainted:
                 new_state = Deprecated
             else:
@@ -108,9 +108,9 @@ class Received(State):
     def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process a received entity."""
         new_state: type[State]
-        if entity.operation is Operations.PULL:
+        if entity.current_process is Processes.PULL:
             new_state = Pulled
-        elif entity.operation is Operations.DELETE:
+        elif entity.current_process is Processes.DELETE:
             new_state = Activated
         return cls._create_update(entity.identifier, new_state)
 
@@ -179,25 +179,25 @@ class Commands(Enum):
     REMOVE_FROM_OUTBOUND = auto()
     ADD_TO_LOCAL = auto()
     REMOVE_FROM_LOCAL = auto()
-    START_PULL_OPERATION = auto()
-    FINISH_PULL_OPERATION = auto()
-    START_DELETE_OPERATION = auto()
-    FINISH_DELETE_OPERATION = auto()
+    START_PULL_PROCESS = auto()
+    FINISH_PULL_PROCESS = auto()
+    START_DELETE_PROCESS = auto()
+    FINISH_DELETE_PROCESS = auto()
     FLAG = auto()
     UNFLAG = auto()
 
 
 TRANSITION_MAP: dict[Transition, set[Commands]] = {
-    Transition(Idle, Activated): {Commands.ADD_TO_OUTBOUND, Commands.START_PULL_OPERATION},
+    Transition(Idle, Activated): {Commands.ADD_TO_OUTBOUND, Commands.START_PULL_PROCESS},
     Transition(Activated, Received): {Commands.ADD_TO_LOCAL},
-    Transition(Activated, Idle): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION},
-    Transition(Activated, Deprecated): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION},
-    Transition(Received, Pulled): {Commands.FINISH_PULL_OPERATION},
+    Transition(Activated, Idle): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS},
+    Transition(Activated, Deprecated): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS},
+    Transition(Received, Pulled): {Commands.FINISH_PULL_PROCESS},
     Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
-    Transition(Pulled, Received): {Commands.START_DELETE_OPERATION},
+    Transition(Pulled, Received): {Commands.START_DELETE_PROCESS},
     Transition(Pulled, Tainted): {Commands.FLAG},
     Transition(Tainted, Pulled): {Commands.UNFLAG},
-    Transition(Tainted, Received): {Commands.START_DELETE_OPERATION},
+    Transition(Tainted, Received): {Commands.START_DELETE_PROCESS},
     Transition(Deprecated, Idle): {Commands.UNFLAG},
 }
 
@@ -211,8 +211,8 @@ class Update:
     commands: frozenset[Commands]
 
 
-class Operations(Enum):
-    """Names for operations that pull/delete entities into/from the local side."""
+class Processes(Enum):
+    """Names for processes that pull/delete entities into/from the local side."""
 
     PULL = 1
     DELETE = 2
@@ -232,49 +232,49 @@ class PersistentState:
 
     presence: frozenset[Components]
     is_tainted: bool
-    has_operation: bool
+    has_process: bool
 
 
 STATE_MAP = {
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=False,
-        has_operation=False,
+        has_process=False,
     ): Idle,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=False,
-        has_operation=True,
+        has_process=True,
     ): Activated,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=True,
-        has_operation=True,
+        has_process=True,
     ): Activated,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        has_operation=True,
+        has_process=True,
     ): Received,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
-        has_operation=True,
+        has_process=True,
     ): Received,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        has_operation=False,
+        has_process=False,
     ): Pulled,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
-        has_operation=False,
+        has_process=False,
     ): Tainted,
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=True,
-        has_operation=False,
+        has_process=False,
     ): Deprecated,
 }
 
@@ -285,7 +285,7 @@ class Entity:
 
     identifier: Identifier
     state: type[State]
-    operation: Optional[Operations]
+    current_process: Optional[Processes]
     is_tainted: bool
 
     def pull(self) -> Update:

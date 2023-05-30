@@ -6,7 +6,7 @@ import pytest
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import create_link
-from dj_link.entities.state import Commands, Components, Operations, State, Transition, Update, states
+from dj_link.entities.state import Commands, Components, Processes, State, Transition, Update, states
 
 from .assignments import create_assignments
 
@@ -17,32 +17,32 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     assert entity.pull() == Update(
         Identifier("1"),
         Transition(states.Idle, states.Activated),
-        commands=frozenset({Commands.ADD_TO_OUTBOUND, Commands.START_PULL_OPERATION}),
+        commands=frozenset({Commands.ADD_TO_OUTBOUND, Commands.START_PULL_PROCESS}),
     )
 
 
 @pytest.mark.parametrize(
-    "operation,tainted_identifiers,new_state,commands",
+    "process,tainted_identifiers,new_state,commands",
     [
-        (Operations.PULL, set(), states.Received, {Commands.ADD_TO_LOCAL}),
-        (Operations.DELETE, set(), states.Idle, {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION}),
+        (Processes.PULL, set(), states.Received, {Commands.ADD_TO_LOCAL}),
+        (Processes.DELETE, set(), states.Idle, {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS}),
         (
-            Operations.DELETE,
+            Processes.DELETE,
             {Identifier("1")},
             states.Deprecated,
-            {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION},
+            {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS},
         ),
     ],
 )
 def test_processing_activated_entity_returns_correct_commands(
-    operation: Operations,
+    process: Processes,
     tainted_identifiers: Iterable[Identifier],
     new_state: type[State],
     commands: Iterable[Commands],
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
-        operations={operation: {Identifier("1")}},
+        processes={process: {Identifier("1")}},
         tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link[Components.SOURCE]))
@@ -54,18 +54,18 @@ def test_processing_activated_entity_returns_correct_commands(
 
 
 @pytest.mark.parametrize(
-    "operation,new_state,commands",
+    "process,new_state,commands",
     [
-        (Operations.PULL, states.Pulled, {Commands.FINISH_PULL_OPERATION}),
-        (Operations.DELETE, states.Activated, {Commands.REMOVE_FROM_LOCAL}),
+        (Processes.PULL, states.Pulled, {Commands.FINISH_PULL_PROCESS}),
+        (Processes.DELETE, states.Activated, {Commands.REMOVE_FROM_LOCAL}),
     ],
 )
 def test_processing_received_entity_returns_correct_commands(
-    operation: Operations, new_state: type[State], commands: Iterable[Commands]
+    process: Processes, new_state: type[State], commands: Iterable[Commands]
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
-        operations={operation: {Identifier("1")}},
+        processes={process: {Identifier("1")}},
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == Update(
@@ -83,7 +83,7 @@ def test_deleting_pulled_entity_returns_correct_commands() -> None:
     assert entity.delete() == Update(
         Identifier("1"),
         Transition(states.Pulled, states.Received),
-        commands=frozenset({Commands.START_DELETE_OPERATION}),
+        commands=frozenset({Commands.START_DELETE_PROCESS}),
     )
 
 
@@ -117,7 +117,7 @@ def test_deleting_tainted_entity_returns_correct_commands() -> None:
     assert entity.delete() == Update(
         Identifier("1"),
         Transition(states.Tainted, states.Received),
-        commands=frozenset({Commands.START_DELETE_OPERATION}),
+        commands=frozenset({Commands.START_DELETE_PROCESS}),
     )
 
 

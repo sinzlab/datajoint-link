@@ -5,14 +5,14 @@ from dataclasses import dataclass
 from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
-from .state import STATE_MAP, Components, Entity, Operations, PersistentState, states
+from .state import STATE_MAP, Components, Entity, PersistentState, Processes, states
 
 
 def create_link(
     assignments: Mapping[Components, Iterable[Identifier]],
     *,
     tainted_identifiers: Optional[Iterable[Identifier]] = None,
-    operations: Optional[Mapping[Operations, Iterable[Identifier]]] = None,
+    processes: Optional[Mapping[Processes, Iterable[Identifier]]] = None,
 ) -> Link:
     """Create a new link instance."""
 
@@ -29,7 +29,7 @@ def create_link(
     def validate_arguments(
         assignments: Mapping[Components, Iterable[Identifier]],
         tainted: Iterable[Identifier],
-        operations: Mapping[Operations, Iterable[Identifier]],
+        processes: Mapping[Processes, Iterable[Identifier]],
     ) -> None:
         assert set(assignments[Components.OUTBOUND]) <= set(
             assignments[Components.SOURCE]
@@ -38,7 +38,7 @@ def create_link(
             assignments[Components.OUTBOUND]
         ), "Local must not be superset of source."
         assert set(tainted) <= set(assignments[Components.SOURCE])
-        assert pairwise_disjoint(operations.values()), "Identifiers can not undergo more than one operation."
+        assert pairwise_disjoint(processes.values()), "Identifiers can not undergo more than one process."
 
     def is_tainted(identifier: Identifier) -> bool:
         assert tainted_identifiers is not None
@@ -52,11 +52,14 @@ def create_link(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
             persistent_state = PersistentState(
-                presence, is_tainted=is_tainted(identifier), has_operation=identifier in operations_map
+                presence, is_tainted=is_tainted(identifier), has_process=identifier in processes_map
             )
             state = STATE_MAP[persistent_state]
             return Entity(
-                identifier, state=state, operation=operations_map.get(identifier), is_tainted=is_tainted(identifier)
+                identifier,
+                state=state,
+                current_process=processes_map.get(identifier),
+                is_tainted=is_tainted(identifier),
             )
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
@@ -69,10 +72,10 @@ def create_link(
 
     if tainted_identifiers is None:
         tainted_identifiers = set()
-    if operations is None:
-        operations = {}
-    validate_arguments(assignments, tainted_identifiers, operations)
-    operations_map = invert_mapping(operations)
+    if processes is None:
+        processes = {}
+    validate_arguments(assignments, tainted_identifiers, processes)
+    processes_map = invert_mapping(processes)
     entity_assignments = assign_entities(create_entities(assignments))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
