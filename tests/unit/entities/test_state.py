@@ -5,8 +5,9 @@ from typing import Iterable
 import pytest
 
 from dj_link.entities import command
+from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import create_link
-from dj_link.entities.state import Components, Identifier, Operations
+from dj_link.entities.state import Components, Operations
 
 from .assignments import create_assignments
 
