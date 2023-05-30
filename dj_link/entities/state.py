@@ -1,12 +1,11 @@
 """Contains everything state related."""
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from . import command
+from .command import Commands
 from .custom_types import Identifier
 
 
@@ -44,14 +43,11 @@ class State:
 
     @classmethod
     def _create_update(cls, identifier: Identifier, new_state: type[State]) -> Update:
-        def create_commands(identifier: Identifier, commands: Iterable[type[command.Command]]) -> set[command.Command]:
-            return {command(identifier) for command in commands}
-
         transition = Transition(cls, new_state)
         return Update(
             identifier,
             transition,
-            commands=frozenset(create_commands(identifier, TRANSITION_MAP.get(transition, set()))),
+            commands=frozenset(TRANSITION_MAP.get(transition, set())),
         )
 
 
@@ -140,18 +136,18 @@ class Transition:
     new: type[State]
 
 
-TRANSITION_MAP: dict[Transition, set[type[command.Command]]] = {
-    Transition(Idle, Activated): {command.AddToOutbound, command.StartPullOperation},
-    Transition(Activated, Received): {command.AddToLocal},
-    Transition(Activated, Idle): {command.RemoveFromOutbound, command.FinishDeleteOperation},
-    Transition(Activated, Deprecated): {command.RemoveFromOutbound, command.FinishDeleteOperation},
-    Transition(Received, Pulled): {command.FinishPullOperation},
-    Transition(Received, Activated): {command.RemoveFromLocal},
-    Transition(Pulled, Received): {command.StartDeleteOperation},
-    Transition(Pulled, Tainted): {command.Flag},
-    Transition(Tainted, Pulled): {command.Unflag},
-    Transition(Tainted, Received): {command.StartDeleteOperation},
-    Transition(Deprecated, Idle): {command.Unflag},
+TRANSITION_MAP: dict[Transition, set[Commands]] = {
+    Transition(Idle, Activated): {Commands.ADD_TO_OUTBOUND, Commands.START_PULL_OPERATION},
+    Transition(Activated, Received): {Commands.ADD_TO_LOCAL},
+    Transition(Activated, Idle): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION},
+    Transition(Activated, Deprecated): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_OPERATION},
+    Transition(Received, Pulled): {Commands.FINISH_PULL_OPERATION},
+    Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
+    Transition(Pulled, Received): {Commands.START_DELETE_OPERATION},
+    Transition(Pulled, Tainted): {Commands.FLAG},
+    Transition(Tainted, Pulled): {Commands.UNFLAG},
+    Transition(Tainted, Received): {Commands.START_DELETE_OPERATION},
+    Transition(Deprecated, Idle): {Commands.UNFLAG},
 }
 
 
@@ -161,7 +157,7 @@ class Update:
 
     identifier: Identifier
     transition: Transition
-    commands: frozenset[command.Command]
+    commands: frozenset[Commands]
 
 
 class Operations(Enum):
