@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from typing import Optional
 
-from .command import Commands
 from .custom_types import Identifier
 
 
@@ -134,6 +133,21 @@ class Transition:
 
     current: type[State]
     new: type[State]
+
+
+class Commands(Enum):
+    """Names for all the commands necessary to transition entities between states."""
+
+    ADD_TO_OUTBOUND = auto()
+    REMOVE_FROM_OUTBOUND = auto()
+    ADD_TO_LOCAL = auto()
+    REMOVE_FROM_LOCAL = auto()
+    START_PULL_OPERATION = auto()
+    FINISH_PULL_OPERATION = auto()
+    START_DELETE_OPERATION = auto()
+    FINISH_DELETE_OPERATION = auto()
+    FLAG = auto()
+    UNFLAG = auto()
 
 
 TRANSITION_MAP: dict[Transition, set[Commands]] = {

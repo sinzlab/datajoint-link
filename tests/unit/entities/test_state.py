@@ -4,11 +4,11 @@ from typing import Iterable
 
 import pytest
 
-from dj_link.entities.command import Commands
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import create_link
 from dj_link.entities.state import (
     Activated,
+    Commands,
     Components,
     Deprecated,
     Idle,
