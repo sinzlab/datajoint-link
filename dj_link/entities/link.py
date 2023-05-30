@@ -40,19 +40,24 @@ def create_link(
         assert set(tainted) <= set(assignments[Components.SOURCE])
         assert pairwise_disjoint(operations.values()), "Identifiers can not undergo more than one operation."
 
+    def is_tainted(identifier: Identifier) -> bool:
+        assert tainted_identifiers is not None
+        return identifier in tainted_identifiers
+
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]],
-        tainted: Iterable[Identifier],
     ) -> set[Entity]:
         def create_entity(identifier: Identifier) -> Entity:
             presence = frozenset(
                 component for component, identifiers in assignments.items() if identifier in identifiers
             )
             persistent_state = PersistentState(
-                presence, is_tainted=identifier in tainted, has_operation=identifier in operations_map
+                presence, is_tainted=is_tainted(identifier), has_operation=identifier in operations_map
             )
             state = STATE_MAP[persistent_state]
-            return Entity(identifier, state=state, operation=operations_map.get(identifier))
+            return Entity(
+                identifier, state=state, operation=operations_map.get(identifier), is_tainted=is_tainted(identifier)
+            )
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
 
@@ -68,7 +73,7 @@ def create_link(
         operations = {}
     validate_arguments(assignments, tainted_identifiers, operations)
     operations_map = invert_mapping(operations)
-    entity_assignments = assign_entities(create_entities(assignments, tainted_identifiers))
+    entity_assignments = assign_entities(create_entities(assignments))
     return Link(
         source=Component(entity_assignments[Components.SOURCE]),
         outbound=Component(entity_assignments[Components.OUTBOUND]),

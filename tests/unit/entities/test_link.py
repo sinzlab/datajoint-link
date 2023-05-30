@@ -85,6 +85,13 @@ class TestCreateLink:
         assert {(entity.identifier, entity.operation) for entity in link[Components.SOURCE]} == set(expected)
 
     @staticmethod
+    @pytest.mark.parametrize("tainted_identifiers,is_tainted", [({Identifier("1")}, True), (set(), False)])
+    def test_tainted_attribute_is_set(tainted_identifiers: Iterable[Identifier], is_tainted: bool) -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers=tainted_identifiers)
+        entity = next(iter(link[Components.SOURCE]))
+        assert entity.is_tainted is is_tainted
+
+    @staticmethod
     @pytest.mark.parametrize(
         "assignments,expectation",
         [

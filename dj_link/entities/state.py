@@ -230,6 +230,7 @@ class Entity:
     identifier: Identifier
     state: type[State]
     operation: Optional[Operations]
+    is_tainted: bool
 
     def pull(self) -> Update:
         """Pull the entity."""
