@@ -13,34 +13,41 @@ from .custom_types import Identifier
 class State:
     """An entity's state."""
 
-    def pull(self, entity: Entity) -> Update:
+    @classmethod
+    def pull(cls, entity: Entity) -> Update:
         """Return the commands needed to pull an entity."""
-        return self._create_no_transition_update(entity.identifier)
+        return cls._create_no_transition_update(entity.identifier)
 
-    def delete(self, entity: Entity) -> Update:
+    @classmethod
+    def delete(cls, entity: Entity) -> Update:
         """Return the commands needed to delete the entity."""
-        return self._create_no_transition_update(entity.identifier)
+        return cls._create_no_transition_update(entity.identifier)
 
-    def process(self, entity: Entity) -> Update:
+    @classmethod
+    def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process the entity."""
-        return self._create_no_transition_update(entity.identifier)
+        return cls._create_no_transition_update(entity.identifier)
 
-    def flag(self, entity: Entity) -> Update:
+    @classmethod
+    def flag(cls, entity: Entity) -> Update:
         """Return the commands needed to flag the entity."""
-        return self._create_no_transition_update(entity.identifier)
+        return cls._create_no_transition_update(entity.identifier)
 
-    def unflag(self, entity: Entity) -> Update:
+    @classmethod
+    def unflag(cls, entity: Entity) -> Update:
         """Return the commands needed to unflag the entity."""
-        return self._create_no_transition_update(entity.identifier)
+        return cls._create_no_transition_update(entity.identifier)
 
-    def _create_no_transition_update(self, identifier: Identifier) -> Update:
-        return self._create_update(identifier, self.__class__)
+    @classmethod
+    def _create_no_transition_update(cls, identifier: Identifier) -> Update:
+        return cls._create_update(identifier, cls)
 
-    def _create_update(self, identifier: Identifier, new_state: type[State]) -> Update:
+    @classmethod
+    def _create_update(cls, identifier: Identifier, new_state: type[State]) -> Update:
         def create_commands(identifier: Identifier, commands: Iterable[type[command.Command]]) -> set[command.Command]:
             return {command(identifier) for command in commands}
 
-        transition = Transition(self.__class__, new_state)
+        transition = Transition(cls, new_state)
         return Update(
             transition, commands=frozenset(create_commands(identifier, TRANSITION_MAP.get(transition, set())))
         )
@@ -49,15 +56,17 @@ class State:
 class Idle(State):
     """The default state of an entity."""
 
-    def pull(self, entity: Entity) -> Update:
+    @classmethod
+    def pull(cls, entity: Entity) -> Update:
         """Return the commands needed to pull an idle entity."""
-        return self._create_update(entity.identifier, Activated)
+        return cls._create_update(entity.identifier, Activated)
 
 
 class Activated(State):
     """The state of an activated entity."""
 
-    def process(self, entity: Entity) -> Update:
+    @classmethod
+    def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process an activated entity."""
         new_state: type[State]
         if entity.operation is Operations.PULL:
@@ -67,52 +76,58 @@ class Activated(State):
                 new_state = Deprecated
             else:
                 new_state = Idle
-        return self._create_update(entity.identifier, new_state)
+        return cls._create_update(entity.identifier, new_state)
 
 
 class Received(State):
     """The state of an received entity."""
 
-    def process(self, entity: Entity) -> Update:
+    @classmethod
+    def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process a received entity."""
         new_state: type[State]
         if entity.operation is Operations.PULL:
             new_state = Pulled
         elif entity.operation is Operations.DELETE:
             new_state = Activated
-        return self._create_update(entity.identifier, new_state)
+        return cls._create_update(entity.identifier, new_state)
 
 
 class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
-    def delete(self, entity: Entity) -> Update:
+    @classmethod
+    def delete(cls, entity: Entity) -> Update:
         """Return the commands needed to delete a pulled entity."""
-        return self._create_update(entity.identifier, Received)
+        return cls._create_update(entity.identifier, Received)
 
-    def flag(self, entity: Entity) -> Update:
+    @classmethod
+    def flag(cls, entity: Entity) -> Update:
         """Return the commands needed to flag a pulled entity."""
-        return self._create_update(entity.identifier, Tainted)
+        return cls._create_update(entity.identifier, Tainted)
 
 
 class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
-    def delete(self, entity: Entity) -> Update:
+    @classmethod
+    def delete(cls, entity: Entity) -> Update:
         """Return the commands needed to delete a tainted entity."""
-        return self._create_update(entity.identifier, Received)
+        return cls._create_update(entity.identifier, Received)
 
-    def unflag(self, entity: Entity) -> Update:
+    @classmethod
+    def unflag(cls, entity: Entity) -> Update:
         """Return the commands needed to unflag a tainted entity."""
-        return self._create_update(entity.identifier, Pulled)
+        return cls._create_update(entity.identifier, Pulled)
 
 
 class Deprecated(State):
     """The state of a faulty entity that was deleted by the local side."""
 
-    def unflag(self, entity: Entity) -> Update:
+    @classmethod
+    def unflag(cls, entity: Entity) -> Update:
         """Return the commands to unflag a deprecated entity."""
-        return self._create_update(entity.identifier, Idle)
+        return cls._create_update(entity.identifier, Idle)
 
 
 @dataclass(frozen=True)
@@ -225,20 +240,20 @@ class Entity:
 
     def pull(self) -> Update:
         """Pull the entity."""
-        return self.state().pull(self)
+        return self.state.pull(self)
 
     def delete(self) -> Update:
         """Delete the entity."""
-        return self.state().delete(self)
+        return self.state.delete(self)
 
     def process(self) -> Update:
         """Process the entity."""
-        return self.state().process(self)
+        return self.state.process(self)
 
     def flag(self) -> Update:
         """Flag the entity."""
-        return self.state().flag(self)
+        return self.state.flag(self)
 
     def unflag(self) -> Update:
         """Unflag the entity."""
-        return self.state().unflag(self)
+        return self.state.unflag(self)
