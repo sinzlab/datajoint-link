@@ -13,30 +13,37 @@ from .custom_types import Identifier
 class State:
     """An entity's state."""
 
-    def pull(self, entity: Entity) -> Update:  # pylint: disable=unused-argument
+    def pull(self, entity: Entity) -> Update:
         """Return the commands needed to pull an entity."""
-        return Update(Transition(self.__class__, self.__class__), commands=frozenset())
+        return self._create_no_transition_update(entity.identifier)
 
-    def delete(self, entity: Entity) -> Update:  # pylint: disable=unused-argument
+    def delete(self, entity: Entity) -> Update:
         """Return the commands needed to delete the entity."""
-        return Update(Transition(self.__class__, self.__class__), commands=frozenset())
+        return self._create_no_transition_update(entity.identifier)
 
-    def process(self, entity: Entity) -> Update:  # pylint: disable=unused-argument
+    def process(self, entity: Entity) -> Update:
         """Return the commands needed to process the entity."""
-        return Update(Transition(self.__class__, self.__class__), commands=frozenset())
+        return self._create_no_transition_update(entity.identifier)
 
-    def flag(self, entity: Entity) -> Update:  # pylint: disable=unused-argument
+    def flag(self, entity: Entity) -> Update:
         """Return the commands needed to flag the entity."""
-        return Update(Transition(self.__class__, self.__class__), commands=frozenset())
+        return self._create_no_transition_update(entity.identifier)
 
-    def unflag(self, entity: Entity) -> Update:  # pylint: disable=unused-argument
+    def unflag(self, entity: Entity) -> Update:
         """Return the commands needed to unflag the entity."""
-        return Update(Transition(self.__class__, self.__class__), commands=frozenset())
+        return self._create_no_transition_update(entity.identifier)
 
-    def _construct_commands(
-        self, identifier: Identifier, commands: Iterable[type[command.Command]]
-    ) -> set[command.Command]:
-        return {command(identifier) for command in commands}
+    def _create_no_transition_update(self, identifier: Identifier) -> Update:
+        return self._create_update(identifier, self.__class__)
+
+    def _create_update(self, identifier: Identifier, new_state: type[State]) -> Update:
+        def create_commands(identifier: Identifier, commands: Iterable[type[command.Command]]) -> set[command.Command]:
+            return {command(identifier) for command in commands}
+
+        transition = Transition(self.__class__, new_state)
+        return Update(
+            transition, commands=frozenset(create_commands(identifier, TRANSITION_MAP.get(transition, set())))
+        )
 
 
 class Idle(State):
@@ -44,10 +51,7 @@ class Idle(State):
 
     def pull(self, entity: Entity) -> Update:
         """Return the commands needed to pull an idle entity."""
-        transition = Transition(self.__class__, Activated)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+        return self._create_update(entity.identifier, Activated)
 
 
 class Activated(State):
@@ -55,16 +59,15 @@ class Activated(State):
 
     def process(self, entity: Entity) -> Update:
         """Return the commands needed to process an activated entity."""
+        new_state: type[State]
         if entity.operation is Operations.PULL:
-            transition = Transition(self.__class__, Received)
+            new_state = Received
         elif entity.operation is Operations.DELETE:
             if entity.is_tainted:
-                transition = Transition(self.__class__, Deprecated)
+                new_state = Deprecated
             else:
-                transition = Transition(self.__class__, Idle)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+                new_state = Idle
+        return self._create_update(entity.identifier, new_state)
 
 
 class Received(State):
@@ -72,13 +75,12 @@ class Received(State):
 
     def process(self, entity: Entity) -> Update:
         """Return the commands needed to process a received entity."""
+        new_state: type[State]
         if entity.operation is Operations.PULL:
-            transition = Transition(self.__class__, Pulled)
+            new_state = Pulled
         elif entity.operation is Operations.DELETE:
-            transition = Transition(self.__class__, Activated)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+            new_state = Activated
+        return self._create_update(entity.identifier, new_state)
 
 
 class Pulled(State):
@@ -86,17 +88,11 @@ class Pulled(State):
 
     def delete(self, entity: Entity) -> Update:
         """Return the commands needed to delete a pulled entity."""
-        transition = Transition(self.__class__, Received)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+        return self._create_update(entity.identifier, Received)
 
     def flag(self, entity: Entity) -> Update:
         """Return the commands needed to flag a pulled entity."""
-        transition = Transition(self.__class__, Tainted)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+        return self._create_update(entity.identifier, Tainted)
 
 
 class Tainted(State):
@@ -104,17 +100,11 @@ class Tainted(State):
 
     def delete(self, entity: Entity) -> Update:
         """Return the commands needed to delete a tainted entity."""
-        transition = Transition(self.__class__, Received)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+        return self._create_update(entity.identifier, Received)
 
     def unflag(self, entity: Entity) -> Update:
         """Return the commands needed to unflag a tainted entity."""
-        transition = Transition(self.__class__, Pulled)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+        return self._create_update(entity.identifier, Pulled)
 
 
 class Deprecated(State):
@@ -122,10 +112,7 @@ class Deprecated(State):
 
     def unflag(self, entity: Entity) -> Update:
         """Return the commands to unflag a deprecated entity."""
-        transition = Transition(self.__class__, Idle)
-        return Update(
-            transition, commands=frozenset(self._construct_commands(entity.identifier, TRANSITION_MAP[transition]))
-        )
+        return self._create_update(entity.identifier, Idle)
 
 
 @dataclass(frozen=True)
