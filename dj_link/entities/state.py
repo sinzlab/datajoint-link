@@ -49,7 +49,9 @@ class State:
 
         transition = Transition(cls, new_state)
         return Update(
-            transition, commands=frozenset(create_commands(identifier, TRANSITION_MAP.get(transition, set())))
+            identifier,
+            transition,
+            commands=frozenset(create_commands(identifier, TRANSITION_MAP.get(transition, set()))),
         )
 
 
@@ -157,6 +159,7 @@ TRANSITION_MAP: dict[Transition, set[type[command.Command]]] = {
 class Update:
     """Represents the persistent update needed to transition an entity."""
 
+    identifier: Identifier
     transition: Transition
     commands: frozenset[command.Command]
 
