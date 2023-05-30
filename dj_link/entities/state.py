@@ -44,7 +44,7 @@ class Idle(State):
 
     def pull(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to pull an idle entity."""
-        return self._construct_commands(entity.identifier, (command.AddToOutbound, command.StartPullOperation))
+        return self._construct_commands(entity.identifier, TRANSITION_MAP[Transition(self.__class__, Activated)])
 
 
 class Activated(State):
@@ -52,11 +52,11 @@ class Activated(State):
 
     def process(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to process an activated entity."""
-        commands: tuple[type[command.Command], ...]
+        commands: set[type[command.Command]]
         if entity.operation is Operations.PULL:
-            commands = (command.AddToLocal,)
+            commands = TRANSITION_MAP[Transition(self.__class__, Received)]
         elif entity.operation is Operations.DELETE:
-            commands = (command.RemoveFromOutbound, command.FinishDeleteOperation)
+            commands = TRANSITION_MAP[Transition(self.__class__, Idle)]
         return self._construct_commands(entity.identifier, commands)
 
 
@@ -65,11 +65,11 @@ class Received(State):
 
     def process(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to process a received entity."""
-        commands: tuple[type[command.Command], ...]
+        commands: set[type[command.Command]]
         if entity.operation is Operations.PULL:
-            commands = (command.FinishPullOperation,)
+            commands = TRANSITION_MAP[Transition(self.__class__, Pulled)]
         elif entity.operation is Operations.DELETE:
-            commands = (command.RemoveFromLocal,)
+            commands = TRANSITION_MAP[Transition(self.__class__, Activated)]
         return self._construct_commands(entity.identifier, commands)
 
 
@@ -78,11 +78,11 @@ class Pulled(State):
 
     def delete(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to delete a pulled entity."""
-        return self._construct_commands(entity.identifier, (command.StartDeleteOperation,))
+        return self._construct_commands(entity.identifier, TRANSITION_MAP[Transition(self.__class__, Received)])
 
     def flag(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to flag a pulled entity."""
-        return self._construct_commands(entity.identifier, (command.Flag,))
+        return self._construct_commands(entity.identifier, TRANSITION_MAP[Transition(self.__class__, Tainted)])
 
 
 class Tainted(State):
@@ -90,11 +90,11 @@ class Tainted(State):
 
     def delete(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to delete a tainted entity."""
-        return self._construct_commands(entity.identifier, (command.StartDeleteOperation,))
+        return self._construct_commands(entity.identifier, TRANSITION_MAP[Transition(self.__class__, Received)])
 
     def unflag(self, entity: Entity) -> set[command.Command]:
         """Return the commands needed to unflag a tainted entity."""
-        return self._construct_commands(entity.identifier, (command.Unflag,))
+        return self._construct_commands(entity.identifier, TRANSITION_MAP[Transition(self.__class__, Pulled)])
 
 
 class Deprecated(State):
@@ -102,7 +102,29 @@ class Deprecated(State):
 
     def unflag(self, entity: Entity) -> set[command.Command]:
         """Return the commands to unflag a deprecated entity."""
-        return self._construct_commands(entity.identifier, (command.Unflag,))
+        return self._construct_commands(entity.identifier, TRANSITION_MAP[Transition(self.__class__, Idle)])
+
+
+@dataclass(frozen=True)
+class Transition:
+    """Represents the transition between two entity states."""
+
+    current: type[State]
+    new: type[State]
+
+
+TRANSITION_MAP: dict[Transition, set[type[command.Command]]] = {
+    Transition(Idle, Activated): {command.AddToOutbound, command.StartPullOperation},
+    Transition(Activated, Received): {command.AddToLocal},
+    Transition(Activated, Idle): {command.RemoveFromOutbound, command.FinishDeleteOperation},
+    Transition(Received, Pulled): {command.FinishPullOperation},
+    Transition(Received, Activated): {command.RemoveFromLocal},
+    Transition(Pulled, Received): {command.StartDeleteOperation},
+    Transition(Pulled, Tainted): {command.Flag},
+    Transition(Tainted, Pulled): {command.Unflag},
+    Transition(Tainted, Received): {command.StartDeleteOperation},
+    Transition(Deprecated, Idle): {command.Unflag},
+}
 
 
 class Operations(Enum):
