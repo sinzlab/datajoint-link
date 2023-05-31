@@ -300,3 +300,9 @@ def test_idle_entity_becomes_activated_when_pulled() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     update = next(iter(pull(link, requested={Identifier("1")})))
     assert update.identifier == Identifier("1") and update.transition.new is states.Activated
+
+
+def test_not_specifying_requested_identifiers_raises_error_when_pulling() -> None:
+    link = create_link(create_assignments({Components.SOURCE: {"1"}}))
+    with pytest.raises(AssertionError, match="No identifiers to be pulled requested."):
+        pull(link, requested={})
