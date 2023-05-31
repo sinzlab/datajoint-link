@@ -11,6 +11,33 @@ from dj_link.entities.state import Commands, Components, Processes, State, Trans
 from .assignments import create_assignments
 
 
+@pytest.mark.parametrize(
+    "identifier,state,methods",
+    [
+        (Identifier("1"), states.Idle, ["delete", "process", "flag", "unflag"]),
+        (Identifier("2"), states.Activated, ["pull", "delete", "flag", "unflag"]),
+        (Identifier("3"), states.Received, ["pull", "delete", "flag", "unflag"]),
+        (Identifier("4"), states.Pulled, ["pull", "process", "unflag"]),
+        (Identifier("5"), states.Tainted, ["pull", "process", "flag"]),
+        (Identifier("6"), states.Deprecated, ["pull", "delete", "process", "flag"]),
+    ],
+)
+def test_invalid_transitions_produce_empty_updates(identifier: Identifier, state: type[State], methods: str) -> None:
+    link = create_link(
+        create_assignments(
+            {
+                Components.SOURCE: {"1", "2", "3", "4", "5", "6"},
+                Components.OUTBOUND: {"2", "3", "4", "5"},
+                Components.LOCAL: {"3", "4", "5"},
+            }
+        ),
+        tainted_identifiers={Identifier("5"), Identifier("6")},
+        processes={Processes.PULL: {Identifier("2"), Identifier("3")}},
+    )
+    entity = next(entity for entity in link[Components.SOURCE] if entity.identifier == identifier)
+    assert all(not getattr(entity, method)() for method in methods)
+
+
 def test_pulling_idle_entity_returns_correct_commands() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link[Components.SOURCE]))
