@@ -350,3 +350,11 @@ class TestFlag:
         )
         update = next(iter(flag(link, requested={Identifier("1")})))
         assert update.identifier == Identifier("1") and update.transition.new is states.Tainted
+
+    @staticmethod
+    def test_not_specifying_requested_identifiers_raises_error() -> None:
+        link = create_link(
+            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
+        )
+        with pytest.raises(AssertionError, match="No identifiers to be flagged requested."):
+            flag(link, requested={})
