@@ -163,3 +163,8 @@ def pull(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     assert requested, "No identifiers to be pulled requested."
     assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
     return {entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested}
+
+
+def delete(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+    """Delete all requested identifiers producing appropriate updates."""
+    return {entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested}
