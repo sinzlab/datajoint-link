@@ -380,3 +380,9 @@ class TestUnflag:
         link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers={Identifier("1")})
         with pytest.raises(AssertionError, match="No identifiers to be unflagged requested."):
             unflag(link, requested={})
+
+    @staticmethod
+    def test_specifying_identifiers_not_present_in_link_raises_error() -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers={Identifier("1")})
+        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
+            unflag(link, requested={Identifier("2")})
