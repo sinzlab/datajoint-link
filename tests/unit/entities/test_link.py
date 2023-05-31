@@ -374,3 +374,9 @@ class TestUnflag:
         link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers={Identifier("1")})
         update = next(iter(unflag(link, requested={Identifier("1")})))
         assert update.identifier == Identifier("1") and update.transition.new is states.Idle
+
+    @staticmethod
+    def test_not_specifying_requested_identifiers_raises_error() -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers={Identifier("1")})
+        with pytest.raises(AssertionError, match="No identifiers to be unflagged requested."):
+            unflag(link, requested={})
