@@ -177,3 +177,8 @@ def flag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     assert requested, "No identifiers to be flagged requested."
     assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
     return {entity.flag() for entity in link[Components.SOURCE] if entity.identifier in requested}
+
+
+def unflag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+    """Unflag the requested entities producing the appropriate updates."""
+    return {entity.unflag() for entity in link[Components.SOURCE] if entity.identifier in requested}

@@ -6,7 +6,7 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Transfer, create_link, delete, flag, process, pull, pull_legacy
+from dj_link.entities.link import Transfer, create_link, delete, flag, process, pull, pull_legacy, unflag
 from dj_link.entities.state import Components, Processes, State, states
 
 from .assignments import create_assignments
@@ -366,3 +366,11 @@ class TestFlag:
         )
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
             flag(link, requested={Identifier("2")})
+
+
+class TestUnflag:
+    @staticmethod
+    def test_deprecated_entity_becomes_idle() -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers={Identifier("1")})
+        update = next(iter(unflag(link, requested={Identifier("1")})))
+        assert update.identifier == Identifier("1") and update.transition.new is states.Idle
