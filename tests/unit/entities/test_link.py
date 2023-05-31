@@ -6,7 +6,7 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Transfer, create_link, process, pull
+from dj_link.entities.link import Transfer, create_link, process, pull_legacy
 from dj_link.entities.state import Components, Processes, State, states
 
 from .assignments import create_assignments
@@ -216,7 +216,7 @@ class TestTransfer:
             Transfer(Identifier("1"), Components.SOURCE, destination, identifier_only)
 
 
-class TestPull:
+class TestPullLegacy:
     @staticmethod
     @pytest.mark.parametrize(
         "assignments,requested,expectation",
@@ -237,7 +237,7 @@ class TestPull:
     ) -> None:
         link = create_link(assignments)
         with expectation:
-            pull(link, requested=requested)
+            pull_legacy(link, requested=requested)
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -258,7 +258,7 @@ class TestPull:
     ) -> None:
         link = create_link(assignments)
         with expectation:
-            pull(link, requested=requested)
+            pull_legacy(link, requested=requested)
 
     @staticmethod
     def test_if_correct_transfer_specifications_are_returned() -> None:
@@ -267,7 +267,7 @@ class TestPull:
             Transfer(Identifier("1"), Components.SOURCE, Components.OUTBOUND, identifier_only=True),
             Transfer(Identifier("1"), Components.SOURCE, Components.LOCAL, identifier_only=False),
         }
-        actual = pull(link, requested={Identifier("1")})
+        actual = pull_legacy(link, requested={Identifier("1")})
         assert actual == expected
 
 

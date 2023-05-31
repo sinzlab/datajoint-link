@@ -130,7 +130,7 @@ class Transfer:
             assert not self.identifier_only, "Whole entity must be transferred to local."
 
 
-def pull(
+def pull_legacy(
     link: Link,
     *,
     requested: Iterable[Identifier],
