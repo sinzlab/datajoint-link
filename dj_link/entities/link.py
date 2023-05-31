@@ -156,3 +156,8 @@ def pull_legacy(
 def process(link: Link) -> set[Update]:
     """Process all entities in the link producing appropriate updates."""
     return {entity.process() for entity in link[Components.SOURCE]}
+
+
+def pull(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+    """Pull all requested entities producing appropriate updates."""
+    return {entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested}

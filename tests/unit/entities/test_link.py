@@ -6,7 +6,7 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Transfer, create_link, process, pull_legacy
+from dj_link.entities.link import Transfer, create_link, process, pull, pull_legacy
 from dj_link.entities.state import Components, Processes, State, states
 
 from .assignments import create_assignments
@@ -294,3 +294,9 @@ def test_process_produces_correct_transitions() -> None:
         (Identifier("5"), states.Idle),
     }
     assert actual == expected
+
+
+def test_idle_entity_becomes_activated_when_pulled() -> None:
+    link = create_link(create_assignments({Components.SOURCE: {"1"}}))
+    update = next(iter(pull(link, requested={Identifier("1")})))
+    assert update.identifier == Identifier("1") and update.transition.new is states.Activated
