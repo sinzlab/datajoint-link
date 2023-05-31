@@ -7,7 +7,7 @@ import pytest
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Transfer, create_link, pull
-from dj_link.entities.state import Activated, Components, Deprecated, Idle, Operations, Pulled, Received, State, Tainted
+from dj_link.entities.state import Components, Processes, State, states
 
 from .assignments import create_assignments
 
@@ -17,12 +17,12 @@ class TestCreateLink:
     @pytest.mark.parametrize(
         "state,expected",
         [
-            (Idle, {Identifier("1")}),
-            (Activated, {Identifier("2")}),
-            (Received, {Identifier("3")}),
-            (Pulled, {Identifier("4")}),
-            (Tainted, {Identifier("5")}),
-            (Deprecated, {Identifier("6")}),
+            (states.Idle, {Identifier("1")}),
+            (states.Activated, {Identifier("2"), Identifier("7")}),
+            (states.Received, {Identifier("3"), Identifier("8")}),
+            (states.Pulled, {Identifier("4")}),
+            (states.Tainted, {Identifier("5")}),
+            (states.Deprecated, {Identifier("6")}),
         ],
     )
     def test_entities_get_correct_state_assigned(
@@ -31,37 +31,37 @@ class TestCreateLink:
     ) -> None:
         assignments = create_assignments(
             {
-                Components.SOURCE: {"1", "2", "3", "4", "5", "6"},
-                Components.OUTBOUND: {"2", "3", "4", "5"},
-                Components.LOCAL: {"3", "4", "5"},
+                Components.SOURCE: {"1", "2", "3", "4", "5", "6", "7", "8"},
+                Components.OUTBOUND: {"2", "3", "4", "5", "7", "8"},
+                Components.LOCAL: {"3", "4", "5", "8"},
             }
         )
         link = create_link(
             assignments,
-            tainted_identifiers={Identifier("5"), Identifier("6")},
-            operations={Operations.PULL: {Identifier("2"), Identifier("3")}},
+            tainted_identifiers={Identifier("5"), Identifier("6"), Identifier("7"), Identifier("8")},
+            processes={Processes.PULL: {Identifier("2"), Identifier("3"), Identifier("7"), Identifier("8")}},
         )
         assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(
-        "operations,expectation",
+        "processes,expectation",
         [
             (
-                {Operations.PULL: {Identifier("1")}, Operations.DELETE: {Identifier("1")}},
+                {Processes.PULL: {Identifier("1")}, Processes.DELETE: {Identifier("1")}},
                 pytest.raises(AssertionError),
             ),
-            ({Operations.PULL: {Identifier("1")}}, does_not_raise()),
+            ({Processes.PULL: {Identifier("1")}}, does_not_raise()),
         ],
     )
-    def test_identifiers_can_only_be_associated_with_single_operation(
-        operations: Mapping[Operations, Iterable[Identifier]], expectation: ContextManager[None]
+    def test_identifiers_can_only_be_associated_with_single_process(
+        processes: Mapping[Processes, Iterable[Identifier]], expectation: ContextManager[None]
     ) -> None:
         with expectation:
-            create_link(create_assignments(), operations=operations)
+            create_link(create_assignments(), processes=processes)
 
     @staticmethod
-    def test_entities_get_correct_operation_assigned() -> None:
+    def test_entities_get_correct_process_assigned() -> None:
         link = create_link(
             create_assignments(
                 {
@@ -70,19 +70,26 @@ class TestCreateLink:
                     Components.LOCAL: {"3", "4"},
                 }
             ),
-            operations={
-                Operations.PULL: {Identifier("1"), Identifier("3")},
-                Operations.DELETE: {Identifier("2"), Identifier("4")},
+            processes={
+                Processes.PULL: {Identifier("1"), Identifier("3")},
+                Processes.DELETE: {Identifier("2"), Identifier("4")},
             },
         )
         expected = {
-            (Identifier("1"), Operations.PULL),
-            (Identifier("2"), Operations.DELETE),
-            (Identifier("3"), Operations.PULL),
-            (Identifier("4"), Operations.DELETE),
+            (Identifier("1"), Processes.PULL),
+            (Identifier("2"), Processes.DELETE),
+            (Identifier("3"), Processes.PULL),
+            (Identifier("4"), Processes.DELETE),
             (Identifier("5"), None),
         }
-        assert {(entity.identifier, entity.operation) for entity in link[Components.SOURCE]} == set(expected)
+        assert {(entity.identifier, entity.current_process) for entity in link[Components.SOURCE]} == set(expected)
+
+    @staticmethod
+    @pytest.mark.parametrize("tainted_identifiers,is_tainted", [({Identifier("1")}, True), (set(), False)])
+    def test_tainted_attribute_is_set(tainted_identifiers: Iterable[Identifier], is_tainted: bool) -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers=tainted_identifiers)
+        entity = next(iter(link[Components.SOURCE]))
+        assert entity.is_tainted is is_tainted
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -124,24 +131,24 @@ class TestCreateLink:
 
     @staticmethod
     @pytest.mark.parametrize(
-        "operations,assignments,expectation",
+        "processes,assignments,expectation",
         [
             ({}, create_assignments({Components.LOCAL: {"1"}}), pytest.raises(AssertionError)),
             ({}, create_assignments(), does_not_raise()),
             (
-                {Operations.PULL: {Identifier("1")}},
+                {Processes.PULL: {Identifier("1")}},
                 create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
                 does_not_raise(),
             ),
         ],
     )
     def test_local_identifiers_can_not_be_superset_of_outbound_identifiers(
-        operations: Mapping[Operations, Iterable[Identifier]],
+        processes: Mapping[Processes, Iterable[Identifier]],
         assignments: Mapping[Components, Iterable[Identifier]],
         expectation: ContextManager[None],
     ) -> None:
         with expectation:
-            create_link(assignments, operations=operations)
+            create_link(assignments, processes=processes)
 
 
 class TestLink:

@@ -16,16 +16,16 @@ The following state diagram shows the different states that entities can be in a
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> Activated: pulled / add to outbound, start pull operation
-    Activated --> Received: processed [in pull operation] / add to local
-    Received --> Pulled: processed [in pull operation] / finish pull operation
-    Pulled --> Received: deleted / start delete operation
-    Received --> Activated: processed [in delete operation] / remove from local
-    Activated --> Idle: processed [in delete operation and not flagged] / remove from outbound, finish delete operation
+    Idle --> Activated: pulled / add to outbound, start pull process
+    Activated --> Received: processed [in pull process] / add to local
+    Received --> Pulled: processed [in pull process] / finish pull process
+    Pulled --> Received: deleted / start delete process
+    Received --> Activated: processed [in delete process] / remove from local
+    Activated --> Idle: processed [in delete process and not flagged] / remove from outbound, finish delete process
     Pulled --> Tainted: flagged / flag
     Tainted --> Pulled: unflagged / unflag
-    Tainted --> Received: deleted / start delete operation
-    Activated --> Deprecated: processed [in delete operation and flagged] / remove from outbound, finish delete operation
+    Tainted --> Received: deleted / start delete process
+    Activated --> Deprecated: processed [in delete process and flagged] / remove from outbound, finish delete process
     Deprecated --> Idle: unflagged / unflag
 ```
 
@@ -36,11 +36,11 @@ The diagram adheres to the following rule to avoid entities with invalid states 
 Not following this rule can lead to entities in invalid states due to modifying one side of the link and then losing connection.
 
 ## Persistence
-Storing an entity's state directly in the persistent layer is problematic because it makes it difficult to have state transitions that only modify one side of the link. An easier approach is to map the state an entity has in the domain model to the state it has in the persistent layer. This persistent state consists of the entity's presence in the three components and whether it has an operation and/or flag or not.
+Storing an entity's state directly in the persistent layer is problematic because it makes it difficult to have state transitions that only modify one side of the link. An easier approach is to map the state an entity has in the domain model to the state it has in the persistent layer. This persistent state consists of the entity's presence in the three components and whether it has an process and/or flag or not.
 
 The following table illustrates the chosen mapping:
 
-| In source | In outbound | In local | Has operation | Is flagged | State |
+| In source | In outbound | In local | Has process | Is flagged | State |
 |--------|----------|-------|--------|---------|---------|
 | :white_check_mark: | :x: | :x: | :x: | :x: | Idle |
 | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: | :x: | Activated |
@@ -49,5 +49,5 @@ The following table illustrates the chosen mapping:
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: | Tainted |
 | :white_check_mark: | :x: | :x: | :x: | :white_check_mark: | Deprecated |
 
-## Operations
-Idle entities can be pulled from the source side into the local side and once they are pulled they can be deleted from the local side. Activated and received entities are currently undergoing one of these two operations. The name of the specific operation is associated with entities that are in the aforementioned states. This allows us to correctly transition these entities. For example without associating the operation with the entity we would not be able to determine whether an activated entity should become a received one (pull) or an idle one (delete).
+## Processes
+Idle entities can be pulled from the source side into the local side and once they are pulled they can be deleted from the local side. Activated and received entities are currently undergoing one of these two processes. The name of the specific process is associated with entities that are in the aforementioned states. This allows us to correctly transition these entities. For example without associating the process with the entity we would not be able to determine whether an activated entity should become a received one (pull) or an idle one (delete).

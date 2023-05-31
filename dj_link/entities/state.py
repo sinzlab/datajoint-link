@@ -1,112 +1,222 @@
 """Contains everything state related."""
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from typing import Optional
 
-from . import command
 from .custom_types import Identifier
 
 
 class State:
     """An entity's state."""
 
-    def pull(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
+    @classmethod
+    def pull(cls, entity: Entity) -> Update:
         """Return the commands needed to pull an entity."""
-        return set()
+        return cls._create_no_transition_update(entity.identifier)
 
-    def delete(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
+    @classmethod
+    def delete(cls, entity: Entity) -> Update:
         """Return the commands needed to delete the entity."""
-        return set()
+        return cls._create_no_transition_update(entity.identifier)
 
-    def process(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
+    @classmethod
+    def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process the entity."""
-        return set()
+        return cls._create_no_transition_update(entity.identifier)
 
-    def flag(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
+    @classmethod
+    def flag(cls, entity: Entity) -> Update:
         """Return the commands needed to flag the entity."""
-        return set()
+        return cls._create_no_transition_update(entity.identifier)
 
-    def unflag(self, entity: Entity) -> set[command.Command]:  # pylint: disable=unused-argument
+    @classmethod
+    def unflag(cls, entity: Entity) -> Update:
         """Return the commands needed to unflag the entity."""
-        return set()
+        return cls._create_no_transition_update(entity.identifier)
 
-    def _construct_commands(
-        self, identifier: Identifier, commands: Iterable[type[command.Command]]
-    ) -> set[command.Command]:
-        return {command(identifier) for command in commands}
+    @classmethod
+    def _create_no_transition_update(cls, identifier: Identifier) -> Update:
+        return cls._create_update(identifier, cls)
+
+    @classmethod
+    def _create_update(cls, identifier: Identifier, new_state: type[State]) -> Update:
+        transition = Transition(cls, new_state)
+        return Update(
+            identifier,
+            transition,
+            commands=frozenset(TRANSITION_MAP.get(transition, set())),
+        )
+
+
+class States:
+    """A namespace containing all states."""
+
+    def __init__(self) -> None:
+        """Initialize the namespace."""
+        self.__states: dict[str, type[State]] = {}
+
+    def __getattr__(self, name: str) -> type[State]:
+        """Return the state corresponding to the given name."""
+        return self.__states[name]
+
+    def register(self, state: type[State]) -> None:
+        """Add the given state to the namespace."""
+        self.__states[state.__name__] = state
+
+
+states = States()
 
 
 class Idle(State):
     """The default state of an entity."""
 
-    def pull(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def pull(cls, entity: Entity) -> Update:
         """Return the commands needed to pull an idle entity."""
-        return self._construct_commands(entity.identifier, (command.AddToOutbound, command.StartPullOperation))
+        return cls._create_update(entity.identifier, Activated)
+
+
+states.register(Idle)
 
 
 class Activated(State):
     """The state of an activated entity."""
 
-    def process(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process an activated entity."""
-        commands: tuple[type[command.Command], ...]
-        if entity.operation is Operations.PULL:
-            commands = (command.AddToLocal,)
-        elif entity.operation is Operations.DELETE:
-            commands = (command.RemoveFromOutbound, command.FinishDeleteOperation)
-        return self._construct_commands(entity.identifier, commands)
+        new_state: type[State]
+        if entity.current_process is Processes.PULL:
+            new_state = Received
+        elif entity.current_process is Processes.DELETE:
+            if entity.is_tainted:
+                new_state = Deprecated
+            else:
+                new_state = Idle
+        return cls._create_update(entity.identifier, new_state)
+
+
+states.register(Activated)
 
 
 class Received(State):
     """The state of an received entity."""
 
-    def process(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process a received entity."""
-        commands: tuple[type[command.Command], ...]
-        if entity.operation is Operations.PULL:
-            commands = (command.FinishPullOperation,)
-        elif entity.operation is Operations.DELETE:
-            commands = (command.RemoveFromLocal,)
-        return self._construct_commands(entity.identifier, commands)
+        new_state: type[State]
+        if entity.current_process is Processes.PULL:
+            new_state = Pulled
+        elif entity.current_process is Processes.DELETE:
+            new_state = Activated
+        return cls._create_update(entity.identifier, new_state)
+
+
+states.register(Received)
 
 
 class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
-    def delete(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def delete(cls, entity: Entity) -> Update:
         """Return the commands needed to delete a pulled entity."""
-        return self._construct_commands(entity.identifier, (command.StartDeleteOperation,))
+        return cls._create_update(entity.identifier, Received)
 
-    def flag(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def flag(cls, entity: Entity) -> Update:
         """Return the commands needed to flag a pulled entity."""
-        return self._construct_commands(entity.identifier, (command.Flag,))
+        return cls._create_update(entity.identifier, Tainted)
+
+
+states.register(Pulled)
 
 
 class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
-    def delete(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def delete(cls, entity: Entity) -> Update:
         """Return the commands needed to delete a tainted entity."""
-        return self._construct_commands(entity.identifier, (command.StartDeleteOperation,))
+        return cls._create_update(entity.identifier, Received)
 
-    def unflag(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def unflag(cls, entity: Entity) -> Update:
         """Return the commands needed to unflag a tainted entity."""
-        return self._construct_commands(entity.identifier, (command.Unflag,))
+        return cls._create_update(entity.identifier, Pulled)
+
+
+states.register(Tainted)
 
 
 class Deprecated(State):
     """The state of a faulty entity that was deleted by the local side."""
 
-    def unflag(self, entity: Entity) -> set[command.Command]:
+    @classmethod
+    def unflag(cls, entity: Entity) -> Update:
         """Return the commands to unflag a deprecated entity."""
-        return self._construct_commands(entity.identifier, (command.Unflag,))
+        return cls._create_update(entity.identifier, Idle)
 
 
-class Operations(Enum):
-    """Names for operations that pull/delete entities into/from the local side."""
+states.register(Deprecated)
+
+
+@dataclass(frozen=True)
+class Transition:
+    """Represents the transition between two entity states."""
+
+    current: type[State]
+    new: type[State]
+
+
+class Commands(Enum):
+    """Names for all the commands necessary to transition entities between states."""
+
+    ADD_TO_OUTBOUND = auto()
+    REMOVE_FROM_OUTBOUND = auto()
+    ADD_TO_LOCAL = auto()
+    REMOVE_FROM_LOCAL = auto()
+    START_PULL_PROCESS = auto()
+    FINISH_PULL_PROCESS = auto()
+    START_DELETE_PROCESS = auto()
+    FINISH_DELETE_PROCESS = auto()
+    FLAG = auto()
+    UNFLAG = auto()
+
+
+TRANSITION_MAP: dict[Transition, set[Commands]] = {
+    Transition(Idle, Activated): {Commands.ADD_TO_OUTBOUND, Commands.START_PULL_PROCESS},
+    Transition(Activated, Received): {Commands.ADD_TO_LOCAL},
+    Transition(Activated, Idle): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS},
+    Transition(Activated, Deprecated): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS},
+    Transition(Received, Pulled): {Commands.FINISH_PULL_PROCESS},
+    Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
+    Transition(Pulled, Received): {Commands.START_DELETE_PROCESS},
+    Transition(Pulled, Tainted): {Commands.FLAG},
+    Transition(Tainted, Pulled): {Commands.UNFLAG},
+    Transition(Tainted, Received): {Commands.START_DELETE_PROCESS},
+    Transition(Deprecated, Idle): {Commands.UNFLAG},
+}
+
+
+@dataclass(frozen=True)
+class Update:
+    """Represents the persistent update needed to transition an entity."""
+
+    identifier: Identifier
+    transition: Transition
+    commands: frozenset[Commands]
+
+    def __bool__(self) -> bool:
+        """Return true if the state does not change in the update."""
+        return self.transition.current is not self.transition.new
+
+
+class Processes(Enum):
+    """Names for processes that pull/delete entities into/from the local side."""
 
     PULL = 1
     DELETE = 2
@@ -126,39 +236,49 @@ class PersistentState:
 
     presence: frozenset[Components]
     is_tainted: bool
-    has_operation: bool
+    has_process: bool
 
 
 STATE_MAP = {
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=False,
-        has_operation=False,
+        has_process=False,
     ): Idle,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=False,
-        has_operation=True,
+        has_process=True,
+    ): Activated,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND}),
+        is_tainted=True,
+        has_process=True,
     ): Activated,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        has_operation=True,
+        has_process=True,
+    ): Received,
+    PersistentState(
+        frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
+        is_tainted=True,
+        has_process=True,
     ): Received,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
-        has_operation=False,
+        has_process=False,
     ): Pulled,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
-        has_operation=False,
+        has_process=False,
     ): Tainted,
     PersistentState(
         frozenset({Components.SOURCE}),
         is_tainted=True,
-        has_operation=False,
+        has_process=False,
     ): Deprecated,
 }
 
@@ -169,24 +289,25 @@ class Entity:
 
     identifier: Identifier
     state: type[State]
-    operation: Optional[Operations]
+    current_process: Optional[Processes]
+    is_tainted: bool
 
-    def pull(self) -> set[command.Command]:
+    def pull(self) -> Update:
         """Pull the entity."""
-        return self.state().pull(self)
+        return self.state.pull(self)
 
-    def delete(self) -> set[command.Command]:
+    def delete(self) -> Update:
         """Delete the entity."""
-        return self.state().delete(self)
+        return self.state.delete(self)
 
-    def process(self) -> set[command.Command]:
+    def process(self) -> Update:
         """Process the entity."""
-        return self.state().process(self)
+        return self.state.process(self)
 
-    def flag(self) -> set[command.Command]:
+    def flag(self) -> Update:
         """Flag the entity."""
-        return self.state().flag(self)
+        return self.state.flag(self)
 
-    def unflag(self) -> set[command.Command]:
+    def unflag(self) -> Update:
         """Unflag the entity."""
-        return self.state().unflag(self)
+        return self.state.unflag(self)
