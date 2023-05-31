@@ -6,7 +6,7 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Transfer, create_link, pull
+from dj_link.entities.link import Transfer, create_link, process, pull
 from dj_link.entities.state import Components, Processes, State, states
 
 from .assignments import create_assignments
@@ -269,3 +269,28 @@ class TestPull:
         }
         actual = pull(link, requested={Identifier("1")})
         assert actual == expected
+
+
+def test_process_produces_correct_transitions() -> None:
+    link = create_link(
+        create_assignments(
+            {
+                Components.SOURCE: {"1", "2", "3", "4", "5"},
+                Components.OUTBOUND: {"1", "2", "3", "4"},
+                Components.LOCAL: {"2", "4"},
+            }
+        ),
+        processes={
+            Processes.PULL: {Identifier("1"), Identifier("2")},
+            Processes.DELETE: {Identifier("3"), Identifier("4")},
+        },
+    )
+    actual = {(update.identifier, update.transition.new) for update in process(link)}
+    expected = {
+        (Identifier("1"), states.Received),
+        (Identifier("2"), states.Pulled),
+        (Identifier("3"), states.Idle),
+        (Identifier("4"), states.Activated),
+        (Identifier("5"), states.Idle),
+    }
+    assert actual == expected

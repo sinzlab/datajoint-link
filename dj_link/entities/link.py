@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
-from .state import STATE_MAP, Components, Entity, PersistentState, Processes, states
+from .state import STATE_MAP, Components, Entity, PersistentState, Processes, Update, states
 
 
 def create_link(
@@ -151,3 +151,8 @@ def pull(
         for i in local_destined
     }
     return outbound_transfers | local_transfers
+
+
+def process(link: Link) -> set[Update]:
+    """Process all entities in the link producing appropriate updates."""
+    return {entity.process() for entity in link[Components.SOURCE]}
