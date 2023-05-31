@@ -175,4 +175,5 @@ def delete(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
 def flag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Flag the requested entities producing appropriate updates."""
     assert requested, "No identifiers to be flagged requested."
+    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
     return {entity.flag() for entity in link[Components.SOURCE] if entity.identifier in requested}

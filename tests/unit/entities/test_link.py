@@ -358,3 +358,11 @@ class TestFlag:
         )
         with pytest.raises(AssertionError, match="No identifiers to be flagged requested."):
             flag(link, requested={})
+
+    @staticmethod
+    def test_specifying_identifiers_not_present_in_link_raises_error() -> None:
+        link = create_link(
+            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
+        )
+        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
+            flag(link, requested={Identifier("2")})
