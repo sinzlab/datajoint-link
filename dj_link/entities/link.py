@@ -167,4 +167,5 @@ def pull(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
 
 def delete(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Delete all requested identifiers producing appropriate updates."""
+    assert requested, "No identifiers to be deleted requested."
     return {entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested}
