@@ -309,7 +309,7 @@ class TestPull:
 
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers to be pulled requested."):
+        with pytest.raises(AssertionError, match="No identifiers requested."):
             pull(link, requested={})
 
     @staticmethod
@@ -333,7 +333,7 @@ class TestDelete:
 
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers to be deleted requested."):
+        with pytest.raises(AssertionError, match="No identifiers requested."):
             delete(link, requested={})
 
     @staticmethod
@@ -350,7 +350,7 @@ class TestFlag:
 
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers to be flagged requested."):
+        with pytest.raises(AssertionError, match="No identifiers requested."):
             flag(link, requested={})
 
     @staticmethod
@@ -372,7 +372,7 @@ class TestUnflag:
 
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers to be unflagged requested."):
+        with pytest.raises(AssertionError, match="No identifiers requested."):
             unflag(link, requested={})
 
     @staticmethod

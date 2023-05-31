@@ -158,29 +158,30 @@ def process(link: Link) -> set[Update]:
     return {entity.process() for entity in link[Components.SOURCE]}
 
 
+def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
+    assert requested, "No identifiers requested."
+    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+
+
 def pull(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Pull all requested entities producing appropriate updates."""
-    assert requested, "No identifiers to be pulled requested."
-    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+    _validate_requested(link, requested)
     return {entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested}
 
 
 def delete(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Delete all requested identifiers producing appropriate updates."""
-    assert requested, "No identifiers to be deleted requested."
-    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+    _validate_requested(link, requested)
     return {entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested}
 
 
 def flag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Flag the requested entities producing appropriate updates."""
-    assert requested, "No identifiers to be flagged requested."
-    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+    _validate_requested(link, requested)
     return {entity.flag() for entity in link[Components.SOURCE] if entity.identifier in requested}
 
 
 def unflag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Unflag the requested entities producing the appropriate updates."""
-    assert requested, "No identifiers to be unflagged requested."
-    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+    _validate_requested(link, requested)
     return {entity.unflag() for entity in link[Components.SOURCE] if entity.identifier in requested}
