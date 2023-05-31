@@ -161,4 +161,5 @@ def process(link: Link) -> set[Update]:
 def pull(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Pull all requested entities producing appropriate updates."""
     assert requested, "No identifiers to be pulled requested."
+    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
     return {entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested}
