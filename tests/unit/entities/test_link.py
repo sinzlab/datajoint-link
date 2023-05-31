@@ -296,19 +296,21 @@ def test_process_produces_correct_transitions() -> None:
     assert actual == expected
 
 
-def test_idle_entity_becomes_activated_when_pulled() -> None:
-    link = create_link(create_assignments({Components.SOURCE: {"1"}}))
-    update = next(iter(pull(link, requested={Identifier("1")})))
-    assert update.identifier == Identifier("1") and update.transition.new is states.Activated
+class TestPull:
+    @staticmethod
+    def test_idle_entity_becomes_activated() -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}))
+        update = next(iter(pull(link, requested={Identifier("1")})))
+        assert update.identifier == Identifier("1") and update.transition.new is states.Activated
 
+    @staticmethod
+    def test_not_specifying_requested_identifiers_raises_error() -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}))
+        with pytest.raises(AssertionError, match="No identifiers to be pulled requested."):
+            pull(link, requested={})
 
-def test_not_specifying_requested_identifiers_raises_error_when_pulling() -> None:
-    link = create_link(create_assignments({Components.SOURCE: {"1"}}))
-    with pytest.raises(AssertionError, match="No identifiers to be pulled requested."):
-        pull(link, requested={})
-
-
-def test_specifying_identifiers_not_present_in_link_raises_error_when_pulling() -> None:
-    link = create_link(create_assignments({Components.SOURCE: {"1"}}))
-    with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-        pull(link, requested={Identifier("2")})
+    @staticmethod
+    def test_specifying_identifiers_not_present_in_link_raises_error() -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}))
+        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
+            pull(link, requested={Identifier("2")})
