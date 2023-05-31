@@ -210,6 +210,10 @@ class Update:
     transition: Transition
     commands: frozenset[Commands]
 
+    def __bool__(self) -> bool:
+        """Return true if the state does not change in the update."""
+        return self.transition.current is not self.transition.new
+
 
 class Processes(Enum):
     """Names for processes that pull/delete entities into/from the local side."""
