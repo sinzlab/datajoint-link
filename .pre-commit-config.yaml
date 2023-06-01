@@ -37,3 +37,9 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: ruff
+        name: ruff
+        entry: pdm run lint_ruff
+        language: system
+        types: [python]
+        pass_filenames: false
