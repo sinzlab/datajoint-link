@@ -40,6 +40,7 @@ dev = [
     "minio>=7.1.12",
     "neovim>=0.3.1",
     "pdbpp>=0.10.3",
+    "ruff>=0.0.270",
 ]
 profiling = [
     "gprof2dot~=2021.2",
