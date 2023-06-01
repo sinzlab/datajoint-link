@@ -34,7 +34,7 @@ class LazySchema:  # pylint: disable=too-many-instance-attributes
     _schema_cls = Schema
     _conn_cls = Connection
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         schema_name: str,
         context: Optional[Dict] = None,

@@ -70,7 +70,7 @@ class LocalTableCreator:  # pylint: disable=too-few-public-methods
     schema_class = Schema
     replace_stores: staticmethod[str] = staticmethod(replace_stores)  # noqa: F811
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         local_schema: Union[Schema, LazySchema],
         source_schema: Union[Schema, LazySchema],
