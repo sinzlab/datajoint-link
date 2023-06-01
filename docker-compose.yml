@@ -50,6 +50,9 @@ services:
   pylint:
     build: .
     command: ["lint_pylint"]
+  ruff:
+    build: .
+    command: ["lint_ruff"]
 
 networks:
   test:
