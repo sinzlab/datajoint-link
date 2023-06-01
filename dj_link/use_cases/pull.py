@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Set
 
 from ..entities.custom_types import Identifier
-from ..entities.link import create_link, pull
+from ..entities.link import create_link, pull_legacy
 from ..entities.state import Components
 from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
@@ -63,7 +63,7 @@ class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pyli
                 Components.LOCAL: {Identifier(i) for i in self.gateway_link.local},
             },
         )
-        transfers = pull(link, requested=valid_identifiers)
+        transfers = pull_legacy(link, requested=valid_identifiers)
         for transfer in transfers:
             self.gateway_link.transfer(transfer)
         return self.response_model_cls(

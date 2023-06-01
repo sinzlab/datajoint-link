@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
-from .state import STATE_MAP, Components, Entity, PersistentState, Processes, states
+from .state import STATE_MAP, Components, Entity, PersistentState, Processes, Update, states
 
 
 def create_link(
@@ -130,7 +130,7 @@ class Transfer:
             assert not self.identifier_only, "Whole entity must be transferred to local."
 
 
-def pull(
+def pull_legacy(
     link: Link,
     *,
     requested: Iterable[Identifier],
@@ -151,3 +151,37 @@ def pull(
         for i in local_destined
     }
     return outbound_transfers | local_transfers
+
+
+def process(link: Link) -> set[Update]:
+    """Process all entities in the link producing appropriate updates."""
+    return {entity.process() for entity in link[Components.SOURCE]}
+
+
+def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
+    assert requested, "No identifiers requested."
+    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+
+
+def pull(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+    """Pull all requested entities producing appropriate updates."""
+    _validate_requested(link, requested)
+    return {entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested}
+
+
+def delete(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+    """Delete all requested identifiers producing appropriate updates."""
+    _validate_requested(link, requested)
+    return {entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested}
+
+
+def flag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+    """Flag the requested entities producing appropriate updates."""
+    _validate_requested(link, requested)
+    return {entity.flag() for entity in link[Components.SOURCE] if entity.identifier in requested}
+
+
+def unflag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+    """Unflag the requested entities producing the appropriate updates."""
+    _validate_requested(link, requested)
+    return {entity.unflag() for entity in link[Components.SOURCE] if entity.identifier in requested}
