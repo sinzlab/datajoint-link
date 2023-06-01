@@ -50,6 +50,7 @@ lint_isort = "isort --check-only --diff ."
 lint_mypy = "mypy"
 lint_flake8 = "flake8 ."
 lint_pylint = "pylint dj_link"
+lint_ruff = "ruff check ."
 tests = "pytest -m 'not slow'"
 functional_tests = "docker compose run functional_tests"
 
