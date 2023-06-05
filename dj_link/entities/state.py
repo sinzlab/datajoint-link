@@ -175,7 +175,6 @@ class Transition:
 class Commands(Enum):
     """Names for all the commands necessary to transition entities between states."""
 
-    REMOVE_FROM_OUTBOUND = auto()
     ADD_TO_LOCAL = auto()
     REMOVE_FROM_LOCAL = auto()
     START_PULL_PROCESS = auto()
@@ -189,8 +188,8 @@ class Commands(Enum):
 TRANSITION_MAP: dict[Transition, set[Commands]] = {
     Transition(Idle, Activated): {Commands.START_PULL_PROCESS},
     Transition(Activated, Received): {Commands.ADD_TO_LOCAL},
-    Transition(Activated, Idle): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS},
-    Transition(Activated, Deprecated): {Commands.REMOVE_FROM_OUTBOUND, Commands.FINISH_DELETE_PROCESS},
+    Transition(Activated, Idle): {Commands.FINISH_DELETE_PROCESS},
+    Transition(Activated, Deprecated): {Commands.FINISH_DELETE_PROCESS},
     Transition(Received, Pulled): {Commands.FINISH_PULL_PROCESS},
     Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
     Transition(Pulled, Received): {Commands.START_DELETE_PROCESS},
