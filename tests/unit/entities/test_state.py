@@ -44,7 +44,7 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     assert entity.pull() == Update(
         Identifier("1"),
         Transition(states.Idle, states.Activated),
-        commands=frozenset({Commands.ADD_TO_OUTBOUND, Commands.START_PULL_PROCESS}),
+        commands=frozenset({Commands.START_PULL_PROCESS}),
     )
 
 
