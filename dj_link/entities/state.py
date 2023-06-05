@@ -156,13 +156,14 @@ class Commands(Enum):
     FINISH_PULL_PROCESS = auto()
     START_DELETE_PROCESS = auto()
     FINISH_DELETE_PROCESS = auto()
+    DEPRECATE = auto()
 
 
 TRANSITION_MAP: dict[Transition, set[Commands]] = {
     Transition(Idle, Activated): {Commands.START_PULL_PROCESS},
     Transition(Activated, Received): {Commands.ADD_TO_LOCAL},
     Transition(Activated, Idle): {Commands.FINISH_DELETE_PROCESS},
-    Transition(Activated, Deprecated): {Commands.FINISH_DELETE_PROCESS},
+    Transition(Activated, Deprecated): {Commands.DEPRECATE},
     Transition(Received, Pulled): {Commands.FINISH_PULL_PROCESS},
     Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
     Transition(Pulled, Received): {Commands.START_DELETE_PROCESS},

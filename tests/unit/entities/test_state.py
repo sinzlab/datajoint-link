@@ -53,7 +53,7 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     [
         (Processes.PULL, set(), states.Received, {Commands.ADD_TO_LOCAL}),
         (Processes.DELETE, set(), states.Idle, {Commands.FINISH_DELETE_PROCESS}),
-        (Processes.DELETE, {create_identifier("1")}, states.Deprecated, {Commands.FINISH_DELETE_PROCESS}),
+        (Processes.DELETE, {create_identifier("1")}, states.Deprecated, {Commands.DEPRECATE}),
     ],
 )
 def test_processing_activated_entity_returns_correct_commands(
