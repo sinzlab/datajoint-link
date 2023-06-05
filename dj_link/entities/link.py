@@ -173,15 +173,3 @@ def delete(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
     """Delete all requested identifiers producing appropriate updates."""
     _validate_requested(link, requested)
     return {entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested}
-
-
-def flag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
-    """Flag the requested entities producing appropriate updates."""
-    _validate_requested(link, requested)
-    return {entity.flag() for entity in link[Components.SOURCE] if entity.identifier in requested}
-
-
-def unflag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
-    """Unflag the requested entities producing the appropriate updates."""
-    _validate_requested(link, requested)
-    return {entity.unflag() for entity in link[Components.SOURCE] if entity.identifier in requested}

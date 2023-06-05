@@ -27,16 +27,6 @@ class State:
         return cls._create_no_transition_update(entity.identifier)
 
     @classmethod
-    def flag(cls, entity: Entity) -> Update:
-        """Return the commands needed to flag the entity."""
-        return cls._create_no_transition_update(entity.identifier)
-
-    @classmethod
-    def unflag(cls, entity: Entity) -> Update:
-        """Return the commands needed to unflag the entity."""
-        return cls._create_no_transition_update(entity.identifier)
-
-    @classmethod
     def _create_no_transition_update(cls, identifier: Identifier) -> Update:
         return cls._create_update(identifier, cls)
 
@@ -126,11 +116,6 @@ class Pulled(State):
         """Return the commands needed to delete a pulled entity."""
         return cls._create_update(entity.identifier, Received)
 
-    @classmethod
-    def flag(cls, entity: Entity) -> Update:
-        """Return the commands needed to flag a pulled entity."""
-        return cls._create_update(entity.identifier, Tainted)
-
 
 states.register(Pulled)
 
@@ -143,22 +128,12 @@ class Tainted(State):
         """Return the commands needed to delete a tainted entity."""
         return cls._create_update(entity.identifier, Received)
 
-    @classmethod
-    def unflag(cls, entity: Entity) -> Update:
-        """Return the commands needed to unflag a tainted entity."""
-        return cls._create_update(entity.identifier, Pulled)
-
 
 states.register(Tainted)
 
 
 class Deprecated(State):
     """The state of a faulty entity that was deleted by the local side."""
-
-    @classmethod
-    def unflag(cls, entity: Entity) -> Update:
-        """Return the commands to unflag a deprecated entity."""
-        return cls._create_update(entity.identifier, Idle)
 
 
 states.register(Deprecated)
@@ -181,8 +156,6 @@ class Commands(Enum):
     FINISH_PULL_PROCESS = auto()
     START_DELETE_PROCESS = auto()
     FINISH_DELETE_PROCESS = auto()
-    FLAG = auto()
-    UNFLAG = auto()
 
 
 TRANSITION_MAP: dict[Transition, set[Commands]] = {
@@ -193,10 +166,7 @@ TRANSITION_MAP: dict[Transition, set[Commands]] = {
     Transition(Received, Pulled): {Commands.FINISH_PULL_PROCESS},
     Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
     Transition(Pulled, Received): {Commands.START_DELETE_PROCESS},
-    Transition(Pulled, Tainted): {Commands.FLAG},
-    Transition(Tainted, Pulled): {Commands.UNFLAG},
     Transition(Tainted, Received): {Commands.START_DELETE_PROCESS},
-    Transition(Deprecated, Idle): {Commands.UNFLAG},
 }
 
 
@@ -301,11 +271,3 @@ class Entity:
     def process(self) -> Update:
         """Process the entity."""
         return self.state.process(self)
-
-    def flag(self) -> Update:
-        """Flag the entity."""
-        return self.state.flag(self)
-
-    def unflag(self) -> Update:
-        """Unflag the entity."""
-        return self.state.unflag(self)

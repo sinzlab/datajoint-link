@@ -6,7 +6,7 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Link, Transfer, create_link, delete, flag, process, pull, pull_legacy, unflag
+from dj_link.entities.link import Link, Transfer, create_link, delete, process, pull, pull_legacy
 from dj_link.entities.state import Components, Processes, State, states
 
 from .assignments import create_assignments, create_identifier, create_identifiers
@@ -346,44 +346,3 @@ class TestDelete:
     def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
             delete(link, requested=create_identifiers("2"))
-
-
-class TestFlag:
-    @staticmethod
-    def test_pulled_entity_becomes_tainted(link: Link) -> None:
-        update = next(iter(flag(link, requested=create_identifiers("1"))))
-        assert {update.identifier} == create_identifiers("1")
-        assert update.transition.new is states.Tainted
-
-    @staticmethod
-    def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers requested."):
-            flag(link, requested={})
-
-    @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            flag(link, requested=create_identifiers("2"))
-
-
-class TestUnflag:
-    @staticmethod
-    @pytest.fixture()
-    def link() -> Link:
-        return create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers=create_identifiers("1"))
-
-    @staticmethod
-    def test_deprecated_entity_becomes_idle(link: Link) -> None:
-        update = next(iter(unflag(link, requested=create_identifiers("1"))))
-        assert {update.identifier} == create_identifiers("1")
-        assert update.transition.new is states.Idle
-
-    @staticmethod
-    def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers requested."):
-            unflag(link, requested={})
-
-    @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            unflag(link, requested=create_identifiers("2"))
