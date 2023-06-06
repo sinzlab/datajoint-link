@@ -77,18 +77,21 @@ def test_processing_activated_entity_returns_correct_commands(
 
 
 @pytest.mark.parametrize(
-    ("process", "new_state", "commands"),
+    ("process", "tainted_identifiers", "new_state", "commands"),
     [
-        (Processes.PULL, states.Pulled, {Commands.FINISH_PULL_PROCESS}),
-        (Processes.DELETE, states.Activated, {Commands.REMOVE_FROM_LOCAL}),
+        (Processes.PULL, set(), states.Pulled, {Commands.FINISH_PULL_PROCESS}),
+        (Processes.PULL, create_identifiers("1"), states.Tainted, {Commands.FINISH_PULL_PROCESS}),
+        (Processes.DELETE, set(), states.Activated, {Commands.REMOVE_FROM_LOCAL}),
+        (Processes.DELETE, create_identifiers("1"), states.Activated, {Commands.REMOVE_FROM_LOCAL}),
     ],
 )
 def test_processing_received_entity_returns_correct_commands(
-    process: Processes, new_state: type[State], commands: Iterable[Commands]
+    process: Processes, tainted_identifiers: Iterable[Identifier], new_state: type[State], commands: Iterable[Commands]
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
         processes={process: {create_identifier("1")}},
+        tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == Update(

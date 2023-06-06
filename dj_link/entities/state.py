@@ -98,7 +98,10 @@ class Received(State):
         """Return the commands needed to process a received entity."""
         new_state: type[State]
         if entity.current_process is Processes.PULL:
-            new_state = Pulled
+            if entity.is_tainted:
+                new_state = Tainted
+            else:
+                new_state = Pulled
         elif entity.current_process is Processes.DELETE:
             new_state = Activated
         return cls._create_update(entity.identifier, new_state)
@@ -164,6 +167,7 @@ TRANSITION_MAP: dict[Transition, set[Commands]] = {
     Transition(Activated, Idle): {Commands.FINISH_DELETE_PROCESS},
     Transition(Activated, Deprecated): {Commands.DEPRECATE},
     Transition(Received, Pulled): {Commands.FINISH_PULL_PROCESS},
+    Transition(Received, Tainted): {Commands.FINISH_PULL_PROCESS},
     Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
     Transition(Pulled, Received): {Commands.START_DELETE_PROCESS},
     Transition(Tainted, Received): {Commands.START_DELETE_PROCESS},
