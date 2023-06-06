@@ -78,13 +78,12 @@ class Activated(State):
     def process(cls, entity: Entity) -> Update:
         """Return the commands needed to process an activated entity."""
         new_state: type[State]
-        if entity.current_process is Processes.PULL:
+        if entity.is_tainted:
+            new_state = Deprecated
+        elif entity.current_process is Processes.PULL:
             new_state = Received
         elif entity.current_process is Processes.DELETE:
-            if entity.is_tainted:
-                new_state = Deprecated
-            else:
-                new_state = Idle
+            new_state = Idle
         return cls._create_update(entity.identifier, new_state)
 
 
