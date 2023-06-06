@@ -44,24 +44,24 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     assert entity.pull() == Update(
         create_identifier("1"),
         Transition(states.Idle, states.Activated),
-        commands=frozenset({Commands.START_PULL_PROCESS}),
+        command=Commands.START_PULL_PROCESS,
     )
 
 
 @pytest.mark.parametrize(
-    ("process", "tainted_identifiers", "new_state", "commands"),
+    ("process", "tainted_identifiers", "new_state", "command"),
     [
-        (Processes.PULL, set(), states.Received, {Commands.ADD_TO_LOCAL}),
-        (Processes.PULL, create_identifiers("1"), states.Deprecated, {Commands.DEPRECATE}),
-        (Processes.DELETE, set(), states.Idle, {Commands.FINISH_DELETE_PROCESS}),
-        (Processes.DELETE, {create_identifier("1")}, states.Deprecated, {Commands.DEPRECATE}),
+        (Processes.PULL, set(), states.Received, Commands.ADD_TO_LOCAL),
+        (Processes.PULL, create_identifiers("1"), states.Deprecated, Commands.DEPRECATE),
+        (Processes.DELETE, set(), states.Idle, Commands.FINISH_DELETE_PROCESS),
+        (Processes.DELETE, create_identifiers("1"), states.Deprecated, Commands.DEPRECATE),
     ],
 )
 def test_processing_activated_entity_returns_correct_commands(
     process: Processes,
     tainted_identifiers: Iterable[Identifier],
     new_state: type[State],
-    commands: Iterable[Commands],
+    command: Commands,
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
@@ -72,21 +72,21 @@ def test_processing_activated_entity_returns_correct_commands(
     assert entity.process() == Update(
         create_identifier("1"),
         Transition(states.Activated, new_state),
-        commands=frozenset(commands),
+        command=command,
     )
 
 
 @pytest.mark.parametrize(
-    ("process", "tainted_identifiers", "new_state", "commands"),
+    ("process", "tainted_identifiers", "new_state", "command"),
     [
-        (Processes.PULL, set(), states.Pulled, {Commands.FINISH_PULL_PROCESS}),
-        (Processes.PULL, create_identifiers("1"), states.Tainted, {Commands.FINISH_PULL_PROCESS}),
-        (Processes.DELETE, set(), states.Activated, {Commands.REMOVE_FROM_LOCAL}),
-        (Processes.DELETE, create_identifiers("1"), states.Activated, {Commands.REMOVE_FROM_LOCAL}),
+        (Processes.PULL, set(), states.Pulled, Commands.FINISH_PULL_PROCESS),
+        (Processes.PULL, create_identifiers("1"), states.Tainted, Commands.FINISH_PULL_PROCESS),
+        (Processes.DELETE, set(), states.Activated, Commands.REMOVE_FROM_LOCAL),
+        (Processes.DELETE, create_identifiers("1"), states.Activated, Commands.REMOVE_FROM_LOCAL),
     ],
 )
 def test_processing_received_entity_returns_correct_commands(
-    process: Processes, tainted_identifiers: Iterable[Identifier], new_state: type[State], commands: Iterable[Commands]
+    process: Processes, tainted_identifiers: Iterable[Identifier], new_state: type[State], command: Commands
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
@@ -97,7 +97,7 @@ def test_processing_received_entity_returns_correct_commands(
     assert entity.process() == Update(
         create_identifier("1"),
         Transition(states.Received, new_state),
-        commands=frozenset(commands),
+        command=command,
     )
 
 
@@ -109,7 +109,7 @@ def test_deleting_pulled_entity_returns_correct_commands() -> None:
     assert entity.delete() == Update(
         create_identifier("1"),
         Transition(states.Pulled, states.Received),
-        commands=frozenset({Commands.START_DELETE_PROCESS}),
+        command=Commands.START_DELETE_PROCESS,
     )
 
 
@@ -122,5 +122,5 @@ def test_deleting_tainted_entity_returns_correct_commands() -> None:
     assert entity.delete() == Update(
         create_identifier("1"),
         Transition(states.Tainted, states.Received),
-        commands=frozenset({Commands.START_DELETE_PROCESS}),
+        command=Commands.START_DELETE_PROCESS,
     )
