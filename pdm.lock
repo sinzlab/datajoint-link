@@ -646,7 +646,7 @@ summary = "Module for decorators, wrappers and monkey patching."
 lock_version = "4.2"
 cross_platform = true
 groups = ["default", "dev", "profiling"]
-content_hash = "sha256:673445030b2768180aa89ad2eab8430b957b08d6024ef7bc3653ef457b42a7c6"
+content_hash = "sha256:38a8a588ccdf5f0b152f7af713f3a8b0d37030f4e7f1418a6ed6f639bcc7f257"
 
 [metadata.files]
 "appnope 0.1.3" = [

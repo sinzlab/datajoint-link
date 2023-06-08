@@ -30,7 +30,6 @@ dev = [
     "docker~=4.4",
     "pymysql~=1.0",
     "pylint~=2.7",
-    "isort~=5.7",
     "mypy~=0.812",
     "black>=22.10.0",
     "minio>=7.1.12",
@@ -44,7 +43,6 @@ profiling = [
 
 [tool.pdm.scripts]
 lint_black = "black --check --diff ."
-lint_isort = "isort --check-only --diff ."
 lint_mypy = "mypy"
 lint_pylint = "pylint dj_link"
 lint_ruff = "ruff check ."
@@ -53,12 +51,6 @@ functional_tests = "docker compose run functional_tests"
 
 [tool.black]
 line-length = 120
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 120
-skip_gitignore = true
 
 [tool.pylint.master]
 max-line-length = 120

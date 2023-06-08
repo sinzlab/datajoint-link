@@ -38,9 +38,6 @@ services:
   black:
     build: .
     command: ["lint_black"]
-  isort:
-    build: .
-    command: ["lint_isort"]
   mypy:
     build: .
     command: ["lint_mypy"]
