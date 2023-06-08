@@ -4,7 +4,7 @@ import pytest
 
 from dj_link.adapters.datajoint import AbstractTableFacadeLink, DataJointGatewayLink, initialize_adapters
 from dj_link.adapters.datajoint.gateway import DataJointGateway
-from dj_link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.adapters.datajoint.identification import UUIDIdentificationTranslator
 from dj_link.adapters.datajoint.presenter import Presenter, ViewModel
 from dj_link.base import Base
 from dj_link.globals import REPOSITORY_NAMES
@@ -68,7 +68,7 @@ class TestInitializeAdapters:
         assert getattr(gateway_link, repo_type).table_facade is getattr(table_facade_link_stub, repo_type)
 
     def test_if_translators_of_gateways_are_identification_translators(self, repo_type, gateway_link):
-        assert isinstance(getattr(gateway_link, repo_type).translator, IdentificationTranslator)
+        assert isinstance(getattr(gateway_link, repo_type).translator, UUIDIdentificationTranslator)
 
     def test_if_the_same_translator_is_used_in_all_gateways(self, gateway_link):
         assert (

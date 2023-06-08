@@ -5,13 +5,15 @@ from dataclasses import dataclass, field
 from itertools import tee
 from typing import Any, Dict, Iterator, List
 
+from dj_link.entities.custom_types import Identifier
+
 from ...base import Base
 from ...entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
 from ...entities.link import Transfer
 from ...entities.state import Components
 from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
-from .identification import IdentificationTranslator
+from .identification import UUIDIdentificationTranslator
 
 
 @dataclass
@@ -31,22 +33,22 @@ class EntityDTO(AbstractEntityDTO):
 class DataJointGateway(AbstractGateway[EntityDTO], Base):
     """Gateway between the entities/use-cases and the DataJoint table facade."""
 
-    def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
+    def __init__(self, table_facade: AbstractTableFacade, translator: UUIDIdentificationTranslator) -> None:
         """Initialize the DataJoint gateway."""
         self.table_facade = table_facade
         self.translator = translator
 
-    def get_identifiers_in_restriction(self, restriction) -> List[str]:
+    def get_identifiers_in_restriction(self, restriction) -> List[Identifier]:
         """Return the identifiers of all entities in the provided restriction."""
         primary_keys = self.table_facade.get_primary_keys_in_restriction(restriction)
         return [self.translator.to_identifier(primary_key) for primary_key in primary_keys]
 
-    def get_flags(self, identifier: str) -> Dict[str, bool]:
+    def get_flags(self, identifier: Identifier) -> Dict[str, bool]:
         """Get the names and values of all flags that are set on the entity identified by the provided identifier."""
         flags = self.table_facade.get_flags(self.translator.to_primary_key(identifier))
         return {self.to_flag_name(flag_table_name): flag for flag_table_name, flag in flags.items()}
 
-    def fetch(self, identifier: str) -> EntityDTO:
+    def fetch(self, identifier: Identifier) -> EntityDTO:
         """Fetch the entity identified by the provided identifier.
 
         Raises a key error if the entity is missing.
@@ -61,22 +63,22 @@ class DataJointGateway(AbstractGateway[EntityDTO], Base):
         """Insert the provided entity into the table."""
         self.table_facade.insert(entity_dto)
 
-    def delete(self, identifier: str) -> None:
+    def delete(self, identifier: Identifier) -> None:
         """Delete the entity identified by the provided identifier from the table."""
         primary_key = self.translator.to_primary_key(identifier)
         self.table_facade.delete(primary_key)
 
-    def set_flag(self, identifier: str, flag: str, value: bool) -> None:
+    def set_flag(self, identifier: Identifier, flag: str, value: bool) -> None:
         """Set the flag on the entity identified by the provided identifier to the provided value."""
         if value:
             self._enable_flag(identifier, flag)
         else:
             self._disable_flag(identifier, flag)
 
-    def _enable_flag(self, identifier: str, flag: str) -> None:
+    def _enable_flag(self, identifier: Identifier, flag: str) -> None:
         self.table_facade.enable_flag(self.translator.to_primary_key(identifier), self._to_flag_table_name(flag))
 
-    def _disable_flag(self, identifier: str, flag: str) -> None:
+    def _disable_flag(self, identifier: Identifier, flag: str) -> None:
         self.table_facade.disable_flag(self.translator.to_primary_key(identifier), self._to_flag_table_name(flag))
 
     def start_transaction(self) -> None:
@@ -109,7 +111,7 @@ class DataJointGateway(AbstractGateway[EntityDTO], Base):
         """Return the number of entities in the corresponding table."""
         return len(self.table_facade)
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[Identifier]:
         """Iterate over all identifiers in the table."""
         for primary_key in self.table_facade:
             yield self.translator.to_identifier(primary_key)

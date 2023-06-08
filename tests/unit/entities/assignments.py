@@ -2,8 +2,20 @@
 from __future__ import annotations
 
 from typing import Iterable, Mapping, Optional
+from uuid import UUID, uuid4
 
-from dj_link.entities.state import Components, Identifier
+from dj_link.entities.custom_types import Identifier
+from dj_link.entities.state import Components
+
+__UUIDS: dict[str, UUID] = {}
+
+
+def create_identifier(name: str) -> Identifier:
+    return Identifier(__UUIDS.setdefault(name, uuid4()))
+
+
+def create_identifiers(*names: str) -> set[Identifier]:
+    return {create_identifier(name) for name in names}
 
 
 def create_assignments(
@@ -17,7 +29,4 @@ def create_assignments(
     for component in Components:
         if component not in assignments:
             assignments[component] = set()
-    return {
-        component: {Identifier(identifier) for identifier in identifiers}
-        for component, identifiers in assignments.items()
-    }
+    return {component: create_identifiers(*identifiers) for component, identifiers in assignments.items()}

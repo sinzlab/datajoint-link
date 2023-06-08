@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Iterator
 
 from ..base import Base
 from .abstract_gateway import AbstractGateway
+from .custom_types import Identifier
 
 if TYPE_CHECKING:
     from .repository import EntityFactory, TransferEntity
@@ -19,20 +20,20 @@ class Contents(MutableMapping, Base):
         self.gateway = gateway
         self.entity_factory = entity_factory
 
-    def __getitem__(self, identifier: str) -> TransferEntity:
+    def __getitem__(self, identifier: Identifier) -> TransferEntity:
         """Fetch an entity."""
         entity = self.entity_factory(identifier)
         return entity.create_transfer_entity(self.gateway.fetch(identifier))
 
-    def __setitem__(self, identifier: str, transfer_entity: TransferEntity) -> None:
+    def __setitem__(self, identifier: Identifier, transfer_entity: TransferEntity) -> None:
         """Insert an entity."""
         self.gateway.insert(transfer_entity.data)
 
-    def __delitem__(self, identifier: str) -> None:
+    def __delitem__(self, identifier: Identifier) -> None:
         """Delete an entity."""
         self.gateway.delete(identifier)
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[Identifier]:
         """Iterate over entity identifiers."""
         return iter(self.gateway)
 

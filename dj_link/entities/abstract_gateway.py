@@ -4,6 +4,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Dict, Generic, Iterator, TypeVar
 
+from ..entities.custom_types import Identifier
+
 
 class AbstractEntityDTO(ABC):  # pylint: disable=too-few-public-methods
     """Defines the interface of the data transfer object containing an entity's data."""
@@ -20,11 +22,11 @@ class AbstractGateway(ABC, Generic[EntityDataTransferObject]):
     """Define the interface of the gateway as expected by the entities."""
 
     @abstractmethod
-    def get_flags(self, identifier: str) -> Dict[str, bool]:
+    def get_flags(self, identifier: Identifier) -> Dict[str, bool]:
         """Get the flags associated with the entity specified by the provided identifier."""
 
     @abstractmethod
-    def fetch(self, identifier: str) -> EntityDataTransferObject:
+    def fetch(self, identifier: Identifier) -> EntityDataTransferObject:
         """Fetch an entity.
 
         Raise KeyError if the entity is missing.
@@ -35,11 +37,11 @@ class AbstractGateway(ABC, Generic[EntityDataTransferObject]):
         """Insert an entity."""
 
     @abstractmethod
-    def delete(self, identifier: str) -> None:
+    def delete(self, identifier: Identifier) -> None:
         """Delete an entity."""
 
     @abstractmethod
-    def set_flag(self, identifier: str, flag: str, value: bool) -> None:
+    def set_flag(self, identifier: Identifier, flag: str, value: bool) -> None:
         """Set the flag of the entity specified by the provided identifier to the provided value."""
 
     @abstractmethod
@@ -59,5 +61,5 @@ class AbstractGateway(ABC, Generic[EntityDataTransferObject]):
         """Return the number of entities in the gateway."""
 
     @abstractmethod
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[Identifier]:
         """Iterate over all identifiers in the table."""

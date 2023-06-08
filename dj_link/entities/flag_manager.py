@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Iterator
 
 from ..base import Base
 from .abstract_gateway import AbstractGateway
+from .custom_types import Identifier
 
 if TYPE_CHECKING:
     from .repository import Entity, EntityFactory
@@ -19,7 +20,7 @@ class FlagManagerFactory(Mapping, Base):
         self.gateway = gateway
         self.entity_factory = entity_factory
 
-    def __getitem__(self, identifier: str) -> FlagManager:
+    def __getitem__(self, identifier: Identifier) -> FlagManager:
         """Get the entity flags manager corresponding to the entity identified by the provided identifier."""
         return FlagManager(self.entity_factory(identifier), self.gateway)
 

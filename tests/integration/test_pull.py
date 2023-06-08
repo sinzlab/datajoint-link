@@ -2,10 +2,12 @@ from typing import Callable, Generic, Iterable, Optional
 
 import pytest
 
+from dj_link.entities.custom_types import Identifier
 from dj_link.use_cases import RepositoryLinkFactory
 from dj_link.use_cases.base import ResponseModel
 from dj_link.use_cases.gateway import GatewayLink
 from dj_link.use_cases.pull import PullRequestModel, PullResponseModel, PullUseCase
+from tests.unit.entities.assignments import create_identifiers
 
 from ..conftest import FakeGatewayLinkCreator
 
@@ -26,7 +28,7 @@ def fake_output_port() -> FakeOutputPort[PullResponseModel]:
 
 
 def pull(
-    gateway_link: GatewayLink, output_port: Callable[[PullResponseModel], None], *, requested: Iterable[str]
+    gateway_link: GatewayLink, output_port: Callable[[PullResponseModel], None], *, requested: Iterable[Identifier]
 ) -> None:
     use_case = PullUseCase(gateway_link, RepositoryLinkFactory(gateway_link), output_port)
     request = PullRequestModel(list(requested))
@@ -38,19 +40,27 @@ def test_correct_entities_are_pulled(
     fake_output_port: FakeOutputPort[PullResponseModel],
 ) -> None:
     fake_gateway_link = create_fake_gateway_link(
-        {"source": {"apple", "banana", "grapefruit"}, "outbound": {"banana"}, "local": {"banana"}}
+        {
+            "source": create_identifiers("1", "2", "3"),
+            "outbound": create_identifiers("2"),
+            "local": create_identifiers("2"),
+        }
     )
-    pull(fake_gateway_link, fake_output_port, requested={"apple", "banana"})
-    assert set(fake_gateway_link.outbound) == set(fake_gateway_link.local) == {"apple", "banana"}
+    pull(fake_gateway_link, fake_output_port, requested=create_identifiers("1", "2"))
+    assert set(fake_gateway_link.outbound) == set(fake_gateway_link.local) == create_identifiers("1", "2")
 
 
 def test_correct_response_model_is_sent_to_output_port(
     create_fake_gateway_link: FakeGatewayLinkCreator, fake_output_port: FakeOutputPort[PullResponseModel]
 ) -> None:
     fake_gateway_link = create_fake_gateway_link(
-        {"source": {"apple", "banana", "grapefruit"}, "outbound": {"banana"}, "local": {"banana"}}
+        {
+            "source": create_identifiers("1", "2", "3"),
+            "outbound": create_identifiers("2"),
+            "local": create_identifiers("2"),
+        }
     )
-    pull(fake_gateway_link, fake_output_port, requested={"apple", "banana"})
+    pull(fake_gateway_link, fake_output_port, requested=create_identifiers("1", "2"))
     assert fake_output_port.response == PullResponseModel(
-        requested={"apple", "banana"}, valid={"apple"}, invalid={"banana"}
+        requested=create_identifiers("1", "2"), valid=create_identifiers("1"), invalid=create_identifiers("2")
     )
