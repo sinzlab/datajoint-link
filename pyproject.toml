@@ -98,6 +98,7 @@ module = [
     "tests.conftest",
     "tests.integration.test_pull",
     "tests.unit.adapters.datajoint.test_gateway",
+    "tests.unit.entities.assignments",
     "tests.unit.entities.test_link",
     "tests.unit.entities.test_state",
     "tests.unit.frameworks.datajoint.test_facade",
@@ -111,6 +112,7 @@ module = [
     "tests.conftest",
     "tests.integration.test_pull",
     "tests.unit.adapters.datajoint.test_gateway",
+    "tests.unit.entities.assignments",
     "tests.unit.entities.test_link",
     "tests.unit.entities.test_state",
 ]

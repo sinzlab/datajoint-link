@@ -5,6 +5,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Set, Tuple
 
+from dj_link.entities.custom_types import Identifier
+
 from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
@@ -17,17 +19,17 @@ LOGGER = logging.getLogger(__name__)
 class DeleteRequestModel(AbstractRequestModel):
     """Request model for the delete use-case."""
 
-    identifiers: List[str]
+    identifiers: List[Identifier]
 
 
 @dataclass
 class DeleteResponseModel(AbstractResponseModel):
     """Response model for the delete use-case."""
 
-    requested: Set[str]
-    deletion_approved: Set[str]
-    deleted_from_outbound: Set[str]
-    deleted_from_local: Set[str]
+    requested: Set[Identifier]
+    deletion_approved: Set[Identifier]
+    deleted_from_outbound: Set[Identifier]
+    deleted_from_local: Set[Identifier]
 
     @property
     def n_requested(self):
@@ -73,25 +75,27 @@ class DeleteUseCase(AbstractUseCase[DeleteRequestModel, DeleteResponseModel]):  
         )
 
     @staticmethod
-    def _group_by_deletion_requested(repo_link: RepositoryLink, identifiers: List[str]) -> Tuple[Set[str], Set[str]]:
+    def _group_by_deletion_requested(
+        repo_link: RepositoryLink, identifiers: List[Identifier]
+    ) -> Tuple[Set[Identifier], Set[Identifier]]:
         deletion_requested = {i for i in identifiers if repo_link.outbound.flags[i]["deletion_requested"]}
         deletion_not_requested = set(identifiers) - deletion_requested
         return deletion_requested, deletion_not_requested
 
     @staticmethod
-    def _approve_deletion(repo_link: RepositoryLink, deletion_requested: Set[str]) -> None:
+    def _approve_deletion(repo_link: RepositoryLink, deletion_requested: Set[Identifier]) -> None:
         for identifier in deletion_requested:
             repo_link.outbound.flags[identifier]["deletion_approved"] = True
             LOGGER.info(f"Approved deletion of entity with identifier {identifier}")
 
     @staticmethod
-    def _delete_from_outbound(repo_link: RepositoryLink, deletion_not_requested: Set[str]) -> None:
+    def _delete_from_outbound(repo_link: RepositoryLink, deletion_not_requested: Set[Identifier]) -> None:
         for identifier in deletion_not_requested:
             del repo_link.outbound[identifier]
             LOGGER.info(f"Deleted entity with identifier {identifier} from outbound table")
 
     @staticmethod
-    def _delete_from_local(repo_link: RepositoryLink, identifiers: List[str]) -> None:
+    def _delete_from_local(repo_link: RepositoryLink, identifiers: List[Identifier]) -> None:
         for identifier in identifiers:
             del repo_link.local[identifier]
             LOGGER.info(f"Deleted entity with identifier {identifier} from local table")

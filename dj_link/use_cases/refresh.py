@@ -5,6 +5,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Set
 
+from dj_link.entities.custom_types import Identifier
+
 from .base import AbstractRequestModel, AbstractResponseModel, AbstractUseCase
 
 if TYPE_CHECKING:
@@ -22,7 +24,7 @@ class RefreshRequestModel(AbstractRequestModel):
 class RefreshResponseModel(AbstractResponseModel):
     """Response model for the refresh use-case."""
 
-    refreshed: Set[str]
+    refreshed: Set[Identifier]
 
     @property
     def n_refreshed(self) -> int:

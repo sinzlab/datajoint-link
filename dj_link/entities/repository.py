@@ -9,6 +9,7 @@ from typing import Dict, Iterator
 from ..base import Base
 from .abstract_gateway import AbstractEntityDTO, AbstractGateway
 from .contents import Contents
+from .custom_types import Identifier
 from .flag_manager import FlagManagerFactory
 
 
@@ -16,7 +17,7 @@ from .flag_manager import FlagManagerFactory
 class Entity:
     """Represents an entity in a repository."""
 
-    identifier: str
+    identifier: Identifier
     flags: Dict[str, bool]
 
     def create_transfer_entity(self, data: AbstractEntityDTO) -> TransferEntity:
@@ -47,7 +48,7 @@ class EntityFactory(Base):  # pylint: disable=too-few-public-methods
         """Initialize the entity factory."""
         self.gateway = gateway
 
-    def __call__(self, identifier: str) -> Entity:
+    def __call__(self, identifier: Identifier) -> Entity:
         """Create an entity based on the provided identifier."""
         return Entity(identifier, self.gateway.get_flags(identifier))
 
@@ -66,19 +67,19 @@ class Repository(MutableMapping, Base):
         self.flags = flags
         self.gateway = gateway
 
-    def __getitem__(self, identifier: str) -> TransferEntity:
+    def __getitem__(self, identifier: Identifier) -> TransferEntity:
         """Get an entity from the repository."""
         return self.contents[identifier]
 
-    def __setitem__(self, identifier: str, transfer_entity: TransferEntity) -> None:
+    def __setitem__(self, identifier: Identifier, transfer_entity: TransferEntity) -> None:
         """Add an entity to the repository."""
         self.contents[identifier] = transfer_entity
 
-    def __delitem__(self, identifier: str) -> None:
+    def __delitem__(self, identifier: Identifier) -> None:
         """Delete an entity from the repository."""
         del self.contents[identifier]
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[Identifier]:
         """Iterate over identifiers in the repository."""
         return iter(self.contents)
 

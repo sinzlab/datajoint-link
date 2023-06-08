@@ -7,6 +7,7 @@ from typing import Iterable, Iterator, Optional, Protocol, TypedDict, Union
 import pytest
 
 from dj_link.entities.abstract_gateway import AbstractEntityDTO, AbstractGateway
+from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Transfer
 from dj_link.entities.state import Components
 from dj_link.use_cases.gateway import GatewayLink
@@ -33,7 +34,7 @@ def create_identifiers() -> IdentifierCreator:
 
 @dataclass(frozen=True)
 class FakeEntityDTO(AbstractEntityDTO):
-    identifier: str
+    identifier: Identifier
     identifier_only: bool = False
 
     def create_identifier_only_copy(self) -> FakeEntityDTO:
@@ -41,27 +42,29 @@ class FakeEntityDTO(AbstractEntityDTO):
 
 
 class FakeGateway(AbstractGateway[FakeEntityDTO]):
-    def __init__(self, entities: Optional[dict[str, FakeEntityDTO]] = None, *, identifier_only: bool = False) -> None:
+    def __init__(
+        self, entities: Optional[dict[Identifier, FakeEntityDTO]] = None, *, identifier_only: bool = False
+    ) -> None:
         if entities is None:
             entities = {}
-        self.__flags: dict[str, dict[str, bool]] = defaultdict(dict)
-        self.__entities: dict[str, FakeEntityDTO] = entities
+        self.__flags: dict[Identifier, dict[str, bool]] = defaultdict(dict)
+        self.__entities: dict[Identifier, FakeEntityDTO] = entities
         self.__identifier_only = identifier_only
 
-    def get_flags(self, identifier: str) -> dict[str, bool]:
+    def get_flags(self, identifier: Identifier) -> dict[str, bool]:
         return self.__flags[identifier]
 
-    def fetch(self, identifier: str) -> FakeEntityDTO:
+    def fetch(self, identifier: Identifier) -> FakeEntityDTO:
         return self.__entities[identifier]
 
     def insert(self, entity_dto: FakeEntityDTO) -> None:
         assert self.__identifier_only is entity_dto.identifier_only, "Identifier only mismatch"
         self.__entities[entity_dto.identifier] = entity_dto
 
-    def delete(self, identifier: str) -> None:
+    def delete(self, identifier: Identifier) -> None:
         del self.__entities[identifier]
 
-    def set_flag(self, identifier: str, flag: str, value: bool) -> None:
+    def set_flag(self, identifier: Identifier, flag: str, value: bool) -> None:
         self.__flags[identifier][flag] = value
 
     def start_transaction(self) -> None:
@@ -76,20 +79,20 @@ class FakeGateway(AbstractGateway[FakeEntityDTO]):
     def __len__(self) -> int:
         return len(self.__entities)
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[Identifier]:
         return iter(self.__entities)
 
     @classmethod
-    def from_identifiers(cls, identifiers: Iterable[str], identifier_only: bool = False) -> FakeGateway:
+    def from_identifiers(cls, identifiers: Iterable[Identifier], identifier_only: bool = False) -> FakeGateway:
         return cls(
             {identifier: FakeEntityDTO(identifier) for identifier in identifiers}, identifier_only=identifier_only
         )
 
 
 class GatewayLinkIdentifiers(TypedDict):
-    source: Iterable[str]
-    outbound: Iterable[str]
-    local: Iterable[str]
+    source: Iterable[Identifier]
+    outbound: Iterable[Identifier]
+    local: Iterable[Identifier]
 
 
 class FakeGatewayLink(GatewayLink):

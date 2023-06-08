@@ -20,16 +20,16 @@ LOGGER = logging.getLogger(__name__)
 class PullRequestModel(AbstractRequestModel):
     """Request model for pull use-case."""
 
-    identifiers: List[str]
+    identifiers: List[Identifier]
 
 
 @dataclass
 class PullResponseModel(AbstractResponseModel):
     """Response model for the pull use-case."""
 
-    requested: Set[str]
-    valid: Set[str]
-    invalid: Set[str]
+    requested: Set[Identifier]
+    valid: Set[Identifier]
+    invalid: Set[Identifier]
 
     @property
     def n_requested(self) -> int:
@@ -55,12 +55,12 @@ class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pyli
 
     def execute(self, repo_link: RepositoryLink, request_model: PullRequestModel) -> PullResponseModel:
         """Pull the entities specified by the provided identifiers if they were not already pulled."""
-        valid_identifiers = {Identifier(i) for i in request_model.identifiers if i not in self.gateway_link.outbound}
+        valid_identifiers = {i for i in request_model.identifiers if i not in self.gateway_link.outbound}
         link = create_link(
             {
-                Components.SOURCE: {Identifier(i) for i in self.gateway_link.source},
-                Components.OUTBOUND: {Identifier(i) for i in self.gateway_link.outbound},
-                Components.LOCAL: {Identifier(i) for i in self.gateway_link.local},
+                Components.SOURCE: self.gateway_link.source,
+                Components.OUTBOUND: self.gateway_link.outbound,
+                Components.LOCAL: self.gateway_link.local,
             },
         )
         transfers = pull_legacy(link, requested=valid_identifiers)
@@ -68,6 +68,6 @@ class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pyli
             self.gateway_link.transfer(transfer)
         return self.response_model_cls(
             requested=set(request_model.identifiers),
-            valid={str(i) for i in valid_identifiers},
+            valid=valid_identifiers,
             invalid=set(request_model.identifiers) - valid_identifiers,
         )
