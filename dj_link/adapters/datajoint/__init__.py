@@ -5,7 +5,7 @@ from typing import Tuple
 from ...globals import REPOSITORY_NAMES
 from .abstract_facade import AbstractTableFacade
 from .gateway import DataJointGateway, DataJointGatewayLink
-from .identification import UUIDIdentificationTranslator
+from .identification import IdentificationTranslator
 from .presenter import Presenter, ViewModel
 
 
@@ -32,7 +32,7 @@ def initialize_adapters(
     table_facade_link: AbstractTableFacadeLink,
 ) -> Tuple[DataJointGatewayLink, ViewModel, Presenter]:
     """Initialize the adapters."""
-    translator = UUIDIdentificationTranslator()
+    translator = IdentificationTranslator()
     gateways = {}
     for repo_type in REPOSITORY_NAMES:
         table_facade = getattr(table_facade_link, repo_type)

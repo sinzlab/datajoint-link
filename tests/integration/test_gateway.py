@@ -8,7 +8,7 @@ import pytest
 
 from dj_link.adapters.datajoint.abstract_facade import AbstractTableFacade
 from dj_link.adapters.datajoint.gateway import DataJointGateway, DataJointGatewayLink, EntityDTO
-from dj_link.adapters.datajoint.identification import UUIDIdentificationTranslator
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.custom_types import PrimaryKey
 from dj_link.entities.link import Components, Identifier, Transfer
 
@@ -98,7 +98,7 @@ class FakeTableFacade(AbstractTableFacade):
 
 
 def test_fetch_raises_key_error_if_entity_is_missing() -> None:
-    gateway = DataJointGateway(FakeTableFacade(), UUIDIdentificationTranslator())
+    gateway = DataJointGateway(FakeTableFacade(), IdentificationTranslator())
     with pytest.raises(KeyError):
         gateway.fetch("identifier")
 
@@ -110,7 +110,7 @@ Entity = Mapping[str, int]
 def create_translations(
     primary_key_attributes: Iterable[str],
     entities: Entity,
-) -> tuple[UUIDIdentificationTranslator, str, EntityDTO]:
+) -> tuple[IdentificationTranslator, str, EntityDTO]:
     ...
 
 
@@ -118,19 +118,19 @@ def create_translations(
 def create_translations(
     primary_key_attributes: Iterable[str],
     entities: Iterable[Entity],
-) -> tuple[UUIDIdentificationTranslator, list[str], list[EntityDTO]]:
+) -> tuple[IdentificationTranslator, list[str], list[EntityDTO]]:
     ...
 
 
 def create_translations(
     primary_key_attributes: Iterable[str],
     entities: Union[Entity, Iterable[Entity]],
-) -> tuple[UUIDIdentificationTranslator, Union[str, list[str]], Union[EntityDTO, list[EntityDTO]]]:
+) -> tuple[IdentificationTranslator, Union[str, list[str]], Union[EntityDTO, list[EntityDTO]]]:
     if isinstance(entities, Mapping):
         entities = [entities]
     else:
         entities = list(entities)
-    translator = UUIDIdentificationTranslator()
+    translator = IdentificationTranslator()
     primary_keys = [{k: v for k, v in entity.items() if k in primary_key_attributes} for entity in entities]
     identifiers = [translator.to_identifier(primary_key) for primary_key in primary_keys]
     dtos = [EntityDTO(list(primary_key), dict(entity)) for primary_key, entity in zip(primary_keys, entities)]

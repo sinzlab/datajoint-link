@@ -6,7 +6,7 @@ from ...base import Base
 from ...use_cases.delete import DeleteResponseModel
 from ...use_cases.pull import PullResponseModel
 from ...use_cases.refresh import RefreshResponseModel
-from .identification import UUIDIdentificationTranslator
+from .identification import IdentificationTranslator
 
 
 @dataclass
@@ -39,9 +39,9 @@ class ViewModel:
 class Translators(TypedDict):
     """Contains one identification translator for each of the three table types."""
 
-    source: UUIDIdentificationTranslator
-    outbound: UUIDIdentificationTranslator
-    local: UUIDIdentificationTranslator
+    source: IdentificationTranslator
+    outbound: IdentificationTranslator
+    local: IdentificationTranslator
 
 
 class Presenter(Base):

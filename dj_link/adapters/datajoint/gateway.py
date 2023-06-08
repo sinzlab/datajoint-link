@@ -13,7 +13,7 @@ from ...entities.link import Transfer
 from ...entities.state import Components
 from ...use_cases.gateway import GatewayLink
 from .abstract_facade import AbstractTableFacade
-from .identification import UUIDIdentificationTranslator
+from .identification import IdentificationTranslator
 
 
 @dataclass
@@ -33,7 +33,7 @@ class EntityDTO(AbstractEntityDTO):
 class DataJointGateway(AbstractGateway[EntityDTO], Base):
     """Gateway between the entities/use-cases and the DataJoint table facade."""
 
-    def __init__(self, table_facade: AbstractTableFacade, translator: UUIDIdentificationTranslator) -> None:
+    def __init__(self, table_facade: AbstractTableFacade, translator: IdentificationTranslator) -> None:
         """Initialize the DataJoint gateway."""
         self.table_facade = table_facade
         self.translator = translator
