@@ -13,7 +13,7 @@ from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
 from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
 from . import TableFacadeLink
-from .dj_helpers import replace_stores  # noqa: F401
+from .dj_helpers import replace_stores
 from .facade import TableFacade
 from .factory import TableFactory, TableFactoryConfig, TableTiers
 from .file import ReusableTemporaryDirectory
@@ -68,7 +68,7 @@ class LocalTableCreator:  # pylint: disable=too-few-public-methods
     """Creates the local table."""
 
     schema_class = Schema
-    replace_stores: staticmethod[str] = staticmethod(replace_stores)  # noqa: F811
+    replace_stores: staticmethod[str] = staticmethod(replace_stores)
 
     def __init__(  # noqa: PLR0913
         self,
