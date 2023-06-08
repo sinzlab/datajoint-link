@@ -19,12 +19,6 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-      - id: flake8
-        name: flake8
-        entry: pdm run lint_flake8
-        language: system
-        types: [python]
-        pass_filenames: false
       - id: pylint
         name: pylint
         entry: pdm run lint_pylint

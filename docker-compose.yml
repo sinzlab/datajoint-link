@@ -44,9 +44,6 @@ services:
   mypy:
     build: .
     command: ["lint_mypy"]
-  flake8:
-    build: .
-    command: ["lint_flake8"]
   pylint:
     build: .
     command: ["lint_pylint"]
