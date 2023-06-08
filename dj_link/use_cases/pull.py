@@ -55,12 +55,12 @@ class PullUseCase(AbstractUseCase[PullRequestModel, PullResponseModel]):  # pyli
 
     def execute(self, repo_link: RepositoryLink, request_model: PullRequestModel) -> PullResponseModel:
         """Pull the entities specified by the provided identifiers if they were not already pulled."""
-        valid_identifiers = {Identifier(i) for i in request_model.identifiers if i not in self.gateway_link.outbound}
+        valid_identifiers = {i for i in request_model.identifiers if i not in self.gateway_link.outbound}
         link = create_link(
             {
-                Components.SOURCE: {Identifier(i) for i in self.gateway_link.source},
-                Components.OUTBOUND: {Identifier(i) for i in self.gateway_link.outbound},
-                Components.LOCAL: {Identifier(i) for i in self.gateway_link.local},
+                Components.SOURCE: self.gateway_link.source,
+                Components.OUTBOUND: self.gateway_link.outbound,
+                Components.LOCAL: self.gateway_link.local,
             },
         )
         transfers = pull_legacy(link, requested=valid_identifiers)
