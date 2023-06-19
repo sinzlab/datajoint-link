@@ -16,7 +16,7 @@ def repo_type(request):
 
 
 class TestDataJointGatewayLink:
-    @pytest.fixture
+    @pytest.fixture()
     def gateway_stubs(self):
         gateway_stubs = {}
         for repo_type in REPOSITORY_NAMES:
@@ -24,7 +24,7 @@ class TestDataJointGatewayLink:
             gateway_stubs[repo_type] = gateway_stub
         return gateway_stubs
 
-    @pytest.fixture
+    @pytest.fixture()
     def gateway_link(self, gateway_stubs):
         return DataJointGatewayLink(**{kind: gateway for kind, gateway in gateway_stubs.items()})
 
@@ -36,23 +36,23 @@ class TestDataJointGatewayLink:
 
 
 class TestInitializeAdapters:
-    @pytest.fixture
+    @pytest.fixture()
     def table_facade_link_stub(self):
         return MagicMock(name="table_facade_link_stub", spec=AbstractTableFacadeLink)
 
-    @pytest.fixture
+    @pytest.fixture()
     def initialize_adapters_return_value(self, table_facade_link_stub):
         return initialize_adapters(table_facade_link_stub)
 
-    @pytest.fixture
+    @pytest.fixture()
     def gateway_link(self, initialize_adapters_return_value):
         return initialize_adapters_return_value[0]
 
-    @pytest.fixture
+    @pytest.fixture()
     def view_model(self, initialize_adapters_return_value):
         return initialize_adapters_return_value[1]
 
-    @pytest.fixture
+    @pytest.fixture()
     def presenter(self, initialize_adapters_return_value):
         return initialize_adapters_return_value[2]
 

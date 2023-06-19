@@ -7,7 +7,7 @@ from dj_link.use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
 from dj_link.use_cases.gateway import GatewayLink
 
 
-@pytest.fixture
+@pytest.fixture()
 def config():
     return {
         "identifiers": {"source": 0, "outbound": 0, "local": 0},
@@ -18,7 +18,7 @@ def config():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def processed_config(config, create_identifiers):
     processed = deepcopy(config)
     for repo_name, repo_identifier_spec in processed["identifiers"].items():
@@ -28,7 +28,7 @@ def processed_config(config, create_identifiers):
     return processed
 
 
-@pytest.fixture
+@pytest.fixture()
 def gateway_link_spy(processed_config):
     spy = create_autospec(GatewayLink, instance=True)
     for repo_name, identifiers in processed_config["identifiers"].items():
@@ -50,21 +50,21 @@ def gateway_link_spy(processed_config):
     return spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def output_port_spies():
     return {n: MagicMock(name=n + "_output_port_spy") for n in USE_CASES}
 
 
-@pytest.fixture
+@pytest.fixture()
 def initialized_use_cases(gateway_link_spy, output_port_spies):
     return initialize_use_cases(gateway_link_spy, output_port_spies)
 
 
-@pytest.fixture
+@pytest.fixture()
 def use_case(request, initialized_use_cases):
     return initialized_use_cases[request.module.USE_CASE]
 
 
-@pytest.fixture
+@pytest.fixture()
 def request_model(request):
     return REQUEST_MODELS[request.module.USE_CASE]

@@ -20,19 +20,19 @@ def test_if_temporary_directory_class_is_correct():
     assert ReusableTemporaryDirectory.temp_dir_cls is TemporaryDirectory
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_dir_spy():
     spy = create_autospec(TemporaryDirectory, instance=True)
     spy.name = "temp_dir"
     return spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_dir_cls_spy(temp_dir_spy):
     return create_autospec(TemporaryDirectory, return_value=temp_dir_spy)
 
 
-@pytest.fixture
+@pytest.fixture()
 def reusable_temp_dir(temp_dir_cls_spy):
     temp_dir = ReusableTemporaryDirectory("prefix")
     temp_dir.temp_dir_cls = temp_dir_cls_spy

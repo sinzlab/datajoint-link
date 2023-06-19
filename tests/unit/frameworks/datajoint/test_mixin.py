@@ -8,7 +8,7 @@ from dj_link.frameworks.datajoint.mixin import LocalTableMixin
 from dj_link.use_cases import USE_CASES
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_controller():
     class FakeController:
         is_in_with_clause = False
@@ -25,7 +25,7 @@ def fake_controller():
     return fake_controller
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_temp_dir(fake_controller):
     class FakeTemporaryDirectory:
         controller = fake_controller
@@ -39,12 +39,12 @@ def fake_temp_dir(fake_controller):
     return FakeTemporaryDirectory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def printer_spy():
     return MagicMock(name="printer_spy")
 
 
-@pytest.fixture
+@pytest.fixture()
 def source_table_factory_spy():
     return create_autospec(TableFactory, instance=True)()
 

@@ -7,7 +7,7 @@ import pytest
 USES_EXTERNAL = False
 
 
-@pytest.fixture
+@pytest.fixture()
 def deletion_requested_entities_primary_keys(n_entities, src_data):
     proportion_deletion_requested = float(os.environ.get("PROPORTION_DELETION_REQUESTED", 0.2))
     n_deletion_requested = round(n_entities * proportion_deletion_requested)
@@ -16,17 +16,17 @@ def deletion_requested_entities_primary_keys(n_entities, src_data):
     return sorted([dict(prim_attr=e["prim_attr"]) for e in deletion_requested_entities], key=lambda e: e["prim_attr"])
 
 
-@pytest.fixture
+@pytest.fixture()
 def outbound_deletion_requested_flags(deletion_requested_entities_primary_keys):
     return [e for e in deletion_requested_entities_primary_keys]
 
 
-@pytest.fixture
+@pytest.fixture()
 def expected_local_deletion_requested_flags(deletion_requested_entities_primary_keys):
     return [e for e in deletion_requested_entities_primary_keys]
 
 
-@pytest.fixture
+@pytest.fixture()
 def outbound_table_cls(
     src_db_spec, local_db_spec, outbound_schema_name, src_table_name, local_table_cls, dj_connection
 ):
@@ -35,13 +35,13 @@ def outbound_table_cls(
         return getattr(module, src_table_name + "Outbound")
 
 
-@pytest.fixture
+@pytest.fixture()
 def insert_flags_and_refresh(local_table_cls_with_pulled_data, outbound_deletion_requested_flags, outbound_table_cls):
     outbound_table_cls().DeletionRequested().insert(outbound_deletion_requested_flags)
     local_table_cls_with_pulled_data().refresh()
 
 
-@pytest.fixture
+@pytest.fixture()
 def insert_flags_refresh_and_delete_deletion_requested_entities(
     insert_flags_and_refresh, local_table_cls_with_pulled_data
 ):

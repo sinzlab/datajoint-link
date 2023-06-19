@@ -7,7 +7,7 @@ from dj_link.frameworks.datajoint.factory import TableFactory, TableFactoryConfi
 from dj_link.frameworks.datajoint.link import LocalTableCreator
 
 
-@pytest.fixture
+@pytest.fixture()
 def schema_cls_stub():
     class SchemaStub:
         def __init__(self, schema_name, connection):
@@ -17,39 +17,39 @@ def schema_cls_stub():
     return SchemaStub
 
 
-@pytest.fixture
+@pytest.fixture()
 def local_schema_stub(schema_cls_stub):
     return schema_cls_stub("local_schema", "local_connection")
 
 
-@pytest.fixture
+@pytest.fixture()
 def source_schema_stub(schema_cls_stub):
     return schema_cls_stub("source_schema", "source_connection")
 
 
-@pytest.fixture
+@pytest.fixture()
 def stores():
     return dict(source_store="local_store")
 
 
-@pytest.fixture
+@pytest.fixture()
 def schema_cls_spy():
     return MagicMock(name="schema_cls_spy")
 
 
-@pytest.fixture
+@pytest.fixture()
 def replace_stores_spy():
     return MagicMock(name="replace_stores_spy", return_value="replaced_heading")
 
 
-@pytest.fixture
+@pytest.fixture()
 def source_table_cls_stub():
     source_table_stub = MagicMock(name="source_table_cls_stub")
     source_table_stub.return_value.heading.__str__.return_value = "source_master_heading"
     return source_table_stub
 
 
-@pytest.fixture
+@pytest.fixture()
 def source_part_stubs():
     source_part_stubs = {}
     for name in ["A", "B", "C"]:
@@ -59,7 +59,7 @@ def source_part_stubs():
     return source_part_stubs
 
 
-@pytest.fixture
+@pytest.fixture()
 def table_cls_factory_spies(source_table_cls_stub, source_part_stubs):
     table_cls_factory_spies = {
         kind: MagicMock(name=kind + "_dummy_table_cls_factory", spec=TableFactory)
@@ -72,12 +72,12 @@ def table_cls_factory_spies(source_table_cls_stub, source_part_stubs):
     return table_cls_factory_spies
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_base_table_cls():
     return MagicMock(name="dummy_base_table_cls")
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_local_table_mixin():
     class DummyLocalTableMixin:
         pass
@@ -85,7 +85,7 @@ def dummy_local_table_mixin():
     return DummyLocalTableMixin
 
 
-@pytest.fixture
+@pytest.fixture()
 def link(
     local_schema_stub,
     source_schema_stub,
@@ -107,29 +107,29 @@ def link(
     return creator
 
 
-@pytest.fixture
+@pytest.fixture()
 def table_name():
     return "table"
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_cls(table_name):
     return MagicMock(name="dummy_cls", __name__=table_name)
 
 
-@pytest.fixture
+@pytest.fixture()
 def prepare_env():
     os.environ["LINK_OUTBOUND"] = "outbound_schema"
     yield
     del os.environ["LINK_OUTBOUND"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def linked_table(link, dummy_cls):
     return link.create(dummy_cls.__name__)
 
 
-@pytest.fixture
+@pytest.fixture()
 def basic_outbound_config(table_name, schema_cls_spy):
     return dict(
         schema=schema_cls_spy.return_value,
@@ -138,7 +138,7 @@ def basic_outbound_config(table_name, schema_cls_spy):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def basic_local_config(local_schema_stub, table_name, dummy_local_table_mixin):
     return dict(
         schema=local_schema_stub,
@@ -170,7 +170,7 @@ class TestCallWithoutInitialSetup:
         assert linked_table == "local_table_cls"
 
 
-@pytest.fixture
+@pytest.fixture()
 def initial_setup_required(table_cls_factory_spies):
     table_cls_factory_spies["local"].side_effect = [RuntimeError, "local_table_cls"]
 

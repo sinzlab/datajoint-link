@@ -7,11 +7,11 @@ from dj_link.entities import flag_manager
 
 
 class TestFlagManager:
-    @pytest.fixture
+    @pytest.fixture()
     def entity_flags(self, entity):
         return entity.flags
 
-    @pytest.fixture
+    @pytest.fixture()
     def manager(self, entity, gateway_spy):
         return flag_manager.FlagManager(entity, gateway_spy)
 
@@ -56,11 +56,11 @@ class TestFlagManager:
 
 
 class TestFlagManagerFactory:
-    @pytest.fixture
+    @pytest.fixture()
     def entity_factory_spy(self, entities):
         return MagicMock(name="entity_factory_spy", side_effect=entities.values())
 
-    @pytest.fixture
+    @pytest.fixture()
     def factory(self, gateway_spy, entity_factory_spy):
         return flag_manager.FlagManagerFactory(gateway_spy, entity_factory_spy)
 

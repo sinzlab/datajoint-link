@@ -5,7 +5,7 @@ import pytest
 USE_CASE = "refresh"
 
 
-@pytest.fixture
+@pytest.fixture()
 def config():
     return {
         "identifiers": {"source": 10, "outbound": 5, "local": 5},

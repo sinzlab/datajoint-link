@@ -12,7 +12,7 @@ def test_if_subclass_of_abstract_context_manager():
     assert issubclass(ContainerRunner, AbstractContextManager)
 
 
-@pytest.fixture
+@pytest.fixture()
 def container_spy():
     container_spy = MagicMock(name="container_spy")
     container_spy.name = "container_spy"
@@ -30,7 +30,7 @@ def container_spy():
     return container_spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def docker_client_spy(container_spy):
     client = MagicMock(name="docker_client_spy")
     client.containers.run.return_value = container_spy
@@ -38,12 +38,12 @@ def docker_client_spy(container_spy):
     return client
 
 
-@pytest.fixture
+@pytest.fixture()
 def container_config():
     return {"image": "my-image"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def container_runner(docker_client_spy, container_config):
     return partial(ContainerRunner, docker_client_spy, container_config)
 

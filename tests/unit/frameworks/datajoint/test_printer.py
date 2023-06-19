@@ -71,17 +71,17 @@ def data(request):
     return request.param
 
 
-@pytest.fixture
+@pytest.fixture()
 def message(data):
     return data[0]
 
 
-@pytest.fixture
+@pytest.fixture()
 def fields(data):
     return data[1]
 
 
-@pytest.fixture
+@pytest.fixture()
 def view_model_stub(message, fields):
     stub = create_autospec(ViewModel, instance=True)
     stub.message = message
@@ -89,12 +89,12 @@ def view_model_stub(message, fields):
     return stub
 
 
-@pytest.fixture
+@pytest.fixture()
 def printer(view_model_stub):
     return Printer(view_model_stub)
 
 
-@pytest.fixture
+@pytest.fixture()
 def expected(data):
     return "\n".join(data[2] + [""])
 

@@ -11,13 +11,13 @@ from dj_link.entities.flag_manager import FlagManagerFactory
 from dj_link.entities.repository import Entity, EntityFactory, Repository, RepositoryFactory, TransferEntity
 
 
-@pytest.fixture
+@pytest.fixture()
 def entity_dto_spy():
     return create_autospec(AbstractEntityDTO, instance=True)
 
 
 class TestEntity:
-    @pytest.fixture
+    @pytest.fixture()
     def entity(self, identifier, flags):
         return Entity(identifier, flags)
 
@@ -35,7 +35,7 @@ class TestEntity:
 
 
 class TestTransferEntity:
-    @pytest.fixture
+    @pytest.fixture()
     def transfer_entity(self, identifier, flags, entity_dto_spy):
         return TransferEntity(identifier, flags, entity_dto_spy)
 
@@ -63,7 +63,7 @@ class TestTransferEntity:
 
 
 class TestEntityFactory:
-    @pytest.fixture
+    @pytest.fixture()
     def factory(self, gateway_spy):
         return EntityFactory(gateway_spy)
 
@@ -82,18 +82,18 @@ class TestEntityFactory:
 
 
 class TestRepository:
-    @pytest.fixture
+    @pytest.fixture()
     def contents_spy(self):
         spy = create_autospec(Contents, instance=True)
         spy.__iter__.return_value = "iterator"
         spy.__len__.return_value = 10
         return spy
 
-    @pytest.fixture
+    @pytest.fixture()
     def flag_manager_factory_spy(self):
         return create_autospec(FlagManagerFactory, instance=True)
 
-    @pytest.fixture
+    @pytest.fixture()
     def repo(self, contents_spy, flag_manager_factory_spy, gateway_spy):
         return Repository(contents_spy, flag_manager_factory_spy, gateway_spy)
 
@@ -163,11 +163,11 @@ class TestRepository:
 
 
 class TestRepositoryFactory:
-    @pytest.fixture
+    @pytest.fixture()
     def storage(self):
         return dict()
 
-    @pytest.fixture
+    @pytest.fixture()
     def factory(self, gateway_spy, storage):
         return RepositoryFactory(gateway_spy)
 

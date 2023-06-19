@@ -7,22 +7,22 @@ from dj_link.entities.abstract_gateway import AbstractGateway
 from dj_link.entities.repository import Entity
 
 
-@pytest.fixture
+@pytest.fixture()
 def identifiers():
     return ["identifier" + str(i) for i in range(10)]
 
 
-@pytest.fixture
+@pytest.fixture()
 def identifier(identifiers):
     return identifiers[0]
 
 
-@pytest.fixture
+@pytest.fixture()
 def flags(identifiers):
     return {identifier: dict(flag1=True, flag2=False) for identifier in identifiers}
 
 
-@pytest.fixture
+@pytest.fixture()
 def entities(flags):
     return {
         identifier: create_autospec(Entity, instance=True, identifier=identifier, flags=entity_flags)
@@ -30,17 +30,17 @@ def entities(flags):
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def entity(identifier, entities):
     return entities[identifier]
 
 
-@pytest.fixture
+@pytest.fixture()
 def entity_data():
     return "data"
 
 
-@pytest.fixture
+@pytest.fixture()
 def wrap_spy_around_method():
     def _wrap_spy_around_method(instance, method):
         setattr(
@@ -52,7 +52,7 @@ def wrap_spy_around_method():
     return _wrap_spy_around_method
 
 
-@pytest.fixture
+@pytest.fixture()
 def gateway_spy_cls():
     class GatewaySpy(AbstractGateway):
 
@@ -99,7 +99,7 @@ def gateway_spy_cls():
     return GatewaySpy
 
 
-@pytest.fixture
+@pytest.fixture()
 def gateway_spy(gateway_spy_cls, identifiers, flags, entity_data, wrap_spy_around_method):
     gateway_spy = gateway_spy_cls(identifiers, flags, entity_data)
     for method in [

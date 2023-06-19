@@ -12,7 +12,7 @@ class TestViewModel:
     def test_if_dataclass(self):
         assert is_dataclass(ViewModel)
 
-    @pytest.fixture
+    @pytest.fixture()
     def model(self):
         return ViewModel()
 
@@ -22,7 +22,7 @@ class TestViewModel:
             getattr(model, attr_name)
         assert str(exc_info.value) == attr_name.title() + " attribute not set"
 
-    @pytest.fixture
+    @pytest.fixture()
     def update_model(self, model):
         model.update("Hello World!", {"apples": 10})
 
@@ -39,12 +39,12 @@ def test_if_subclass_of_base():
     assert issubclass(Presenter, Base)
 
 
-@pytest.fixture
+@pytest.fixture()
 def view_model_spy():
     return create_autospec(ViewModel, instance=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def presenter(view_model_spy):
     return Presenter(view_model_spy)
 
@@ -55,7 +55,7 @@ class TestInit:
 
 
 class TestPull:
-    @pytest.fixture
+    @pytest.fixture()
     def response_model_stub(self):
         stub = create_autospec(RESPONSE_MODELS["pull"], instance=True)
         stub.n_requested = 10
@@ -72,7 +72,7 @@ class TestPull:
 
 
 class TestDelete:
-    @pytest.fixture
+    @pytest.fixture()
     def response_model_stub(self):
         stub = create_autospec(RESPONSE_MODELS["delete"], instance=True)
         stub.n_requested = 10
@@ -95,7 +95,7 @@ class TestDelete:
 
 
 class TestRefresh:
-    @pytest.fixture
+    @pytest.fixture()
     def response_model_stub(self):
         stub = create_autospec(RESPONSE_MODELS["refresh"], instance=True)
         stub.n_refreshed = 10

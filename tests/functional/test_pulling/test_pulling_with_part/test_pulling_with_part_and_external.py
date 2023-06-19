@@ -5,24 +5,24 @@ import pytest
 USES_EXTERNAL = True
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_part_definition(src_part_definition, src_store_config):
     src_part_definition += "ext_attr: attach@" + src_store_config.name
     return src_part_definition
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_part_data(src_part_data, file_paths):
     return [dict(e, ext_attr=f) for e, f in zip(src_part_data, file_paths)]
 
 
-@pytest.fixture
+@pytest.fixture()
 def pulled_data(pulled_data, local_table_cls, local_dir):
     pulled_data["part"] = local_table_cls.Part().fetch(as_dict=True, download_path=local_dir)
     return pulled_data
 
 
-@pytest.fixture
+@pytest.fixture()
 def expected_data(expected_data, local_dir):
     for entity in expected_data["part"]:
         entity["ext_attr"] = os.path.join(local_dir, os.path.basename(entity["ext_attr"]))

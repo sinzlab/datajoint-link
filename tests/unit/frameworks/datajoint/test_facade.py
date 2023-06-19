@@ -11,32 +11,32 @@ from dj_link.frameworks.datajoint.factory import TableFactory
 from dj_link.frameworks.datajoint.file import ReusableTemporaryDirectory
 
 
-@pytest.fixture
+@pytest.fixture()
 def primary_key_names():
     return ["a", "b"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def primary_key(primary_key_names):
     return {name: i for i, name in enumerate(primary_key_names)}
 
 
-@pytest.fixture
+@pytest.fixture()
 def master_entity(primary_key):
     return dict(primary_key, non_primary_attr1=0, non_primary_attr2=1)
 
 
-@pytest.fixture
+@pytest.fixture()
 def flag_table_names():
     return ["MyFlag", "MyOtherFlag"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def is_present_in_flag_table(flag_table_names):
     return {flag_table_name: is_present for flag_table_name, is_present in zip(flag_table_names, [False, True])}
 
 
-@pytest.fixture
+@pytest.fixture()
 def flag_table_spies(flag_table_names, is_present_in_flag_table):
     flag_table_spies = {}
     for name in flag_table_names:
@@ -46,7 +46,7 @@ def flag_table_spies(flag_table_names, is_present_in_flag_table):
     return flag_table_spies
 
 
-@pytest.fixture
+@pytest.fixture()
 def table_spy(primary_key_names, flag_table_spies, master_entity):
     table_spy = create_autospec(Table, flag_table_names=flag_table_names, primary_key=primary_key_names)
     table_spy.proj.return_value.fetch.return_value = "primary_keys"
@@ -60,12 +60,12 @@ def table_spy(primary_key_names, flag_table_spies, master_entity):
     return table_spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def part_entities():
     return {name: name + "_entities" for name in ["MyPart", "MyOtherPart"]}
 
 
-@pytest.fixture
+@pytest.fixture()
 def part_table_spies(part_entities):
     part_table_spies = {}
     for name, entities in part_entities.items():
@@ -75,7 +75,7 @@ def part_table_spies(part_entities):
     return part_table_spies
 
 
-@pytest.fixture
+@pytest.fixture()
 def table_factory_spy(table_spy, part_table_spies, flag_table_spies):
     return MagicMock(
         name="table_factory_spy",
@@ -86,14 +86,14 @@ def table_factory_spy(table_spy, part_table_spies, flag_table_spies):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_dir_stub():
     stub = create_autospec(ReusableTemporaryDirectory, instance=True)
     stub.name = "temp_dir"
     return stub
 
 
-@pytest.fixture
+@pytest.fixture()
 def table_facade(table_factory_spy, temp_dir_stub):
     return TableFacade(table_factory_spy, temp_dir_stub)
 
@@ -110,7 +110,7 @@ def test_if_temp_dir_is_stored_as_instance_attribute(table_facade, temp_dir_stub
     assert table_facade.temp_dir == temp_dir_stub
 
 
-@pytest.fixture
+@pytest.fixture()
 def primary_keys_in_restriction(table_facade):
     return table_facade.get_primary_keys_in_restriction("restriction")
 
@@ -133,7 +133,7 @@ class TestGetPrimaryKeysInRestriction:
         assert primary_keys_in_restriction == "primary_keys_in_restriction"
 
 
-@pytest.fixture
+@pytest.fixture()
 def flags(table_facade, primary_key):
     return table_facade.get_flags(primary_key)
 
@@ -153,7 +153,7 @@ class TestGetFlags:
 
 
 class TestFetch:
-    @pytest.fixture
+    @pytest.fixture()
     def fetched_entity(self, table_facade, primary_key):
         return table_facade.fetch(primary_key)
 
@@ -192,11 +192,11 @@ class TestFetch:
 
 
 class TestInsert:
-    @pytest.fixture
+    @pytest.fixture()
     def insert(self, table_facade, entity_dto):
         table_facade.insert(entity_dto)
 
-    @pytest.fixture
+    @pytest.fixture()
     def entity_dto(self, primary_key_names, master_entity, part_entities):
         # noinspection PyArgumentList
         return EntityDTO(primary_key_names, master_entity, parts=part_entities)
@@ -227,7 +227,7 @@ class TestInsert:
 
 
 class TestDelete:
-    @pytest.fixture
+    @pytest.fixture()
     def delete(self, table_facade, primary_key):
         table_facade.delete(primary_key)
 
@@ -267,12 +267,12 @@ class TestDelete:
             part.__and__.return_value.delete_quick.assert_called_once_with()
 
 
-@pytest.fixture
+@pytest.fixture()
 def flag_table_name(flag_table_names):
     return flag_table_names[0]
 
 
-@pytest.fixture
+@pytest.fixture()
 def flag_table_spy(flag_table_spies, flag_table_name):
     return flag_table_spies[flag_table_name]
 
@@ -282,7 +282,7 @@ def test_if_flag_is_enabled(table_facade, primary_key, flag_table_name, flag_tab
     flag_table_spy.insert1.assert_called_once_with(primary_key)
 
 
-@pytest.fixture
+@pytest.fixture()
 def disable_flag(table_facade, primary_key, flag_table_name):
     table_facade.disable_flag(primary_key, flag_table_name)
 
@@ -296,7 +296,7 @@ class TestDisableFlag:
         flag_table_spy.__and__.return_value.delete_quick.assert_called_once_with()
 
 
-@pytest.fixture
+@pytest.fixture()
 def execute(request, table_facade):
     getattr(table_facade, request.cls.method_name)()
 

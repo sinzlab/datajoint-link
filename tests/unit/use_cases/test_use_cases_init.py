@@ -9,29 +9,29 @@ from dj_link.entities.repository import RepositoryFactory
 from dj_link.use_cases.gateway import GatewayLink
 
 
-@pytest.fixture
+@pytest.fixture()
 def kinds():
     return "source", "outbound", "local"
 
 
-@pytest.fixture
+@pytest.fixture()
 def repos(kinds):
     return {kind: MagicMock(name=kind + "_repo") for kind in kinds}
 
 
-@pytest.fixture
+@pytest.fixture()
 def repo_factory_cls_spy(repos):
     repo_factory_cls_spy = MagicMock(name="repo_factory_cls_spy", spec=Type[RepositoryFactory])
     repo_factory_cls_spy.return_value.side_effect = repos.values()
     return repo_factory_cls_spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def gateway_link_stub():
     return MagicMock(name="gateway_link_stub", spec=GatewayLink)
 
 
-@pytest.fixture
+@pytest.fixture()
 def factory(repo_factory_cls_spy, gateway_link_stub):
     class RepositoryLinkFactory(use_cases.RepositoryLinkFactory):
         repo_factory_cls = repo_factory_cls_spy
@@ -73,7 +73,7 @@ class TestRepositoryLinkFactory:
 
 
 class TestInitializeUseCases:
-    @pytest.fixture
+    @pytest.fixture()
     def dummy_output_ports(self):
         return {n: MagicMock(name="dummy_" + n + "_output_port") for n in use_cases.USE_CASES}
 
@@ -81,15 +81,15 @@ class TestInitializeUseCases:
     def use_case_name(self, request):
         return request.param
 
-    @pytest.fixture
+    @pytest.fixture()
     def dummy_output_port(self, use_case_name, dummy_output_ports):
         return dummy_output_ports[use_case_name]
 
-    @pytest.fixture
+    @pytest.fixture()
     def use_case(self, gateway_link_stub, dummy_output_ports, use_case_name):
         return use_cases.initialize_use_cases(gateway_link_stub, dummy_output_ports)[use_case_name]
 
-    @pytest.fixture
+    @pytest.fixture()
     def use_case_cls(self, use_case_name):
         return use_cases.USE_CASES[use_case_name]
 

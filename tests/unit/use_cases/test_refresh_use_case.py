@@ -9,32 +9,32 @@ from dj_link.use_cases.refresh import LOGGER, RefreshRequestModel
 USE_CASE_NAME = "refresh"
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_request_model():
     return create_autospec(RefreshRequestModel, instance=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def outbound_deletion_requested():
     return [True, False, True]
 
 
-@pytest.fixture
+@pytest.fixture()
 def outbound_flag_manager_spies(create_flag_manager_spies, identifiers, outbound_deletion_requested):
     return create_flag_manager_spies(identifiers, outbound_deletion_requested)
 
 
-@pytest.fixture
+@pytest.fixture()
 def local_deletion_requested():
     return [False, False, True]
 
 
-@pytest.fixture
+@pytest.fixture()
 def local_flag_manager_spies(create_flag_manager_spies, identifiers, local_deletion_requested):
     return create_flag_manager_spies(identifiers, local_deletion_requested)
 
 
-@pytest.fixture
+@pytest.fixture()
 def repo_link_spy(repo_link_spy, identifiers, outbound_flag_manager_spies, local_flag_manager_spies):
     repo_link_spy.outbound.__iter__.return_value = identifiers
     repo_link_spy.outbound.flags = outbound_flag_manager_spies
@@ -42,7 +42,7 @@ def repo_link_spy(repo_link_spy, identifiers, outbound_flag_manager_spies, local
     return repo_link_spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def call(use_case, dummy_request_model):
     use_case(dummy_request_model)
 
@@ -61,7 +61,7 @@ def test_if_deletion_requested_flag_is_checked_on_local_entities_corresponding_t
         spy.__getitem__.assert_called_once_with("deletion_requested")
 
 
-@pytest.fixture
+@pytest.fixture()
 def to_be_enabled(outbound_deletion_requested, local_deletion_requested):
     return [b1 and not b2 for b1, b2 in zip(outbound_deletion_requested, local_deletion_requested)]
 
