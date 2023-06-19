@@ -9,17 +9,17 @@ from dj_link.use_cases.delete import LOGGER
 USE_CASE_NAME = "delete"
 
 
-@pytest.fixture
+@pytest.fixture()
 def deletion_requested():
     return [False, True, False]
 
 
-@pytest.fixture
+@pytest.fixture()
 def flag_manager_spies(create_flag_manager_spies, identifiers, deletion_requested):
     return create_flag_manager_spies(identifiers, deletion_requested)
 
 
-@pytest.fixture
+@pytest.fixture()
 def repo_link_spy(repo_link_spy, flag_manager_spies):
     repo_link_spy.outbound.flags = flag_manager_spies
     return repo_link_spy
@@ -39,7 +39,7 @@ def test_if_deletion_is_approved_on_entities_that_had_it_requested(
         spy.__setitem__.assert_called_once_with("deletion_approved", True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def deletion_not_requested_identifiers(identifiers, deletion_requested):
     return compress(identifiers, [not f for f in deletion_requested])
 

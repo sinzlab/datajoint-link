@@ -9,7 +9,7 @@ def use_case_name(request):
     return request.param
 
 
-@pytest.fixture
+@pytest.fixture()
 def use_case_cls(use_case_name):
     return USE_CASES[use_case_name]
 
@@ -18,7 +18,7 @@ def test_if_subclass_of_use_case(use_case_cls):
     assert issubclass(use_case_cls, AbstractUseCase)
 
 
-@pytest.fixture
+@pytest.fixture()
 def response_model_cls(use_case_name):
     return RESPONSE_MODELS[use_case_name]
 

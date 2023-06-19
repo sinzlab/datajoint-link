@@ -14,34 +14,34 @@ def test_if_schema_cls_is_correct():
     assert schemas.LazySchema._schema_cls is Schema
 
 
-@pytest.fixture
+@pytest.fixture()
 def schema_name():
     return "schema_name"
 
 
-@pytest.fixture
+@pytest.fixture()
 def context():
     return dict()
 
 
-@pytest.fixture
+@pytest.fixture()
 def connection():
     return MagicMock(name="connection", spec=Connection)
 
 
-@pytest.fixture
+@pytest.fixture()
 def schema():
     return MagicMock(name="schema", spec=Schema, some_attribute="some_value")
 
 
-@pytest.fixture
+@pytest.fixture()
 def schema_cls(schema, connection):
     schema_cls = MagicMock(name="schema_cls", spec=Type[Schema], return_value=schema)
     schema_cls.return_value.connection = connection
     return schema_cls
 
 
-@pytest.fixture
+@pytest.fixture()
 def lazy_schema_cls(schema_cls):
     class LazySchema(schemas.LazySchema):
         pass
@@ -53,7 +53,7 @@ def lazy_schema_cls(schema_cls):
 
 class TestInit:
     def test_if_value_error_is_raised_if_initialized_with_connection_and_host(self, connection):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Expected either"):
             schemas.LazySchema(schema_name, connection=connection, host="host")
 
     def test_if_schema_name_is_stored_as_instance_attribute(self, lazy_schema_cls, schema_name):
@@ -82,25 +82,25 @@ class TestInit:
 
 
 class TestInitialize:
-    @pytest.fixture
-    def setup_env(self):
+    @pytest.fixture()
+    def _setup_env(self):
         os.environ.update(LINK_USER="user", LINK_PASS="pass")
 
-    @pytest.fixture
+    @pytest.fixture()
     def conn_cls(self, connection):
         return MagicMock(name="conn_cls", spec=Type[Connection], return_value=connection)
 
-    @pytest.fixture
+    @pytest.fixture()
     def lazy_schema_cls(self, lazy_schema_cls, conn_cls):
         lazy_schema_cls._conn_cls = conn_cls
         return lazy_schema_cls
 
-    @pytest.mark.usefixtures("setup_env")
+    @pytest.mark.usefixtures("_setup_env")
     def test_if_connection_is_correctly_initialized_if_host_is_provided(self, lazy_schema_cls, schema_name, conn_cls):
         lazy_schema_cls(schema_name, host="host").initialize()
         conn_cls.assert_called_once_with("host", "user", "pass")
 
-    @pytest.mark.usefixtures("setup_env")
+    @pytest.mark.usefixtures("_setup_env")
     def test_if_initialized_connection_is_stored_as_instance_attribute_if_host_is_provided(
         self, lazy_schema_cls, schema_name, connection
     ):
@@ -108,7 +108,7 @@ class TestInitialize:
         lazy_schema.initialize()
         assert lazy_schema.connection is connection
 
-    @pytest.mark.usefixtures("setup_env")
+    @pytest.mark.usefixtures("_setup_env")
     def test_if_schema_is_correctly_initialized(self, lazy_schema_cls, schema_name, schema_cls):
         lazy_schema_cls(schema_name).initialize()
         schema_cls.assert_called_once_with(
@@ -131,7 +131,7 @@ class TestInitialize:
         assert schema_cls.call_count == 1
 
 
-@pytest.fixture
+@pytest.fixture()
 def lazy_schema(lazy_schema_cls, schema_name):
     return lazy_schema_cls(schema_name)
 
@@ -164,15 +164,15 @@ class TestGetAttr:
 
 
 class TestCall:
-    @pytest.fixture
+    @pytest.fixture()
     def table_cls(self):
         return MagicMock(name="table_cls", spec=Type[Table])
 
-    @pytest.fixture
+    @pytest.fixture()
     def processed_table_class(self):
         return MagicMock(name="processed_table_cls", spec=Type[Table])
 
-    @pytest.fixture
+    @pytest.fixture()
     def schema(self, schema, processed_table_class):
         schema.return_value = processed_table_class
         return schema

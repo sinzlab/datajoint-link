@@ -5,7 +5,7 @@ import pytest
 USE_CASE = "delete"
 
 
-@pytest.fixture
+@pytest.fixture()
 def config():
     return {
         "identifiers": {"source": 10, "outbound": 5, "local": 5},
@@ -16,13 +16,13 @@ def config():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def to_be_deleted_identifiers(create_identifiers):
     return create_identifiers(3)
 
 
 @pytest.fixture(autouse=True)
-def execute_delete(use_case, request_model, to_be_deleted_identifiers):
+def _execute_delete(use_case, request_model, to_be_deleted_identifiers):
     use_case(request_model(to_be_deleted_identifiers))
 
 

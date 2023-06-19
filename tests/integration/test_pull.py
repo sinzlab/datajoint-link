@@ -22,7 +22,7 @@ class FakeOutputPort(Generic[ResponseModel]):
         self.response = response
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_output_port() -> FakeOutputPort[PullResponseModel]:
     return FakeOutputPort()
 

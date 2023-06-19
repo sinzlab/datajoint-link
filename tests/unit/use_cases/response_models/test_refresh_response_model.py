@@ -3,12 +3,12 @@ import pytest
 from dj_link.use_cases.refresh import RefreshResponseModel
 
 
-@pytest.fixture
+@pytest.fixture()
 def refreshed(create_identifiers):
     return set(create_identifiers(10))
 
 
-@pytest.fixture
+@pytest.fixture()
 def model(refreshed):
     return RefreshResponseModel(refreshed=refreshed)
 

@@ -18,7 +18,7 @@ class IdentifierCreator(Protocol):
         ...
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_identifiers() -> IdentifierCreator:
     def _create_identifiers(spec: Union[int, Iterable[int]]) -> list[str]:
         if isinstance(spec, int):
@@ -145,7 +145,7 @@ class FakeGatewayLink(GatewayLink):
         destination.insert(entity)
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_gateway_link() -> FakeGatewayLink:
     return FakeGatewayLink()
 
@@ -155,7 +155,7 @@ class FakeGatewayLinkCreator(Protocol):
         ...
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_fake_gateway_link() -> FakeGatewayLinkCreator:
     def _create_fake_gateway_link(identifiers: GatewayLinkIdentifiers) -> FakeGatewayLink:
         return FakeGatewayLink.from_identifiers(identifiers)

@@ -7,12 +7,12 @@ from dj_link.entities.contents import Contents
 from dj_link.entities.repository import TransferEntity
 
 
-@pytest.fixture
+@pytest.fixture()
 def entity_factory_spy(entity):
     return MagicMock(name="entity_factory_spy", return_value=entity)
 
 
-@pytest.fixture
+@pytest.fixture()
 def contents(entities, gateway_spy, entity_factory_spy):
     return Contents(gateway_spy, entity_factory_spy)
 
@@ -30,7 +30,7 @@ class TestInit:
 
 
 class TestGetItem:
-    @pytest.fixture
+    @pytest.fixture()
     def fetched_entity(self, identifier, contents):
         return contents[identifier]
 

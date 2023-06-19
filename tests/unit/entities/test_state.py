@@ -12,7 +12,7 @@ from .assignments import create_assignments, create_identifier, create_identifie
 
 
 @pytest.mark.parametrize(
-    "identifier,state,methods",
+    ("identifier", "state", "methods"),
     [
         (create_identifier("1"), states.Idle, ["delete", "process", "flag", "unflag"]),
         (create_identifier("2"), states.Activated, ["pull", "delete", "flag", "unflag"]),
@@ -49,7 +49,7 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
 
 
 @pytest.mark.parametrize(
-    "process,tainted_identifiers,new_state,commands",
+    ("process", "tainted_identifiers", "new_state", "commands"),
     [
         (Processes.PULL, set(), states.Received, {Commands.ADD_TO_LOCAL}),
         (Processes.DELETE, set(), states.Idle, {Commands.FINISH_DELETE_PROCESS}),
@@ -76,7 +76,7 @@ def test_processing_activated_entity_returns_correct_commands(
 
 
 @pytest.mark.parametrize(
-    "process,new_state,commands",
+    ("process", "new_state", "commands"),
     [
         (Processes.PULL, states.Pulled, {Commands.FINISH_PULL_PROCESS}),
         (Processes.DELETE, states.Activated, {Commands.REMOVE_FROM_LOCAL}),

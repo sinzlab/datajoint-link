@@ -88,4 +88,5 @@ def test_pulling_with_external(
             local_table_cls = Link(local_schema, source_schema)(type(source_table_name, (dj.Manual,), {}))
             local_table_cls().pull()
             actual = local_table_cls().fetch(as_dict=True, download_path=tmpdir)
-            assert len(actual) == len(expected) and all(entry in expected for entry in actual)
+            assert len(actual) == len(expected)
+            assert all(entry in expected for entry in actual)

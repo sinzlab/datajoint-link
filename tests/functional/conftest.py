@@ -363,12 +363,12 @@ def get_minio_client():
     return _get_minio_client
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_store_config(temp_stores):
     return temp_stores["source"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def get_store_spec(create_random_string):
     def _get_store_spec(minio_spec, protocol="s3", port=9000):
         return StoreConfig(
@@ -384,12 +384,12 @@ def get_store_spec(create_random_string):
     return _get_store_spec
 
 
-@pytest.fixture
+@pytest.fixture()
 def local_store_config(temp_stores):
     return temp_stores["local"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def dj_connection():
     @contextmanager
     def _dj_connection(db_spec, user_spec):
@@ -402,7 +402,7 @@ def dj_connection():
     return _dj_connection
 
 
-@pytest.fixture
+@pytest.fixture()
 def connection_config():
     @contextmanager
     def _connection_config(db_spec, user):
@@ -424,7 +424,7 @@ def connection_config():
     return _connection_config
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_dj_store_config():
     @contextmanager
     def _temp_dj_store_config(stores):
@@ -434,7 +434,7 @@ def temp_dj_store_config():
     return _temp_dj_store_config
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_store(get_minio_client, get_store_spec):
     @contextmanager
     def _temp_store(minio_spec):
@@ -470,13 +470,13 @@ def temp_store(get_minio_client, get_store_spec):
     return _temp_store
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_stores(temp_store, src_minio_spec, local_minio_spec):
     with temp_store(src_minio_spec) as src_store_spec, temp_store(local_minio_spec) as local_store_spec:
         yield {"source": src_store_spec, "local": local_store_spec}
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_session(src_db_spec, local_db_spec, dj_connection, outbound_schema_name):
     with dj_connection(src_db_spec, src_db_spec.config.users["end_user"]) as src_conn:
         with dj_connection(local_db_spec, local_db_spec.config.users["end_user"]) as local_conn:
@@ -491,22 +491,22 @@ def test_session(src_db_spec, local_db_spec, dj_connection, outbound_schema_name
         src_schema.drop(force=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_schema(test_session):
     return test_session["src"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def local_schema(test_session):
     return test_session["local"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_table_name():
     return "Table"
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_table_definition():
     return """
     prim_attr: int
@@ -515,7 +515,7 @@ def src_table_definition():
     """
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_table_cls(src_table_name, src_table_definition):
     class Table(dj.Manual):
         definition = src_table_definition
@@ -524,17 +524,17 @@ def src_table_cls(src_table_name, src_table_definition):
     return Table
 
 
-@pytest.fixture
+@pytest.fixture()
 def n_entities():
     return int(os.environ.get("N_ENTITIES", 10))
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_data(n_entities):
     return [dict(prim_attr=i, sec_attr=-i) for i in range(n_entities)]
 
 
-@pytest.fixture
+@pytest.fixture()
 def src_table_with_data(
     src_schema, src_table_cls, src_data, src_db_spec, connection_config, src_store_config, temp_dj_store_config
 ):
@@ -544,20 +544,20 @@ def src_table_with_data(
     return src_table
 
 
-@pytest.fixture
+@pytest.fixture()
 def remote_schema(src_db_spec):
     os.environ["LINK_USER"] = src_db_spec.config.users["dj_user"].name
     os.environ["LINK_PASS"] = src_db_spec.config.users["dj_user"].password
     return LazySchema(src_db_spec.config.schema_name, host=src_db_spec.container.name)
 
 
-@pytest.fixture
+@pytest.fixture()
 def stores(request, src_store_config, local_store_config):
     if getattr(request.module, "USES_EXTERNAL"):
         return {local_store_config.name: src_store_config.name}
 
 
-@pytest.fixture
+@pytest.fixture()
 def local_table_cls(
     local_schema,
     remote_schema,
@@ -579,7 +579,7 @@ def local_table_cls(
     return Table
 
 
-@pytest.fixture
+@pytest.fixture()
 def local_table_cls_with_pulled_data(
     src_table_with_data,
     local_table_cls,
@@ -596,7 +596,7 @@ def local_table_cls_with_pulled_data(
     return local_table_cls
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_env_vars():
     @contextmanager
     def _temp_env_vars(**vars):
@@ -614,7 +614,7 @@ def temp_env_vars():
     return _temp_env_vars
 
 
-@pytest.fixture
+@pytest.fixture()
 def configured_environment(temp_env_vars):
     @contextmanager
     def _configured_environment(user_spec, schema_name):
@@ -624,7 +624,7 @@ def configured_environment(temp_env_vars):
     return _configured_environment
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_table(dj_connection, create_random_string):
     def _create_table(db_spec, user_spec, schema_name, definition, data=None):
         def create_random_table_name():
@@ -643,7 +643,7 @@ def create_table(dj_connection, create_random_string):
     return _create_table
 
 
-@pytest.fixture
+@pytest.fixture()
 def prepare_multiple_links(create_random_string, create_user, databases):
     def _prepare_multiple_links(n_local_schemas):
         def create_schema_names():
@@ -673,7 +673,7 @@ def prepare_multiple_links(create_random_string, create_user, databases):
     return _prepare_multiple_links
 
 
-@pytest.fixture
+@pytest.fixture()
 def prepare_link(prepare_multiple_links):
     def _prepare_link():
         schema_names, user_specs = prepare_multiple_links(1)

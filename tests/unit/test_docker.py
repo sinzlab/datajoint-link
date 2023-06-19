@@ -12,7 +12,7 @@ def test_if_subclass_of_abstract_context_manager():
     assert issubclass(ContainerRunner, AbstractContextManager)
 
 
-@pytest.fixture
+@pytest.fixture()
 def container_spy():
     container_spy = MagicMock(name="container_spy")
     container_spy.name = "container_spy"
@@ -30,7 +30,7 @@ def container_spy():
     return container_spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def docker_client_spy(container_spy):
     client = MagicMock(name="docker_client_spy")
     client.containers.run.return_value = container_spy
@@ -38,12 +38,12 @@ def docker_client_spy(container_spy):
     return client
 
 
-@pytest.fixture
+@pytest.fixture()
 def container_config():
     return {"image": "my-image"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def container_runner(docker_client_spy, container_config):
     return partial(ContainerRunner, docker_client_spy, container_config)
 
@@ -102,13 +102,15 @@ def test_if_reload_method_of_container_is_called_correctly(container_spy, contai
 def test_if_container_is_stopped_if_not_healthy_after_max_retries(container_runner, container_spy):
     with pytest.raises(RuntimeError):
         with container_runner(health_check_config={"max_retries": 5, "interval": 0}):
-            container_spy.stop.assert_called_once_with()
+            pass
+    container_spy.stop.assert_called_once_with()
 
 
 def test_if_runtime_error_is_raised_if_not_healthy_after_max_retries(container_runner, container_spy):
     with pytest.raises(RuntimeError) as exc_info:
         with container_runner(health_check_config={"max_retries": 5, "interval": 0}):
-            assert exc_info.value.args[0] == "Container 'container' not healthy after max number (2) of retries"
+            pass
+    assert exc_info.value.args[0] == "Container 'container_spy' not healthy after max number (5) of retries"
 
 
 def test_if_container_is_returned(container_runner, container_spy):

@@ -7,24 +7,24 @@ from dj_link.entities.flag_manager import FlagManager
 from dj_link.use_cases import REQUEST_MODELS, RESPONSE_MODELS, USE_CASES, RepositoryLink, RepositoryLinkFactory
 
 
-@pytest.fixture
+@pytest.fixture()
 def identifiers(create_identifiers):
     return create_identifiers(3)
 
 
-@pytest.fixture
+@pytest.fixture()
 def request_model_stub(request, identifiers):
     stub = create_autospec(REQUEST_MODELS[request.module.USE_CASE_NAME], instance=True)
     stub.identifiers = identifiers
     return stub
 
 
-@pytest.fixture
+@pytest.fixture()
 def response_model_cls_spy(request):
     return create_autospec(RESPONSE_MODELS[request.module.USE_CASE_NAME])
 
 
-@pytest.fixture
+@pytest.fixture()
 def use_case_cls(request, response_model_cls_spy):
     use_case_cls = type(
         USE_CASES[request.module.USE_CASE_NAME].__name__, (USE_CASES[request.module.USE_CASE_NAME],), dict()
@@ -33,29 +33,29 @@ def use_case_cls(request, response_model_cls_spy):
     return use_case_cls
 
 
-@pytest.fixture
+@pytest.fixture()
 def repo_link_spy():
     spy = create_autospec(RepositoryLink, instance=True)
     spy.mock_add_spec(["source", "outbound", "local"])
     return spy
 
 
-@pytest.fixture
+@pytest.fixture()
 def repo_link_factory_stub(repo_link_spy):
     return create_autospec(RepositoryLinkFactory, instance=True, return_value=repo_link_spy)
 
 
-@pytest.fixture
+@pytest.fixture()
 def output_port_spy():
     return MagicMock(name="output_port_spy")
 
 
-@pytest.fixture
+@pytest.fixture()
 def use_case(use_case_cls, fake_gateway_link, repo_link_factory_stub, output_port_spy):
     return use_case_cls(fake_gateway_link, repo_link_factory_stub, output_port_spy)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_flag_manager_spies():
     def _create_flag_manager_spies(identifiers, flags):
         spies = {}
@@ -68,7 +68,7 @@ def create_flag_manager_spies():
     return _create_flag_manager_spies
 
 
-@pytest.fixture
+@pytest.fixture()
 def is_correct_log(caplog):
     def _is_correct_log(logger, func, messages, log_level=logging.INFO):
         with caplog.at_level(log_level, logger=logger.name):
