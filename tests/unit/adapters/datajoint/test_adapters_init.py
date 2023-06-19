@@ -71,10 +71,8 @@ class TestInitializeAdapters:
         assert isinstance(getattr(gateway_link, repo_type).translator, IdentificationTranslator)
 
     def test_if_the_same_translator_is_used_in_all_gateways(self, gateway_link):
-        assert (
-            gateway_link.source.translator is gateway_link.outbound.translator
-            and gateway_link.outbound.translator is gateway_link.local.translator
-        )
+        assert gateway_link.source.translator is gateway_link.outbound.translator
+        assert gateway_link.outbound.translator is gateway_link.local.translator
 
     def test_if_view_model_is_returned(self, view_model):
         assert isinstance(view_model, ViewModel)
