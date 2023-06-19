@@ -53,7 +53,7 @@ def lazy_schema_cls(schema_cls):
 
 class TestInit:
     def test_if_value_error_is_raised_if_initialized_with_connection_and_host(self, connection):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Expected either"):
             schemas.LazySchema(schema_name, connection=connection, host="host")
 
     def test_if_schema_name_is_stored_as_instance_attribute(self, lazy_schema_cls, schema_name):
