@@ -102,13 +102,15 @@ def test_if_reload_method_of_container_is_called_correctly(container_spy, contai
 def test_if_container_is_stopped_if_not_healthy_after_max_retries(container_runner, container_spy):
     with pytest.raises(RuntimeError):
         with container_runner(health_check_config={"max_retries": 5, "interval": 0}):
-            container_spy.stop.assert_called_once_with()
+            pass
+    container_spy.stop.assert_called_once_with()
 
 
 def test_if_runtime_error_is_raised_if_not_healthy_after_max_retries(container_runner, container_spy):
     with pytest.raises(RuntimeError) as exc_info:
         with container_runner(health_check_config={"max_retries": 5, "interval": 0}):
-            assert exc_info.value.args[0] == "Container 'container' not healthy after max number (2) of retries"
+            pass
+    assert exc_info.value.args[0] == "Container 'container_spy' not healthy after max number (5) of retries"
 
 
 def test_if_container_is_returned(container_runner, container_spy):
