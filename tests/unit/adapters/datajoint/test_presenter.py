@@ -23,14 +23,14 @@ class TestViewModel:
         assert str(exc_info.value) == attr_name.title() + " attribute not set"
 
     @pytest.fixture()
-    def update_model(self, model):
+    def _update_model(self, model):
         model.update("Hello World!", {"apples": 10})
 
-    @pytest.mark.usefixtures("update_model")
+    @pytest.mark.usefixtures("_update_model")
     def test_if_message_property_returns_message_if_model_has_been_updated(self, model):
         assert model.message == "Hello World!"
 
-    @pytest.mark.usefixtures("update_model")
+    @pytest.mark.usefixtures("_update_model")
     def test_if_fields_property_returns_fields_if_model_has_been_updated(self, model):
         assert model.fields == {"apples": 10}
 

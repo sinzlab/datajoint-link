@@ -43,17 +43,17 @@ def repo_link_spy(repo_link_spy, identifiers, outbound_flag_manager_spies, local
 
 
 @pytest.fixture()
-def call(use_case, dummy_request_model):
+def _call(use_case, dummy_request_model):
     use_case(dummy_request_model)
 
 
-@pytest.mark.usefixtures("call")
+@pytest.mark.usefixtures("_call")
 def test_if_deletion_requested_flag_is_checked_on_all_entities_in_outbound_repo(outbound_flag_manager_spies):
     for spy in outbound_flag_manager_spies.values():
         spy.__getitem__.assert_called_once_with("deletion_requested")
 
 
-@pytest.mark.usefixtures("call")
+@pytest.mark.usefixtures("_call")
 def test_if_deletion_requested_flag_is_checked_on_local_entities_corresponding_to_outbound_entities_that_had_it_enabled(
     outbound_deletion_requested, local_flag_manager_spies
 ):
@@ -66,13 +66,13 @@ def to_be_enabled(outbound_deletion_requested, local_deletion_requested):
     return [b1 and not b2 for b1, b2 in zip(outbound_deletion_requested, local_deletion_requested)]
 
 
-@pytest.mark.usefixtures("call")
+@pytest.mark.usefixtures("_call")
 def test_if_deletion_requested_flag_is_enabled_on_local_entities(to_be_enabled, local_flag_manager_spies):
     for spy in compress(local_flag_manager_spies.values(), to_be_enabled):
         spy.__setitem__.assert_called_once_with("deletion_requested", True)
 
 
-@pytest.mark.usefixtures("call")
+@pytest.mark.usefixtures("_call")
 def test_if_initialization_of_response_model_class_is_correct(response_model_cls_spy, identifiers, to_be_enabled):
     response_model_cls_spy.assert_called_once_with(set(compress(identifiers, to_be_enabled)))
 
@@ -85,6 +85,6 @@ def test_if_logged_messages_are_correct(use_case, dummy_request_model, is_correc
     assert is_correct_log(LOGGER, partial(use_case, dummy_request_model), messages)
 
 
-@pytest.mark.usefixtures("call")
+@pytest.mark.usefixtures("_call")
 def test_if_response_model_is_passed_to_output_port(response_model_cls_spy, output_port_spy):
     output_port_spy.assert_called_once_with(response_model_cls_spy.return_value)

@@ -22,7 +22,7 @@ def to_be_deleted_identifiers(create_identifiers):
 
 
 @pytest.fixture(autouse=True)
-def execute_delete(use_case, request_model, to_be_deleted_identifiers):
+def _execute_delete(use_case, request_model, to_be_deleted_identifiers):
     use_case(request_model(to_be_deleted_identifiers))
 
 

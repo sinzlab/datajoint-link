@@ -193,7 +193,7 @@ class TestFetch:
 
 class TestInsert:
     @pytest.fixture()
-    def insert(self, table_facade, entity_dto):
+    def _insert(self, table_facade, entity_dto):
         table_facade.insert(entity_dto)
 
     @pytest.fixture()
@@ -201,15 +201,15 @@ class TestInsert:
         # noinspection PyArgumentList
         return EntityDTO(primary_key_names, master_entity, parts=part_entities)
 
-    @pytest.mark.usefixtures("insert")
+    @pytest.mark.usefixtures("_insert")
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
-    @pytest.mark.usefixtures("insert")
+    @pytest.mark.usefixtures("_insert")
     def test_if_master_entity_is_inserted(self, table_spy, master_entity):
         table_spy.insert1.assert_called_once_with(master_entity)
 
-    @pytest.mark.usefixtures("insert")
+    @pytest.mark.usefixtures("_insert")
     def test_if_part_entities_are_inserted(self, part_table_spies, part_entities):
         for name, part in part_table_spies.items():
             part.insert.assert_called_once_with(part_entities[name])
@@ -228,30 +228,30 @@ class TestInsert:
 
 class TestDelete:
     @pytest.fixture()
-    def delete(self, table_facade, primary_key):
+    def _delete(self, table_facade, primary_key):
         table_facade.delete(primary_key)
 
-    @pytest.mark.usefixtures("delete")
+    @pytest.mark.usefixtures("_delete")
     def test_if_non_flag_part_tables_and_flag_part_tables_are_restricted(
         self, part_table_spies, flag_table_spies, primary_key
     ):
         for part in chain(part_table_spies.values(), flag_table_spies.values()):
             part.__and__.assert_called_once_with(primary_key)
 
-    @pytest.mark.usefixtures("delete")
+    @pytest.mark.usefixtures("_delete")
     def test_if_part_entities_and_flags_are_deleted(self, part_table_spies, flag_table_spies):
         for part in chain(part_table_spies.values(), flag_table_spies.values()):
             part.__and__.return_value.delete_quick.assert_called_once_with()
 
-    @pytest.mark.usefixtures("delete")
+    @pytest.mark.usefixtures("_delete")
     def test_if_call_to_table_factory_is_correct(self, table_factory_spy):
         table_factory_spy.assert_called_once_with()
 
-    @pytest.mark.usefixtures("delete")
+    @pytest.mark.usefixtures("_delete")
     def test_if_table_is_restricted(self, table_spy, primary_key):
         table_spy.__and__.assert_called_once_with(primary_key)
 
-    @pytest.mark.usefixtures("delete")
+    @pytest.mark.usefixtures("_delete")
     def test_if_master_table_entity_is_deleted(self, table_spy):
         table_spy.__and__.return_value.delete_quick.assert_called_once_with()
 
@@ -283,11 +283,11 @@ def test_if_flag_is_enabled(table_facade, primary_key, flag_table_name, flag_tab
 
 
 @pytest.fixture()
-def disable_flag(table_facade, primary_key, flag_table_name):
+def _disable_flag(table_facade, primary_key, flag_table_name):
     table_facade.disable_flag(primary_key, flag_table_name)
 
 
-@pytest.mark.usefixtures("disable_flag")
+@pytest.mark.usefixtures("_disable_flag")
 class TestDisableFlag:
     def test_if_flag_table_is_restricted(self, flag_table_spy, primary_key):
         flag_table_spy.__and__.assert_called_once_with(primary_key)
@@ -297,11 +297,11 @@ class TestDisableFlag:
 
 
 @pytest.fixture()
-def execute(request, table_facade):
+def _execute(request, table_facade):
     getattr(table_facade, request.cls.method_name)()
 
 
-@pytest.mark.usefixtures("execute")
+@pytest.mark.usefixtures("_execute")
 class TestTransaction:
     @pytest.fixture(params=["start_transaction", "commit_transaction", "cancel_transaction"], autouse=True)
     def method_name(self, request):

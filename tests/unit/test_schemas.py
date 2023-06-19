@@ -83,7 +83,7 @@ class TestInit:
 
 class TestInitialize:
     @pytest.fixture()
-    def setup_env(self):
+    def _setup_env(self):
         os.environ.update(LINK_USER="user", LINK_PASS="pass")
 
     @pytest.fixture()
@@ -95,12 +95,12 @@ class TestInitialize:
         lazy_schema_cls._conn_cls = conn_cls
         return lazy_schema_cls
 
-    @pytest.mark.usefixtures("setup_env")
+    @pytest.mark.usefixtures("_setup_env")
     def test_if_connection_is_correctly_initialized_if_host_is_provided(self, lazy_schema_cls, schema_name, conn_cls):
         lazy_schema_cls(schema_name, host="host").initialize()
         conn_cls.assert_called_once_with("host", "user", "pass")
 
-    @pytest.mark.usefixtures("setup_env")
+    @pytest.mark.usefixtures("_setup_env")
     def test_if_initialized_connection_is_stored_as_instance_attribute_if_host_is_provided(
         self, lazy_schema_cls, schema_name, connection
     ):
@@ -108,7 +108,7 @@ class TestInitialize:
         lazy_schema.initialize()
         assert lazy_schema.connection is connection
 
-    @pytest.mark.usefixtures("setup_env")
+    @pytest.mark.usefixtures("_setup_env")
     def test_if_schema_is_correctly_initialized(self, lazy_schema_cls, schema_name, schema_cls):
         lazy_schema_cls(schema_name).initialize()
         schema_cls.assert_called_once_with(

@@ -118,7 +118,7 @@ def dummy_cls(table_name):
 
 
 @pytest.fixture()
-def prepare_env():
+def _prepare_env():
     os.environ["LINK_OUTBOUND"] = "outbound_schema"
     yield
     del os.environ["LINK_OUTBOUND"]
@@ -148,7 +148,7 @@ def basic_local_config(local_schema_stub, table_name, dummy_local_table_mixin):
     )
 
 
-@pytest.mark.usefixtures("prepare_env", "linked_table")
+@pytest.mark.usefixtures("_prepare_env", "linked_table")
 class TestCallWithoutInitialSetup:
     def test_if_configuration_of_source_table_cls_factory_is_correct(
         self, table_cls_factory_spies, source_schema_stub, table_name
@@ -171,11 +171,11 @@ class TestCallWithoutInitialSetup:
 
 
 @pytest.fixture()
-def initial_setup_required(table_cls_factory_spies):
+def _initial_setup_required(table_cls_factory_spies):
     table_cls_factory_spies["local"].side_effect = [RuntimeError, "local_table_cls"]
 
 
-@pytest.mark.usefixtures("prepare_env", "initial_setup_required", "linked_table")
+@pytest.mark.usefixtures("_prepare_env", "_initial_setup_required", "linked_table")
 class TestCallWithInitialSetup:
     def test_if_configuration_of_outbound_table_cls_factory_is_correct(
         self, table_cls_factory_spies, basic_outbound_config, source_table_cls_stub

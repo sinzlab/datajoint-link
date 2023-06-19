@@ -36,20 +36,20 @@ def outbound_table_cls(
 
 
 @pytest.fixture()
-def insert_flags_and_refresh(local_table_cls_with_pulled_data, outbound_deletion_requested_flags, outbound_table_cls):
+def _insert_flags_and_refresh(local_table_cls_with_pulled_data, outbound_deletion_requested_flags, outbound_table_cls):
     outbound_table_cls().DeletionRequested().insert(outbound_deletion_requested_flags)
     local_table_cls_with_pulled_data().refresh()
 
 
 @pytest.fixture()
-def insert_flags_refresh_and_delete_deletion_requested_entities(
-    insert_flags_and_refresh, local_table_cls_with_pulled_data
+def _insert_flags_refresh_and_delete_deletion_requested_entities(
+    _insert_flags_and_refresh, local_table_cls_with_pulled_data
 ):
     flags = local_table_cls_with_pulled_data().DeletionRequested.fetch(as_dict=True)
     (local_table_cls_with_pulled_data() & flags).delete()
 
 
-@pytest.mark.usefixtures("insert_flags_and_refresh")
+@pytest.mark.usefixtures("_insert_flags_and_refresh")
 def test_if_deletion_requested_entities_are_present_in_deletion_requested_part_table_on_local_side(
     local_table_cls_with_pulled_data, expected_local_deletion_requested_flags
 ):
@@ -57,7 +57,7 @@ def test_if_deletion_requested_entities_are_present_in_deletion_requested_part_t
     assert actual_local_deletion_requested_flags == expected_local_deletion_requested_flags
 
 
-@pytest.mark.usefixtures("insert_flags_refresh_and_delete_deletion_requested_entities")
+@pytest.mark.usefixtures("_insert_flags_refresh_and_delete_deletion_requested_entities")
 def test_if_locally_deleted_deletion_requested_entities_are_present_in_deletion_approved_part_table_in_outbound_table(
     outbound_table_cls, outbound_deletion_requested_flags
 ):

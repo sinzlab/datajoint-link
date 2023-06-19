@@ -50,7 +50,7 @@ def source_table_factory_spy():
 
 
 @pytest.fixture(autouse=True)
-def configure_mixin(fake_controller, fake_temp_dir, source_table_factory_spy, printer_spy):
+def _configure_mixin(fake_controller, fake_temp_dir, source_table_factory_spy, printer_spy):
     LocalTableMixin.controller = fake_controller
     LocalTableMixin.temp_dir = fake_temp_dir
     LocalTableMixin.source_table_factory = source_table_factory_spy
