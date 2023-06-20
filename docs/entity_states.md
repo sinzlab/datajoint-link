@@ -86,3 +86,65 @@ What specifically happens during the activities shown in the state diagram above
     2. Set value of field with key `is_deprecated` to `True`
     3. Delete entity from outbound table
     4. Insert updated entity into outbound table
+
+### Class Diagram
+The following diagram shows the most important classes related to persistence. `Update`, `Command`, `Link` and `Entity` live in the domain model layer. `DJGateway`, `DJTranslator` and `DJProcess` live in the adapter layer. `DJLink` and `dj.Table` live in the infrastructure layer.
+
+```mermaid
+classDiagram
+    class Command{
+        <<enumeration>>
+        ADD_TO_LOCAL
+        REMOVE_FROM_LOCAL
+        START_PULL_PROCESS
+        FINISH_PULL_PROCESS
+        START_DELETE_PROCESS
+        FINISH_DELETE_PROCESS
+        DEPRECATE
+    }
+    class Update{
+        identifier: Identifier
+    }
+    class Link
+    class Entity {
+        identifier: Identifier
+        current_process: Optional~Processes~
+        is_tainted: Bool
+    }
+    class DJGateway{
+        create_link() Link
+        apply(update: Update)
+    }
+    class DJTranslator{
+        to_primary_key(identifier: Identifier) PrimaryKey
+        to_identifier(primary_key: PrimaryKey) Identifier
+    }
+    class DJLink{
+        get_source_primary_keys() List~PrimaryKey~
+        get_outbound_primary_keys() List~PrimaryKey~
+        get_local_primary_keys() List~PrimaryKey~
+        get_tainted_primary_keys() List~PrimaryKey~
+        get_processes() List~DJProcess~
+        add_to_local(primary_key: PrimaryKey)
+        remove_from_local(primary_key: PrimaryKey)
+        start_pull_process(primary_key: PrimaryKey)
+        finish_pull_process(primary_key: PrimaryKey)
+        start_delete_process(primary_key: PrimaryKey)
+        finish_delete_process(primary_key: PrimaryKey)
+        deprecate(primary_key: PrimaryKey)
+    }
+    class DJProcess {
+        primary_key: PrimaryKey
+        current_process: String
+    }
+    class `dj.Table` { }
+    Link --> "*" Entity : source
+    Link --> "*" Entity : outbound
+    Link --> "*" Entity : local
+    Update --> "0..1" Command
+    DJGateway --> "1" DJTranslator
+    DJGateway --> "1" DJLink
+    DJLink --> "1" `dj.Table`: source
+    DJLink --> "1" `dj.Table`: outbound
+    DJLink --> "1" `dj.Table`: local
+```
