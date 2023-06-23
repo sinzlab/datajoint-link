@@ -96,6 +96,7 @@ ignore_errors = false
 
 [[tool.mypy.overrides]]
 module = [
+    "dj_link.adapters.facade",
     "dj_link.entities.link",
     "dj_link.entities.state",
     "tests.conftest",
