@@ -88,7 +88,7 @@ What specifically happens during the activities shown in the state diagram above
     4. Insert updated entity into outbound table
 
 ### Class Diagram
-The following diagram shows the most important classes related to persistence. `Update`, `Command`, `Link` and `Entity` live in the domain model layer. `DJGateway`, `DJTranslator` and `DJProcess` live in the adapter layer. `DJLink` and `dj.Table` live in the infrastructure layer.
+The following diagram shows the most important classes related to persistence. `Update`, `Command`, `Link` and `Entity` live in the domain model layer. `DJLinkGateway`, `DJTranslator` and `DJProcess` live in the adapter layer. `DJLinkFacade` and `dj.Table` live in the infrastructure layer.
 
 ```mermaid
 classDiagram
@@ -111,7 +111,7 @@ classDiagram
         current_process: Optional~Processes~
         is_tainted: Bool
     }
-    class DJGateway{
+    class DJLinkGateway{
         create_link() Link
         apply(update: Update)
     }
@@ -119,7 +119,7 @@ classDiagram
         to_primary_key(identifier: Identifier) PrimaryKey
         to_identifier(primary_key: PrimaryKey) Identifier
     }
-    class DJLink{
+    class DJLinkFacade{
         get_source_primary_keys() List~PrimaryKey~
         get_outbound_primary_keys() List~PrimaryKey~
         get_local_primary_keys() List~PrimaryKey~
@@ -142,9 +142,9 @@ classDiagram
     Link --> "*" Entity : outbound
     Link --> "*" Entity : local
     Update --> "0..1" Command
-    DJGateway --> "1" DJTranslator
-    DJGateway --> "1" DJLink
-    DJLink --> "1" `dj.Table`: source
-    DJLink --> "1" `dj.Table`: outbound
-    DJLink --> "1" `dj.Table`: local
+    DJLinkGateway --> "1" DJTranslator
+    DJLinkGateway --> "1" DJLinkFacade
+    DJLinkFacade --> "1" `dj.Table`: source
+    DJLinkFacade --> "1" `dj.Table`: outbound
+    DJLinkFacade --> "1" `dj.Table`: local
 ```
