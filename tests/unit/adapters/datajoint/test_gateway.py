@@ -15,6 +15,9 @@ from dj_link.use_cases.gateway import LinkGateway
 
 
 class Table(Protocol):
+    def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
+        ...
+
     def insert1(self, row: Mapping[str, Any]) -> None:
         ...
 
@@ -45,6 +48,10 @@ class FakeTable:
         self.__rows: list[dict[str, Any]] = []
         self.__restricted_attrs: Optional[set[str]] = None
         self.__restriction: Optional[PrimaryKey] = None
+
+    def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
+        for row in rows:
+            self.insert1(row)
 
     def insert1(self, row: Mapping[str, Any]) -> None:
         assert set(row) == self.__primary | self.__attrs
@@ -213,16 +220,26 @@ def test_link_creation() -> None:
     translator = IdentificationTranslator()
     gateway = DJLinkGateway(facade, translator)
 
-    source_table.insert1({"a": 0, "b": 1})
-    outbound_table.insert1({"a": 0, "process": "NONE", "is_flagged": "FALSE"})
-    local_table.insert1({"a": 0, "b": 1})
-
-    source_table.insert1({"a": 1, "b": 2})
-    outbound_table.insert1({"a": 1, "process": "PULL", "is_flagged": "FALSE"})
-
-    source_table.insert1({"a": 2, "b": 3})
-    outbound_table.insert1({"a": 2, "process": "NONE", "is_flagged": "TRUE"})
-    local_table.insert1({"a": 2, "b": 3})
+    source_table.insert(
+        [
+            {"a": 0, "b": 1},
+            {"a": 1, "b": 2},
+            {"a": 2, "b": 3},
+        ]
+    )
+    outbound_table.insert(
+        [
+            {"a": 0, "process": "NONE", "is_flagged": "FALSE"},
+            {"a": 1, "process": "PULL", "is_flagged": "FALSE"},
+            {"a": 2, "process": "NONE", "is_flagged": "TRUE"},
+        ]
+    )
+    local_table.insert(
+        [
+            {"a": 2, "b": 3},
+            {"a": 0, "b": 1},
+        ]
+    )
 
     link = gateway.create_link()
     assert link == create_link(
