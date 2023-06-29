@@ -182,9 +182,8 @@ class DJLinkGateway(LinkGateway):
         }
         persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE}
         domain_processes: dict[Processes, set[Identifier]] = defaultdict(set)
-        for persisted_process in self.facade.get_processes():
-            if persisted_process.current_process == "NONE":
-                continue
+        persisted_processes = [process for process in self.facade.get_processes() if process.current_process != "NONE"]
+        for persisted_process in persisted_processes:
             domain_process = persisted_to_domain_process_map[persisted_process.current_process]
             domain_processes[domain_process].add(self.translator.to_identifier(persisted_process.primary_key))
         tainted_identifiers = {self.translator.to_identifier(key) for key in self.facade.get_tainted_primary_keys()}
