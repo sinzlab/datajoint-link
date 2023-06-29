@@ -175,13 +175,10 @@ class DJLinkGateway(LinkGateway):
         self.translator = translator
 
     def create_link(self) -> Link:
-        source_identifiers = [self.translator.to_identifier(key) for key in self.facade.get_source_primary_keys()]
-        outbound_identifiers = [self.translator.to_identifier(key) for key in self.facade.get_outbound_primary_keys()]
-        local_identifiers = [self.translator.to_identifier(key) for key in self.facade.get_local_primary_keys()]
         assignments = {
-            Components.SOURCE: source_identifiers,
-            Components.OUTBOUND: outbound_identifiers,
-            Components.LOCAL: local_identifiers,
+            Components.SOURCE: self.translator.to_identifiers(self.facade.get_source_primary_keys()),
+            Components.OUTBOUND: self.translator.to_identifiers(self.facade.get_outbound_primary_keys()),
+            Components.LOCAL: self.translator.to_identifiers(self.facade.get_local_primary_keys()),
         }
         persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE}
         domain_processes: dict[Processes, set[Identifier]] = defaultdict(set)
@@ -208,12 +205,6 @@ class DJLinkGateway(LinkGateway):
             self.facade.start_delete_process(self.translator.to_primary_key(update.identifier))
         if update.command is Commands.FINISH_DELETE_PROCESS:
             self.facade.finish_delete_process(self.translator.to_primary_key(update.identifier))
-
-
-def translate_to_identifiers(
-    translator: IdentificationTranslator, primary_keys: Iterable[PrimaryKey]
-) -> set[Identifier]:
-    return {translator.to_identifier(key) for key in primary_keys}
 
 
 class Tables(TypedDict):
@@ -281,9 +272,9 @@ def test_link_creation() -> None:
 
     assert gateway.create_link() == create_link(
         {
-            Components.SOURCE: translate_to_identifiers(gateway.translator, [{"a": 0}, {"a": 1}, {"a": 2}]),
-            Components.OUTBOUND: translate_to_identifiers(gateway.translator, [{"a": 0}, {"a": 1}, {"a": 2}]),
-            Components.LOCAL: translate_to_identifiers(gateway.translator, [{"a": 0}, {"a": 2}]),
+            Components.SOURCE: gateway.translator.to_identifiers([{"a": 0}, {"a": 1}, {"a": 2}]),
+            Components.OUTBOUND: gateway.translator.to_identifiers([{"a": 0}, {"a": 1}, {"a": 2}]),
+            Components.LOCAL: gateway.translator.to_identifiers([{"a": 0}, {"a": 2}]),
         },
         processes={Processes.PULL: {gateway.translator.to_identifier({"a": 1})}},
         tainted_identifiers={gateway.translator.to_identifier({"a": 2})},
