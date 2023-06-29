@@ -84,8 +84,9 @@ What specifically happens during the activities shown in the state diagram above
 * Deprecate:
     1. Fetch entity from outbound table
     2. Set value of field with key `is_deprecated` to `True`
-    3. Delete entity from outbound table
-    4. Insert updated entity into outbound table
+    3. Set value of field with key `process` to `NONE`
+    4. Delete entity from outbound table
+    5. Insert updated entity into outbound table
 
 ### Class Diagram
 The following diagram shows the most important classes related to persistence. `Update`, `Command`, `Link` and `Entity` live in the domain model layer. `DJLinkGateway`, `DJTranslator` and `DJProcess` live in the adapter layer. `DJLinkFacade` and `dj.Table` live in the infrastructure layer.
