@@ -17,3 +17,9 @@ def test_different_primary_keys_are_translated_to_different_identifiers():
     translator = IdentificationTranslator()
     primary_key1, primary_key2 = {"a": 5, "b": 20}, {"abc": 1.2, "asd": "hello"}
     assert translator.to_identifier(primary_key1) != translator.to_identifier(primary_key2)
+
+
+def test_translating_multiple_primary_keys_to_identifiers() -> None:
+    translator = IdentificationTranslator()
+    primary_keys = [{"a": 5, "b": 4}, {"a": 12, "b": 8}, {"a": 7, "b": 0}]
+    assert translator.to_identifiers(primary_keys) == {translator.to_identifier(key) for key in primary_keys}
