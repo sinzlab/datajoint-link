@@ -4,8 +4,8 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Any, Optional, Protocol, TypedDict, cast
 
+from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
-from dj_link.adapters.datajoint.facade import DJProcess
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
 from dj_link.custom_types import PrimaryKey
 from dj_link.entities.custom_types import Identifier
@@ -110,14 +110,12 @@ class DJLinkFacade(AbstractDJLinkFacade):
         self.outbound = outbound
         self.local = local
 
-    def get_source_primary_keys(self) -> list[PrimaryKey]:
-        return cast("list[PrimaryKey]", self.source.proj().fetch())
-
-    def get_outbound_primary_keys(self) -> list[PrimaryKey]:
-        return cast("list[PrimaryKey]", self.outbound.proj().fetch())
-
-    def get_local_primary_keys(self) -> list[PrimaryKey]:
-        return cast("list[PrimaryKey]", self.local.proj().fetch())
+    def get_assignments(self) -> DJAssignments:
+        return DJAssignments(
+            cast("list[PrimaryKey]", self.source.proj().fetch()),
+            cast("list[PrimaryKey]", self.outbound.proj().fetch()),
+            cast("list[PrimaryKey]", self.local.proj().fetch()),
+        )
 
     def get_processes(self) -> list[DJProcess]:
         rows = self.outbound.proj("process").fetch()
@@ -175,10 +173,11 @@ class DJLinkGateway(LinkGateway):
         self.translator = translator
 
     def create_link(self) -> Link:
-        assignments = {
-            Components.SOURCE: self.translator.to_identifiers(self.facade.get_source_primary_keys()),
-            Components.OUTBOUND: self.translator.to_identifiers(self.facade.get_outbound_primary_keys()),
-            Components.LOCAL: self.translator.to_identifiers(self.facade.get_local_primary_keys()),
+        dj_assignments = self.facade.get_assignments()
+        domain_assignments = {
+            Components.SOURCE: self.translator.to_identifiers(dj_assignments.source),
+            Components.OUTBOUND: self.translator.to_identifiers(dj_assignments.outbound),
+            Components.LOCAL: self.translator.to_identifiers(dj_assignments.local),
         }
         persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE}
         domain_processes: dict[Processes, set[Identifier]] = defaultdict(set)
@@ -187,7 +186,7 @@ class DJLinkGateway(LinkGateway):
             domain_process = persisted_to_domain_process_map[persisted_process.current_process]
             domain_processes[domain_process].add(self.translator.to_identifier(persisted_process.primary_key))
         tainted_identifiers = {self.translator.to_identifier(key) for key in self.facade.get_tainted_primary_keys()}
-        return create_link(assignments, processes=domain_processes, tainted_identifiers=tainted_identifiers)
+        return create_link(domain_assignments, processes=domain_processes, tainted_identifiers=tainted_identifiers)
 
     def apply(self, update: Update) -> None:
         if update.command is Commands.ADD_TO_LOCAL:

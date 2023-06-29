@@ -13,16 +13,8 @@ class DJLinkFacade(ABC):
     """A facade around a link that is persisted using DataJoint."""
 
     @abstractmethod
-    def get_source_primary_keys(self) -> list[PrimaryKey]:
-        """Get all primary keys present in the source component."""
-
-    @abstractmethod
-    def get_outbound_primary_keys(self) -> list[PrimaryKey]:
-        """Get all primary keys present in the outbound component."""
-
-    @abstractmethod
-    def get_local_primary_keys(self) -> list[PrimaryKey]:
-        """Get all primary keys present in the local component."""
+    def get_assignments(self) -> DJAssignments:
+        """Get the assignments of primary keys to the different components."""
 
     @abstractmethod
     def get_tainted_primary_keys(self) -> list[PrimaryKey]:
@@ -67,3 +59,12 @@ class DJProcess:
 
     primary_key: PrimaryKey
     current_process: Union[Literal["PULL"], Literal["DELETE"], Literal["NONE"]]
+
+
+@dataclass(frozen=True)
+class DJAssignments:
+    """The assignments of primary keys to the different components."""
+
+    source: list[PrimaryKey]
+    outbound: list[PrimaryKey]
+    local: list[PrimaryKey]
