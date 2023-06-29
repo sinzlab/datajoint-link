@@ -138,33 +138,27 @@ class DJLinkFacade(AbstractDJLinkFacade):
         (self.local & primary_key).delete()
 
     def deprecate(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch1()
-        row["process"] = "NONE"
-        row["is_deprecated"] = "TRUE"
-        (self.outbound.delete_quick())
-        self.outbound.insert1(row)
+        self.__update_row(self.outbound, primary_key, {"process": "NONE", "is_deprecated": "TRUE"})
 
     def start_pull_process(self, primary_key: PrimaryKey) -> None:
         row = dict(primary_key, process="PULL", is_flagged="FALSE", is_deprecated="FALSE")
         self.outbound.insert1(row)
 
     def finish_pull_process(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch1()
-        row["process"] = "NONE"
-        (self.outbound & primary_key).delete_quick()
-        self.outbound.insert1(row)
+        self.__update_row(self.outbound, primary_key, {"process": "NONE"})
 
     def start_delete_process(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch1()
-        row["process"] = "DELETE"
-        (self.outbound & primary_key).delete_quick()
-        self.outbound.insert1(row)
+        self.__update_row(self.outbound, primary_key, {"process": "DELETE"})
 
     def finish_delete_process(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch1()
-        row["process"] = "NONE"
-        (self.outbound & primary_key).delete_quick()
-        self.outbound.insert1(row)
+        self.__update_row(self.outbound, primary_key, {"process": "NONE"})
+
+    @staticmethod
+    def __update_row(table: Table, primary_key: PrimaryKey, changes: Mapping[str, Any]) -> None:
+        row = (table & primary_key).fetch1()
+        row.update(changes)
+        (table & primary_key).delete_quick()
+        table.insert1(row)
 
 
 class DJLinkGateway(LinkGateway):
