@@ -21,6 +21,9 @@ class Table(Protocol):
     def fetch(self) -> list[dict[str, Any]]:
         ...
 
+    def fetch1(self) -> dict[str, Any]:
+        ...
+
     def delete(self) -> None:
         ...
 
@@ -58,6 +61,9 @@ class FakeTable:
         else:
             rows = self.__rows
         return [{k: v for k, v in r.items() if k in restricted_attrs} for r in rows]
+
+    def fetch1(self) -> dict[str, Any]:
+        return self.fetch()[0]
 
     def delete(self) -> None:
         if self.__restriction is not None:
@@ -121,13 +127,13 @@ class DJLinkFacade(AbstractDJLinkFacade):
         return cast("list[PrimaryKey]", rows)
 
     def add_to_local(self, primary_key: PrimaryKey) -> None:
-        self.local.insert1((self.source & primary_key).fetch()[0])
+        self.local.insert1((self.source & primary_key).fetch1())
 
     def remove_from_local(self, primary_key: PrimaryKey) -> None:
         (self.local & primary_key).delete()
 
     def deprecate(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch()[0]
+        row = (self.outbound & primary_key).fetch1()
         row["process"] = "NONE"
         row["is_deprecated"] = "TRUE"
         (self.outbound.delete_quick())
@@ -138,19 +144,19 @@ class DJLinkFacade(AbstractDJLinkFacade):
         self.outbound.insert1(row)
 
     def finish_pull_process(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch()[0]
+        row = (self.outbound & primary_key).fetch1()
         row["process"] = "NONE"
         (self.outbound & primary_key).delete_quick()
         self.outbound.insert1(row)
 
     def start_delete_process(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch()[0]
+        row = (self.outbound & primary_key).fetch1()
         row["process"] = "DELETE"
         (self.outbound & primary_key).delete_quick()
         self.outbound.insert1(row)
 
     def finish_delete_process(self, primary_key: PrimaryKey) -> None:
-        row = (self.outbound & primary_key).fetch()[0]
+        row = (self.outbound & primary_key).fetch1()
         row["process"] = "NONE"
         (self.outbound & primary_key).delete_quick()
         self.outbound.insert1(row)
