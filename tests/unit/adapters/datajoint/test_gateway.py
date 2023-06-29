@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from typing import Any, Optional, Protocol, cast
+from typing import Any, Optional, Protocol, TypedDict, cast
 
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
 from dj_link.adapters.datajoint.facade import DJProcess
@@ -147,7 +147,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
         self.outbound.insert1(row)
 
     def start_pull_process(self, primary_key: PrimaryKey) -> None:
-        row = dict(primary_key, process="PULL", is_flagged="FALSE")
+        row = dict(primary_key, process="PULL", is_flagged="FALSE", is_deprecated="FALSE")
         self.outbound.insert1(row)
 
     def finish_pull_process(self, primary_key: PrimaryKey) -> None:
@@ -210,205 +210,249 @@ class DJLinkGateway(LinkGateway):
             self.facade.finish_delete_process(self.translator.to_primary_key(update.identifier))
 
 
-def test_link_creation() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged"]),
-        FakeTable(["a"], ["b"]),
-    )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
+def translate_to_identifiers(
+    translator: IdentificationTranslator, primary_keys: Iterable[PrimaryKey]
+) -> set[Identifier]:
+    return {translator.to_identifier(key) for key in primary_keys}
+
+
+class Tables(TypedDict):
+    source: FakeTable
+    outbound: FakeTable
+    local: FakeTable
+
+
+def create_tables(primary: Iterable[str], non_primary: Iterable[str]) -> Tables:
+    return {
+        "source": FakeTable(set(primary), set(non_primary)),
+        "outbound": FakeTable(set(primary), {"process", "is_flagged", "is_deprecated"}),
+        "local": FakeTable(set(primary), set(non_primary)),
+    }
+
+
+def create_gateway(tables: Tables) -> DJLinkGateway:
+    facade = DJLinkFacade(**tables)
     translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
+    return DJLinkGateway(facade, translator)
 
-    source_table.insert(
-        [
-            {"a": 0, "b": 1},
-            {"a": 1, "b": 2},
-            {"a": 2, "b": 3},
-        ]
-    )
-    outbound_table.insert(
-        [
-            {"a": 0, "process": "NONE", "is_flagged": "FALSE"},
-            {"a": 1, "process": "PULL", "is_flagged": "FALSE"},
-            {"a": 2, "process": "NONE", "is_flagged": "TRUE"},
-        ]
-    )
-    local_table.insert(
-        [
-            {"a": 2, "b": 3},
-            {"a": 0, "b": 1},
-        ]
+
+class State(TypedDict):
+    source: list[Mapping[str, Any]]
+    outbound: list[Mapping[str, Any]]
+    local: list[Mapping[str, Any]]
+
+
+def set_state(tables: Tables, state: State) -> None:
+    tables["source"].insert(state["source"])
+    tables["outbound"].insert(state["outbound"])
+    tables["local"].insert(state["local"])
+
+
+def has_state(tables: Tables, expected: State) -> bool:
+    return (
+        tables["source"].fetch() == expected["source"]
+        and tables["outbound"].fetch() == expected["outbound"]
+        and tables["local"].fetch() == expected["local"]
     )
 
-    link = gateway.create_link()
-    assert link == create_link(
+
+def test_link_creation() -> None:
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
         {
-            Components.SOURCE: {
-                translator.to_identifier({"a": 0}),
-                translator.to_identifier({"a": 1}),
-                translator.to_identifier({"a": 2}),
-            },
-            Components.OUTBOUND: {
-                translator.to_identifier({"a": 0}),
-                translator.to_identifier({"a": 1}),
-                translator.to_identifier({"a": 2}),
-            },
-            Components.LOCAL: {translator.to_identifier({"a": 0}), translator.to_identifier({"a": 2})},
+            "source": [
+                {"a": 0, "b": 1},
+                {"a": 1, "b": 2},
+                {"a": 2, "b": 3},
+            ],
+            "outbound": [
+                {"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                {"a": 1, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                {"a": 2, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "FALSE"},
+            ],
+            "local": [
+                {"a": 2, "b": 3},
+                {"a": 0, "b": 1},
+            ],
         },
-        processes={Processes.PULL: {translator.to_identifier({"a": 1})}},
-        tainted_identifiers={translator.to_identifier({"a": 2})},
+    )
+
+    assert gateway.create_link() == create_link(
+        {
+            Components.SOURCE: translate_to_identifiers(gateway.translator, [{"a": 0}, {"a": 1}, {"a": 2}]),
+            Components.OUTBOUND: translate_to_identifiers(gateway.translator, [{"a": 0}, {"a": 1}, {"a": 2}]),
+            Components.LOCAL: translate_to_identifiers(gateway.translator, [{"a": 0}, {"a": 2}]),
+        },
+        processes={Processes.PULL: {gateway.translator.to_identifier({"a": 1})}},
+        tainted_identifiers={gateway.translator.to_identifier({"a": 2})},
     )
 
 
 def test_add_to_local_command() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged"]),
-        FakeTable(["a"], ["b"]),
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [],
+        },
     )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
 
-    source_table.insert1({"a": 0, "b": 1})
-    outbound_table.insert1({"a": 0, "process": "PULL", "is_flagged": "FALSE"})
-
-    link = gateway.create_link()
-    for update in process(link):
+    for update in process(gateway.create_link()):
         gateway.apply(update)
 
-    assert source_table.fetch() == [{"a": 0, "b": 1}]
-    assert outbound_table.fetch() == [{"a": 0, "process": "PULL", "is_flagged": "FALSE"}]
-    assert local_table.fetch() == [{"a": 0, "b": 1}]
+    assert has_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [{"a": 0, "b": 1}],
+        },
+    )
 
 
 def test_remove_from_local_command() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged"]),
-        FakeTable(["a"], ["b"]),
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [{"a": 0, "b": 1}],
+        },
     )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
 
-    source_table.insert1({"a": 0, "b": 1})
-    outbound_table.insert1({"a": 0, "process": "DELETE", "is_flagged": "FALSE"})
-    local_table.insert1({"a": 0, "b": 1})
-
-    link = gateway.create_link()
-    for update in process(link):
+    for update in process(gateway.create_link()):
         gateway.apply(update)
 
-    assert source_table.fetch() == [{"a": 0, "b": 1}]
-    assert outbound_table.fetch() == [{"a": 0, "process": "DELETE", "is_flagged": "FALSE"}]
-    assert local_table.fetch() == []
+    assert has_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [],
+        },
+    )
 
 
 def test_start_pull_process() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged"]),
-        FakeTable(["a"], ["b"]),
-    )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(tables, {"source": [{"a": 0, "b": 1}], "outbound": [], "local": []})
 
-    source_table.insert1({"a": 0, "b": 1})
-
-    link = gateway.create_link()
-    for update in pull(link, requested={translator.to_identifier({"a": 0})}):
+    for update in pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
         gateway.apply(update)
 
-    assert source_table.fetch() == [{"a": 0, "b": 1}]
-    assert outbound_table.fetch() == [{"a": 0, "process": "PULL", "is_flagged": "FALSE"}]
+    assert has_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [],
+        },
+    )
 
 
 def test_finish_pull_process() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged"]),
-        FakeTable(["a"], ["b"]),
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [{"a": 0, "b": 1}],
+        },
     )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
 
-    source_table.insert1({"a": 0, "b": 1})
-    outbound_table.insert1({"a": 0, "process": "PULL", "is_flagged": "FALSE"})
-    local_table.insert1({"a": 0, "b": 1})
-
-    link = gateway.create_link()
-    for update in process(link):
+    for update in process(gateway.create_link()):
         gateway.apply(update)
 
-    assert source_table.fetch() == [{"a": 0, "b": 1}]
-    assert outbound_table.fetch() == [{"a": 0, "process": "NONE", "is_flagged": "FALSE"}]
-    assert local_table.fetch() == [{"a": 0, "b": 1}]
+    assert has_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [{"a": 0, "b": 1}],
+        },
+    )
 
 
 def test_start_delete_process() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged"]),
-        FakeTable(["a"], ["b"]),
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [{"a": 0, "b": 1}],
+        },
     )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
 
-    source_table.insert1({"a": 0, "b": 1})
-    outbound_table.insert1({"a": 0, "process": "NONE", "is_flagged": "FALSE"})
-    local_table.insert1({"a": 0, "b": 1})
-
-    link = gateway.create_link()
-    for update in delete(link, requested={translator.to_identifier({"a": 0})}):
+    for update in delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
         gateway.apply(update)
 
-    assert source_table.fetch() == [{"a": 0, "b": 1}]
-    assert outbound_table.fetch() == [{"a": 0, "process": "DELETE", "is_flagged": "FALSE"}]
-    assert local_table.fetch() == [{"a": 0, "b": 1}]
+    assert has_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [{"a": 0, "b": 1}],
+        },
+    )
 
 
 def test_finish_delete_process() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged"]),
-        FakeTable(["a"], ["b"]),
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [],
+        },
     )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
 
-    source_table.insert1({"a": 0, "b": 1})
-    outbound_table.insert1({"a": 0, "process": "DELETE", "is_flagged": "FALSE"})
-
-    link = gateway.create_link()
-    for update in process(link):
+    for update in process(gateway.create_link()):
         gateway.apply(update)
 
-    assert source_table.fetch() == [{"a": 0, "b": 1}]
-    assert outbound_table.fetch() == [{"a": 0, "process": "NONE", "is_flagged": "FALSE"}]
+    assert has_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            "local": [],
+        },
+    )
 
 
 def test_deprecate_process() -> None:
-    source_table, outbound_table, local_table = (
-        FakeTable(["a"], ["b"]),
-        FakeTable(["a"], ["process", "is_flagged", "is_deprecated"]),
-        FakeTable(["a"], ["b"]),
+    tables = create_tables(primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}],
+            "local": [],
+        },
     )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    translator = IdentificationTranslator()
-    gateway = DJLinkGateway(facade, translator)
 
-    source_table.insert1({"a": 0, "b": 1})
-    outbound_table.insert1({"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"})
-
-    link = gateway.create_link()
-    for update in process(link):
+    for update in process(gateway.create_link()):
         gateway.apply(update)
 
-    assert source_table.fetch() == [{"a": 0, "b": 1}]
-    assert outbound_table.fetch() == [{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}]
+    assert has_state(
+        tables,
+        {
+            "source": [{"a": 0, "b": 1}],
+            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}],
+            "local": [],
+        },
+    )
