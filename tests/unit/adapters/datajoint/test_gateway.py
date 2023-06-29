@@ -173,20 +173,30 @@ class DJLinkGateway(LinkGateway):
         self.translator = translator
 
     def create_link(self) -> Link:
-        dj_assignments = self.facade.get_assignments()
-        domain_assignments = {
-            Components.SOURCE: self.translator.to_identifiers(dj_assignments.source),
-            Components.OUTBOUND: self.translator.to_identifiers(dj_assignments.outbound),
-            Components.LOCAL: self.translator.to_identifiers(dj_assignments.local),
-        }
-        persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE}
-        domain_processes: dict[Processes, set[Identifier]] = defaultdict(set)
-        persisted_processes = [process for process in self.facade.get_processes() if process.current_process != "NONE"]
-        for persisted_process in persisted_processes:
-            domain_process = persisted_to_domain_process_map[persisted_process.current_process]
-            domain_processes[domain_process].add(self.translator.to_identifier(persisted_process.primary_key))
-        tainted_identifiers = {self.translator.to_identifier(key) for key in self.facade.get_tainted_primary_keys()}
-        return create_link(domain_assignments, processes=domain_processes, tainted_identifiers=tainted_identifiers)
+        def translate_assignments(dj_assignments: DJAssignments) -> dict[Components, set[Identifier]]:
+            return {
+                Components.SOURCE: self.translator.to_identifiers(dj_assignments.source),
+                Components.OUTBOUND: self.translator.to_identifiers(dj_assignments.outbound),
+                Components.LOCAL: self.translator.to_identifiers(dj_assignments.local),
+            }
+
+        def translate_processes(dj_processes: Iterable[DJProcess]) -> dict[Processes, set[Identifier]]:
+            persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE}
+            domain_processes: dict[Processes, set[Identifier]] = defaultdict(set)
+            active_processes = [process for process in dj_processes if process.current_process != "NONE"]
+            for persisted_process in active_processes:
+                domain_process = persisted_to_domain_process_map[persisted_process.current_process]
+                domain_processes[domain_process].add(self.translator.to_identifier(persisted_process.primary_key))
+            return domain_processes
+
+        def translate_tainted_primary_keys(primary_keys: Iterable[PrimaryKey]) -> set[Identifier]:
+            return {self.translator.to_identifier(key) for key in primary_keys}
+
+        return create_link(
+            translate_assignments(self.facade.get_assignments()),
+            processes=translate_processes(self.facade.get_processes()),
+            tainted_identifiers=translate_tainted_primary_keys(self.facade.get_tainted_primary_keys()),
+        )
 
     def apply(self, update: Update) -> None:
         if update.command is Commands.ADD_TO_LOCAL:
