@@ -141,8 +141,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
         self.__update_row(self.outbound, primary_key, {"process": "NONE", "is_deprecated": "TRUE"})
 
     def start_pull_process(self, primary_key: PrimaryKey) -> None:
-        row = dict(primary_key, process="PULL", is_flagged="FALSE", is_deprecated="FALSE")
-        self.outbound.insert1(row)
+        self.outbound.insert1(dict(primary_key, process="PULL", is_flagged="FALSE", is_deprecated="FALSE"))
 
     def finish_pull_process(self, primary_key: PrimaryKey) -> None:
         self.__update_row(self.outbound, primary_key, {"process": "NONE"})
