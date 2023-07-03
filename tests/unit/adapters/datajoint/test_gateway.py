@@ -83,8 +83,9 @@ class FakeTable:
         self.delete_quick()
 
     def delete_quick(self) -> None:
-        for row in self.__rows_in_restriction():
-            del self.__rows[self.__rows.index(row)]
+        indices = (self.__rows.index(row) for row in self.__rows_in_restriction())
+        for index in sorted(indices, reverse=True):
+            del self.__rows[index]
 
     def proj(self, *attributes: str) -> FakeTable:
         attrs = set(attributes)
