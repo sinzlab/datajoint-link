@@ -166,6 +166,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
 
     @staticmethod
     def __update_row(table: Table, primary_keys: Iterable[PrimaryKey], changes: Mapping[str, Any]) -> None:
+        primary_keys = list(primary_keys)
         rows = (table & primary_keys).fetch()
         for row in rows:
             row.update(changes)
