@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from io import StringIO
+from itertools import groupby
 from types import TracebackType
 from typing import Any, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
@@ -206,21 +207,27 @@ class DJLinkGateway(LinkGateway):
         )
 
     def apply(self, updates: Iterable[Update]) -> None:
-        update = next(iter(updates))
-        if update.command is Commands.ADD_TO_LOCAL:
-            self.facade.add_to_local([self.translator.to_primary_key(update.identifier)])
-        if update.command is Commands.REMOVE_FROM_LOCAL:
-            self.facade.remove_from_local([self.translator.to_primary_key(update.identifier)])
-        if update.command is Commands.START_PULL_PROCESS:
-            self.facade.start_pull_process([self.translator.to_primary_key(update.identifier)])
-        if update.command is Commands.FINISH_PULL_PROCESS:
-            self.facade.finish_pull_process([self.translator.to_primary_key(update.identifier)])
-        if update.command is Commands.DEPRECATE:
-            self.facade.deprecate([self.translator.to_primary_key(update.identifier)])
-        if update.command is Commands.START_DELETE_PROCESS:
-            self.facade.start_delete_process([self.translator.to_primary_key(update.identifier)])
-        if update.command is Commands.FINISH_DELETE_PROCESS:
-            self.facade.finish_delete_process([self.translator.to_primary_key(update.identifier)])
+        def keyfunc(update: Update) -> int:
+            assert update.command is not None
+            return update.command.value
+
+        transition_updates = (update for update in updates if update.command)
+        for command_value, command_updates in groupby(sorted(transition_updates, key=keyfunc), key=keyfunc):
+            primary_keys = (self.translator.to_primary_key(update.identifier) for update in updates)
+            if Commands(command_value) is Commands.ADD_TO_LOCAL:
+                self.facade.add_to_local(primary_keys)
+            if Commands(command_value) is Commands.REMOVE_FROM_LOCAL:
+                self.facade.remove_from_local(primary_keys)
+            if Commands(command_value) is Commands.START_PULL_PROCESS:
+                self.facade.start_pull_process(primary_keys)
+            if Commands(command_value) is Commands.FINISH_PULL_PROCESS:
+                self.facade.finish_pull_process(primary_keys)
+            if Commands(command_value) is Commands.DEPRECATE:
+                self.facade.deprecate(primary_keys)
+            if Commands(command_value) is Commands.START_DELETE_PROCESS:
+                self.facade.start_delete_process(primary_keys)
+            if Commands(command_value) is Commands.FINISH_DELETE_PROCESS:
+                self.facade.finish_delete_process(primary_keys)
 
 
 class Tables(TypedDict):
