@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from io import StringIO
 from types import TracebackType
-from typing import Any, Optional, Protocol, TextIO, Type, TypedDict, cast
+from typing import Any, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
 from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
@@ -39,7 +39,7 @@ class Table(Protocol):
     def proj(self, *attributes: str) -> Table:
         ...
 
-    def __and__(self, condition: PrimaryKey) -> Table:
+    def __and__(self, condition: Union[PrimaryKey, Iterable[PrimaryKey]]) -> Table:
         ...
 
 
@@ -50,7 +50,7 @@ class FakeTable:
         assert self.__primary.isdisjoint(self.__attrs)
         self.__rows: list[dict[str, Any]] = []
         self.__restricted_attrs: Optional[set[str]] = None
-        self.__restriction: Optional[PrimaryKey] = None
+        self.__restriction: Optional[list[PrimaryKey]] = None
 
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
         for row in rows:
@@ -95,16 +95,20 @@ class FakeTable:
         table.__restriction = self.__restriction
         return table
 
-    def __and__(self, condition: PrimaryKey) -> FakeTable:
+    def __and__(self, condition: Union[PrimaryKey, Iterable[PrimaryKey]]) -> FakeTable:
         table = FakeTable(attrs=self.__attrs, primary=self.__primary)
         table.__rows = self.__rows
         table.__restricted_attrs = self.__restricted_attrs
+        if isinstance(condition, Mapping):
+            condition = [condition]
+        else:
+            condition = list(condition)
         table.__restriction = condition
         return table
 
     def __rows_in_restriction(self) -> Iterator[dict[str, Any]]:
         if self.__restriction is not None:
-            return (row for row in self.__rows if all(row[k] == self.__restriction[k] for k in self.__restriction))
+            return (row for row in self.__rows if {k: row[k] for k in self.__primary} in self.__restriction)
         else:
             return iter(self.__rows)
 
