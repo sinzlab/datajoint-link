@@ -142,26 +142,26 @@ class DJLinkFacade(AbstractDJLinkFacade):
             row.pop("is_flagged")
         return cast("list[PrimaryKey]", rows)
 
-    def add_to_local(self, primary_key: PrimaryKey) -> None:
-        self.local.insert1((self.source & primary_key).fetch1())
+    def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        self.local.insert1((self.source & next(iter(primary_keys))).fetch1())
 
-    def remove_from_local(self, primary_key: PrimaryKey) -> None:
-        (self.local & primary_key).delete()
+    def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        (self.local & next(iter(primary_keys))).delete()
 
-    def deprecate(self, primary_key: PrimaryKey) -> None:
-        self.__update_row(self.outbound, primary_key, {"process": "NONE", "is_deprecated": "TRUE"})
+    def deprecate(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "NONE", "is_deprecated": "TRUE"})
 
-    def start_pull_process(self, primary_key: PrimaryKey) -> None:
-        self.outbound.insert1(dict(primary_key, process="PULL", is_flagged="FALSE", is_deprecated="FALSE"))
+    def start_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        self.outbound.insert1(dict(next(iter(primary_keys)), process="PULL", is_flagged="FALSE", is_deprecated="FALSE"))
 
-    def finish_pull_process(self, primary_key: PrimaryKey) -> None:
-        self.__update_row(self.outbound, primary_key, {"process": "NONE"})
+    def finish_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "NONE"})
 
-    def start_delete_process(self, primary_key: PrimaryKey) -> None:
-        self.__update_row(self.outbound, primary_key, {"process": "DELETE"})
+    def start_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "DELETE"})
 
-    def finish_delete_process(self, primary_key: PrimaryKey) -> None:
-        self.__update_row(self.outbound, primary_key, {"process": "NONE"})
+    def finish_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "NONE"})
 
     @staticmethod
     def __update_row(table: Table, primary_key: PrimaryKey, changes: Mapping[str, Any]) -> None:
@@ -205,19 +205,19 @@ class DJLinkGateway(LinkGateway):
     def apply(self, updates: Iterable[Update]) -> None:
         update = next(iter(updates))
         if update.command is Commands.ADD_TO_LOCAL:
-            self.facade.add_to_local(self.translator.to_primary_key(update.identifier))
+            self.facade.add_to_local([self.translator.to_primary_key(update.identifier)])
         if update.command is Commands.REMOVE_FROM_LOCAL:
-            self.facade.remove_from_local(self.translator.to_primary_key(update.identifier))
+            self.facade.remove_from_local([self.translator.to_primary_key(update.identifier)])
         if update.command is Commands.START_PULL_PROCESS:
-            self.facade.start_pull_process(self.translator.to_primary_key(update.identifier))
+            self.facade.start_pull_process([self.translator.to_primary_key(update.identifier)])
         if update.command is Commands.FINISH_PULL_PROCESS:
-            self.facade.finish_pull_process(self.translator.to_primary_key(update.identifier))
+            self.facade.finish_pull_process([self.translator.to_primary_key(update.identifier)])
         if update.command is Commands.DEPRECATE:
-            self.facade.deprecate(self.translator.to_primary_key(update.identifier))
+            self.facade.deprecate([self.translator.to_primary_key(update.identifier)])
         if update.command is Commands.START_DELETE_PROCESS:
-            self.facade.start_delete_process(self.translator.to_primary_key(update.identifier))
+            self.facade.start_delete_process([self.translator.to_primary_key(update.identifier)])
         if update.command is Commands.FINISH_DELETE_PROCESS:
-            self.facade.finish_delete_process(self.translator.to_primary_key(update.identifier))
+            self.facade.finish_delete_process([self.translator.to_primary_key(update.identifier)])
 
 
 class Tables(TypedDict):

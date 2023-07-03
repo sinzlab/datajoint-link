@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal, Union
 
@@ -25,31 +26,31 @@ class DJLinkFacade(ABC):
         """Get all processes associated with entities."""
 
     @abstractmethod
-    def add_to_local(self, primary_key: PrimaryKey) -> None:
+    def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Add the entity identified by the given primary key to the local component."""
 
     @abstractmethod
-    def remove_from_local(self, primary_key: PrimaryKey) -> None:
+    def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Remove the entity identified by the given primary key from the local component."""
 
     @abstractmethod
-    def start_pull_process(self, primary_key: PrimaryKey) -> None:
+    def start_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Start the pull process for the entity identified by the given primary key."""
 
     @abstractmethod
-    def finish_pull_process(self, primary_key: PrimaryKey) -> None:
+    def finish_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Finish the pull process for the entity identified by the given primary key."""
 
     @abstractmethod
-    def start_delete_process(self, primary_key: PrimaryKey) -> None:
+    def start_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Start the delete process for the entity identified by the given primary key."""
 
     @abstractmethod
-    def finish_delete_process(self, primary_key: PrimaryKey) -> None:
+    def finish_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Finish the delete process for the entity identified by the given primary key."""
 
     @abstractmethod
-    def deprecate(self, primary_key: PrimaryKey) -> None:
+    def deprecate(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Deprecate the entity identified by the given primary key."""
 
 
