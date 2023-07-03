@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from typing import Any, Optional, Protocol, TypedDict, cast
+from io import StringIO
+from types import TracebackType
+from typing import Any, Optional, Protocol, TextIO, Type, TypedDict, cast
 
 from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
@@ -73,6 +76,17 @@ class FakeTable:
         return self.fetch()[0]
 
     def delete(self) -> None:
+        def is_confirmed() -> bool:
+            answer = None
+            while answer not in ("y", "n"):
+                answer = input("Really delete? [y/n]: ")
+            return answer == "y"
+
+        if not is_confirmed():
+            return
+        self.delete_quick()
+
+    def delete_quick(self) -> None:
         if self.__restriction is not None:
             indexes = [
                 i
@@ -83,9 +97,6 @@ class FakeTable:
             indexes = list(range(len(self.__rows)))
         for index in indexes:
             del self.__rows[index]
-
-    def delete_quick(self) -> None:
-        self.delete()
 
     def proj(self, *attributes: str) -> FakeTable:
         attrs = set(attributes)
@@ -248,6 +259,23 @@ def has_state(tables: Tables, expected: State) -> bool:
     )
 
 
+class as_stdin:
+    def __init__(self, buffer: TextIO) -> None:
+        self.buffer = buffer
+        self.original_stdin = sys.stdin
+
+    def __enter__(self) -> None:
+        sys.stdin = self.buffer
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        sys.stdin = self.original_stdin
+
+
 def test_link_creation() -> None:
     tables = create_tables(primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
@@ -320,7 +348,8 @@ def test_remove_from_local_command() -> None:
     )
 
     for update in process(gateway.create_link()):
-        gateway.apply(update)
+        with as_stdin(StringIO("y")):
+            gateway.apply(update)
 
     assert has_state(
         tables,
