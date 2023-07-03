@@ -202,7 +202,8 @@ class DJLinkGateway(LinkGateway):
             tainted_identifiers=translate_tainted_primary_keys(self.facade.get_tainted_primary_keys()),
         )
 
-    def apply(self, update: Update) -> None:
+    def apply(self, updates: Iterable[Update]) -> None:
+        update = next(iter(updates))
         if update.command is Commands.ADD_TO_LOCAL:
             self.facade.add_to_local(self.translator.to_primary_key(update.identifier))
         if update.command is Commands.REMOVE_FROM_LOCAL:
@@ -323,7 +324,7 @@ def test_add_to_local_command() -> None:
     )
 
     for update in process(gateway.create_link()):
-        gateway.apply(update)
+        gateway.apply({update})
 
     assert has_state(
         tables,
@@ -349,7 +350,7 @@ def test_remove_from_local_command() -> None:
 
     for update in process(gateway.create_link()):
         with as_stdin(StringIO("y")):
-            gateway.apply(update)
+            gateway.apply({update})
 
     assert has_state(
         tables,
@@ -367,7 +368,7 @@ def test_start_pull_process() -> None:
     set_state(tables, {"source": [{"a": 0, "b": 1}], "outbound": [], "local": []})
 
     for update in pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
-        gateway.apply(update)
+        gateway.apply({update})
 
     assert has_state(
         tables,
@@ -392,7 +393,7 @@ def test_finish_pull_process() -> None:
     )
 
     for update in process(gateway.create_link()):
-        gateway.apply(update)
+        gateway.apply({update})
 
     assert has_state(
         tables,
@@ -417,7 +418,7 @@ def test_start_delete_process() -> None:
     )
 
     for update in delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
-        gateway.apply(update)
+        gateway.apply({update})
 
     assert has_state(
         tables,
@@ -442,7 +443,7 @@ def test_finish_delete_process() -> None:
     )
 
     for update in process(gateway.create_link()):
-        gateway.apply(update)
+        gateway.apply({update})
 
     assert has_state(
         tables,
@@ -467,7 +468,7 @@ def test_deprecate_process() -> None:
     )
 
     for update in process(gateway.create_link()):
-        gateway.apply(update)
+        gateway.apply({update})
 
     assert has_state(
         tables,

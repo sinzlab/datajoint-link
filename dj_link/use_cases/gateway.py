@@ -1,5 +1,8 @@
 """Contains the gateway interface."""
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 from ..entities.abstract_gateway import AbstractGateway
 from ..entities.link import Link, Transfer
@@ -37,5 +40,5 @@ class LinkGateway(ABC):
         """Create a link from the persistent data."""
 
     @abstractmethod
-    def apply(self, update: Update) -> None:
-        """Apply an update to the link's persistent data."""
+    def apply(self, updates: Iterable[Update]) -> None:
+        """Apply updates to the link's persistent data."""
