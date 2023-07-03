@@ -148,7 +148,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
         (self.local & primary_keys).delete()
 
     def deprecate(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, primary_keys, {"process": "NONE", "is_deprecated": "TRUE"})
+        self.__update_rows(self.outbound, primary_keys, {"process": "NONE", "is_deprecated": "TRUE"})
 
     def start_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
         self.outbound.insert(
@@ -156,16 +156,16 @@ class DJLinkFacade(AbstractDJLinkFacade):
         )
 
     def finish_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, primary_keys, {"process": "NONE"})
+        self.__update_rows(self.outbound, primary_keys, {"process": "NONE"})
 
     def start_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, primary_keys, {"process": "DELETE"})
+        self.__update_rows(self.outbound, primary_keys, {"process": "DELETE"})
 
     def finish_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, primary_keys, {"process": "NONE"})
+        self.__update_rows(self.outbound, primary_keys, {"process": "NONE"})
 
     @staticmethod
-    def __update_row(table: Table, primary_keys: Iterable[PrimaryKey], changes: Mapping[str, Any]) -> None:
+    def __update_rows(table: Table, primary_keys: Iterable[PrimaryKey], changes: Mapping[str, Any]) -> None:
         primary_keys = list(primary_keys)
         rows = (table & primary_keys).fetch()
         for row in rows:
