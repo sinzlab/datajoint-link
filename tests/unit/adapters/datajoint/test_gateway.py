@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from io import StringIO
 from types import TracebackType
 from typing import Any, Optional, Protocol, TextIO, Type, TypedDict, cast
@@ -66,11 +66,7 @@ class FakeTable:
             restricted_attrs = self.__primary | self.__attrs
         else:
             restricted_attrs = self.__restricted_attrs
-        if self.__restriction is not None:
-            rows = [row for row in self.__rows if all(row[k] == self.__restriction[k] for k in self.__restriction)]
-        else:
-            rows = self.__rows
-        return [{k: v for k, v in r.items() if k in restricted_attrs} for r in rows]
+        return [{k: v for k, v in r.items() if k in restricted_attrs} for r in self.__rows_in_restriction()]
 
     def fetch1(self) -> dict[str, Any]:
         return self.fetch()[0]
@@ -87,16 +83,8 @@ class FakeTable:
         self.delete_quick()
 
     def delete_quick(self) -> None:
-        if self.__restriction is not None:
-            indexes = [
-                i
-                for i, row in enumerate(self.__rows)
-                if all(row[k] == self.__restriction[k] for k in self.__restriction)
-            ]
-        else:
-            indexes = list(range(len(self.__rows)))
-        for index in indexes:
-            del self.__rows[index]
+        for row in self.__rows_in_restriction():
+            del self.__rows[self.__rows.index(row)]
 
     def proj(self, *attributes: str) -> FakeTable:
         attrs = set(attributes)
@@ -113,6 +101,12 @@ class FakeTable:
         table.__restricted_attrs = self.__restricted_attrs
         table.__restriction = condition
         return table
+
+    def __rows_in_restriction(self) -> Iterator[dict[str, Any]]:
+        if self.__restriction is not None:
+            return (row for row in self.__rows if all(row[k] == self.__restriction[k] for k in self.__restriction))
+        else:
+            return iter(self.__rows)
 
 
 class DJLinkFacade(AbstractDJLinkFacade):
