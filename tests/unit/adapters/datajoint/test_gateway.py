@@ -141,32 +141,35 @@ class DJLinkFacade(AbstractDJLinkFacade):
         return cast("list[PrimaryKey]", rows)
 
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.local.insert1((self.source & next(iter(primary_keys))).fetch1())
+        self.local.insert((self.source & primary_keys).fetch())
 
     def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        (self.local & next(iter(primary_keys))).delete()
+        (self.local & primary_keys).delete()
 
     def deprecate(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "NONE", "is_deprecated": "TRUE"})
+        self.__update_row(self.outbound, primary_keys, {"process": "NONE", "is_deprecated": "TRUE"})
 
     def start_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.outbound.insert1(dict(next(iter(primary_keys)), process="PULL", is_flagged="FALSE", is_deprecated="FALSE"))
+        self.outbound.insert(
+            (dict(key, process="PULL", is_flagged="FALSE", is_deprecated="FALSE") for key in primary_keys)
+        )
 
     def finish_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "NONE"})
+        self.__update_row(self.outbound, primary_keys, {"process": "NONE"})
 
     def start_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "DELETE"})
+        self.__update_row(self.outbound, primary_keys, {"process": "DELETE"})
 
     def finish_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        self.__update_row(self.outbound, next(iter(primary_keys)), {"process": "NONE"})
+        self.__update_row(self.outbound, primary_keys, {"process": "NONE"})
 
     @staticmethod
-    def __update_row(table: Table, primary_key: PrimaryKey, changes: Mapping[str, Any]) -> None:
-        row = (table & primary_key).fetch1()
-        row.update(changes)
-        (table & primary_key).delete_quick()
-        table.insert1(row)
+    def __update_row(table: Table, primary_keys: Iterable[PrimaryKey], changes: Mapping[str, Any]) -> None:
+        rows = (table & primary_keys).fetch()
+        for row in rows:
+            row.update(changes)
+        (table & primary_keys).delete_quick()
+        table.insert(rows)
 
 
 class DJLinkGateway(LinkGateway):
