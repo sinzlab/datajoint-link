@@ -47,10 +47,15 @@ class Table(Protocol):
     def children(self, *, as_objects: Literal[True]) -> Sequence[Table]:
         ...
 
+    @property
+    def table_name(self) -> str:
+        ...
+
 
 class FakeTable:
     def __init__(
         self,
+        name: str,
         primary: Iterable[str],
         attrs: Optional[Iterable[str]] = None,
         children: Optional[Iterable[FakeTable]] = None,
@@ -62,6 +67,7 @@ class FakeTable:
         self.__rows: list[dict[str, Any]] = []
         self.__restricted_attrs: Optional[set[str]] = None
         self.__restriction: Optional[list[PrimaryKey]] = None
+        self.__name = name
 
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
         for row in rows:
@@ -101,14 +107,14 @@ class FakeTable:
     def proj(self, *attributes: str) -> FakeTable:
         attrs = set(attributes)
         assert attrs <= self.__attrs
-        table = FakeTable(attrs=self.__attrs, primary=self.__primary)
+        table = FakeTable(self.__name, attrs=self.__attrs, primary=self.__primary)
         table.__rows = self.__rows
         table.__restricted_attrs = self.__primary | attrs
         table.__restriction = self.__restriction
         return table
 
     def __and__(self, condition: Union[PrimaryKey, Iterable[PrimaryKey]]) -> FakeTable:
-        table = FakeTable(attrs=self.__attrs, primary=self.__primary)
+        table = FakeTable(self.__name, attrs=self.__attrs, primary=self.__primary)
         table.__rows = self.__rows
         table.__restricted_attrs = self.__restricted_attrs
         if isinstance(condition, Mapping):
@@ -120,6 +126,10 @@ class FakeTable:
 
     def children(self, *, as_objects: Literal[True]) -> Sequence[FakeTable]:
         return list(self.__children)
+
+    @property
+    def table_name(self) -> str:
+        return self.__name
 
     def __rows_in_restriction(self) -> Iterator[dict[str, Any]]:
         if self.__restriction is not None:
@@ -250,19 +260,24 @@ class Tables(TypedDict):
 
 
 def create_tables(
-    primary: Iterable[str], non_primary: Iterable[str], *, children: Optional[Mapping[str, Iterable[str]]] = None
+    name: str,
+    primary: Iterable[str],
+    non_primary: Iterable[str],
+    *,
+    children: Optional[Mapping[str, Iterable[str]]] = None,
 ) -> Tables:
     def create_child_tables(children_non_primary: Mapping[str, Iterable[str]]) -> list[FakeTable]:
         return [
-            FakeTable(set(primary), set(child_non_primary)) for _, child_non_primary in children_non_primary.items()
+            FakeTable(name, set(primary), set(child_non_primary))
+            for name, child_non_primary in children_non_primary.items()
         ]
 
     if children is None:
         children = {}
     return {
-        "source": FakeTable(set(primary), set(non_primary), children=create_child_tables(children)),
-        "outbound": FakeTable(set(primary), {"process", "is_flagged", "is_deprecated"}),
-        "local": FakeTable(set(primary), set(non_primary), children=create_child_tables(children)),
+        "source": FakeTable(name, set(primary), set(non_primary), children=create_child_tables(children)),
+        "outbound": FakeTable(name + "_outbound", set(primary), {"process", "is_flagged", "is_deprecated"}),
+        "local": FakeTable(name, set(primary), set(non_primary), children=create_child_tables(children)),
     }
 
 
@@ -320,7 +335,7 @@ class as_stdin:
 
 
 def test_link_creation() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
         tables,
@@ -360,7 +375,7 @@ def test_link_creation() -> None:
 
 
 def test_add_to_local_command() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
         tables,
@@ -384,7 +399,7 @@ def test_add_to_local_command() -> None:
 
 
 def test_remove_from_local_command() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
         tables,
@@ -409,7 +424,7 @@ def test_remove_from_local_command() -> None:
 
 
 def test_start_pull_process() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(tables, State(source=TableState([{"a": 0, "b": 1}])))
 
@@ -426,7 +441,7 @@ def test_start_pull_process() -> None:
 
 
 def test_finish_pull_process() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
         tables,
@@ -451,7 +466,7 @@ def test_finish_pull_process() -> None:
 
 
 def test_start_delete_process() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
         tables,
@@ -476,7 +491,7 @@ def test_start_delete_process() -> None:
 
 
 def test_finish_delete_process() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
         tables,
@@ -499,7 +514,7 @@ def test_finish_delete_process() -> None:
 
 
 def test_deprecate_process() -> None:
-    tables = create_tables(primary={"a"}, non_primary={"b"})
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
         tables,
