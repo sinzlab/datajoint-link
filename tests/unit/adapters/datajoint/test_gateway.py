@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass, field
 from io import StringIO
 from itertools import groupby
 from types import TracebackType
@@ -271,23 +272,24 @@ def create_gateway(tables: Tables) -> DJLinkGateway:
     return DJLinkGateway(facade, translator)
 
 
-class State(TypedDict):
-    source: list[Mapping[str, Any]]
-    outbound: list[Mapping[str, Any]]
-    local: list[Mapping[str, Any]]
+@dataclass(frozen=True)
+class State:
+    source: list[Mapping[str, Any]] = field(default_factory=list)
+    outbound: list[Mapping[str, Any]] = field(default_factory=list)
+    local: list[Mapping[str, Any]] = field(default_factory=list)
 
 
 def set_state(tables: Tables, state: State) -> None:
-    tables["source"].insert(state["source"])
-    tables["outbound"].insert(state["outbound"])
-    tables["local"].insert(state["local"])
+    tables["source"].insert(state.source)
+    tables["outbound"].insert(state.outbound)
+    tables["local"].insert(state.local)
 
 
 def has_state(tables: Tables, expected: State) -> bool:
     return (
-        tables["source"].fetch() == expected["source"]
-        and tables["outbound"].fetch() == expected["outbound"]
-        and tables["local"].fetch() == expected["local"]
+        tables["source"].fetch() == expected.source
+        and tables["outbound"].fetch() == expected.outbound
+        and tables["local"].fetch() == expected.local
     )
 
 
@@ -313,22 +315,22 @@ def test_link_creation() -> None:
     gateway = create_gateway(tables)
     set_state(
         tables,
-        {
-            "source": [
+        State(
+            source=[
                 {"a": 0, "b": 1},
                 {"a": 1, "b": 2},
                 {"a": 2, "b": 3},
             ],
-            "outbound": [
+            outbound=[
                 {"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
                 {"a": 1, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
                 {"a": 2, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "FALSE"},
             ],
-            "local": [
+            local=[
                 {"a": 2, "b": 3},
                 {"a": 0, "b": 1},
             ],
-        },
+        ),
     )
 
     assert gateway.create_link() == create_link(
@@ -347,11 +349,10 @@ def test_add_to_local_command() -> None:
     gateway = create_gateway(tables)
     set_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+        ),
     )
 
     for update in process(gateway.create_link()):
@@ -359,11 +360,11 @@ def test_add_to_local_command() -> None:
 
     assert has_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [{"a": 0, "b": 1}],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            local=[{"a": 0, "b": 1}],
+        ),
     )
 
 
@@ -372,11 +373,11 @@ def test_remove_from_local_command() -> None:
     gateway = create_gateway(tables)
     set_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [{"a": 0, "b": 1}],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            local=[{"a": 0, "b": 1}],
+        ),
     )
 
     for update in process(gateway.create_link()):
@@ -385,29 +386,27 @@ def test_remove_from_local_command() -> None:
 
     assert has_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+        ),
     )
 
 
 def test_start_pull_process() -> None:
     tables = create_tables(primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
-    set_state(tables, {"source": [{"a": 0, "b": 1}], "outbound": [], "local": []})
+    set_state(tables, State(source=[{"a": 0, "b": 1}], outbound=[], local=[]))
 
     for update in pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
         gateway.apply({update})
 
     assert has_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+        ),
     )
 
 
@@ -416,11 +415,11 @@ def test_finish_pull_process() -> None:
     gateway = create_gateway(tables)
     set_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [{"a": 0, "b": 1}],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            local=[{"a": 0, "b": 1}],
+        ),
     )
 
     for update in process(gateway.create_link()):
@@ -428,11 +427,11 @@ def test_finish_pull_process() -> None:
 
     assert has_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [{"a": 0, "b": 1}],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            local=[{"a": 0, "b": 1}],
+        ),
     )
 
 
@@ -441,11 +440,11 @@ def test_start_delete_process() -> None:
     gateway = create_gateway(tables)
     set_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [{"a": 0, "b": 1}],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            local=[{"a": 0, "b": 1}],
+        ),
     )
 
     for update in delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
@@ -453,11 +452,11 @@ def test_start_delete_process() -> None:
 
     assert has_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [{"a": 0, "b": 1}],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            local=[{"a": 0, "b": 1}],
+        ),
     )
 
 
@@ -466,11 +465,10 @@ def test_finish_delete_process() -> None:
     gateway = create_gateway(tables)
     set_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+        ),
     )
 
     for update in process(gateway.create_link()):
@@ -478,11 +476,10 @@ def test_finish_delete_process() -> None:
 
     assert has_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            "local": [],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+        ),
     )
 
 
@@ -491,11 +488,10 @@ def test_deprecate_process() -> None:
     gateway = create_gateway(tables)
     set_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}],
-            "local": [],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}],
+        ),
     )
 
     for update in process(gateway.create_link()):
@@ -503,9 +499,8 @@ def test_deprecate_process() -> None:
 
     assert has_state(
         tables,
-        {
-            "source": [{"a": 0, "b": 1}],
-            "outbound": [{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}],
-            "local": [],
-        },
+        State(
+            source=[{"a": 0, "b": 1}],
+            outbound=[{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}],
+        ),
     )
