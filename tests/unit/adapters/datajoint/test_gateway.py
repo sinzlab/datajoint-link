@@ -248,11 +248,20 @@ class Tables(TypedDict):
     local: FakeTable
 
 
-def create_tables(primary: Iterable[str], non_primary: Iterable[str]) -> Tables:
+def create_tables(
+    primary: Iterable[str], non_primary: Iterable[str], *, children: Optional[Mapping[str, Iterable[str]]] = None
+) -> Tables:
+    def create_child_tables(children_non_primary: Mapping[str, Iterable[str]]) -> list[FakeTable]:
+        return [
+            FakeTable(set(primary), set(child_non_primary)) for _, child_non_primary in children_non_primary.items()
+        ]
+
+    if children is None:
+        children = {}
     return {
-        "source": FakeTable(set(primary), set(non_primary)),
+        "source": FakeTable(set(primary), set(non_primary), children=create_child_tables(children)),
         "outbound": FakeTable(set(primary), {"process", "is_flagged", "is_deprecated"}),
-        "local": FakeTable(set(primary), set(non_primary)),
+        "local": FakeTable(set(primary), set(non_primary), children=create_child_tables(children)),
     }
 
 
