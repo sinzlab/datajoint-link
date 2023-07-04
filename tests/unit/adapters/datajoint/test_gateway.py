@@ -289,8 +289,8 @@ def create_gateway(tables: Tables) -> DJLinkGateway:
 
 @dataclass(frozen=True)
 class TableState:
-    main: list[Mapping[str, Any]] = field(default_factory=list)
-    children: Mapping[str, list[Mapping[str, Any]]] = field(default_factory=dict)
+    main: list[dict[str, Any]] = field(default_factory=list)
+    children: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -310,11 +310,17 @@ def set_state(tables: Tables, state: State) -> None:
 
 
 def has_state(tables: Tables, expected: State) -> bool:
-    return (
-        tables["source"].fetch() == expected.source.main
-        and tables["outbound"].fetch() == expected.outbound.main
-        and tables["local"].fetch() == expected.local.main
-    )
+    def get_children_state(table: Table) -> dict[str, list[dict[str, Any]]]:
+        return {child.table_name: child.fetch() for child in table.children(as_objects=True)}
+
+    def get_state() -> State:
+        return State(
+            source=TableState(main=tables["source"].fetch(), children=get_children_state(tables["source"])),
+            outbound=TableState(main=tables["outbound"].fetch(), children=get_children_state(tables["outbound"])),
+            local=TableState(main=tables["local"].fetch(), children=get_children_state(tables["local"])),
+        )
+
+    return get_state() == expected
 
 
 class as_stdin:
