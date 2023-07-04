@@ -273,23 +273,32 @@ def create_gateway(tables: Tables) -> DJLinkGateway:
 
 
 @dataclass(frozen=True)
+class TableState:
+    main: list[Mapping[str, Any]] = field(default_factory=list)
+    children: Mapping[str, list[Mapping[str, Any]]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class State:
-    source: list[Mapping[str, Any]] = field(default_factory=list)
-    outbound: list[Mapping[str, Any]] = field(default_factory=list)
-    local: list[Mapping[str, Any]] = field(default_factory=list)
+    source: TableState = field(default_factory=TableState)
+    outbound: TableState = field(default_factory=TableState)
+    local: TableState = field(default_factory=TableState)
+
+    def __post_init__(self) -> None:
+        assert set(self.source.children) == set(self.local.children)
 
 
 def set_state(tables: Tables, state: State) -> None:
-    tables["source"].insert(state.source)
-    tables["outbound"].insert(state.outbound)
-    tables["local"].insert(state.local)
+    tables["source"].insert(state.source.main)
+    tables["outbound"].insert(state.outbound.main)
+    tables["local"].insert(state.local.main)
 
 
 def has_state(tables: Tables, expected: State) -> bool:
     return (
-        tables["source"].fetch() == expected.source
-        and tables["outbound"].fetch() == expected.outbound
-        and tables["local"].fetch() == expected.local
+        tables["source"].fetch() == expected.source.main
+        and tables["outbound"].fetch() == expected.outbound.main
+        and tables["local"].fetch() == expected.local.main
     )
 
 
@@ -316,20 +325,26 @@ def test_link_creation() -> None:
     set_state(
         tables,
         State(
-            source=[
-                {"a": 0, "b": 1},
-                {"a": 1, "b": 2},
-                {"a": 2, "b": 3},
-            ],
-            outbound=[
-                {"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
-                {"a": 1, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
-                {"a": 2, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "FALSE"},
-            ],
-            local=[
-                {"a": 2, "b": 3},
-                {"a": 0, "b": 1},
-            ],
+            source=TableState(
+                [
+                    {"a": 0, "b": 1},
+                    {"a": 1, "b": 2},
+                    {"a": 2, "b": 3},
+                ]
+            ),
+            outbound=TableState(
+                [
+                    {"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                    {"a": 1, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                    {"a": 2, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "FALSE"},
+                ]
+            ),
+            local=TableState(
+                [
+                    {"a": 2, "b": 3},
+                    {"a": 0, "b": 1},
+                ]
+            ),
         ),
     )
 
@@ -350,8 +365,8 @@ def test_add_to_local_command() -> None:
     set_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
         ),
     )
 
@@ -361,9 +376,9 @@ def test_add_to_local_command() -> None:
     assert has_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            local=[{"a": 0, "b": 1}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            local=TableState([{"a": 0, "b": 1}]),
         ),
     )
 
@@ -374,9 +389,9 @@ def test_remove_from_local_command() -> None:
     set_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            local=[{"a": 0, "b": 1}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            local=TableState([{"a": 0, "b": 1}]),
         ),
     )
 
@@ -387,8 +402,8 @@ def test_remove_from_local_command() -> None:
     assert has_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
         ),
     )
 
@@ -396,7 +411,7 @@ def test_remove_from_local_command() -> None:
 def test_start_pull_process() -> None:
     tables = create_tables(primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
-    set_state(tables, State(source=[{"a": 0, "b": 1}], outbound=[], local=[]))
+    set_state(tables, State(source=TableState([{"a": 0, "b": 1}])))
 
     for update in pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
         gateway.apply({update})
@@ -404,8 +419,8 @@ def test_start_pull_process() -> None:
     assert has_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
         ),
     )
 
@@ -416,9 +431,9 @@ def test_finish_pull_process() -> None:
     set_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            local=[{"a": 0, "b": 1}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            local=TableState([{"a": 0, "b": 1}]),
         ),
     )
 
@@ -428,9 +443,9 @@ def test_finish_pull_process() -> None:
     assert has_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            local=[{"a": 0, "b": 1}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            local=TableState([{"a": 0, "b": 1}]),
         ),
     )
 
@@ -441,9 +456,9 @@ def test_start_delete_process() -> None:
     set_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            local=[{"a": 0, "b": 1}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            local=TableState([{"a": 0, "b": 1}]),
         ),
     )
 
@@ -453,9 +468,9 @@ def test_start_delete_process() -> None:
     assert has_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
-            local=[{"a": 0, "b": 1}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            local=TableState([{"a": 0, "b": 1}]),
         ),
     )
 
@@ -466,8 +481,8 @@ def test_finish_delete_process() -> None:
     set_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
         ),
     )
 
@@ -477,8 +492,8 @@ def test_finish_delete_process() -> None:
     assert has_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
         ),
     )
 
@@ -489,8 +504,8 @@ def test_deprecate_process() -> None:
     set_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}]),
         ),
     )
 
@@ -500,7 +515,7 @@ def test_deprecate_process() -> None:
     assert has_state(
         tables,
         State(
-            source=[{"a": 0, "b": 1}],
-            outbound=[{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}],
+            source=TableState([{"a": 0, "b": 1}]),
+            outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}]),
         ),
     )
