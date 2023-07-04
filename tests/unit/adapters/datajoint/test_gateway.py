@@ -304,9 +304,16 @@ class State:
 
 
 def set_state(tables: Tables, state: State) -> None:
+    def set_children_state(table_kind: Union[Literal["source"], Literal["outbound"], Literal["local"]]) -> None:
+        for table in tables[table_kind].children(as_objects=True):
+            table.insert(getattr(state, table_kind).children[table.table_name])
+
     tables["source"].insert(state.source.main)
     tables["outbound"].insert(state.outbound.main)
     tables["local"].insert(state.local.main)
+    set_children_state("source")
+    set_children_state("outbound")
+    set_children_state("local")
 
 
 def has_state(tables: Tables, expected: State) -> bool:
