@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import sys
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from io import StringIO
 from itertools import groupby
 from types import TracebackType
-from typing import Any, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
+from typing import Any, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
 from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
@@ -43,11 +43,20 @@ class Table(Protocol):
     def __and__(self, condition: Union[PrimaryKey, Iterable[PrimaryKey]]) -> Table:
         ...
 
+    def children(self, *, as_objects: Literal[True]) -> Sequence[Table]:
+        ...
+
 
 class FakeTable:
-    def __init__(self, primary: Iterable[str], attrs: Optional[Iterable[str]] = None) -> None:
+    def __init__(
+        self,
+        primary: Iterable[str],
+        attrs: Optional[Iterable[str]] = None,
+        children: Optional[Iterable[FakeTable]] = None,
+    ) -> None:
         self.__primary = set(primary)
         self.__attrs = set(attrs) if attrs is not None else set()
+        self.__children = list(children) if children is not None else list()
         assert self.__primary.isdisjoint(self.__attrs)
         self.__rows: list[dict[str, Any]] = []
         self.__restricted_attrs: Optional[set[str]] = None
@@ -107,6 +116,9 @@ class FakeTable:
             condition = list(condition)
         table.__restriction = condition
         return table
+
+    def children(self, *, as_objects: Literal[True]) -> Sequence[FakeTable]:
+        return list(self.__children)
 
     def __rows_in_restriction(self) -> Iterator[dict[str, Any]]:
         if self.__restriction is not None:
