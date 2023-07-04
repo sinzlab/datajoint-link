@@ -166,7 +166,16 @@ class DJLinkFacade(AbstractDJLinkFacade):
         return cast("list[PrimaryKey]", rows)
 
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        def is_part_table(parent: Table, child: Table) -> bool:
+            return child.table_name.startswith(parent.table_name + "__")
+
+        primary_keys = list(primary_keys)
         self.local.insert((self.source & primary_keys).fetch())
+        local_children = {child.table_name: child for child in self.local.children(as_objects=True)}
+        for source_child in self.source.children(as_objects=True):
+            if not is_part_table(self.source, source_child):
+                continue
+            local_children[source_child.table_name].insert((source_child & primary_keys).fetch())
 
     def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
         (self.local & primary_keys).delete()
@@ -306,7 +315,7 @@ class State:
 def set_state(tables: Tables, state: State) -> None:
     def set_children_state(table_kind: Union[Literal["source"], Literal["outbound"], Literal["local"]]) -> None:
         for table in tables[table_kind].children(as_objects=True):
-            table.insert(getattr(state, table_kind).children[table.table_name])
+            table.insert(getattr(state, table_kind).children.get(table.table_name, []))
 
     tables["source"].insert(state.source.main)
     tables["outbound"].insert(state.outbound.main)
@@ -388,13 +397,32 @@ def test_link_creation() -> None:
 
 
 def test_add_to_local_command() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
+    tables = create_tables(
+        "link",
+        primary={"a"},
+        non_primary={"b"},
+        children={"link__part1": ["c"], "link__part2": ["d"], "non_part": ["e"]},
+    )
     gateway = create_gateway(tables)
     set_state(
         tables,
         State(
-            source=TableState([{"a": 0, "b": 1}]),
+            source=TableState(
+                [{"a": 0, "b": 1}],
+                children={
+                    "link__part1": [{"a": 0, "c": 1}],
+                    "link__part2": [{"a": 0, "d": 4}],
+                    "non_part": [{"a": 0, "e": 12}],
+                },
+            ),
             outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            local=TableState(
+                children={
+                    "link__part1": [],
+                    "link__part2": [],
+                    "non_part": [],
+                }
+            ),
         ),
     )
 
@@ -404,9 +432,23 @@ def test_add_to_local_command() -> None:
     assert has_state(
         tables,
         State(
-            source=TableState([{"a": 0, "b": 1}]),
+            source=TableState(
+                [{"a": 0, "b": 1}],
+                children={
+                    "link__part1": [{"a": 0, "c": 1}],
+                    "link__part2": [{"a": 0, "d": 4}],
+                    "non_part": [{"a": 0, "e": 12}],
+                },
+            ),
             outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
-            local=TableState([{"a": 0, "b": 1}]),
+            local=TableState(
+                [{"a": 0, "b": 1}],
+                children={
+                    "link__part1": [{"a": 0, "c": 1}],
+                    "link__part2": [{"a": 0, "d": 4}],
+                    "non_part": [],
+                },
+            ),
         ),
     )
 
