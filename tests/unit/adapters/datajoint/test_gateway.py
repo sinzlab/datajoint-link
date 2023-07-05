@@ -83,9 +83,8 @@ class FakeTable:
                 answer = input("Really delete? [y/n]: ")
             return answer == "y"
 
-        if not is_confirmed():
-            return
-        self.delete_quick()
+        if is_confirmed():
+            self.delete_quick()
 
     def delete_quick(self) -> None:
         indices = (self.__rows.index(row) for row in self.__rows_in_restriction())
