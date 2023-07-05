@@ -158,9 +158,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
         return processes
 
     def get_tainted_primary_keys(self) -> list[PrimaryKey]:
-        rows = [row for row in self.outbound.proj("is_flagged").fetch() if row["is_flagged"] == "TRUE"]
-        for row in rows:
-            row.pop("is_flagged")
+        rows = (self.outbound & 'is_flagged = "TRUE"').proj().fetch()
         return cast("list[PrimaryKey]", rows)
 
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
