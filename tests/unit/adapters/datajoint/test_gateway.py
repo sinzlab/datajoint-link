@@ -94,20 +94,16 @@ class FakeTable:
     def proj(self, *attributes: str) -> FakeTable:
         attrs = set(attributes)
         assert attrs <= self.__attrs
-        table = FakeTable(self.__name, attrs=self.__attrs, primary=self.__primary)
-        table.__rows = self.__rows
+        table = self.__create_copy()
         table.__restricted_attrs = self.__primary | attrs
-        table.__restriction = self.__restriction
         return table
 
     def __and__(self, condition: Union[PrimaryKey, Iterable[PrimaryKey]]) -> FakeTable:
-        table = FakeTable(self.__name, attrs=self.__attrs, primary=self.__primary)
-        table.__rows = self.__rows
-        table.__restricted_attrs = self.__restricted_attrs
         if isinstance(condition, Mapping):
             condition = [condition]
         else:
             condition = list(condition)
+        table = self.__create_copy()
         table.__restriction = condition
         return table
 
@@ -123,6 +119,14 @@ class FakeTable:
             return (row for row in self.__rows if {k: row[k] for k in self.__primary} in self.__restriction)
         else:
             return iter(self.__rows)
+
+    def __create_copy(self) -> FakeTable:
+        table = type(self)(self.__name, primary=self.__primary, attrs=self.__attrs)
+        table.__rows = self.__rows
+        table.__restricted_attrs = self.__restricted_attrs
+        table.__restriction = self.__restriction
+        table.__children = self.__children
+        return table
 
 
 class DJLinkFacade(AbstractDJLinkFacade):
