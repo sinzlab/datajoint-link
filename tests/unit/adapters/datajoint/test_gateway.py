@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -35,7 +36,7 @@ class Table(Protocol):
     def proj(self, *attributes: str) -> Table:
         ...
 
-    def __and__(self, condition: Union[PrimaryKey, Iterable[PrimaryKey]]) -> Table:
+    def __and__(self, condition: Union[str, PrimaryKey, Iterable[PrimaryKey]]) -> Table:
         ...
 
     def children(self, *, as_objects: Literal[True]) -> Sequence[Table]:
@@ -98,8 +99,14 @@ class FakeTable:
         table.__restricted_attrs = self.__primary | attrs
         return table
 
-    def __and__(self, condition: Union[PrimaryKey, Iterable[PrimaryKey]]) -> FakeTable:
-        if isinstance(condition, Mapping):
+    def __and__(self, condition: Union[str, PrimaryKey, Iterable[PrimaryKey]]) -> FakeTable:
+        if isinstance(condition, str):
+            match = re.compile(r'(^[\w_]+) = "(\w+)"$').match(condition)
+            assert match
+            attr, value = match.groups()
+            rows = (row for row in self.__rows if row[attr] == value)
+            condition = [{attr: value for attr, value in row.items() if attr in self.__primary} for row in rows]
+        elif isinstance(condition, Mapping):
             condition = [condition]
         else:
             condition = list(condition)
