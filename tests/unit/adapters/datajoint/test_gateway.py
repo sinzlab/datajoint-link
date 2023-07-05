@@ -23,13 +23,7 @@ class Table(Protocol):
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
         ...
 
-    def insert1(self, row: Mapping[str, Any]) -> None:
-        ...
-
     def fetch(self) -> list[dict[str, Any]]:
-        ...
-
-    def fetch1(self) -> dict[str, Any]:
         ...
 
     def delete(self) -> None:
@@ -71,12 +65,9 @@ class FakeTable:
 
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
         for row in rows:
-            self.insert1(row)
-
-    def insert1(self, row: Mapping[str, Any]) -> None:
-        assert set(row) == self.__primary | self.__attrs
-        assert {k: v for k, v in row.items() if k in self.__primary} not in self.proj().fetch()
-        self.__rows.append(dict(row))
+            assert set(row) == self.__primary | self.__attrs
+            assert {k: v for k, v in row.items() if k in self.__primary} not in self.proj().fetch()
+            self.__rows.append(dict(row))
 
     def fetch(self) -> list[dict[str, Any]]:
         if self.__restricted_attrs is None:
@@ -84,9 +75,6 @@ class FakeTable:
         else:
             restricted_attrs = self.__restricted_attrs
         return [{k: v for k, v in r.items() if k in restricted_attrs} for r in self.__rows_in_restriction()]
-
-    def fetch1(self) -> dict[str, Any]:
-        return self.fetch()[0]
 
     def delete(self) -> None:
         def is_confirmed() -> bool:
