@@ -64,7 +64,7 @@ class FakeTable:
         self.__children = list(children) if children is not None else list()
         self.__external_attrs = set(external_attrs) if external_attrs is not None else set()
         self.__rows: list[dict[str, Any]] = []
-        self.__restricted_attrs: Optional[set[str]] = None
+        self.__projected_attrs: set[str] = self.__primary | self.__attrs
         self.__restriction: Optional[list[PrimaryKey]] = None
         assert self.__primary.isdisjoint(self.__attrs)
         assert self.__external_attrs <= self.__attrs
@@ -81,25 +81,24 @@ class FakeTable:
             self.__rows.append(row)
 
     def fetch(self, download_path: str = ".") -> list[dict[str, Any]]:
+        def project_rows(rows: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+            return [{attr: value for attr, value in row.items() if attr in self.__projected_attrs} for row in rows]
+
+        def convert_external_attrs(rows: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+            converted_rows = [{k: v for k, v in row.items()} for row in rows]
+            external_attrs = self.__external_attrs & self.__projected_attrs
+            for row in converted_rows:
+                for attr in external_attrs:
+                    row[attr] = convert_external_attr(*row[attr])
+            return converted_rows
+
         def convert_external_attr(filename: str, data: bytes) -> str:
             filepath = download_path / Path(filename)
             with filepath.open(mode="wb") as file:
                 file.write(data)
             return str(filepath)
 
-        if self.__restricted_attrs is None:
-            restricted_attrs = self.__primary | self.__attrs
-        else:
-            restricted_attrs = self.__restricted_attrs
-        rows = [
-            {attr: value for attr, value in row.items() if attr in restricted_attrs}
-            for row in self.__rows_in_restriction()
-        ]
-        if external_attrs := self.__external_attrs & restricted_attrs:
-            for row in rows:
-                for attr in external_attrs:
-                    row[attr] = convert_external_attr(*row[attr])
-        return rows
+        return convert_external_attrs(project_rows(self.__rows_in_restriction()))
 
     def delete(self) -> None:
         def is_confirmed() -> bool:
@@ -120,7 +119,7 @@ class FakeTable:
         attrs = set(attributes)
         assert attrs <= self.__attrs
         table = self.__create_copy()
-        table.__restricted_attrs = self.__primary | attrs
+        table.__projected_attrs = self.__primary | attrs
         return table
 
     def __and__(self, condition: Union[str, PrimaryKey, Iterable[PrimaryKey]]) -> FakeTable:
@@ -154,7 +153,7 @@ class FakeTable:
     def __create_copy(self) -> FakeTable:
         table = type(self)(self.__name, primary=self.__primary, attrs=self.__attrs)
         table.__rows = self.__rows
-        table.__restricted_attrs = self.__restricted_attrs
+        table.__projected_attrs = self.__projected_attrs
         table.__restriction = self.__restriction
         table.__children = self.__children
         return table
