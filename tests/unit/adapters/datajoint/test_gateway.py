@@ -426,8 +426,7 @@ def test_add_to_local_command() -> None:
         ),
     )
 
-    for update in process(gateway.create_link()):
-        gateway.apply({update})
+    gateway.apply(process(gateway.create_link()))
 
     assert has_state(
         tables,
@@ -465,9 +464,8 @@ def test_remove_from_local_command() -> None:
         ),
     )
 
-    for update in process(gateway.create_link()):
-        with as_stdin(StringIO("y")):
-            gateway.apply({update})
+    with as_stdin(StringIO("y")):
+        gateway.apply(process(gateway.create_link()))
 
     assert has_state(
         tables,
@@ -483,8 +481,7 @@ def test_start_pull_process() -> None:
     gateway = create_gateway(tables)
     set_state(tables, State(source=TableState([{"a": 0, "b": 1}])))
 
-    for update in pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
-        gateway.apply({update})
+    gateway.apply(pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}))
 
     assert has_state(
         tables,
@@ -507,8 +504,7 @@ def test_finish_pull_process() -> None:
         ),
     )
 
-    for update in process(gateway.create_link()):
-        gateway.apply({update})
+    gateway.apply(process(gateway.create_link()))
 
     assert has_state(
         tables,
@@ -532,8 +528,7 @@ def test_start_delete_process() -> None:
         ),
     )
 
-    for update in delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}):
-        gateway.apply({update})
+    gateway.apply(delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}))
 
     assert has_state(
         tables,
@@ -556,8 +551,7 @@ def test_finish_delete_process() -> None:
         ),
     )
 
-    for update in process(gateway.create_link()):
-        gateway.apply({update})
+    gateway.apply(process(gateway.create_link()))
 
     assert has_state(
         tables,
@@ -579,8 +573,7 @@ def test_deprecate_process() -> None:
         ),
     )
 
-    for update in process(gateway.create_link()):
-        gateway.apply({update})
+    gateway.apply(process(gateway.create_link()))
 
     assert has_state(
         tables,
