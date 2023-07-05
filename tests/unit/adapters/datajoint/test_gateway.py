@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import sys
 from collections import defaultdict
@@ -7,6 +8,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from io import StringIO
 from itertools import groupby
+from pathlib import Path
 from types import TracebackType
 from typing import Any, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
@@ -24,7 +26,7 @@ class Table(Protocol):
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
         ...
 
-    def fetch(self) -> list[dict[str, Any]]:
+    def fetch(self, download_path: str = ...) -> list[dict[str, Any]]:
         ...
 
     def delete(self) -> None:
@@ -54,28 +56,50 @@ class FakeTable:
         primary: Iterable[str],
         attrs: Optional[Iterable[str]] = None,
         children: Optional[Iterable[FakeTable]] = None,
+        external_attrs: Optional[Iterable[str]] = None,
     ) -> None:
+        self.__name = name
         self.__primary = set(primary)
         self.__attrs = set(attrs) if attrs is not None else set()
         self.__children = list(children) if children is not None else list()
-        assert self.__primary.isdisjoint(self.__attrs)
+        self.__external_attrs = set(external_attrs) if external_attrs is not None else set()
         self.__rows: list[dict[str, Any]] = []
         self.__restricted_attrs: Optional[set[str]] = None
         self.__restriction: Optional[list[PrimaryKey]] = None
-        self.__name = name
+        assert self.__primary.isdisjoint(self.__attrs)
+        assert self.__external_attrs <= self.__attrs
 
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
         for row in rows:
+            row = dict(row)
             assert set(row) == self.__primary | self.__attrs
             assert {k: v for k, v in row.items() if k in self.__primary} not in self.proj().fetch()
-            self.__rows.append(dict(row))
+            for attr in self.__external_attrs:
+                filepath = Path(row[attr])
+                with filepath.open(mode="rb") as file:
+                    row[attr] = (filepath.name, file.read())
+            self.__rows.append(row)
 
-    def fetch(self) -> list[dict[str, Any]]:
+    def fetch(self, download_path: str = ".") -> list[dict[str, Any]]:
+        def convert_external_attr(filename: str, data: bytes) -> str:
+            filepath = download_path / Path(filename)
+            with filepath.open(mode="wb") as file:
+                file.write(data)
+            return str(filepath)
+
         if self.__restricted_attrs is None:
             restricted_attrs = self.__primary | self.__attrs
         else:
             restricted_attrs = self.__restricted_attrs
-        return [{k: v for k, v in r.items() if k in restricted_attrs} for r in self.__rows_in_restriction()]
+        rows = [
+            {attr: value for attr, value in row.items() if attr in restricted_attrs}
+            for row in self.__rows_in_restriction()
+        ]
+        if external_attrs := self.__external_attrs & restricted_attrs:
+            for row in rows:
+                for attr in external_attrs:
+                    row[attr] = convert_external_attr(*row[attr])
+        return rows
 
     def delete(self) -> None:
         def is_confirmed() -> bool:
@@ -134,6 +158,19 @@ class FakeTable:
         table.__restriction = self.__restriction
         table.__children = self.__children
         return table
+
+
+def test_external_data_handling(tmpdir: Path) -> None:
+    filepath = tmpdir / "myfile"
+    data = os.urandom(1024)
+    with filepath.open(mode="wb") as file:
+        file.write(data)
+    table = FakeTable("mytable", primary=["a"], attrs=["file"], external_attrs=["file"])
+    table.insert([{"a": 0, "file": str(filepath)}])
+    os.remove(filepath)
+    row = table.fetch(download_path=str(tmpdir))[0]
+    with Path(row["file"]).open(mode="rb") as file:
+        assert data == file.read()
 
 
 class DJLinkFacade(AbstractDJLinkFacade):
