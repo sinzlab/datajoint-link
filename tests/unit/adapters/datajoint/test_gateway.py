@@ -308,20 +308,38 @@ def create_tables(
     primary: Iterable[str],
     non_primary: Iterable[str],
     *,
+    external: Optional[Iterable[str]] = None,
     children: Optional[Mapping[str, Iterable[str]]] = None,
+    children_external: Optional[Mapping[str, Iterable[str]]] = None,
 ) -> Tables:
-    def create_child_tables(children_non_primary: Mapping[str, Iterable[str]]) -> list[FakeTable]:
+    def create_child_tables(
+        children_non_primary: Mapping[str, Iterable[str]], external_attrs: Mapping[str, Iterable[str]]
+    ) -> list[FakeTable]:
         return [
-            FakeTable(name, set(primary), set(child_non_primary))
+            FakeTable(name, set(primary), set(child_non_primary), external_attrs=external_attrs.get(name, set()))
             for name, child_non_primary in children_non_primary.items()
         ]
 
     if children is None:
         children = {}
+    if children_external is None:
+        children_external = {}
     return {
-        "source": FakeTable(name, set(primary), set(non_primary), children=create_child_tables(children)),
+        "source": FakeTable(
+            name,
+            set(primary),
+            set(non_primary),
+            children=create_child_tables(children, children_external),
+            external_attrs=external,
+        ),
         "outbound": FakeTable(name + "_outbound", set(primary), {"process", "is_flagged", "is_deprecated"}),
-        "local": FakeTable(name, set(primary), set(non_primary), children=create_child_tables(children)),
+        "local": FakeTable(
+            name,
+            set(primary),
+            set(non_primary),
+            children=create_child_tables(children, children_external),
+            external_attrs=external,
+        ),
     }
 
 
