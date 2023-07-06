@@ -379,15 +379,26 @@ def set_state(tables: Tables, state: State) -> None:
     set_children_state("local")
 
 
-def has_state(tables: Tables, expected: State) -> bool:
+def has_state(tables: Tables, expected: State, *, download_path: Path = Path(".")) -> bool:
     def get_children_state(table: Table) -> dict[str, list[dict[str, Any]]]:
-        return {child.table_name: child.fetch() for child in table.children(as_objects=True)}
+        return {
+            child.table_name: child.fetch(download_path=str(download_path)) for child in table.children(as_objects=True)
+        }
 
     def get_state() -> State:
         return State(
-            source=TableState(main=tables["source"].fetch(), children=get_children_state(tables["source"])),
-            outbound=TableState(main=tables["outbound"].fetch(), children=get_children_state(tables["outbound"])),
-            local=TableState(main=tables["local"].fetch(), children=get_children_state(tables["local"])),
+            source=TableState(
+                main=tables["source"].fetch(download_path=str(download_path)),
+                children=get_children_state(tables["source"]),
+            ),
+            outbound=TableState(
+                main=tables["outbound"].fetch(download_path=str(download_path)),
+                children=get_children_state(tables["outbound"]),
+            ),
+            local=TableState(
+                main=tables["local"].fetch(download_path=str(download_path)),
+                children=get_children_state(tables["local"]),
+            ),
         )
 
     return get_state() == expected
