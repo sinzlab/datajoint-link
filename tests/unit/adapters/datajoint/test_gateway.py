@@ -12,6 +12,8 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
+import pytest
+
 from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
@@ -174,10 +176,11 @@ def test_external_data_handling(tmpdir: Path) -> None:
 
 
 class DJLinkFacade(AbstractDJLinkFacade):
-    def __init__(self, source: Table, outbound: Table, local: Table) -> None:
+    def __init__(self, source: Table, outbound: Table, local: Table, *, temp_path: Path = Path(".")) -> None:
         self.source = source
         self.outbound = outbound
         self.local = local
+        self.__temp_path = temp_path
 
     def get_assignments(self) -> DJAssignments:
         return DJAssignments(
@@ -344,8 +347,8 @@ def create_tables(
     }
 
 
-def create_gateway(tables: Tables) -> DJLinkGateway:
-    facade = DJLinkFacade(**tables)
+def create_gateway(tables: Tables, *, temp_path: Path = Path(".")) -> DJLinkGateway:
+    facade = DJLinkFacade(**tables, temp_path=temp_path)
     translator = IdentificationTranslator()
     return DJLinkGateway(facade, translator)
 
@@ -461,22 +464,34 @@ def test_link_creation() -> None:
     )
 
 
-def test_add_to_local_command() -> None:
+def test_add_to_local_command(tmp_path_factory: pytest.TempPathFactory) -> None:
     tables = create_tables(
         "link",
         primary={"a"},
-        non_primary={"b"},
-        children={"link__part1": ["c"], "link__part2": ["d"], "non_part": ["e"]},
+        non_primary={"b", "external"},
+        external={"external"},
+        children={"link__part1": ["c", "part1_external"], "link__part2": ["d", "part2_external"], "non_part": ["e"]},
+        children_external={"link__part1": ["part1_external"], "link__part2": ["part2_external"]},
     )
     gateway = create_gateway(tables)
+    base_path = tmp_path_factory.mktemp("set_state")
+    main_external_path = base_path / "main_external"
+    with main_external_path.open(mode="wb") as file:
+        file.write(os.urandom(1024))
+    part1_external_path = base_path / "part1_external"
+    with part1_external_path.open(mode="wb") as file:
+        file.write(os.urandom(1024))
+    part2_external_path = base_path / "part2_external"
+    with part2_external_path.open(mode="wb") as file:
+        file.write(os.urandom(1024))
     set_state(
         tables,
         State(
             source=TableState(
-                [{"a": 0, "b": 1}],
+                [{"a": 0, "b": 1, "external": main_external_path}],
                 children={
-                    "link__part1": [{"a": 0, "c": 1}],
-                    "link__part2": [{"a": 0, "d": 4}],
+                    "link__part1": [{"a": 0, "c": 1, "part1_external": part1_external_path}],
+                    "link__part2": [{"a": 0, "d": 4, "part2_external": part2_external_path}],
                     "non_part": [{"a": 0, "e": 12}],
                 },
             ),
@@ -493,27 +508,29 @@ def test_add_to_local_command() -> None:
 
     gateway.apply(process(gateway.create_link()))
 
+    base_path = tmp_path_factory.mktemp("has_state")
     assert has_state(
         tables,
         State(
             source=TableState(
-                [{"a": 0, "b": 1}],
+                [{"a": 0, "b": 1, "external": str(base_path / "main_external")}],
                 children={
-                    "link__part1": [{"a": 0, "c": 1}],
-                    "link__part2": [{"a": 0, "d": 4}],
+                    "link__part1": [{"a": 0, "c": 1, "part1_external": str(base_path / "part1_external")}],
+                    "link__part2": [{"a": 0, "d": 4, "part2_external": str(base_path / "part2_external")}],
                     "non_part": [{"a": 0, "e": 12}],
                 },
             ),
             outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
             local=TableState(
-                [{"a": 0, "b": 1}],
+                [{"a": 0, "b": 1, "external": str(base_path / "main_external")}],
                 children={
-                    "link__part1": [{"a": 0, "c": 1}],
-                    "link__part2": [{"a": 0, "d": 4}],
+                    "link__part1": [{"a": 0, "c": 1, "part1_external": str(base_path / "part1_external")}],
+                    "link__part2": [{"a": 0, "d": 4, "part2_external": str(base_path / "part2_external")}],
                     "non_part": [],
                 },
             ),
         ),
+        download_path=base_path,
     )
 
 
