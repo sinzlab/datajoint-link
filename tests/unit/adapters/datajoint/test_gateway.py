@@ -534,6 +534,22 @@ def test_add_to_local_command(tmp_path_factory: pytest.TempPathFactory) -> None:
     )
 
 
+def test_add_to_local_command_with_external_file(tmpdir: Path) -> None:
+    tables = create_tables("link", primary={"a"}, non_primary={"external"}, external={"external"})
+    gateway = create_gateway(tables)
+    insert_filepath = tmpdir / "file"
+    data = os.urandom(1024)
+    with insert_filepath.open(mode="wb") as file:
+        file.write(data)
+    tables["source"].insert([{"a": 0, "external": insert_filepath}])
+    os.remove(insert_filepath)
+    tables["outbound"].insert([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}])
+    gateway.apply(process(gateway.create_link()))
+    fetch_filepath = Path(tables["local"].fetch(download_path=str(tmpdir))[0]["external"])
+    with fetch_filepath.open(mode="rb") as file:
+        assert file.read() == data
+
+
 def test_remove_from_local_command() -> None:
     tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
