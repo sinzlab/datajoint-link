@@ -156,6 +156,7 @@ class FakeTable:
         table.__projected_attrs = self.__projected_attrs
         table.__restriction = self.__restriction
         table.__children = self.__children
+        table.__external_attrs = self.__external_attrs
         return table
 
 
