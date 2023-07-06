@@ -162,19 +162,6 @@ class FakeTable:
         return table
 
 
-def test_external_data_handling(tmpdir: Path) -> None:
-    filepath = tmpdir / "myfile"
-    data = os.urandom(1024)
-    with filepath.open(mode="wb") as file:
-        file.write(data)
-    table = FakeTable("mytable", primary=["a"], attrs=["file"], external_attrs=["file"])
-    table.insert([{"a": 0, "file": str(filepath)}])
-    os.remove(filepath)
-    row = table.fetch(download_path=str(tmpdir))[0]
-    with Path(row["file"]).open(mode="rb") as file:
-        assert data == file.read()
-
-
 class DJLinkFacade(AbstractDJLinkFacade):
     def __init__(self, source: Table, outbound: Table, local: Table, *, temp_path: Path = Path(".")) -> None:
         self.source = source
