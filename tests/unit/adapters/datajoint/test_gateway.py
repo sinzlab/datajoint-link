@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from io import StringIO
 from itertools import groupby
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import TracebackType
 from typing import Any, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
@@ -192,16 +193,19 @@ class DJLinkFacade(AbstractDJLinkFacade):
         def is_part_table(parent: Table, child: Table) -> bool:
             return child.table_name.startswith(parent.table_name + "__")
 
-        def add_parts_to_local() -> None:
+        def add_parts_to_local(download_path: str) -> None:
             local_children = {child.table_name: child for child in self.local.children(as_objects=True)}
             for source_child in self.source.children(as_objects=True):
                 if not is_part_table(self.source, source_child):
                     continue
-                local_children[source_child.table_name].insert((source_child & primary_keys).fetch())
+                local_children[source_child.table_name].insert(
+                    (source_child & primary_keys).fetch(download_path=download_path)
+                )
 
         primary_keys = list(primary_keys)
-        self.local.insert((self.source & primary_keys).fetch())
-        add_parts_to_local()
+        with TemporaryDirectory() as download_path:
+            self.local.insert((self.source & primary_keys).fetch(download_path=download_path))
+            add_parts_to_local(download_path)
 
     def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
         (self.local & primary_keys).delete()
