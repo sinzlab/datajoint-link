@@ -15,6 +15,8 @@ from tempfile import TemporaryDirectory
 from types import TracebackType
 from typing import Any, ContextManager, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
+import pytest
+
 from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
@@ -694,44 +696,44 @@ def test_finish_delete_process() -> None:
     )
 
 
-def test_deprecate_process() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
-    gateway = create_gateway(tables)
-    set_state(
-        tables,
-        State(
+class TestDeprecateProcessCommand:
+    @staticmethod
+    @pytest.fixture()
+    def initial_state() -> State:
+        return State(
             source=TableState([{"a": 0, "b": 1}]),
             outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}]),
-        ),
-    )
+        )
 
-    gateway.apply(process(gateway.create_link()))
+    @staticmethod
+    def test_state_after_command(initial_state: State) -> None:
+        tables = create_tables("link", primary={"a"}, non_primary={"b"})
+        gateway = create_gateway(tables)
+        set_state(tables, initial_state)
 
-    assert has_state(
-        tables,
-        State(
-            source=TableState([{"a": 0, "b": 1}]),
-            outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}]),
-        ),
-    )
-
-
-def test_deprecate_process_with_error() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
-    gateway = create_gateway(tables)
-    state = State(
-        source=TableState([{"a": 0, "b": 1}]),
-        outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}]),
-    )
-    set_state(tables, state)
-
-    tables["outbound"].error_on_insert = RuntimeError
-    try:
         gateway.apply(process(gateway.create_link()))
-    except RuntimeError:
-        pass
 
-    assert has_state(tables, state)
+        assert has_state(
+            tables,
+            State(
+                source=TableState([{"a": 0, "b": 1}]),
+                outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}]),
+            ),
+        )
+
+    @staticmethod
+    def test_rollback_on_error(initial_state: State) -> None:
+        tables = create_tables("link", primary={"a"}, non_primary={"b"})
+        gateway = create_gateway(tables)
+        set_state(tables, initial_state)
+
+        tables["outbound"].error_on_insert = RuntimeError
+        try:
+            gateway.apply(process(gateway.create_link()))
+        except RuntimeError:
+            pass
+
+        assert has_state(tables, initial_state)
 
 
 def test_applying_multiple_commands() -> None:
