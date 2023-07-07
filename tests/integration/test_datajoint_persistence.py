@@ -235,11 +235,16 @@ class DJLinkFacade(AbstractDJLinkFacade):
 
 
 class DJLinkGateway(LinkGateway):
+    """Gateway for links stored using DataJoint."""
+
     def __init__(self, facade: AbstractDJLinkFacade, translator: IdentificationTranslator) -> None:
+        """Initialize the gateway."""
         self.facade = facade
         self.translator = translator
 
     def create_link(self) -> Link:
+        """Create a link instance from persistent data."""
+
         def translate_assignments(dj_assignments: DJAssignments) -> dict[Components, set[Identifier]]:
             return {
                 Components.SOURCE: self.translator.to_identifiers(dj_assignments.source),
@@ -266,6 +271,8 @@ class DJLinkGateway(LinkGateway):
         )
 
     def apply(self, updates: Iterable[Update]) -> None:
+        """Apply updates to the persistent data representing the link."""
+
         def keyfunc(update: Update) -> int:
             assert update.command is not None
             return update.command.value
