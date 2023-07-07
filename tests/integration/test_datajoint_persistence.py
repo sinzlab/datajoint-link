@@ -658,50 +658,78 @@ def test_finish_pull_process() -> None:
     )
 
 
-def test_start_delete_process() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
-    gateway = create_gateway(tables)
-    set_state(
-        tables,
-        State(
+class TestStartDeleteProcessCommand:
+    @staticmethod
+    @pytest.fixture()
+    def initial_state() -> State:
+        return State(
             source=TableState([{"a": 0, "b": 1}]),
             outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
             local=TableState([{"a": 0, "b": 1}]),
-        ),
-    )
+        )
 
-    gateway.apply(delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}))
+    @staticmethod
+    def test_state_after_command(initial_state: State) -> None:
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-    assert has_state(
-        tables,
-        State(
+        gateway.apply(delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}))
+
+        assert has_state(
+            tables,
+            State(
+                source=TableState([{"a": 0, "b": 1}]),
+                outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+                local=TableState([{"a": 0, "b": 1}]),
+            ),
+        )
+
+    @staticmethod
+    def test_rollback_on_error(initial_state: State) -> None:
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
+
+        tables["outbound"].error_on_insert = RuntimeError
+        try:
+            gateway.apply(delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}))
+        except RuntimeError:
+            pass
+
+        assert has_state(tables, initial_state)
+
+
+class TestFinishDeleteProcessCommand:
+    @staticmethod
+    @pytest.fixture()
+    def initial_state() -> State:
+        return State(
             source=TableState([{"a": 0, "b": 1}]),
             outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
-            local=TableState([{"a": 0, "b": 1}]),
-        ),
-    )
+        )
 
+    @staticmethod
+    def test_state_after_command(initial_state: State) -> None:
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-def test_finish_delete_process() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
-    gateway = create_gateway(tables)
-    set_state(
-        tables,
-        State(
-            source=TableState([{"a": 0, "b": 1}]),
-            outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
-        ),
-    )
+        gateway.apply(process(gateway.create_link()))
 
-    gateway.apply(process(gateway.create_link()))
+        assert has_state(
+            tables,
+            State(
+                source=TableState([{"a": 0, "b": 1}]),
+                outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+            ),
+        )
 
-    assert has_state(
-        tables,
-        State(
-            source=TableState([{"a": 0, "b": 1}]),
-            outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
-        ),
-    )
+    @staticmethod
+    def test_rollback_on_error(initial_state: State) -> None:
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
+
+        tables["outbound"].error_on_insert = RuntimeError
+        try:
+            gateway.apply(process(gateway.create_link()))
+        except RuntimeError:
+            pass
+
+        assert has_state(tables, initial_state)
 
 
 class TestDeprecateProcessCommand:
