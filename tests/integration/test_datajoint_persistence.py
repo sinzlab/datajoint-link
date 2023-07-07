@@ -595,11 +595,11 @@ def test_add_to_local_command_with_external_file(tmpdir: Path) -> None:
 
 
 def test_remove_from_local_command() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
-    gateway = create_gateway(tables)
-    set_state(
-        tables,
-        State(
+    tables, gateway = initialize(
+        "link",
+        primary={"a"},
+        non_primary={"b"},
+        initial=State(
             source=TableState([{"a": 0, "b": 1}]),
             outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
             local=TableState([{"a": 0, "b": 1}]),
@@ -619,9 +619,9 @@ def test_remove_from_local_command() -> None:
 
 
 def test_start_pull_process() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
-    gateway = create_gateway(tables)
-    set_state(tables, State(source=TableState([{"a": 0, "b": 1}])))
+    tables, gateway = initialize(
+        "link", primary={"a"}, non_primary={"b"}, initial=State(source=TableState([{"a": 0, "b": 1}]))
+    )
 
     gateway.apply(pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}))
 
@@ -634,28 +634,42 @@ def test_start_pull_process() -> None:
     )
 
 
-def test_finish_pull_process() -> None:
-    tables = create_tables("link", primary={"a"}, non_primary={"b"})
-    gateway = create_gateway(tables)
-    set_state(
-        tables,
-        State(
+class TestFinishPullProcessCommand:
+    @staticmethod
+    @pytest.fixture()
+    def initial_state() -> State:
+        return State(
             source=TableState([{"a": 0, "b": 1}]),
             outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
             local=TableState([{"a": 0, "b": 1}]),
-        ),
-    )
+        )
 
-    gateway.apply(process(gateway.create_link()))
+    @staticmethod
+    def test_state_after_command(initial_state: State) -> None:
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-    assert has_state(
-        tables,
-        State(
-            source=TableState([{"a": 0, "b": 1}]),
-            outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
-            local=TableState([{"a": 0, "b": 1}]),
-        ),
-    )
+        gateway.apply(process(gateway.create_link()))
+
+        assert has_state(
+            tables,
+            State(
+                source=TableState([{"a": 0, "b": 1}]),
+                outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+                local=TableState([{"a": 0, "b": 1}]),
+            ),
+        )
+
+    @staticmethod
+    def test_rollback_on_error(initial_state: State) -> None:
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
+
+        tables["outbound"].error_on_insert = RuntimeError
+        try:
+            gateway.apply(process(gateway.create_link()))
+        except RuntimeError:
+            pass
+
+        assert has_state(tables, initial_state)
 
 
 class TestStartDeleteProcessCommand:
