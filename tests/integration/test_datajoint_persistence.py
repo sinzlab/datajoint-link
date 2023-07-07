@@ -162,12 +162,16 @@ class FakeTable:
 
 
 class DJLinkFacade(AbstractDJLinkFacade):
+    """Facade around DataJoint operations needed to interact with stored links."""
+
     def __init__(self, source: Table, outbound: Table, local: Table) -> None:
+        """Initialize the facade."""
         self.source = source
         self.outbound = outbound
         self.local = local
 
     def get_assignments(self) -> DJAssignments:
+        """Get the assignments of primary keys to tables."""
         return DJAssignments(
             cast("list[PrimaryKey]", self.source.proj().fetch()),
             cast("list[PrimaryKey]", self.outbound.proj().fetch()),
@@ -175,6 +179,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
         )
 
     def get_processes(self) -> list[DJProcess]:
+        """Get the current process (if any) from each entity in the outbound table."""
         rows = self.outbound.proj("process").fetch()
         processes: list[DJProcess] = []
         for row in rows:
@@ -183,10 +188,13 @@ class DJLinkFacade(AbstractDJLinkFacade):
         return processes
 
     def get_tainted_primary_keys(self) -> list[PrimaryKey]:
+        """Get the flagged (i.e. tainted) primary keys from the outbound table."""
         rows = (self.outbound & 'is_flagged = "TRUE"').proj().fetch()
         return cast("list[PrimaryKey]", rows)
 
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Add the entities corresponding to the given primary keys to the local table."""
+
         def is_part_table(parent: Table, child: Table) -> bool:
             return child.table_name.startswith(parent.table_name + "__")
 
@@ -205,23 +213,29 @@ class DJLinkFacade(AbstractDJLinkFacade):
             add_parts_to_local(download_path)
 
     def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Remove the entities corresponding to the given primary keys from the local table."""
         (self.local & primary_keys).delete()
 
     def deprecate(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Deprecate the entities corresponding to the given primary keys by updating rows in the outbound table."""
         self.__update_rows(self.outbound, primary_keys, {"process": "NONE", "is_deprecated": "TRUE"})
 
     def start_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Start the pull process of the entities corresponding to the given primary keys."""
         self.outbound.insert(
             (dict(key, process="PULL", is_flagged="FALSE", is_deprecated="FALSE") for key in primary_keys)
         )
 
     def finish_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Finish the pull process of the entities corresponding to the given primary keys."""
         self.__update_rows(self.outbound, primary_keys, {"process": "NONE"})
 
     def start_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Start the delete process of the entities corresponding to the given primary keys."""
         self.__update_rows(self.outbound, primary_keys, {"process": "DELETE"})
 
     def finish_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Finish the delete process of the entities corresponding to the given primary keys."""
         self.__update_rows(self.outbound, primary_keys, {"process": "NONE"})
 
     @staticmethod
