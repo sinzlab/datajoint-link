@@ -353,6 +353,14 @@ class DJLinkGateway(LinkGateway):
                 self.facade.finish_delete_process(primary_keys)
 
 
+def initialize(
+    name: str, primary: Iterable[str], non_primary: Iterable[str], initial: State
+) -> tuple[Tables, DJLinkGateway]:
+    tables = create_tables(name, primary, non_primary)
+    set_state(tables, initial)
+    return tables, create_gateway(tables)
+
+
 class Tables(TypedDict):
     source: FakeTable
     outbound: FakeTable
@@ -707,9 +715,7 @@ class TestDeprecateProcessCommand:
 
     @staticmethod
     def test_state_after_command(initial_state: State) -> None:
-        tables = create_tables("link", primary={"a"}, non_primary={"b"})
-        gateway = create_gateway(tables)
-        set_state(tables, initial_state)
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
         gateway.apply(process(gateway.create_link()))
 
@@ -723,9 +729,7 @@ class TestDeprecateProcessCommand:
 
     @staticmethod
     def test_rollback_on_error(initial_state: State) -> None:
-        tables = create_tables("link", primary={"a"}, non_primary={"b"})
-        gateway = create_gateway(tables)
-        set_state(tables, initial_state)
+        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
         tables["outbound"].error_on_insert = RuntimeError
         try:
