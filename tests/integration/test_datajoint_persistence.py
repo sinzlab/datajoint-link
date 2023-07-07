@@ -278,7 +278,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
 
     def finish_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Finish the delete process of the entities corresponding to the given primary keys."""
-        self.__update_rows(self.outbound, primary_keys, {"process": "NONE"})
+        (self.outbound & primary_keys).delete_quick()
 
     @staticmethod
     def __update_rows(table: Table, primary_keys: Iterable[PrimaryKey], changes: Mapping[str, Any]) -> None:
@@ -710,40 +710,20 @@ class TestStartDeleteProcessCommand:
         assert has_state(tables, initial_state)
 
 
-class TestFinishDeleteProcessCommand:
-    @staticmethod
-    @pytest.fixture()
-    def initial_state() -> State:
-        return State(
+def test_finish_delete_process_command() -> None:
+    tables, gateway = initialize(
+        "link",
+        primary={"a"},
+        non_primary={"b"},
+        initial=State(
             source=TableState([{"a": 0, "b": 1}]),
             outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
-        )
+        ),
+    )
 
-    @staticmethod
-    def test_state_after_command(initial_state: State) -> None:
-        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
+    gateway.apply(process(gateway.create_link()))
 
-        gateway.apply(process(gateway.create_link()))
-
-        assert has_state(
-            tables,
-            State(
-                source=TableState([{"a": 0, "b": 1}]),
-                outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
-            ),
-        )
-
-    @staticmethod
-    def test_rollback_on_error(initial_state: State) -> None:
-        tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
-
-        tables["outbound"].error_on_insert = RuntimeError
-        try:
-            gateway.apply(process(gateway.create_link()))
-        except RuntimeError:
-            pass
-
-        assert has_state(tables, initial_state)
+    assert has_state(tables, State(source=TableState([{"a": 0, "b": 1}])))
 
 
 class TestDeprecateProcessCommand:
