@@ -293,7 +293,7 @@ class DJLinkGateway(LinkGateway):
 
         transition_updates = (update for update in updates if update.command)
         for command_value, command_updates in groupby(sorted(transition_updates, key=keyfunc), key=keyfunc):
-            primary_keys = (self.translator.to_primary_key(update.identifier) for update in updates)
+            primary_keys = (self.translator.to_primary_key(update.identifier) for update in command_updates)
             if Commands(command_value) is Commands.ADD_TO_LOCAL:
                 self.facade.add_to_local(primary_keys)
             if Commands(command_value) is Commands.REMOVE_FROM_LOCAL:
@@ -671,5 +671,40 @@ def test_deprecate_process() -> None:
         State(
             source=TableState([{"a": 0, "b": 1}]),
             outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}]),
+        ),
+    )
+
+
+def test_applying_multiple_commands() -> None:
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    set_state(
+        tables,
+        State(
+            source=TableState([{"a": 0, "b": 1}, {"a": 1, "b": 2}]),
+            outbound=TableState(
+                [
+                    {"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                    {"a": 1, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                ]
+            ),
+            local=TableState([{"a": 1, "b": 2}]),
+        ),
+    )
+
+    with as_stdin(StringIO("y")):
+        gateway.apply(process(gateway.create_link()))
+
+    assert has_state(
+        tables,
+        State(
+            source=TableState([{"a": 0, "b": 1}, {"a": 1, "b": 2}]),
+            outbound=TableState(
+                [
+                    {"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                    {"a": 1, "process": "DELETE", "is_flagged": "FALSE", "is_deprecated": "FALSE"},
+                ]
+            ),
+            local=TableState([{"a": 0, "b": 1}]),
         ),
     )
