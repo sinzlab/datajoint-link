@@ -5,13 +5,15 @@ import re
 import sys
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import dataclass, field
 from io import StringIO
 from itertools import groupby
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import Any, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
+from typing import Any, ContextManager, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
 from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
@@ -21,6 +23,12 @@ from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Link, create_link, delete, process, pull
 from dj_link.entities.state import Commands, Components, Processes, Update
 from dj_link.use_cases.gateway import LinkGateway
+
+
+class Connection(Protocol):
+    @property
+    def transaction(self) -> ContextManager[Connection]:
+        ...
 
 
 class Table(Protocol):
@@ -49,6 +57,30 @@ class Table(Protocol):
     def table_name(self) -> str:
         ...
 
+    @property
+    def connection(self) -> Connection:
+        ...
+
+
+class FakeConnection:
+    def __init__(self, rows: list[dict[str, Any]]) -> None:
+        self.__rows = rows
+        self.__backup: Optional[list[dict[str, Any]]] = None
+
+    @property
+    @contextmanager
+    def transaction(self) -> Iterator[FakeConnection]:
+        self.__backup = deepcopy(self.__rows)
+        try:
+            yield self
+        except Exception as exception:
+            assert self.__backup is not None
+            self.__rows.clear()
+            self.__rows.extend(self.__backup)
+            raise exception
+        finally:
+            self.__backup = None
+
 
 class FakeTable:
     def __init__(
@@ -67,10 +99,14 @@ class FakeTable:
         self.__rows: list[dict[str, Any]] = []
         self.__projected_attrs: set[str] = self.__primary | self.__attrs
         self.__restriction: Optional[list[PrimaryKey]] = None
+        self.__connection = FakeConnection(self.__rows)
+        self.error_on_insert: Optional[type[Exception]] = None
         assert self.__primary.isdisjoint(self.__attrs)
         assert self.__external_attrs <= self.__attrs
 
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
+        if self.error_on_insert:
+            raise self.error_on_insert
         for row in rows:
             row = dict(row)
             assert set(row) == self.__primary | self.__attrs
@@ -144,6 +180,10 @@ class FakeTable:
     @property
     def table_name(self) -> str:
         return self.__name
+
+    @property
+    def connection(self) -> FakeConnection:
+        return self.__connection
 
     def __rows_in_restriction(self) -> Iterator[dict[str, Any]]:
         if self.__restriction is not None:
@@ -240,12 +280,13 @@ class DJLinkFacade(AbstractDJLinkFacade):
 
     @staticmethod
     def __update_rows(table: Table, primary_keys: Iterable[PrimaryKey], changes: Mapping[str, Any]) -> None:
-        primary_keys = list(primary_keys)
-        rows = (table & primary_keys).fetch(as_dict=True)
-        for row in rows:
-            row.update(changes)
-        (table & primary_keys).delete_quick()
-        table.insert(rows)
+        with table.connection.transaction:
+            primary_keys = list(primary_keys)
+            rows = (table & primary_keys).fetch(as_dict=True)
+            for row in rows:
+                row.update(changes)
+            (table & primary_keys).delete_quick()
+            table.insert(rows)
 
 
 class DJLinkGateway(LinkGateway):
@@ -673,6 +714,24 @@ def test_deprecate_process() -> None:
             outbound=TableState([{"a": 0, "process": "NONE", "is_flagged": "TRUE", "is_deprecated": "TRUE"}]),
         ),
     )
+
+
+def test_deprecate_process_with_error() -> None:
+    tables = create_tables("link", primary={"a"}, non_primary={"b"})
+    gateway = create_gateway(tables)
+    state = State(
+        source=TableState([{"a": 0, "b": 1}]),
+        outbound=TableState([{"a": 0, "process": "DELETE", "is_flagged": "TRUE", "is_deprecated": "FALSE"}]),
+    )
+    set_state(tables, state)
+
+    tables["outbound"].error_on_insert = RuntimeError
+    try:
+        gateway.apply(process(gateway.create_link()))
+    except RuntimeError:
+        pass
+
+    assert has_state(tables, state)
 
 
 def test_applying_multiple_commands() -> None:
