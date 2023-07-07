@@ -27,7 +27,7 @@ class Table(Protocol):
     def insert(self, rows: Iterable[Mapping[str, Any]]) -> None:
         ...
 
-    def fetch(self, download_path: str = ...) -> list[dict[str, Any]]:
+    def fetch(self, *, as_dict: Literal[True], download_path: str = ...) -> list[dict[str, Any]]:
         ...
 
     def delete(self) -> None:
@@ -74,14 +74,14 @@ class FakeTable:
         for row in rows:
             row = dict(row)
             assert set(row) == self.__primary | self.__attrs
-            assert {k: v for k, v in row.items() if k in self.__primary} not in self.proj().fetch()
+            assert {k: v for k, v in row.items() if k in self.__primary} not in self.proj().fetch(as_dict=True)
             for attr in self.__external_attrs:
                 filepath = Path(row[attr])
                 with filepath.open(mode="rb") as file:
                     row[attr] = (filepath.name, file.read())
             self.__rows.append(row)
 
-    def fetch(self, download_path: str = ".") -> list[dict[str, Any]]:
+    def fetch(self, *, as_dict: Literal[True], download_path: str = ".") -> list[dict[str, Any]]:
         def project_rows(rows: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
             return [{attr: value for attr, value in row.items() if attr in self.__projected_attrs} for row in rows]
 
@@ -173,14 +173,14 @@ class DJLinkFacade(AbstractDJLinkFacade):
     def get_assignments(self) -> DJAssignments:
         """Get the assignments of primary keys to tables."""
         return DJAssignments(
-            cast("list[PrimaryKey]", self.source.proj().fetch()),
-            cast("list[PrimaryKey]", self.outbound.proj().fetch()),
-            cast("list[PrimaryKey]", self.local.proj().fetch()),
+            cast("list[PrimaryKey]", self.source.proj().fetch(as_dict=True)),
+            cast("list[PrimaryKey]", self.outbound.proj().fetch(as_dict=True)),
+            cast("list[PrimaryKey]", self.local.proj().fetch(as_dict=True)),
         )
 
     def get_processes(self) -> list[DJProcess]:
         """Get the current process (if any) from each entity in the outbound table."""
-        rows = self.outbound.proj("process").fetch()
+        rows = self.outbound.proj("process").fetch(as_dict=True)
         processes: list[DJProcess] = []
         for row in rows:
             process = row.pop("process")
@@ -189,7 +189,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
 
     def get_tainted_primary_keys(self) -> list[PrimaryKey]:
         """Get the flagged (i.e. tainted) primary keys from the outbound table."""
-        rows = (self.outbound & 'is_flagged = "TRUE"').proj().fetch()
+        rows = (self.outbound & 'is_flagged = "TRUE"').proj().fetch(as_dict=True)
         return cast("list[PrimaryKey]", rows)
 
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
@@ -204,12 +204,12 @@ class DJLinkFacade(AbstractDJLinkFacade):
                 if not is_part_table(self.source, source_child):
                     continue
                 local_children[source_child.table_name].insert(
-                    (source_child & primary_keys).fetch(download_path=download_path)
+                    (source_child & primary_keys).fetch(as_dict=True, download_path=download_path)
                 )
 
         primary_keys = list(primary_keys)
         with TemporaryDirectory() as download_path:
-            self.local.insert((self.source & primary_keys).fetch(download_path=download_path))
+            self.local.insert((self.source & primary_keys).fetch(as_dict=True, download_path=download_path))
             add_parts_to_local(download_path)
 
     def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
@@ -241,7 +241,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
     @staticmethod
     def __update_rows(table: Table, primary_keys: Iterable[PrimaryKey], changes: Mapping[str, Any]) -> None:
         primary_keys = list(primary_keys)
-        rows = (table & primary_keys).fetch()
+        rows = (table & primary_keys).fetch(as_dict=True)
         for row in rows:
             row.update(changes)
         (table & primary_keys).delete_quick()
@@ -393,20 +393,20 @@ def set_state(tables: Tables, state: State) -> None:
 
 def has_state(tables: Tables, expected: State) -> bool:
     def get_children_state(table: Table) -> dict[str, list[dict[str, Any]]]:
-        return {child.table_name: child.fetch() for child in table.children(as_objects=True)}
+        return {child.table_name: child.fetch(as_dict=True) for child in table.children(as_objects=True)}
 
     def get_state() -> State:
         return State(
             source=TableState(
-                main=tables["source"].fetch(),
+                main=tables["source"].fetch(as_dict=True),
                 children=get_children_state(tables["source"]),
             ),
             outbound=TableState(
-                main=tables["outbound"].fetch(),
+                main=tables["outbound"].fetch(as_dict=True),
                 children=get_children_state(tables["outbound"]),
             ),
             local=TableState(
-                main=tables["local"].fetch(),
+                main=tables["local"].fetch(as_dict=True),
                 children=get_children_state(tables["local"]),
             ),
         )
@@ -538,7 +538,7 @@ def test_add_to_local_command_with_external_file(tmpdir: Path) -> None:
     os.remove(insert_filepath)
     tables["outbound"].insert([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}])
     gateway.apply(process(gateway.create_link()))
-    fetch_filepath = Path(tables["local"].fetch(download_path=str(tmpdir))[0]["external"])
+    fetch_filepath = Path(tables["local"].fetch(as_dict=True, download_path=str(tmpdir))[0]["external"])
     with fetch_filepath.open(mode="rb") as file:
         assert file.read() == data
 
