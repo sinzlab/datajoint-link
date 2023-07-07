@@ -13,8 +13,6 @@ from tempfile import TemporaryDirectory
 from types import TracebackType
 from typing import Any, Literal, Optional, Protocol, TextIO, Type, TypedDict, Union, cast
 
-import pytest
-
 from dj_link.adapters.datajoint.facade import DJAssignments, DJProcess
 from dj_link.adapters.datajoint.facade import DJLinkFacade as AbstractDJLinkFacade
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
@@ -164,11 +162,10 @@ class FakeTable:
 
 
 class DJLinkFacade(AbstractDJLinkFacade):
-    def __init__(self, source: Table, outbound: Table, local: Table, *, temp_path: Path = Path(".")) -> None:
+    def __init__(self, source: Table, outbound: Table, local: Table) -> None:
         self.source = source
         self.outbound = outbound
         self.local = local
-        self.__temp_path = temp_path
 
     def get_assignments(self) -> DJAssignments:
         return DJAssignments(
@@ -338,8 +335,8 @@ def create_tables(
     }
 
 
-def create_gateway(tables: Tables, *, temp_path: Path = Path(".")) -> DJLinkGateway:
-    facade = DJLinkFacade(**tables, temp_path=temp_path)
+def create_gateway(tables: Tables) -> DJLinkGateway:
+    facade = DJLinkFacade(**tables)
     translator = IdentificationTranslator()
     return DJLinkGateway(facade, translator)
 
@@ -373,24 +370,22 @@ def set_state(tables: Tables, state: State) -> None:
     set_children_state("local")
 
 
-def has_state(tables: Tables, expected: State, *, download_path: Path = Path(".")) -> bool:
+def has_state(tables: Tables, expected: State) -> bool:
     def get_children_state(table: Table) -> dict[str, list[dict[str, Any]]]:
-        return {
-            child.table_name: child.fetch(download_path=str(download_path)) for child in table.children(as_objects=True)
-        }
+        return {child.table_name: child.fetch() for child in table.children(as_objects=True)}
 
     def get_state() -> State:
         return State(
             source=TableState(
-                main=tables["source"].fetch(download_path=str(download_path)),
+                main=tables["source"].fetch(),
                 children=get_children_state(tables["source"]),
             ),
             outbound=TableState(
-                main=tables["outbound"].fetch(download_path=str(download_path)),
+                main=tables["outbound"].fetch(),
                 children=get_children_state(tables["outbound"]),
             ),
             local=TableState(
-                main=tables["local"].fetch(download_path=str(download_path)),
+                main=tables["local"].fetch(),
                 children=get_children_state(tables["local"]),
             ),
         )
@@ -455,7 +450,7 @@ def test_link_creation() -> None:
     )
 
 
-def test_add_to_local_command(tmp_path_factory: pytest.TempPathFactory) -> None:
+def test_add_to_local_command() -> None:
     tables = create_tables(
         "link",
         primary={"a"},
