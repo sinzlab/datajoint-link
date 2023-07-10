@@ -114,25 +114,28 @@ classDiagram
     }
     class DJLinkGateway{
         create_link() Link
-        apply(update: Update)
+        apply(updates: Iterable~Update~)
     }
     class DJTranslator{
         to_primary_key(identifier: Identifier) PrimaryKey
         to_identifier(primary_key: PrimaryKey) Identifier
     }
     class DJLinkFacade{
-        get_source_primary_keys() List~PrimaryKey~
-        get_outbound_primary_keys() List~PrimaryKey~
-        get_local_primary_keys() List~PrimaryKey~
+        get_assignments() DJAssignments
         get_tainted_primary_keys() List~PrimaryKey~
         get_processes() List~DJProcess~
-        add_to_local(primary_key: PrimaryKey)
-        remove_from_local(primary_key: PrimaryKey)
-        start_pull_process(primary_key: PrimaryKey)
-        finish_pull_process(primary_key: PrimaryKey)
-        start_delete_process(primary_key: PrimaryKey)
-        finish_delete_process(primary_key: PrimaryKey)
-        deprecate(primary_key: PrimaryKey)
+        add_to_local(primary_keys: Iterable~PrimaryKey~)
+        remove_from_local(primary_keys: Iterable~PrimaryKey~)
+        start_pull_process(primary_keys: Iterable~PrimaryKey~)
+        finish_pull_process(primary_keys: Iterable~PrimaryKey~)
+        start_delete_process(primary_keys: Iterable~PrimaryKey~)
+        finish_delete_process(primary_keys: Iterable~PrimaryKey~)
+        deprecate(primary_keys: Iterable~PrimaryKey~)
+    }
+    class DJAssignments {
+        source: List[PrimaryKey]
+        outbound: List[PrimaryKey]
+        local: List[PrimaryKey]
     }
     class DJProcess {
         primary_key: PrimaryKey
