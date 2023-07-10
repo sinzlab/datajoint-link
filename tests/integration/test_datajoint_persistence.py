@@ -250,7 +250,7 @@ class DJLinkFacade(AbstractDJLinkFacade):
                 )
 
         primary_keys = list(primary_keys)
-        with TemporaryDirectory() as download_path:
+        with self.local.connection.transaction, TemporaryDirectory() as download_path:
             self.local.insert((self.source & primary_keys).fetch(as_dict=True, download_path=download_path))
             add_parts_to_local(download_path)
 
@@ -576,6 +576,25 @@ def test_add_to_local_command() -> None:
             ),
         ),
     )
+
+
+def test_add_to_local_command_with_error() -> None:
+    tables = create_tables("link", primary={"a"}, non_primary={"b"}, children={"link__part": {"c"}})
+    gateway = create_gateway(tables)
+    initial_state = State(
+        source=TableState([{"a": 0, "b": 1}], children={"link__part": [{"a": 0, "c": 1}]}),
+        outbound=TableState([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}]),
+        local=TableState(children={"link__part": []}),
+    )
+    set_state(tables, initial_state)
+
+    tables["local"].children(as_objects=True)[0].error_on_insert = RuntimeError
+    try:
+        gateway.apply(process(gateway.create_link()))
+    except RuntimeError:
+        pass
+
+    assert has_state(tables, initial_state)
 
 
 def test_add_to_local_command_with_external_file(tmpdir: Path) -> None:
