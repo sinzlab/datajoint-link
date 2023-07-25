@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -216,7 +216,17 @@ def create_tables(
 
 
 def create_gateway(tables: Tables) -> DJLinkGateway:
-    facade = DJLinkFacade(**tables)
+    def create_table_factory(table: FakeTable) -> Callable[[], FakeTable]:
+        def create_table() -> FakeTable:
+            return table
+
+        return create_table
+
+    facade = DJLinkFacade(
+        source=create_table_factory(tables["source"]),
+        outbound=create_table_factory(tables["outbound"]),
+        local=create_table_factory(tables["local"]),
+    )
     translator = IdentificationTranslator()
     return DJLinkGateway(facade, translator)
 
