@@ -24,13 +24,13 @@ source = "scm"
 
 [tool.pdm.dev-dependencies]
 dev = [
-    "pytest~=6.2",
-    "pytest-sugar~=0.9",
-    "pytest-cov~=2.11",
-    "docker~=4.4",
-    "pymysql~=1.0",
-    "pylint~=2.7",
-    "mypy~=0.812",
+    "pytest>=6.2",
+    "pytest-sugar>=0.9",
+    "pytest-cov>=2.11",
+    "docker>=4.4",
+    "pymysql>=1.0",
+    "pylint>=2.7",
+    "mypy>=0.812",
     "black>=22.10.0",
     "minio>=7.1.12",
     "neovim>=0.3.1",
