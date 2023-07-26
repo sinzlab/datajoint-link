@@ -3,13 +3,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Collection, Dict, Mapping, Optional, Tuple, Type
+from hashlib import sha1
+from typing import Any, Callable, Collection, Dict, Mapping, Optional, Tuple, Type, overload
 
+import datajoint as dj
 from datajoint import Computed, Imported, Lookup, Manual, Part, Schema
 from datajoint.user_tables import UserTable
 
+from dj_link.adapters.datajoint.gateway import DJLinkGateway
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
+
 from ...base import Base
-from .dj_helpers import get_part_table_classes
+from .dj_helpers import get_part_table_classes, replace_stores
+from .facade import DJLinkFacade
 
 
 class TableTiers(Enum):
@@ -117,3 +123,163 @@ class TableFactory(Base):
 
         assert self.config.definition is not None, "No table definition present"
         return self.config.schema(derive_table_class(), context=self.config.context)
+
+
+def create_dj_connection_factory(host: str, username: str, password: str) -> Callable[[], dj.Connection]:
+    """Create a factory producing DataJoint connections."""
+
+    def create_dj_connection() -> dj.Connection:
+        return dj.Connection(host, username, password)
+
+    return create_dj_connection
+
+
+def create_dj_schema_factory(name: str, connection_factory: Callable[[], dj.Connection]) -> Callable[[], dj.Schema]:
+    """Create a factory producing DataJoint schemas."""
+
+    def create_dj_schema() -> dj.Schema:
+        return dj.Schema(name, connection=connection_factory())
+
+    return create_dj_schema
+
+
+class Tiers(Enum):
+    """The different DataJoint table tiers."""
+
+    MANUAL = dj.Manual
+    LOOKUP = dj.Lookup
+    COMPUTED = dj.Computed
+    IMPORTED = dj.Imported
+
+
+@overload
+def create_dj_table_factory(name: str, schema_factory: Callable[[], dj.Schema]) -> Callable[[], dj.Table]:
+    ...
+
+
+@overload
+def create_dj_table_factory(  # noqa: PLR0913
+    name: str,
+    schema_factory: Callable[[], dj.Schema],
+    *,
+    tier: Tiers,
+    definition: str | Callable[[], dj.Table],
+    parts: Optional[Callable[[], dj.Table]] = None,
+    context: Optional[Mapping[str, Callable[[], dj.Table]]] = None,
+    replacement_stores: Optional[Mapping[str, str]] = None,
+) -> Callable[[], dj.Table]:
+    ...
+
+
+def create_dj_table_factory(  # noqa: PLR0913
+    name: str,
+    schema_factory: Callable[[], dj.Schema],
+    *,
+    tier: Optional[Tiers] = None,
+    definition: Optional[str | Callable[[], dj.Table]] = None,
+    parts: Optional[Callable[[], dj.Table]] = None,
+    context: Optional[Mapping[str, Callable[[], dj.Table]]] = None,
+    replacement_stores: Optional[Mapping[str, str]] = None,
+) -> Callable[[], dj.Table]:
+    """Create a factory that produces DataJoint tables."""
+    if replacement_stores is None:
+        replacement_stores = {}
+    if context is None:
+        context = {}
+
+    def create_dj_table() -> dj.Table:
+        spawned_table_classes: dict[str, dj.Table] = {}
+        schema_factory().spawn_missing_classes(context=spawned_table_classes)
+        try:
+            return spawned_table_classes[name]
+        except KeyError as exception:
+            if tier is None or definition is None:
+                raise RuntimeError from exception
+            if parts is not None:
+                part_definitions: dict[str, str] = {}
+                for child in parts().children(as_objects=True):
+                    if not child.table_name.startswith(parts().table_name + "__"):
+                        continue
+                    part_definition = child.describe(printout=False).replace(parts().full_table_name, "master")
+                    part_definitions[dj.utils.to_camel_case(child.table_name.split("__")[1])] = part_definition
+            for part_name, part_definition in part_definitions.items():
+                part_definitions[part_name] = replace_stores(part_definition, replacement_stores)
+            part_tables: dict[str, dj.Part] = {}
+            for part_name, part_definition in part_definitions.items():
+                part_tables[part_name] = type(part_name, (dj.Part,), {"definition": part_definition})
+            if callable(definition):
+                processed_definition = definition().describe(printout=False)
+            else:
+                processed_definition = definition
+            processed_definition = replace_stores(processed_definition, replacement_stores)
+            table_cls = type(name, (tier.value,), {"definition": processed_definition, **part_tables})
+            processed_context = {name: factory() for name, factory in context.items()}
+            return schema_factory()(table_cls, context=processed_context)()
+
+    return create_dj_table
+
+
+@dataclass(frozen=True)
+class ConnectionDetails:
+    """Information necessary to connect to a database server."""
+
+    host: str
+    username: str
+    password: str
+
+
+@dataclass(frozen=True)
+class SchemaNames:
+    """The names of the schemas involved in link."""
+
+    source: str
+    outbound: str
+    local: str
+
+
+def create_dj_link_gateway(
+    source_connection_details: ConnectionDetails,
+    local_connection_details: ConnectionDetails,
+    schema_names: SchemaNames,
+    source_table_name: str,
+    *,
+    replacement_stores: Optional[Mapping[str, str]] = None,
+) -> DJLinkGateway:
+    """Create a DataJoint link gateway from the given information."""
+    source_connection = create_dj_connection_factory(
+        source_connection_details.host, source_connection_details.username, source_connection_details.password
+    )
+    source_table = create_dj_table_factory(
+        source_table_name,
+        create_dj_schema_factory(schema_names.source, source_connection),
+    )
+    link_identifiers = [
+        source_connection_details.host,
+        schema_names.source,
+        source_table_name,
+        local_connection_details.host,
+        schema_names.local,
+    ]
+    outbound_table_name = "Outbound" + sha1(",".join(link_identifiers).encode()).hexdigest()
+    outbound_table = create_dj_table_factory(
+        outbound_table_name,
+        create_dj_schema_factory(schema_names.outbound, source_connection),
+        tier=Tiers.MANUAL,
+        definition="-> source_table",
+        context={"source_table": source_table},
+    )
+    local_table = create_dj_table_factory(
+        source_table_name,
+        create_dj_schema_factory(
+            schema_names.local,
+            create_dj_connection_factory(
+                local_connection_details.host, local_connection_details.username, local_connection_details.password
+            ),
+        ),
+        tier=Tiers.MANUAL,
+        definition=source_table,
+        parts=source_table,
+        replacement_stores=replacement_stores,
+    )
+    facade = DJLinkFacade(source_table, outbound_table, local_table)
+    return DJLinkGateway(facade, IdentificationTranslator())
