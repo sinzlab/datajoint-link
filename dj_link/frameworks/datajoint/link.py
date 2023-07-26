@@ -68,7 +68,7 @@ class LocalTableCreator:  # pylint: disable=too-few-public-methods
     """Creates the local table."""
 
     schema_class = Schema
-    replace_stores: staticmethod[str] = staticmethod(replace_stores)
+    replace_stores: staticmethod[[str, Mapping[str, str]], str] = staticmethod(replace_stores)
 
     def __init__(  # noqa: PLR0913
         self,
@@ -108,20 +108,20 @@ class LocalTableCreator:  # pylint: disable=too-few-public-methods
 
     def _create_basic_config(self, table_name: str, factory_type: str) -> dict[str, Any]:
         if factory_type == "source":
-            return dict(schema=self.source_schema, name=table_name)
+            return {"schema": self.source_schema, "name": table_name}
         if factory_type == "outbound":
-            return dict(
-                schema=self.schema_class(os.environ["LINK_OUTBOUND"], connection=self.source_schema.connection),
-                name=table_name + "Outbound",
-                flag_table_names=["DeletionRequested", "DeletionApproved"],
-            )
+            return {
+                "schema": self.schema_class(os.environ["LINK_OUTBOUND"], connection=self.source_schema.connection),
+                "name": table_name + "Outbound",
+                "flag_table_names": ["DeletionRequested", "DeletionApproved"],
+            }
         if factory_type == "local":
-            return dict(
-                schema=self.local_schema,
-                name=table_name,
-                bases=(self.mixin_class,),
-                flag_table_names=["DeletionRequested"],
-            )
+            return {
+                "schema": self.local_schema,
+                "name": table_name,
+                "bases": (self.mixin_class,),
+                "flag_table_names": ["DeletionRequested"],
+            }
         raise ValueError("Unknown table factory type")
 
     def _create_initial_config(self, table_name: str, factory_type: str) -> dict[str, Any]:
@@ -131,12 +131,12 @@ class LocalTableCreator:  # pylint: disable=too-few-public-methods
         if factory_type == "source":
             return create_basic_config()
         if factory_type == "outbound":
-            return dict(
-                create_basic_config(),
-                definition="-> source_table",
-                context={"source_table": self.table_classes["source"]()},
-                tier=TableTiers.LOOKUP,
-            )
+            return {
+                "definition": "-> source_table",
+                "context": {"source_table": self.table_classes["source"]()},
+                "tier": TableTiers.LOOKUP,
+                **create_basic_config(),
+            }
         if factory_type == "local":
 
             def create_local_part_table_definitions() -> dict[str, str]:
@@ -147,10 +147,10 @@ class LocalTableCreator:  # pylint: disable=too-few-public-methods
             def create_definition(table_cls: type[UserTable]) -> str:
                 return self.replace_stores(str(table_cls().heading), self.stores)
 
-            return dict(
-                create_basic_config(),
-                definition=create_definition(self.table_classes["source"]()),
-                part_table_definitions=create_local_part_table_definitions(),
-                tier=TableTiers.LOOKUP,
-            )
+            return {
+                "definition": create_definition(self.table_classes["source"]()),
+                "part_table_definitions": create_local_part_table_definitions(),
+                "tier": TableTiers.LOOKUP,
+                **create_basic_config(),
+            }
         raise ValueError("Unknown table factory type")

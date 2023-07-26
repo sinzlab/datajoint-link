@@ -92,7 +92,7 @@ class TableFactory(Base):
         def create_part_table_classes() -> Dict[str, Type[Part]]:
             def create_part_table_classes(definitions: Mapping[str, str]) -> Dict[str, Type[Part]]:
                 def create_part_table_class(name: str, definition: str) -> Type[Part]:
-                    return type(name, (Part,), dict(definition=definition))
+                    return type(name, (Part,), {"definition": definition})
 
                 return {name: create_part_table_class(name, definition) for name, definition in definitions.items()}
 
@@ -112,7 +112,7 @@ class TableFactory(Base):
             return type(
                 self.config.name,
                 (self.config.tier.value,),
-                dict(definition=self.config.definition, **create_part_table_classes()),
+                {"definition": self.config.definition, **create_part_table_classes()},
             )
 
         assert self.config.definition is not None, "No table definition present"

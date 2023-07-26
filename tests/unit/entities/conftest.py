@@ -55,7 +55,6 @@ def wrap_spy_around_method():
 @pytest.fixture()
 def gateway_spy_cls():
     class GatewaySpy(AbstractGateway):
-
         __len__ = MagicMock(name="GatewaySpy.__len__", return_value=10)
         __iter__ = MagicMock(name="GatewaySpy.__iter__", return_value=iter("iterator"))
 

@@ -20,7 +20,7 @@ class RequestModelClasses(TypedDict):
 
 
 REQUEST_MODELS = RequestModelClasses(pull=PullRequestModel, delete=DeleteRequestModel, refresh=RefreshRequestModel)
-RESPONSE_MODELS = dict(pull=PullResponseModel, delete=DeleteResponseModel, refresh=RefreshResponseModel)
+RESPONSE_MODELS = {"pull": PullResponseModel, "delete": DeleteResponseModel, "refresh": RefreshResponseModel}
 USE_CASES: Dict[str, Type[AbstractUseCase]] = {
     PullUseCase.name: PullUseCase,
     DeleteUseCase.name: DeleteUseCase,
