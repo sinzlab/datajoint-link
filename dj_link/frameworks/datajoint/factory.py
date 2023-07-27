@@ -156,13 +156,13 @@ class Tiers(Enum):
 
 
 @overload
-def create_dj_table_factory(name: str, schema_factory: Callable[[], dj.Schema]) -> Callable[[], dj.Table]:
+def create_dj_table_factory(name: Callable[[], str], schema_factory: Callable[[], dj.Schema]) -> Callable[[], dj.Table]:
     ...
 
 
 @overload
 def create_dj_table_factory(  # noqa: PLR0913
-    name: str,
+    name: Callable[[], str],
     schema_factory: Callable[[], dj.Schema],
     *,
     tier: Tiers,
@@ -175,7 +175,7 @@ def create_dj_table_factory(  # noqa: PLR0913
 
 
 def create_dj_table_factory(  # noqa: PLR0913
-    name: str,
+    name: Callable[[], str],
     schema_factory: Callable[[], dj.Schema],
     *,
     tier: Optional[Tiers] = None,
@@ -194,7 +194,7 @@ def create_dj_table_factory(  # noqa: PLR0913
         spawned_table_classes: dict[str, dj.Table] = {}
         schema_factory().spawn_missing_classes(context=spawned_table_classes)
         try:
-            return spawned_table_classes[name]
+            return spawned_table_classes[name()]
         except KeyError as exception:
             if tier is None or definition is None:
                 raise RuntimeError from exception
@@ -211,7 +211,7 @@ def create_dj_table_factory(  # noqa: PLR0913
             for part_name, part_definition in part_definitions.items():
                 part_tables[part_name] = type(part_name, (dj.Part,), {"definition": part_definition})
             processed_definition = replace_stores(definition(), replacement_stores)
-            table_cls = type(name, (tier.value,), {"definition": processed_definition, **part_tables})
+            table_cls = type(name(), (tier.value,), {"definition": processed_definition, **part_tables})
             processed_context = {name: factory() for name, factory in context.items()}
             return schema_factory()(table_cls, context=processed_context)()
 
@@ -274,6 +274,27 @@ def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[
     return provide_definition
 
 
+def create_outbound_table_name_provider(
+    source_table_name: str,
+    source_credentials: Callable[[], DatabaseServerCredentials],
+    local_credentials: Callable[[], DatabaseServerCredentials],
+    schema_names: SchemaNames,
+) -> Callable[[], str]:
+    """Create an object that provides the correct link-specific name for the outbound table when called."""
+
+    def provide_name() -> str:
+        link_identifiers = [
+            source_table_name,
+            source_credentials().host,
+            local_credentials().host,
+            schema_names.source,
+            schema_names.local,
+        ]
+        return "Outbound" + sha1(",".join(link_identifiers).encode()).hexdigest()
+
+    return provide_name
+
+
 def create_dj_link_gateway(
     source_host: str,
     schema_names: SchemaNames,
@@ -282,28 +303,23 @@ def create_dj_link_gateway(
     replacement_stores: Optional[Mapping[str, str]] = None,
 ) -> DJLinkGateway:
     """Create a DataJoint link gateway from the given information."""
-    source_connection = create_dj_connection_factory(create_source_credential_provider(source_host))
+    source_credential_provider = create_source_credential_provider(source_host)
+    source_connection = create_dj_connection_factory(source_credential_provider)
     source_table = create_dj_table_factory(
-        source_table_name, create_dj_schema_factory(schema_names.source, source_connection)
+        lambda: source_table_name, create_dj_schema_factory(schema_names.source, source_connection)
     )
     local_credential_provider = create_local_credential_provider()
-    link_identifiers = [
-        source_host,
-        schema_names.source,
-        source_table_name,
-        local_credential_provider().host,
-        schema_names.local,
-    ]
-    outbound_table_name = "Outbound" + sha1(",".join(link_identifiers).encode()).hexdigest()
     outbound_table = create_dj_table_factory(
-        outbound_table_name,
+        create_outbound_table_name_provider(
+            source_table_name, source_credential_provider, local_credential_provider, schema_names
+        ),
         create_dj_schema_factory(schema_names.outbound, source_connection),
         tier=Tiers.MANUAL,
         definition=create_static_definition_provider("-> source_table"),
         context={"source_table": source_table},
     )
     local_table = create_dj_table_factory(
-        source_table_name,
+        lambda: source_table_name,
         create_dj_schema_factory(schema_names.local, create_dj_connection_factory(local_credential_provider)),
         tier=Tiers.MANUAL,
         definition=create_table_definition_provider(source_table),
