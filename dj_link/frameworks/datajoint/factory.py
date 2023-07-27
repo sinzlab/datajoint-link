@@ -166,7 +166,7 @@ def create_dj_table_factory(  # noqa: PLR0913
     schema_factory: Callable[[], dj.Schema],
     *,
     tier: Tiers,
-    definition: str | Callable[[], dj.Table],
+    definition: Callable[[], str],
     parts: Optional[Callable[[], dj.Table]] = None,
     context: Optional[Mapping[str, Callable[[], dj.Table]]] = None,
     replacement_stores: Optional[Mapping[str, str]] = None,
@@ -179,7 +179,7 @@ def create_dj_table_factory(  # noqa: PLR0913
     schema_factory: Callable[[], dj.Schema],
     *,
     tier: Optional[Tiers] = None,
-    definition: Optional[str | Callable[[], dj.Table]] = None,
+    definition: Optional[Callable[[], str]] = None,
     parts: Optional[Callable[[], dj.Table]] = None,
     context: Optional[Mapping[str, Callable[[], dj.Table]]] = None,
     replacement_stores: Optional[Mapping[str, str]] = None,
@@ -210,11 +210,7 @@ def create_dj_table_factory(  # noqa: PLR0913
             part_tables: dict[str, dj.Part] = {}
             for part_name, part_definition in part_definitions.items():
                 part_tables[part_name] = type(part_name, (dj.Part,), {"definition": part_definition})
-            if callable(definition):
-                processed_definition = definition().describe(printout=False)
-            else:
-                processed_definition = definition
-            processed_definition = replace_stores(processed_definition, replacement_stores)
+            processed_definition = replace_stores(definition(), replacement_stores)
             table_cls = type(name, (tier.value,), {"definition": processed_definition, **part_tables})
             processed_context = {name: factory() for name, factory in context.items()}
             return schema_factory()(table_cls, context=processed_context)()
@@ -260,6 +256,24 @@ def create_local_credential_provider() -> Callable[[], DatabaseServerCredentials
     return provide_credentials
 
 
+def create_static_definition_provider(definition: str) -> Callable[[], str]:
+    """Create an object that provides a predefined table definition when called."""
+
+    def provide_definition() -> str:
+        return definition
+
+    return provide_definition
+
+
+def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[[], str]:
+    """Create an object that provides the definition of the table produced by the given factory when called."""
+
+    def provide_definition() -> str:
+        return table().describe(printout=False)
+
+    return provide_definition
+
+
 def create_dj_link_gateway(
     source_host: str,
     schema_names: SchemaNames,
@@ -285,14 +299,14 @@ def create_dj_link_gateway(
         outbound_table_name,
         create_dj_schema_factory(schema_names.outbound, source_connection),
         tier=Tiers.MANUAL,
-        definition="-> source_table",
+        definition=create_static_definition_provider("-> source_table"),
         context={"source_table": source_table},
     )
     local_table = create_dj_table_factory(
         source_table_name,
         create_dj_schema_factory(schema_names.local, create_dj_connection_factory(local_credential_provider)),
         tier=Tiers.MANUAL,
-        definition=source_table,
+        definition=create_table_definition_provider(source_table),
         parts=source_table,
         replacement_stores=replacement_stores,
     )
