@@ -66,7 +66,7 @@ class LazySchema:  # pylint: disable=too-many-instance-attributes
         self._schema: Optional[Schema] = None
 
     @property
-    def connection(self) -> Optional[Connection]:
+    def connection(self) -> Connection:
         """Initialize and return a the connection."""
         self.initialize()
         return self._connection
