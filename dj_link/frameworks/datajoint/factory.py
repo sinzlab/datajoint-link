@@ -256,15 +256,6 @@ def create_local_credential_provider() -> Callable[[], DatabaseServerCredentials
     return provide_credentials
 
 
-def create_static_definition_provider(definition: str) -> Callable[[], str]:
-    """Create an object that provides a predefined table definition when called."""
-
-    def provide_definition() -> str:
-        return definition
-
-    return provide_definition
-
-
 def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[[], str]:
     """Create an object that provides the definition of the table produced by the given factory when called."""
 
@@ -315,7 +306,7 @@ def create_dj_link_gateway(
         ),
         create_dj_schema_factory(schema_names.outbound, source_connection),
         tier=Tiers.MANUAL,
-        definition=create_static_definition_provider("-> source_table"),
+        definition=lambda: "-> source_table",
         context={"source_table": source_table},
     )
     local_table = create_dj_table_factory(
