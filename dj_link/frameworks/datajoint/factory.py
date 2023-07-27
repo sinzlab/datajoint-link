@@ -137,11 +137,13 @@ def create_dj_connection_factory(
     return create_dj_connection
 
 
-def create_dj_schema_factory(name: str, connection_factory: Callable[[], dj.Connection]) -> Callable[[], dj.Schema]:
+def create_dj_schema_factory(
+    name: Callable[[], str], connection_factory: Callable[[], dj.Connection]
+) -> Callable[[], dj.Schema]:
     """Create a factory producing DataJoint schemas."""
 
     def create_dj_schema() -> dj.Schema:
-        return dj.Schema(name, connection=connection_factory())
+        return dj.Schema(name(), connection=connection_factory())
 
     return create_dj_schema
 
@@ -227,15 +229,6 @@ class DatabaseServerCredentials:
     password: str
 
 
-@dataclass(frozen=True)
-class SchemaNames:
-    """The names of the schemas involved in link."""
-
-    source: str
-    outbound: str
-    local: str
-
-
 def create_source_credential_provider(host: str) -> Callable[[], DatabaseServerCredentials]:
     """Create an object that provides credentials for the source database server when called."""
 
@@ -269,7 +262,8 @@ def create_outbound_table_name_provider(
     source_table_name: str,
     source_credentials: Callable[[], DatabaseServerCredentials],
     local_credentials: Callable[[], DatabaseServerCredentials],
-    schema_names: SchemaNames,
+    source_schema_name: str,
+    local_schema_name: str,
 ) -> Callable[[], str]:
     """Create an object that provides the correct link-specific name for the outbound table when called."""
 
@@ -278,17 +272,27 @@ def create_outbound_table_name_provider(
             source_table_name,
             source_credentials().host,
             local_credentials().host,
-            schema_names.source,
-            schema_names.local,
+            source_schema_name,
+            local_schema_name,
         ]
         return "Outbound" + sha1(",".join(link_identifiers).encode()).hexdigest()
 
     return provide_name
 
 
+def create_outbound_schema_name_provider() -> Callable[[], str]:
+    """Create an object that provides the name of the outbound schema when called."""
+
+    def provide_outbound_schema_name() -> str:
+        return os.environ["LINK_OUTBOUND"]
+
+    return provide_outbound_schema_name
+
+
 def create_dj_link_gateway(
     source_host: str,
-    schema_names: SchemaNames,
+    source_schema: str,
+    local_schema: str,
     source_table_name: str,
     *,
     replacement_stores: Optional[Mapping[str, str]] = None,
@@ -297,21 +301,25 @@ def create_dj_link_gateway(
     source_credential_provider = create_source_credential_provider(source_host)
     source_connection = create_dj_connection_factory(source_credential_provider)
     source_table = create_dj_table_factory(
-        lambda: source_table_name, create_dj_schema_factory(schema_names.source, source_connection)
+        lambda: source_table_name, create_dj_schema_factory(lambda: source_schema, source_connection)
     )
     local_credential_provider = create_local_credential_provider()
     outbound_table = create_dj_table_factory(
         create_outbound_table_name_provider(
-            source_table_name, source_credential_provider, local_credential_provider, schema_names
+            source_table_name,
+            source_credential_provider,
+            local_credential_provider,
+            source_schema,
+            local_schema,
         ),
-        create_dj_schema_factory(schema_names.outbound, source_connection),
+        create_dj_schema_factory(create_outbound_schema_name_provider(), source_connection),
         tier=Tiers.MANUAL,
         definition=lambda: "-> source_table",
         context={"source_table": source_table},
     )
     local_table = create_dj_table_factory(
         lambda: source_table_name,
-        create_dj_schema_factory(schema_names.local, create_dj_connection_factory(local_credential_provider)),
+        create_dj_schema_factory(lambda: local_schema, create_dj_connection_factory(local_credential_provider)),
         tier=Tiers.MANUAL,
         definition=create_table_definition_provider(source_table),
         parts=source_table,
