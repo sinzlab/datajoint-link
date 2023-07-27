@@ -1,22 +1,17 @@
 """Contains the DataJoint table factory."""
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from enum import Enum
-from hashlib import sha1
 from typing import Any, Callable, Collection, Dict, Mapping, Optional, Tuple, Type, overload
 
 import datajoint as dj
 from datajoint import Computed, Imported, Lookup, Manual, Part, Schema
 from datajoint.user_tables import UserTable
 
-from dj_link.adapters.datajoint.gateway import DJLinkGateway
-from dj_link.adapters.datajoint.identification import IdentificationTranslator
-
 from ...base import Base
+from .config import DatabaseServerCredentials
 from .dj_helpers import get_part_table_classes, replace_stores
-from .facade import DJLinkFacade
 
 
 class TableTiers(Enum):
@@ -218,112 +213,3 @@ def create_dj_table_factory(  # noqa: PLR0913
             return schema_factory()(table_cls, context=processed_context)()
 
     return create_dj_table
-
-
-@dataclass(frozen=True)
-class DatabaseServerCredentials:
-    """Information necessary to connect to a database server."""
-
-    host: str
-    username: str
-    password: str
-
-
-def create_source_credential_provider(host: str) -> Callable[[], DatabaseServerCredentials]:
-    """Create an object that provides credentials for the source database server when called."""
-
-    def provide_credentials() -> DatabaseServerCredentials:
-        return DatabaseServerCredentials(host, os.environ["LINK_USER"], os.environ["LINK_PASS"])
-
-    return provide_credentials
-
-
-def create_local_credential_provider() -> Callable[[], DatabaseServerCredentials]:
-    """Create an object that provides credentials for the local database server when called."""
-
-    def provide_credentials() -> DatabaseServerCredentials:
-        return DatabaseServerCredentials(
-            dj.config["database.host"], dj.config["database.user"], dj.config["database.password"]
-        )
-
-    return provide_credentials
-
-
-def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[[], str]:
-    """Create an object that provides the definition of the table produced by the given factory when called."""
-
-    def provide_definition() -> str:
-        return table().describe(printout=False)
-
-    return provide_definition
-
-
-def create_outbound_table_name_provider(
-    source_table_name: str,
-    source_credentials: Callable[[], DatabaseServerCredentials],
-    local_credentials: Callable[[], DatabaseServerCredentials],
-    source_schema_name: str,
-    local_schema_name: str,
-) -> Callable[[], str]:
-    """Create an object that provides the correct link-specific name for the outbound table when called."""
-
-    def provide_name() -> str:
-        link_identifiers = [
-            source_table_name,
-            source_credentials().host,
-            local_credentials().host,
-            source_schema_name,
-            local_schema_name,
-        ]
-        return "Outbound" + sha1(",".join(link_identifiers).encode()).hexdigest()
-
-    return provide_name
-
-
-def create_outbound_schema_name_provider() -> Callable[[], str]:
-    """Create an object that provides the name of the outbound schema when called."""
-
-    def provide_outbound_schema_name() -> str:
-        return os.environ["LINK_OUTBOUND"]
-
-    return provide_outbound_schema_name
-
-
-def create_dj_link_gateway(
-    source_host: str,
-    source_schema: str,
-    local_schema: str,
-    source_table_name: str,
-    *,
-    replacement_stores: Optional[Mapping[str, str]] = None,
-) -> DJLinkGateway:
-    """Create a DataJoint link gateway from the given information."""
-    source_credential_provider = create_source_credential_provider(source_host)
-    source_connection = create_dj_connection_factory(source_credential_provider)
-    source_table = create_dj_table_factory(
-        lambda: source_table_name, create_dj_schema_factory(lambda: source_schema, source_connection)
-    )
-    local_credential_provider = create_local_credential_provider()
-    outbound_table = create_dj_table_factory(
-        create_outbound_table_name_provider(
-            source_table_name,
-            source_credential_provider,
-            local_credential_provider,
-            source_schema,
-            local_schema,
-        ),
-        create_dj_schema_factory(create_outbound_schema_name_provider(), source_connection),
-        tier=Tiers.MANUAL,
-        definition=lambda: "-> source_table",
-        context={"source_table": source_table},
-    )
-    local_table = create_dj_table_factory(
-        lambda: source_table_name,
-        create_dj_schema_factory(lambda: local_schema, create_dj_connection_factory(local_credential_provider)),
-        tier=Tiers.MANUAL,
-        definition=create_table_definition_provider(source_table),
-        parts=source_table,
-        replacement_stores=replacement_stores,
-    )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    return DJLinkGateway(facade, IdentificationTranslator())
