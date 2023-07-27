@@ -80,6 +80,9 @@ disallow_untyped_decorators = true
 no_implicit_reexport = true
 strict_equality = true
 strict_concatenate = true
+enable_error_code = [
+    "possibly-undefined",
+]
 
 [[tool.mypy.overrides]]
 module = [
