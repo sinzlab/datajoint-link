@@ -1,6 +1,7 @@
 """Contains the DataJoint table factory."""
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from hashlib import sha1
@@ -125,11 +126,13 @@ class TableFactory(Base):
         return self.config.schema(derive_table_class(), context=self.config.context)
 
 
-def create_dj_connection_factory(host: str, username: str, password: str) -> Callable[[], dj.Connection]:
+def create_dj_connection_factory(
+    credential_provider: Callable[[], DatabaseServerCredentials]
+) -> Callable[[], dj.Connection]:
     """Create a factory producing DataJoint connections."""
 
     def create_dj_connection() -> dj.Connection:
-        return dj.Connection(host, username, password)
+        return dj.Connection(credential_provider().host, credential_provider().username, credential_provider().password)
 
     return create_dj_connection
 
@@ -220,7 +223,7 @@ def create_dj_table_factory(  # noqa: PLR0913
 
 
 @dataclass(frozen=True)
-class ConnectionDetails:
+class DatabaseServerCredentials:
     """Information necessary to connect to a database server."""
 
     host: str
@@ -237,27 +240,44 @@ class SchemaNames:
     local: str
 
 
+def create_source_credential_provider(host: str) -> Callable[[], DatabaseServerCredentials]:
+    """Create an object that provides credentials for the source database server when called."""
+
+    def provide_credentials() -> DatabaseServerCredentials:
+        return DatabaseServerCredentials(host, os.environ["LINK_USER"], os.environ["LINK_PASS"])
+
+    return provide_credentials
+
+
+def create_local_credential_provider() -> Callable[[], DatabaseServerCredentials]:
+    """Create an object that provides credentials for the local database server when called."""
+
+    def provide_credentials() -> DatabaseServerCredentials:
+        return DatabaseServerCredentials(
+            dj.config["database.host"], dj.config["database.user"], dj.config["database.password"]
+        )
+
+    return provide_credentials
+
+
 def create_dj_link_gateway(
-    source_connection_details: ConnectionDetails,
-    local_connection_details: ConnectionDetails,
+    source_host: str,
     schema_names: SchemaNames,
     source_table_name: str,
     *,
     replacement_stores: Optional[Mapping[str, str]] = None,
 ) -> DJLinkGateway:
     """Create a DataJoint link gateway from the given information."""
-    source_connection = create_dj_connection_factory(
-        source_connection_details.host, source_connection_details.username, source_connection_details.password
-    )
+    source_connection = create_dj_connection_factory(create_source_credential_provider(source_host))
     source_table = create_dj_table_factory(
-        source_table_name,
-        create_dj_schema_factory(schema_names.source, source_connection),
+        source_table_name, create_dj_schema_factory(schema_names.source, source_connection)
     )
+    local_credential_provider = create_local_credential_provider()
     link_identifiers = [
-        source_connection_details.host,
+        source_host,
         schema_names.source,
         source_table_name,
-        local_connection_details.host,
+        local_credential_provider().host,
         schema_names.local,
     ]
     outbound_table_name = "Outbound" + sha1(",".join(link_identifiers).encode()).hexdigest()
@@ -270,12 +290,7 @@ def create_dj_link_gateway(
     )
     local_table = create_dj_table_factory(
         source_table_name,
-        create_dj_schema_factory(
-            schema_names.local,
-            create_dj_connection_factory(
-                local_connection_details.host, local_connection_details.username, local_connection_details.password
-            ),
-        ),
+        create_dj_schema_factory(schema_names.local, create_dj_connection_factory(local_credential_provider)),
         tier=Tiers.MANUAL,
         definition=source_table,
         parts=source_table,
