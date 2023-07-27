@@ -198,8 +198,8 @@ def create_dj_table_factory(  # noqa: PLR0913
         except KeyError as exception:
             if tier is None or definition is None:
                 raise RuntimeError from exception
+            part_definitions: dict[str, str] = {}
             if parts is not None:
-                part_definitions: dict[str, str] = {}
                 for child in parts().children(as_objects=True):
                     if not child.table_name.startswith(parts().table_name + "__"):
                         continue
