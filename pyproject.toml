@@ -88,12 +88,6 @@ enable_error_code = [
 module = [
     "dj_link.*",
     "tests.conftest",
-    "tests.integration.test_datajoint_persistence",
-    "tests.integration.test_pull",
-    "tests.integration.test_use_cases",
-    "tests.unit.entities.assignments",
-    "tests.unit.entities.test_link",
-    "tests.unit.entities.test_state",
     "tests.unit.frameworks.datajoint.test_facade",
 ]
 ignore_errors = false
@@ -113,6 +107,7 @@ module = [
     "tests.unit.entities.test_link",
     "tests.unit.entities.test_state",
 ]
+ignore_errors = false
 disallow_any_generics = true
 disallow_untyped_calls = true
 disallow_untyped_defs = true
