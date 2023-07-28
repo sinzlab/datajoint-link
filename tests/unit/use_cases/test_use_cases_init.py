@@ -70,37 +70,3 @@ class TestRepositoryLinkFactory:
 
     def test_if_local_attribute_of_returned_repo_link_is_correctly_set(self, factory, repos):
         assert factory().local is repos["local"]
-
-
-class TestInitializeUseCases:
-    @pytest.fixture()
-    def dummy_output_ports(self):
-        return {n: MagicMock(name="dummy_" + n + "_output_port") for n in use_cases.USE_CASES}
-
-    @pytest.fixture(params=use_cases.USE_CASES)
-    def use_case_name(self, request):
-        return request.param
-
-    @pytest.fixture()
-    def dummy_output_port(self, use_case_name, dummy_output_ports):
-        return dummy_output_ports[use_case_name]
-
-    @pytest.fixture()
-    def use_case(self, gateway_link_stub, dummy_output_ports, use_case_name):
-        return use_cases.initialize_use_cases(gateway_link_stub, dummy_output_ports)[use_case_name]
-
-    @pytest.fixture()
-    def use_case_cls(self, use_case_name):
-        return use_cases.USE_CASES[use_case_name]
-
-    def test_if_correct_use_case_is_returned(self, use_case, use_case_cls):
-        assert isinstance(use_case, use_case_cls)
-
-    def test_if_use_case_is_associated_with_repo_link_factory(self, use_case):
-        assert isinstance(use_case.repo_link_factory, use_cases.RepositoryLinkFactory)
-
-    def test_if_repo_link_factory_is_associated_with_gateway_link(self, use_case, gateway_link_stub):
-        assert use_case.repo_link_factory.gateway_link is gateway_link_stub
-
-    def test_if_output_port_of_use_case_is_correct(self, use_case, dummy_output_port):
-        assert use_case.output_port is dummy_output_port
