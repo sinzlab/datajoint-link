@@ -102,6 +102,7 @@ module = [
     "dj_link.adapters.facade",
     "dj_link.entities.link",
     "dj_link.entities.state",
+    "dj_link.frameworks.datajoint.config",
     "tests.conftest",
     "tests.integration.test_datajoint_persistence",
     "tests.integration.test_pull",
