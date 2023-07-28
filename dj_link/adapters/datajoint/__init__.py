@@ -30,9 +30,9 @@ class AbstractTableFacadeLink(ABC):
 
 def initialize_adapters(
     table_facade_link: AbstractTableFacadeLink,
+    translator: IdentificationTranslator,
 ) -> Tuple[DataJointGatewayLink, ViewModel, Presenter]:
     """Initialize the adapters."""
-    translator = IdentificationTranslator()
     gateways = {}
     for repo_type in REPOSITORY_NAMES:
         table_facade = getattr(table_facade_link, repo_type)

@@ -12,7 +12,7 @@ from ...adapters.datajoint.controller import Controller
 from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
 from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
-from . import TableFacadeLink
+from . import TableFacadeLink, create_dj_link_gateway
 from .dj_helpers import replace_stores
 from .facade import TableFacade
 from .factory import TableFactory, TableFactoryConfig, TableTiers
@@ -21,13 +21,17 @@ from .mixin import LocalTableMixin, create_local_table_mixin_class
 from .printer import Printer
 
 
-def initialize() -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
+def initialize(
+    source_host: str, source_schema: str, local_schema: str, source_table_name: str
+) -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
     """Initialize the system."""
+    link_gateway = create_dj_link_gateway(source_host, source_schema, local_schema, source_table_name)
+
     temp_dir = ReusableTemporaryDirectory("link_")
     factories = {facade_type: TableFactory() for facade_type in REPOSITORY_NAMES}
     facades = {facade_type: TableFacade(table_factory, temp_dir) for facade_type, table_factory in factories.items()}
     facade_link = TableFacadeLink(**facades)
-    gateway_link, view_model, presenter = initialize_adapters(facade_link)
+    gateway_link, view_model, presenter = initialize_adapters(facade_link, link_gateway.translator)
     output_ports = {name: getattr(presenter, name) for name in USE_CASES}
     initialized_use_cases = initialize_use_cases(gateway_link, output_ports)
 
@@ -48,7 +52,12 @@ def link(
     """Link the table to a table with the same name in the source schema."""
 
     def create_local_table(table_class: type) -> type[UserTable]:
-        table_classes, mixin_class = initialize()
+        table_classes, mixin_class = initialize(
+            source_schema.connection.conn_info["host"],
+            source_schema.database,
+            local_schema.database,
+            table_class.__name__,
+        )
         assert stores is not None, "Stores must be a mapping"
         table_creator = LocalTableCreator(
             local_schema,
