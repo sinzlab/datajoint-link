@@ -70,7 +70,15 @@ def create_dj_link_gateway(
         ),
         create_dj_schema_factory(create_outbound_schema_name_provider(), source_connection),
         tier=Tiers.MANUAL,
-        definition=lambda: "-> source_table",
+        definition=lambda: "\n".join(
+            [
+                "-> source_table",
+                "---",
+                "process: enum('PULL', 'DELETE', 'NONE')",
+                "is_flagged: enum('TRUE', 'FALSE')",
+                "is_deprecated: enum('TRUE', 'FALSE')",
+            ]
+        ),
         context={"source_table": source_table},
     )
     local_table = create_dj_table_factory(
