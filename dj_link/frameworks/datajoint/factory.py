@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Collection, Dict, Mapping, Optional, Tuple, Type, overload
+from typing import Any, Callable, Collection, Dict, Mapping, Optional, Tuple, Type, cast, overload
 
 import datajoint as dj
 from datajoint import Computed, Imported, Lookup, Manual, Part, Schema
@@ -85,7 +85,7 @@ class TableFactory(Base):
         return {name: getattr(self(), name) for name in self.config.flag_table_names}
 
     def _spawn_table_cls(self) -> Type[UserTable]:
-        spawned_table_classes: Dict[str, Type[UserTable]] = {}
+        spawned_table_classes: Dict[str, UserTable] = {}
         self.config.schema.spawn_missing_classes(context=spawned_table_classes)
         table_cls = spawned_table_classes[self.config.name]
         return table_cls
@@ -204,9 +204,11 @@ def create_dj_table_factory(  # noqa: PLR0913
                     part_definitions[dj.utils.to_camel_case(child.table_name.split("__")[1])] = part_definition
             for part_name, part_definition in part_definitions.items():
                 part_definitions[part_name] = replace_stores(part_definition, replacement_stores)
-            part_tables: dict[str, dj.Part] = {}
+            part_tables: dict[str, type[dj.Part]] = {}
             for part_name, part_definition in part_definitions.items():
-                part_tables[part_name] = type(part_name, (dj.Part,), {"definition": part_definition})
+                part_tables[part_name] = cast(
+                    "type[dj.Part]", type(part_name, (dj.Part,), {"definition": part_definition})
+                )
             processed_definition = replace_stores(definition(), replacement_stores)
             table_cls = type(name(), (tier.value,), {"definition": processed_definition, **part_tables})
             processed_context = {name: factory() for name, factory in context.items()}
