@@ -183,7 +183,7 @@ class Update:
     command: Optional[Commands]
 
     def __bool__(self) -> bool:
-        """Return true if the state does not change in the update."""
+        """Return true if the state changes in the update."""
         return self.transition.current is not self.transition.new
 
 
