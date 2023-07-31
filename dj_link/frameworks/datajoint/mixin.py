@@ -21,10 +21,8 @@ class LocalTableMixin:
 
     def pull(self, *restrictions) -> None:
         """Pull entities present in the (restricted) source table into the local table."""
-        if not restrictions:
-            restrictions = AndList()
         with self.temp_dir:
-            self.controller.pull(restrictions)
+            self.controller.pull(AndList(restrictions))
         self.printer()
 
     def delete(self):

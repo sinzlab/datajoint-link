@@ -60,7 +60,7 @@ def _configure_mixin(fake_controller, fake_temp_dir, source_table_factory_spy, p
 class TestPull:
     def test_if_call_to_controller_is_correct(self, fake_controller):
         LocalTableMixin().pull("restriction1", "restriction2")
-        fake_controller.pull.assert_called_once_with(("restriction1", "restriction2"))
+        fake_controller.pull.assert_called_once_with(AndList(["restriction1", "restriction2"]))
 
     def test_if_call_to_controller_is_correct_if_no_restrictions_are_passed(self, fake_controller):
         LocalTableMixin().pull()
