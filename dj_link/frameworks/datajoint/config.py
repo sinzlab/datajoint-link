@@ -42,7 +42,7 @@ def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[
     """Create an object that provides the definition of the table produced by the given factory when called."""
 
     def provide_definition() -> str:
-        return table().describe(printout=False)
+        return table().describe(printout=False)  # type: ignore[no-any-return]
 
     return provide_definition
 
