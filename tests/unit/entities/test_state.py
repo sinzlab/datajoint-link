@@ -35,7 +35,7 @@ def test_invalid_transitions_produce_empty_updates(identifier: Identifier, state
         processes={Processes.PULL: create_identifiers("2", "3")},
     )
     entity = next(entity for entity in link[Components.SOURCE] if entity.identifier == identifier)
-    assert all(not getattr(entity, method)() for method in methods)
+    assert all(not getattr(entity, method)().is_state_changing for method in methods)
 
 
 def test_pulling_idle_entity_returns_correct_commands() -> None:

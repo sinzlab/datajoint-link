@@ -182,7 +182,8 @@ class Update:
     transition: Transition
     command: Optional[Commands]
 
-    def __bool__(self) -> bool:
+    @property
+    def is_state_changing(self) -> bool:
         """Return true if the state changes in the update."""
         return self.transition.current is not self.transition.new
 
