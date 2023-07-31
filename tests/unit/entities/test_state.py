@@ -7,8 +7,7 @@ import pytest
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import create_link
 from dj_link.entities.state import Commands, Components, Processes, State, Transition, Update, states
-
-from .assignments import create_assignments, create_identifier, create_identifiers
+from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
 @pytest.mark.parametrize(

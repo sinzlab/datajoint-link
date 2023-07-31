@@ -7,7 +7,7 @@ from dj_link.use_cases import RepositoryLinkFactory
 from dj_link.use_cases.base import ResponseModel
 from dj_link.use_cases.gateway import GatewayLink
 from dj_link.use_cases.pull import PullRequestModel, PullResponseModel, PullUseCase
-from tests.unit.entities.assignments import create_identifiers
+from tests.assignments import create_identifiers
 
 from ..conftest import FakeGatewayLinkCreator
 

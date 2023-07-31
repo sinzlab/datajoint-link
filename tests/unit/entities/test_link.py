@@ -8,8 +8,7 @@ import pytest
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Link, Transfer, create_link, delete, process, pull, pull_legacy
 from dj_link.entities.state import Components, Processes, State, states
-
-from .assignments import create_assignments, create_identifier, create_identifiers
+from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
 class TestCreateLink:
