@@ -30,8 +30,7 @@ class FakeLinkGateway(LinkGateway):
         return create_link(self.assignments, tainted_identifiers=self.tainted_identifiers, processes=self.processes)
 
     def apply(self, updates: Iterable[Update]) -> None:
-        transition_updates = (update for update in updates if update.command)
-        for update in transition_updates:
+        for update in updates:
             if update.command is Commands.START_PULL_PROCESS:
                 self.processes[Processes.PULL].add(update.identifier)
                 self.assignments[Components.OUTBOUND].add(update.identifier)

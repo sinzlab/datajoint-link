@@ -6,7 +6,7 @@ import pytest
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import create_link
-from dj_link.entities.state import Commands, Components, Processes, State, Transition, Update, states
+from dj_link.entities.state import Commands, Components, InvalidOperation, Processes, State, Transition, Update, states
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
@@ -21,7 +21,7 @@ from tests.assignments import create_assignments, create_identifier, create_iden
         (create_identifier("6"), states.Deprecated, ["pull", "delete", "process"]),
     ],
 )
-def test_invalid_transitions_produce_empty_updates(identifier: Identifier, state: type[State], methods: str) -> None:
+def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: type[State], methods: str) -> None:
     link = create_link(
         create_assignments(
             {
@@ -34,7 +34,7 @@ def test_invalid_transitions_produce_empty_updates(identifier: Identifier, state
         processes={Processes.PULL: create_identifiers("2", "3")},
     )
     entity = next(entity for entity in link[Components.SOURCE] if entity.identifier == identifier)
-    assert all(not getattr(entity, method)().is_state_changing for method in methods)
+    assert all(isinstance(getattr(entity, method)(), InvalidOperation) for method in methods)
 
 
 def test_pulling_idle_entity_returns_correct_commands() -> None:

@@ -274,11 +274,11 @@ class TestPullLegacy:
         assert actual == expected
 
 
-def test_process_produces_correct_transitions() -> None:
+def test_process_produces_correct_updates() -> None:
     link = create_link(
         create_assignments(
             {
-                Components.SOURCE: {"1", "2", "3", "4", "5"},
+                Components.SOURCE: {"1", "2", "3", "4"},
                 Components.OUTBOUND: {"1", "2", "3", "4"},
                 Components.LOCAL: {"2", "4"},
             }
@@ -288,13 +288,12 @@ def test_process_produces_correct_transitions() -> None:
             Processes.DELETE: create_identifiers("3", "4"),
         },
     )
-    actual = {(update.identifier, update.transition.new) for update in process(link)}
+    actual = {(update.identifier, update.transition.new) for update in process(link).updates}
     expected = {
         (create_identifier("1"), states.Received),
         (create_identifier("2"), states.Pulled),
         (create_identifier("3"), states.Idle),
         (create_identifier("4"), states.Activated),
-        (create_identifier("5"), states.Idle),
     }
     assert actual == expected
 
@@ -307,8 +306,9 @@ class TestPull:
 
     @staticmethod
     def test_idle_entity_becomes_activated(link: Link) -> None:
-        update = next(iter(pull(link, requested=create_identifiers("1"))))
-        assert {update.identifier} == create_identifiers("1")
+        result = pull(link, requested=create_identifiers("1"))
+        update = next(iter(result.updates))
+        assert update.identifier == create_identifier("1")
         assert update.transition.new is states.Activated
 
     @staticmethod
@@ -332,7 +332,8 @@ def link() -> Link:
 class TestDelete:
     @staticmethod
     def test_pulled_entity_becomes_received(link: Link) -> None:
-        update = next(iter(delete(link, requested=create_identifiers("1"))))
+        result = delete(link, requested=create_identifiers("1"))
+        update = next(iter(result.updates))
         assert {update.identifier} == create_identifiers("1")
         assert update.transition.new is states.Received
 

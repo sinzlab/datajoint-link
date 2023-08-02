@@ -20,10 +20,10 @@ class PullRequestModel:
 
 def pull(request: PullRequestModel, *, link_gateway: LinkGateway) -> None:
     """Pull entities across the link."""
-    updates = pull_domain_service(link_gateway.create_link(), requested=request.identifiers)
-    while any(update.is_state_changing for update in updates):
-        link_gateway.apply(updates)
-        updates = process(link_gateway.create_link())
+    result = pull_domain_service(link_gateway.create_link(), requested=request.identifiers)
+    while result.updates:
+        link_gateway.apply(result.updates)
+        result = process(link_gateway.create_link())
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ class DeleteRequestModel:
 
 def delete(request: DeleteRequestModel, *, link_gateway: LinkGateway) -> None:
     """Delete pulled entities."""
-    updates = delete_domain_service(link_gateway.create_link(), requested=request.identifiers)
-    while any(update.is_state_changing for update in updates):
-        link_gateway.apply(updates)
-        updates = process(link_gateway.create_link())
+    result = delete_domain_service(link_gateway.create_link(), requested=request.identifiers)
+    while result.updates:
+        link_gateway.apply(result.updates)
+        result = process(link_gateway.create_link())
