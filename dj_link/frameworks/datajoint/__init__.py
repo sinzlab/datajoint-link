@@ -56,7 +56,7 @@ class DJConfiguration:
     replacement_stores: Mapping[str, str] = field(default_factory=dict)
 
 
-def create_dj_link_gateway(config: DJConfiguration) -> DJLinkGateway:
+def create_dj_link_gateway(config: DJConfiguration, *, translator: IdentificationTranslator) -> DJLinkGateway:
     """Create a DataJoint link gateway from the given information."""
     source_credential_provider = create_source_credential_provider(config.source_host)
     source_connection = create_dj_connection_factory(source_credential_provider)
@@ -94,4 +94,4 @@ def create_dj_link_gateway(config: DJConfiguration) -> DJLinkGateway:
         replacement_stores=config.replacement_stores,
     )
     facade = DJLinkFacade(source_table, outbound_table, local_table)
-    return DJLinkGateway(facade, IdentificationTranslator())
+    return DJLinkGateway(facade, translator)

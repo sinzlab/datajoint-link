@@ -7,6 +7,8 @@ from typing import Any, Mapping, Optional, Union
 from datajoint import Schema
 from datajoint.user_tables import UserTable
 
+from dj_link.adapters.datajoint.identification import IdentificationTranslator
+
 from ...adapters.datajoint import initialize_adapters
 from ...adapters.datajoint.controller import Controller
 from ...globals import REPOSITORY_NAMES
@@ -25,13 +27,16 @@ def initialize(
     source_host: str, source_schema: str, local_schema: str, source_table_name: str
 ) -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
     """Initialize the system."""
-    link_gateway = create_dj_link_gateway(DJConfiguration(source_host, source_schema, local_schema, source_table_name))
+    translator = IdentificationTranslator()
+    create_dj_link_gateway(
+        DJConfiguration(source_host, source_schema, local_schema, source_table_name), translator=translator
+    )
 
     temp_dir = ReusableTemporaryDirectory("link_")
     factories = {facade_type: TableFactory() for facade_type in REPOSITORY_NAMES}
     facades = {facade_type: TableFacade(table_factory, temp_dir) for facade_type, table_factory in factories.items()}
     facade_link = TableFacadeLink(**facades)
-    gateway_link, view_model, presenter = initialize_adapters(facade_link, link_gateway.translator)
+    gateway_link, view_model, presenter = initialize_adapters(facade_link, translator)
     output_ports = {name: getattr(presenter, name) for name in USE_CASES}
     initialized_use_cases = initialize_use_cases(gateway_link, output_ports)
 
