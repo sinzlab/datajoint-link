@@ -151,6 +151,10 @@ class Transition:
     current: type[State]
     new: type[State]
 
+    def __post_init__(self) -> None:
+        """Validate the transition."""
+        assert self.current is not self.new, "Current and new state are identical."
+
 
 class Commands(Enum):
     """Names for all the commands necessary to transition entities between states."""
