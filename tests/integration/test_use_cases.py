@@ -9,9 +9,7 @@ from dj_link.entities.link import Link, create_link
 from dj_link.entities.state import Commands, Components, Processes, Update
 from dj_link.use_cases.gateway import LinkGateway
 from dj_link.use_cases.use_cases import (
-    DeleteRequestModel,
     DeleteResponseModel,
-    PullRequestModel,
     PullResponseModel,
     ResponseModel,
     delete,
@@ -95,7 +93,7 @@ class FakeOutputPort(Generic[T]):
 def test_idle_entity_gets_pulled() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     pull(
-        PullRequestModel(frozenset(create_identifiers("1"))),
+        create_identifiers("1"),
         link_gateway=gateway,
         output_port=FakeOutputPort[PullResponseModel](),
     )
@@ -109,7 +107,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     output_port = FakeOutputPort[PullResponseModel]()
     pull(
-        PullRequestModel(frozenset(create_identifiers("1"))),
+        create_identifiers("1"),
         link_gateway=gateway,
         output_port=output_port,
     )
@@ -121,7 +119,7 @@ def test_pulled_entity_gets_deleted() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     delete(
-        DeleteRequestModel(frozenset(create_identifiers("1"))),
+        create_identifiers("1"),
         link_gateway=gateway,
         output_port=FakeOutputPort[DeleteResponseModel](),
     )
@@ -134,7 +132,7 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
     )
     output_port = FakeOutputPort[DeleteResponseModel]()
     delete(
-        DeleteRequestModel(frozenset(create_identifiers("1"))),
+        create_identifiers("1"),
         link_gateway=gateway,
         output_port=output_port,
     )
