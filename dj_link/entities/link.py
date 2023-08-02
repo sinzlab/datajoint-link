@@ -11,6 +11,7 @@ from .state import (
     Entity,
     EntityOperationResult,
     InvalidOperation,
+    Operations,
     PersistentState,
     Processes,
     Update,
@@ -167,13 +168,23 @@ def pull_legacy(
 class LinkOperationResult:
     """Represents the result of an operation on all entities of a link."""
 
+    operation: Operations
     updates: frozenset[Update]
     errors: frozenset[InvalidOperation]
+
+    def __post_init__(self) -> None:
+        """Validate the result."""
+        assert all(
+            result.operation is self.operation for result in (self.updates | self.errors)
+        ), "Not all results have same operation."
 
 
 def create_link_operation_result(results: Iterable[EntityOperationResult]) -> LinkOperationResult:
     """Create the result of an operation on a link from results of individual entities."""
+    results = set(results)
+    operation = next(iter(results)).operation
     return LinkOperationResult(
+        operation,
         updates=frozenset(result for result in results if isinstance(result, Update)),
         errors=frozenset(result for result in results if isinstance(result, InvalidOperation)),
     )
