@@ -2,12 +2,21 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
+from typing import Generic, TypeVar
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Link, create_link
 from dj_link.entities.state import Commands, Components, Processes, Update
 from dj_link.use_cases.gateway import LinkGateway
-from dj_link.use_cases.use_cases import DeleteRequestModel, PullRequestModel, delete, pull
+from dj_link.use_cases.use_cases import (
+    DeleteRequestModel,
+    DeleteResponseModel,
+    PullRequestModel,
+    PullResponseModel,
+    ResponseModel,
+    delete,
+    pull,
+)
 from tests.assignments import create_assignments, create_identifiers
 
 
@@ -72,18 +81,61 @@ def has_state(
     return True
 
 
+T = TypeVar("T", bound=ResponseModel)
+
+
+class FakeOutputPort(Generic[T]):
+    def __init__(self) -> None:
+        self.response: T | None = None
+
+    def __call__(self, response: T) -> None:
+        self.response = response
+
+
 def test_idle_entity_gets_pulled() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
-    pull(PullRequestModel(frozenset(create_identifiers("1"))), link_gateway=gateway)
+    pull(
+        PullRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=FakeOutputPort[PullResponseModel](),
+    )
     assert has_state(
         gateway.create_link(),
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
     )
 
 
+def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
+    gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
+    output_port = FakeOutputPort[PullResponseModel]()
+    pull(
+        PullRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=output_port,
+    )
+    assert isinstance(output_port.response, PullResponseModel)
+
+
 def test_pulled_entity_gets_deleted() -> None:
     gateway = FakeLinkGateway(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
-    delete(DeleteRequestModel(frozenset(create_identifiers("1"))), link_gateway=gateway)
+    delete(
+        DeleteRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=FakeOutputPort[DeleteResponseModel](),
+    )
     assert has_state(gateway.create_link(), create_assignments({Components.SOURCE: {"1"}}))
+
+
+def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
+    )
+    output_port = FakeOutputPort[DeleteResponseModel]()
+    delete(
+        DeleteRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=output_port,
+    )
+    assert isinstance(output_port.response, DeleteResponseModel)
