@@ -6,7 +6,17 @@ import pytest
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import create_link
-from dj_link.entities.state import Commands, Components, InvalidOperation, Processes, State, Transition, Update, states
+from dj_link.entities.state import (
+    Commands,
+    Components,
+    InvalidOperation,
+    Operations,
+    Processes,
+    State,
+    Transition,
+    Update,
+    states,
+)
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
@@ -41,6 +51,7 @@ def test_pulling_idle_entity_returns_correct_commands() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link[Components.SOURCE]))
     assert entity.pull() == Update(
+        Operations.PULL,
         create_identifier("1"),
         Transition(states.Idle, states.Activated),
         command=Commands.START_PULL_PROCESS,
@@ -69,6 +80,7 @@ def test_processing_activated_entity_returns_correct_commands(
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == Update(
+        Operations.PROCESS,
         create_identifier("1"),
         Transition(states.Activated, new_state),
         command=command,
@@ -94,6 +106,7 @@ def test_processing_received_entity_returns_correct_commands(
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.process() == Update(
+        Operations.PROCESS,
         create_identifier("1"),
         Transition(states.Received, new_state),
         command=command,
@@ -106,6 +119,7 @@ def test_deleting_pulled_entity_returns_correct_commands() -> None:
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.delete() == Update(
+        Operations.DELETE,
         create_identifier("1"),
         Transition(states.Pulled, states.Received),
         command=Commands.START_DELETE_PROCESS,
@@ -119,6 +133,7 @@ def test_deleting_tainted_entity_returns_correct_commands() -> None:
     )
     entity = next(iter(link[Components.SOURCE]))
     assert entity.delete() == Update(
+        Operations.DELETE,
         create_identifier("1"),
         Transition(states.Tainted, states.Received),
         command=Commands.START_DELETE_PROCESS,

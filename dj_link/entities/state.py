@@ -14,26 +14,29 @@ class State:
     @classmethod
     def pull(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to pull an entity."""
-        return cls._create_invalid_operation_result(entity.identifier)
+        return cls._create_invalid_operation_result(Operations.PULL, entity.identifier)
 
     @classmethod
     def delete(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to delete the entity."""
-        return cls._create_invalid_operation_result(entity.identifier)
+        return cls._create_invalid_operation_result(Operations.DELETE, entity.identifier)
 
     @classmethod
     def process(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to process the entity."""
-        return cls._create_invalid_operation_result(entity.identifier)
+        return cls._create_invalid_operation_result(Operations.PROCESS, entity.identifier)
 
     @classmethod
-    def _create_invalid_operation_result(cls, identifier: Identifier) -> EntityOperationResult:
-        return InvalidOperation(identifier)
+    def _create_invalid_operation_result(cls, operation: Operations, identifier: Identifier) -> EntityOperationResult:
+        return InvalidOperation(operation, identifier)
 
     @classmethod
-    def _create_valid_operation_result(cls, identifier: Identifier, new_state: type[State]) -> EntityOperationResult:
+    def _create_valid_operation_result(
+        cls, operation: Operations, identifier: Identifier, new_state: type[State]
+    ) -> EntityOperationResult:
         transition = Transition(cls, new_state)
         return Update(
+            operation,
             identifier,
             transition,
             command=TRANSITION_MAP[transition],
@@ -65,7 +68,7 @@ class Idle(State):
     @classmethod
     def pull(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to pull an idle entity."""
-        return cls._create_valid_operation_result(entity.identifier, Activated)
+        return cls._create_valid_operation_result(Operations.PULL, entity.identifier, Activated)
 
 
 states.register(Idle)
@@ -84,7 +87,7 @@ class Activated(State):
             new_state = Received
         elif entity.current_process is Processes.DELETE:
             new_state = Idle
-        return cls._create_valid_operation_result(entity.identifier, new_state)
+        return cls._create_valid_operation_result(Operations.PROCESS, entity.identifier, new_state)
 
 
 states.register(Activated)
@@ -104,7 +107,7 @@ class Received(State):
                 new_state = Pulled
         elif entity.current_process is Processes.DELETE:
             new_state = Activated
-        return cls._create_valid_operation_result(entity.identifier, new_state)
+        return cls._create_valid_operation_result(Operations.PROCESS, entity.identifier, new_state)
 
 
 states.register(Received)
@@ -116,7 +119,7 @@ class Pulled(State):
     @classmethod
     def delete(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to delete a pulled entity."""
-        return cls._create_valid_operation_result(entity.identifier, Received)
+        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
 
 
 states.register(Pulled)
@@ -128,7 +131,7 @@ class Tainted(State):
     @classmethod
     def delete(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to delete a tainted entity."""
-        return cls._create_valid_operation_result(entity.identifier, Received)
+        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
 
 
 states.register(Tainted)
@@ -174,10 +177,19 @@ TRANSITION_MAP: dict[Transition, Commands] = {
 }
 
 
+class Operations(Enum):
+    """Names for all operations that can be performed on entities."""
+
+    PULL = auto()
+    DELETE = auto()
+    PROCESS = auto()
+
+
 @dataclass(frozen=True)
 class Update:
     """Represents the persistent update needed to transition an entity."""
 
+    operation: Operations
     identifier: Identifier
     transition: Transition
     command: Commands
@@ -187,6 +199,7 @@ class Update:
 class InvalidOperation:
     """Represents the result of attempting an operation that is invalid in the entity's current state."""
 
+    operation: Operations
     identifier: Identifier
 
 
