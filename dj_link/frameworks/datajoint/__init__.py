@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Optional
+from dataclasses import dataclass, field
 
 from dj_link.adapters.datajoint.gateway import DJLinkGateway
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
@@ -45,28 +45,32 @@ class TableFacadeLink(AbstractTableFacadeLink, Base):
         return self._local
 
 
-def create_dj_link_gateway(
-    source_host: str,
-    source_schema: str,
-    local_schema: str,
-    source_table_name: str,
-    *,
-    replacement_stores: Optional[Mapping[str, str]] = None,
-) -> DJLinkGateway:
+@dataclass(frozen=True)
+class DJConfiguration:
+    """Information needed to configure the DataJoint backend."""
+
+    source_host: str
+    source_schema: str
+    local_schema: str
+    source_table_name: str
+    replacement_stores: Mapping[str, str] = field(default_factory=dict)
+
+
+def create_dj_link_gateway(config: DJConfiguration) -> DJLinkGateway:
     """Create a DataJoint link gateway from the given information."""
-    source_credential_provider = create_source_credential_provider(source_host)
+    source_credential_provider = create_source_credential_provider(config.source_host)
     source_connection = create_dj_connection_factory(source_credential_provider)
     source_table = create_dj_table_factory(
-        lambda: source_table_name, create_dj_schema_factory(lambda: source_schema, source_connection)
+        lambda: config.source_table_name, create_dj_schema_factory(lambda: config.source_schema, source_connection)
     )
     local_credential_provider = create_local_credential_provider()
     outbound_table = create_dj_table_factory(
         create_outbound_table_name_provider(
-            source_table_name,
+            config.source_table_name,
             source_credential_provider,
             local_credential_provider,
-            source_schema,
-            local_schema,
+            config.source_schema,
+            config.local_schema,
         ),
         create_dj_schema_factory(create_outbound_schema_name_provider(), source_connection),
         tier=Tiers.MANUAL,
@@ -82,12 +86,12 @@ def create_dj_link_gateway(
         context={"source_table": source_table},
     )
     local_table = create_dj_table_factory(
-        lambda: source_table_name,
-        create_dj_schema_factory(lambda: local_schema, create_dj_connection_factory(local_credential_provider)),
+        lambda: config.source_table_name,
+        create_dj_schema_factory(lambda: config.local_schema, create_dj_connection_factory(local_credential_provider)),
         tier=Tiers.MANUAL,
         definition=create_table_definition_provider(source_table),
         parts=source_table,
-        replacement_stores=replacement_stores,
+        replacement_stores=config.replacement_stores,
     )
     facade = DJLinkFacade(source_table, outbound_table, local_table)
     return DJLinkGateway(facade, IdentificationTranslator())

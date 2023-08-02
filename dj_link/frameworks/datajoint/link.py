@@ -12,7 +12,7 @@ from ...adapters.datajoint.controller import Controller
 from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
 from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
-from . import TableFacadeLink, create_dj_link_gateway
+from . import DJConfiguration, TableFacadeLink, create_dj_link_gateway
 from .dj_helpers import replace_stores
 from .facade import TableFacade
 from .factory import TableFactory, TableFactoryConfig, TableTiers
@@ -25,7 +25,7 @@ def initialize(
     source_host: str, source_schema: str, local_schema: str, source_table_name: str
 ) -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:
     """Initialize the system."""
-    link_gateway = create_dj_link_gateway(source_host, source_schema, local_schema, source_table_name)
+    link_gateway = create_dj_link_gateway(DJConfiguration(source_host, source_schema, local_schema, source_table_name))
 
     temp_dir = ReusableTemporaryDirectory("link_")
     factories = {facade_type: TableFactory() for facade_type in REPOSITORY_NAMES}
