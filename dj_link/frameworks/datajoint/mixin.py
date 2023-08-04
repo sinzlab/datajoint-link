@@ -62,13 +62,13 @@ class Mixin:
     @classmethod
     def pull(cls, *restrictions: Any) -> None:
         """Pull idle entities from the source table into the local table."""
-        primary_keys = (cls.source_table() & AndList(restrictions)).fetch(as_dict=True)
+        primary_keys = (cls.source_table().proj() & AndList(restrictions)).fetch(as_dict=True)
         cls.controller.pull(primary_keys)
 
     @classmethod
     def delete(cls) -> None:
         """Delete pulled entities from the local table."""
-        primary_keys = (cls.local_table() & cls.restriction).fetch(as_dict=True)
+        primary_keys = (cls.local_table().proj() & cls.restriction).fetch(as_dict=True)
         cls.controller.delete(primary_keys)
 
 
