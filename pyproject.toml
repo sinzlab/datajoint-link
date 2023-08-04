@@ -99,11 +99,10 @@ ignore_errors = false
 [[tool.mypy.overrides]]
 module = [
     "datajoint.*",
-    "dj_link.adapters.facade",
-    "dj_link.entities.link",
-    "dj_link.entities.state",
-    "dj_link.frameworks.datajoint.config",
-    "dj_link.use_cases.use_cases",
+    "dj_link.adapters.*",
+    "dj_link.entities.*",
+    "dj_link.frameworks.*",
+    "dj_link.use_cases.*",
     "tests.conftest",
     "tests.integration.test_datajoint_persistence",
     "tests.integration.test_pull",
