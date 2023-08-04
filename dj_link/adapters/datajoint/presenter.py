@@ -2,6 +2,9 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, TypedDict
 
+from dj_link.use_cases.use_cases import DeleteResponseModel as DJDeleteResponseModel
+from dj_link.use_cases.use_cases import PullResponseModel as DJPullResponseModel
+
 from ...base import Base
 from ...use_cases.delete import DeleteResponseModel
 from ...use_cases.pull import PullResponseModel
@@ -77,3 +80,13 @@ class Presenter(Base):
     def refresh(self, response_model: RefreshResponseModel) -> None:
         """Update the view model based on information present in the response model of the refresh use-case."""
         self.view_model.update("Refresh was successful", {"Number of refreshed entities": response_model.n_refreshed})
+
+
+class DJPresenter:
+    """DataJoint-specific presenter."""
+
+    def pull(self, response: DJPullResponseModel) -> None:
+        """Present information about a finished pull use-case."""
+
+    def delete(self, response: DJDeleteResponseModel) -> None:
+        """Present information about a finished delete use-case."""
