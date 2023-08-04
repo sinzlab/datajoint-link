@@ -19,7 +19,7 @@ from dj_link.adapters.gateway import DJLinkGateway
 from dj_link.adapters.identification import IdentificationTranslator
 from dj_link.entities.link import create_link, delete, process, pull
 from dj_link.entities.state import Components, Processes
-from dj_link.frameworks.datajoint.facade import DJLinkFacade, Table
+from dj_link.frameworks.facade import DJLinkFacade, Table
 
 
 class FakeConnection:
