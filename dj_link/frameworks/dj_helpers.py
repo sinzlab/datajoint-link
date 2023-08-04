@@ -4,13 +4,14 @@ from __future__ import annotations
 import re
 import warnings
 from collections.abc import Mapping
+from re import Match
 
 
 def replace_stores(definition: str, stores: Mapping[str, str]) -> str:
     """Replace the store in the definition according to a mapping of replacement to original stores."""
     stores = {original: replacement for replacement, original in stores.items()}
 
-    def replace_store(match):
+    def replace_store(match: Match[str]) -> str:
         try:
             return match.group("prefix") + stores[match.group("original")]
         except KeyError:
