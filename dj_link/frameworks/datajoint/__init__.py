@@ -1,11 +1,10 @@
 """Contains code gluing the adapters to DataJoint."""
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
-from dj_link.adapters.datajoint.gateway import DJLinkGateway
-from dj_link.adapters.datajoint.identification import IdentificationTranslator
+import datajoint as dj
 
 from ...adapters.datajoint import AbstractTableFacadeLink
 from ...base import Base
@@ -16,7 +15,7 @@ from .config import (
     create_source_credential_provider,
     create_table_definition_provider,
 )
-from .facade import DJLinkFacade, TableFacade
+from .facade import TableFacade
 from .factory import Tiers, create_dj_connection_factory, create_dj_schema_factory, create_dj_table_factory
 
 
@@ -56,7 +55,16 @@ class DJConfiguration:
     replacement_stores: Mapping[str, str] = field(default_factory=dict)
 
 
-def create_dj_link_gateway(config: DJConfiguration, *, translator: IdentificationTranslator) -> DJLinkGateway:
+@dataclass(frozen=True)
+class DJTables:
+    """The three DataJoint tables involved in a link."""
+
+    source: Callable[[], dj.Table]
+    outbound: Callable[[], dj.Table]
+    local: Callable[[], dj.Table]
+
+
+def create_tables(config: DJConfiguration) -> DJTables:
     """Create a DataJoint link gateway from the given information."""
     source_credential_provider = create_source_credential_provider(config.source_host)
     source_connection = create_dj_connection_factory(source_credential_provider)
@@ -93,5 +101,4 @@ def create_dj_link_gateway(config: DJConfiguration, *, translator: Identificatio
         parts=source_table,
         replacement_stores=config.replacement_stores,
     )
-    facade = DJLinkFacade(source_table, outbound_table, local_table)
-    return DJLinkGateway(facade, translator)
+    return DJTables(source_table, outbound_table, local_table)
