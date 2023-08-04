@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 
 import datajoint as dj
 
-from ...adapters.datajoint import AbstractTableFacadeLink
-from ...base import Base
 from .config import (
     create_local_credential_provider,
     create_outbound_schema_name_provider,
@@ -15,33 +13,7 @@ from .config import (
     create_source_credential_provider,
     create_table_definition_provider,
 )
-from .facade import TableFacade
 from .factory import Tiers, create_dj_connection_factory, create_dj_schema_factory, create_dj_table_factory
-
-
-class TableFacadeLink(AbstractTableFacadeLink, Base):
-    """Contains the three DataJoint table facades corresponding to the three table types."""
-
-    def __init__(self, source: TableFacade, outbound: TableFacade, local: TableFacade) -> None:
-        """Initialize the DataJoint table facade link."""
-        self._source = source
-        self._outbound = outbound
-        self._local = local
-
-    @property
-    def source(self) -> TableFacade:
-        """Return the source table facade."""
-        return self._source
-
-    @property
-    def outbound(self) -> TableFacade:
-        """Return the outbound table facade."""
-        return self._outbound
-
-    @property
-    def local(self) -> TableFacade:
-        """Return the local table facade."""
-        return self._local
 
 
 @dataclass(frozen=True)
