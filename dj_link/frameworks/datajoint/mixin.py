@@ -60,9 +60,9 @@ class Mixin:
     restriction: Any
 
     @classmethod
-    def pull(cls, restriction) -> None:
+    def pull(cls, *restrictions: Any) -> None:
         """Pull idle entities from the source table into the local table."""
-        primary_keys = (cls.source_table() & restriction).fetch(as_dict=True)
+        primary_keys = (cls.source_table() & AndList(restrictions)).fetch(as_dict=True)
         cls.controller.pull(primary_keys)
 
     @classmethod
