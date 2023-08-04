@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from dj_link.entities.custom_types import Identifier
 
-from ...custom_types import PrimaryKey
+from .custom_types import PrimaryKey
 
 
 class IdentificationTranslator:

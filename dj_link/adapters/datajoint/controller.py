@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from typing import Callable, Iterable, Mapping
 
-from dj_link.custom_types import PrimaryKey
 from dj_link.entities.custom_types import Identifier
 from dj_link.use_cases.use_cases import UseCases
 
+from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
 
 

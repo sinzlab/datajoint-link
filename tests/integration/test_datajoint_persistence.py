@@ -14,9 +14,9 @@ from typing import Any, Literal, Optional, TextIO, Type, TypedDict, Union
 
 import pytest
 
+from dj_link.adapters.datajoint import PrimaryKey
 from dj_link.adapters.datajoint.gateway import DJLinkGateway
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
-from dj_link.custom_types import PrimaryKey
 from dj_link.entities.link import create_link, delete, process, pull
 from dj_link.entities.state import Components, Processes
 from dj_link.frameworks.datajoint.facade import DJLinkFacade, Table

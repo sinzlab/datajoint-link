@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal, Union
 
-from dj_link.custom_types import PrimaryKey
+from dj_link.adapters.datajoint import PrimaryKey
 
 
 class DJLinkFacade(ABC):
