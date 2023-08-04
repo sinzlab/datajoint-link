@@ -188,10 +188,10 @@ def create_dj_table_factory(  # noqa: PLR0913
         context = {}
 
     def create_dj_table() -> dj.Table:
-        spawned_table_classes: dict[str, dj.Table] = {}
+        spawned_table_classes: dict[str, type[dj.Table]] = {}
         schema_factory().spawn_missing_classes(context=spawned_table_classes)
         try:
-            return spawned_table_classes[name()]
+            return spawned_table_classes[name()]()
         except KeyError as exception:
             if tier is None or definition is None:
                 raise RuntimeError from exception
