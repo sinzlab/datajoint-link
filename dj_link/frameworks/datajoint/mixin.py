@@ -71,11 +71,22 @@ class Mixin:
         primary_keys = (cls.local_table().proj() & cls.restriction).fetch(as_dict=True)
         cls.controller.delete(primary_keys)
 
+    @property
+    def source(self) -> dj.Table:
+        """Return the source table."""
+        return self.source_table()
+
 
 def create_mixin(
     controller: DJController, source_table: Callable[[], dj.Table], local_table: Callable[[], dj.Table]
 ) -> type[Mixin]:
     """Create a new subclass of the mixin that is configured to work with a specific link."""
     return type(
-        Mixin.__name__, (Mixin,), {"controller": controller, "source_table": source_table, "local_table": local_table}
+        Mixin.__name__,
+        (Mixin,),
+        {
+            "controller": controller,
+            "source_table": staticmethod(source_table),
+            "local_table": staticmethod(local_table),
+        },
     )
