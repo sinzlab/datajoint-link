@@ -16,7 +16,7 @@ import pymysql
 import pytest
 from minio.deleteobjects import DeleteObject
 
-from dj_link import LazySchema, Link
+from dj_link import LazySchema, link
 from dj_link.docker import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
@@ -564,6 +564,7 @@ def local_table_cls(
     stores,
     connection_config,
     temp_dj_store_config,
+    src_db_spec,
     local_db_spec,
     local_store_config,
     src_store_config,
@@ -572,7 +573,7 @@ def local_table_cls(
         [local_store_config, src_store_config]
     ):
 
-        @Link(local_schema, remote_schema, stores=stores)
+        @link(src_db_spec.container.name, remote_schema.database, local_schema.database, stores=stores)
         class Table:
             """Local table."""
 

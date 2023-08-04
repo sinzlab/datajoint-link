@@ -2,25 +2,54 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
+from functools import partial
 from typing import Any, Mapping, Optional, Union
 
 from datajoint import Schema
 from datajoint.user_tables import UserTable
 
+from dj_link.adapters.datajoint.gateway import DJLinkGateway
 from dj_link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.adapters.datajoint.presenter import DJPresenter
+from dj_link.use_cases.use_cases import UseCases, delete, pull
 
 from ...adapters.datajoint import initialize_adapters
-from ...adapters.datajoint.controller import Controller
+from ...adapters.datajoint.controller import Controller, DJController
 from ...globals import REPOSITORY_NAMES
 from ...schemas import LazySchema
 from ...use_cases import REQUEST_MODELS, USE_CASES, initialize_use_cases
-from . import TableFacadeLink
+from . import DJConfiguration, TableFacadeLink, create_tables
 from .dj_helpers import replace_stores
-from .facade import TableFacade
+from .facade import DJLinkFacade, TableFacade
 from .factory import TableFactory, TableFactoryConfig, TableTiers
 from .file import ReusableTemporaryDirectory
-from .mixin import LocalTableMixin, create_local_table_mixin_class
+from .mixin import LocalTableMixin, create_local_table_mixin_class, create_mixin
 from .printer import Printer
+
+
+def create_link(
+    source_host: str, source_schema: str, local_schema: str, *, stores: Optional[Mapping[str, str]] = None
+) -> Callable[[type], Any]:
+    """Create a link."""
+    if stores is None:
+        stores = {}
+
+    def inner(obj: type) -> Any:
+        translator = IdentificationTranslator()
+        tables = create_tables(DJConfiguration(source_host, source_schema, local_schema, obj.__name__, stores))
+        facade = DJLinkFacade(tables.source, tables.outbound, tables.local)
+        gateway = DJLinkGateway(facade, translator)
+        dj_presenter = DJPresenter()
+        handlers = {
+            UseCases.PULL: partial(pull, link_gateway=gateway, output_port=dj_presenter.pull),
+            UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=dj_presenter.delete),
+        }
+        controller = DJController(handlers, translator)
+        mixin = create_mixin(controller, tables.source, tables.outbound, tables.local)
+        return type(obj.__name__, (type(tables.local()), mixin), {})
+
+    return inner
 
 
 def initialize() -> tuple[dict[str, TableFactory], type[LocalTableMixin]]:

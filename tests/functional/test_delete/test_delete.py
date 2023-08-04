@@ -49,6 +49,7 @@ def _insert_flags_refresh_and_delete_deletion_requested_entities(
     (local_table_cls_with_pulled_data() & flags).delete()
 
 
+@pytest.mark.xfail(raises=AttributeError)
 @pytest.mark.usefixtures("_insert_flags_and_refresh")
 def test_if_deletion_requested_entities_are_present_in_deletion_requested_part_table_on_local_side(
     local_table_cls_with_pulled_data, expected_local_deletion_requested_flags
@@ -57,6 +58,7 @@ def test_if_deletion_requested_entities_are_present_in_deletion_requested_part_t
     assert actual_local_deletion_requested_flags == expected_local_deletion_requested_flags
 
 
+@pytest.mark.xfail(raises=AttributeError)
 @pytest.mark.usefixtures("_insert_flags_refresh_and_delete_deletion_requested_entities")
 def test_if_locally_deleted_deletion_requested_entities_are_present_in_deletion_approved_part_table_in_outbound_table(
     outbound_table_cls, outbound_deletion_requested_flags

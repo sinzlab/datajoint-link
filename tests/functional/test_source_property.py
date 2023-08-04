@@ -1,6 +1,6 @@
 import datajoint as dj
 
-from dj_link import LazySchema, Link
+from dj_link import link
 
 
 def test_if_source_attribute_returns_source_table_cls(
@@ -13,10 +13,8 @@ def test_if_source_attribute_returns_source_table_cls(
     with connection_config(databases["local"], user_specs["local"]), configured_environment(
         user_specs["link"], schema_names["outbound"]
     ):
-        local_schema = LazySchema(schema_names["local"])
-        source_schema = LazySchema(schema_names["source"], host=databases["source"].container.name)
-        link = Link(local_schema, source_schema)
-        local_table_cls = link(type(source_table_name, (dj.Manual,), {}))
+        linker = link(databases["source"].container.name, schema_names["source"], schema_names["local"])
+        local_table_cls = linker(type(source_table_name, (dj.Manual,), {}))
         assert (
             local_table_cls().source.full_table_name.replace("`", "")
             == f"{schema_names['source']}.{source_table_name}".lower()
@@ -36,8 +34,6 @@ def test_if_source_attributes_of_different_local_tables_differ(
     with connection_config(databases["local"], user_specs["local"]), configured_environment(
         user_specs["link"], schema_names["outbound"]
     ):
-        local_schema = LazySchema(schema_names["local"])
-        source_schema = LazySchema(schema_names["source"], host=databases["source"].container.name)
-        link = Link(local_schema, source_schema)
-        local_table_cls1, local_table_cls2 = (link(type(name, (dj.Manual,), {})) for name in source_table_names)
+        linker = link(databases["source"].container.name, schema_names["source"], schema_names["local"])
+        local_table_cls1, local_table_cls2 = (linker(type(name, (dj.Manual,), {})) for name in source_table_names)
         assert local_table_cls1().source.full_table_name != local_table_cls2().source.full_table_name
