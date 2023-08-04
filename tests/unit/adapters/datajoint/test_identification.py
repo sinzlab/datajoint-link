@@ -1,4 +1,4 @@
-from dj_link.adapters.datajoint.identification import IdentificationTranslator
+from dj_link.adapters.identification import IdentificationTranslator
 
 
 def test_primary_key_translated_to_identifier_and_back_is_identical_to_original():

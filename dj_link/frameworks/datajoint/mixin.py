@@ -7,7 +7,7 @@ from typing import Any
 import datajoint as dj
 from datajoint import AndList
 
-from dj_link.adapters.datajoint.controller import DJController
+from dj_link.adapters.controller import DJController
 
 
 class Mixin:

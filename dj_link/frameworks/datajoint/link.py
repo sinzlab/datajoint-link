@@ -5,12 +5,12 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any, Mapping, Optional
 
-from dj_link.adapters.datajoint.gateway import DJLinkGateway
-from dj_link.adapters.datajoint.identification import IdentificationTranslator
-from dj_link.adapters.datajoint.presenter import DJPresenter
+from dj_link.adapters.controller import DJController
+from dj_link.adapters.gateway import DJLinkGateway
+from dj_link.adapters.identification import IdentificationTranslator
+from dj_link.adapters.presenter import DJPresenter
 from dj_link.use_cases.use_cases import UseCases, delete, pull
 
-from ...adapters.datajoint.controller import DJController
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
 from .mixin import create_mixin
