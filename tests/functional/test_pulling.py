@@ -42,6 +42,10 @@ def test_pulling(
 
     schema_names, user_specs = prepare_link()
     with temp_store(minios["source"]) as source_store_spec, temp_store(minios["local"]) as local_store_spec:
+        part_table_definitions = {
+            "Part1": f"-> master\nbaz: int\n---\negg: attach@{source_store_spec.name}",
+            "Part2": "-> master\nbacon: int\n---\napple: int",
+        }
         with temp_dj_store_config([source_store_spec]):
 
             def create_random_table_name():
@@ -49,10 +53,6 @@ def test_pulling(
 
             with dj_connection(databases["source"], user_specs["source"]) as connection:
                 source_table_name = create_random_table_name()
-                part_table_definitions = {
-                    "Part1": f"-> master\nbaz: int\n---\negg: attach@{source_store_spec.name}",
-                    "Part2": "-> master\nbacon: int\n---\napple: int",
-                }
                 part_table_classes = {
                     name: create_table(name, dj.Part, definition) for name, definition in part_table_definitions.items()
                 }
