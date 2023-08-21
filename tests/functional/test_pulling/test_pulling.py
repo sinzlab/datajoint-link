@@ -58,6 +58,7 @@ def test_pulling_with_external(
     databases,
     minios,
     configured_environment,
+    dj_connection,
 ):
     def create_random_binary_file(n_bytes=1024):
         filepath = tmpdir / create_random_string()
@@ -70,13 +71,20 @@ def test_pulling_with_external(
     schema_names, user_specs = prepare_link()
     with temp_store(minios["source"]) as source_store_spec, temp_store(minios["local"]) as local_store_spec:
         with temp_dj_store_config([source_store_spec]):
-            source_table_name = create_table(
-                databases["source"],
-                user_specs["source"],
-                schema_names["source"],
-                f"foo: int\n---\nbar: attach@{source_store_spec.name}",
-                expected,
-            )
+
+            def create_random_table_name():
+                return create_random_string().title()
+
+            with dj_connection(databases["source"], user_specs["source"]) as connection:
+                source_table_name = create_random_table_name()
+                table_cls = type(
+                    source_table_name,
+                    (dj.Manual,),
+                    {"definition": f"foo: int\n---\nbar: attach@{source_store_spec.name}"},
+                )
+                schema = dj.schema(schema_names["source"], connection=connection)
+                schema(table_cls)
+                table_cls().insert(expected)
 
         with connection_config(databases["local"], user_specs["local"]), configured_environment(
             user_specs["link"], schema_names["outbound"]
