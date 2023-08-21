@@ -9,8 +9,8 @@ def create_table(name, tier, definition, *, parts=None):
     if tier is dj.Part:
         assert parts is None
     if parts is None:
-        parts = {}
-    return type(name, (tier,), {"definition": definition, **parts})
+        parts = []
+    return type(name, (tier,), {"definition": definition, **{part.__name__: part for part in parts}})
 
 
 def test_pulling(
@@ -53,9 +53,9 @@ def test_pulling(
 
             with dj_connection(databases["source"], user_specs["source"]) as connection:
                 source_table_name = create_random_table_name()
-                part_table_classes = {
-                    name: create_table(name, dj.Part, definition) for name, definition in part_table_definitions.items()
-                }
+                part_table_classes = [
+                    create_table(name, dj.Part, definition) for name, definition in part_table_definitions.items()
+                ]
                 table_cls = create_table(
                     source_table_name,
                     dj.Manual,
