@@ -5,11 +5,18 @@ import datajoint as dj
 from dj_link import link
 
 
+def create_table(name, tier, definition, *, parts=None):
+    if tier is dj.Part:
+        assert parts is None
+    if parts is None:
+        parts = {}
+    return type(name, (tier,), {"definition": definition, **parts})
+
+
 def test_pulling(
     create_random_string,
     prepare_link,
     tmpdir,
-    create_table,
     connection_config,
     temp_dj_store_config,
     temp_store,
@@ -47,13 +54,13 @@ def test_pulling(
                     "Part2": "-> master\nbacon: int\n---\napple: int",
                 }
                 part_table_classes = {
-                    name: type(name, (dj.Part,), {"definition": definition})
-                    for name, definition in part_table_definitions.items()
+                    name: create_table(name, dj.Part, definition) for name, definition in part_table_definitions.items()
                 }
-                table_cls = type(
+                table_cls = create_table(
                     source_table_name,
-                    (dj.Manual,),
-                    {"definition": f"foo: int\n---\nbar: attach@{source_store_spec.name}", **part_table_classes},
+                    dj.Manual,
+                    f"foo: int\n---\nbar: attach@{source_store_spec.name}",
+                    parts=part_table_classes,
                 )
                 schema = dj.schema(schema_names["source"], connection=connection)
                 schema(table_cls)
