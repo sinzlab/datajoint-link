@@ -57,17 +57,17 @@ def test_pulling(
             def create_random_table_name():
                 return create_random_string().title()
 
+            source_table_name = create_random_table_name()
+            part_table_classes = [
+                create_table(name, dj.Part, definition) for name, definition in part_table_definitions.items()
+            ]
+            table_cls = create_table(
+                source_table_name,
+                dj.Manual,
+                f"foo: int\n---\nbar: attach@{source_store_spec.name}",
+                parts=part_table_classes,
+            )
             with dj_connection(databases["source"], user_specs["source"]) as connection:
-                source_table_name = create_random_table_name()
-                part_table_classes = [
-                    create_table(name, dj.Part, definition) for name, definition in part_table_definitions.items()
-                ]
-                table_cls = create_table(
-                    source_table_name,
-                    dj.Manual,
-                    f"foo: int\n---\nbar: attach@{source_store_spec.name}",
-                    parts=part_table_classes,
-                )
                 schema = dj.schema(schema_names["source"], connection=connection)
                 schema(table_cls)
                 table_cls().insert(expected)
