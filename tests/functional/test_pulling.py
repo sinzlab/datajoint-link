@@ -1,22 +1,28 @@
 import os
 
 import datajoint as dj
+import pytest
 
 from dj_link import link
 
 
-def create_table(name, tier, definition, *, parts=None):
-    if tier is dj.Part:
-        assert parts is None
-    if parts is None:
-        parts = []
-    return type(name, (tier,), {"definition": definition, **{part.__name__: part for part in parts}})
+@pytest.fixture()
+def create_table():
+    def _create_table(name, tier, definition, *, parts=None):
+        if tier is dj.Part:
+            assert parts is None
+        if parts is None:
+            parts = []
+        return type(name, (tier,), {"definition": definition, **{part.__name__: part for part in parts}})
+
+    return _create_table
 
 
 def test_pulling(
     create_random_string,
     prepare_link,
     tmpdir,
+    create_table,
     connection_config,
     temp_dj_store_config,
     temp_store,
