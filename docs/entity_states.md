@@ -48,14 +48,14 @@ Storing an entity's state directly in the persistent layer is problematic becaus
 
 The following table illustrates the chosen mapping:
 
-| In source | In outbound | In local | Has process | Is flagged | State |
-|--------|----------|-------|--------|---------|---------|
-| :white_check_mark: | :x: | :x: | :x: | :x: | Idle |
-| :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: | :white_check_mark: / :x: | Activated |
-| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: / :x: | Received|
-| :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: | :x: | Pulled |
-| :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: | Tainted |
-| :white_check_mark: | :white_check_mark: | :x: | :x: | :white_check_mark: | Deprecated |
+| In source          | In outbound        | In local           | Has process        | Is flagged               | State      |
+|--------------------|--------------------|--------------------|--------------------|--------------------------|------------|
+| :white_check_mark: | :x:                | :x:                | :x:                | :x:                      | Idle       |
+| :white_check_mark: | :white_check_mark: | :x:                | :white_check_mark: | :white_check_mark: / :x: | Activated  |
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: / :x: | Received   |
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :x:                | :x:                      | Pulled     |
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :x:                | :white_check_mark:       | Tainted    |
+| :white_check_mark: | :white_check_mark: | :x:                | :x:                | :white_check_mark:       | Deprecated |
 
 ### Layout
 In the case of DataJoint the persistent data is organized in three tables: Source, outbound and local. The source and local tables contain the full entities and the outbound table contains a subset of the primary keys of the entities present in the source table. Additionally the outbound table has three more columns: The first one contains the process associated with the entity (if any), the second one whether the entity is flagged or not and the third one whether the entity is deprecated or not.
