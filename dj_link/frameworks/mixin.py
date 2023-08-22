@@ -28,7 +28,7 @@ class Mixin:
     @classmethod
     def delete(cls) -> None:
         """Delete pulled entities from the local table."""
-        primary_keys = (cls.local_table().proj() & cls.restriction).fetch(as_dict=True)
+        primary_keys = (cls.local_table().proj() & cls().restriction).fetch(as_dict=True)
         cls.controller.delete(primary_keys)
 
     @property
