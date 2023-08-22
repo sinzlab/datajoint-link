@@ -271,7 +271,7 @@ STATE_MAP = {
         has_process=False,
     ): Tainted,
     PersistentState(
-        frozenset({Components.SOURCE}),
+        frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=True,
         has_process=False,
     ): Deprecated,

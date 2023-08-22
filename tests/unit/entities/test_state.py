@@ -36,7 +36,7 @@ def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: t
         create_assignments(
             {
                 Components.SOURCE: {"1", "2", "3", "4", "5", "6"},
-                Components.OUTBOUND: {"2", "3", "4", "5"},
+                Components.OUTBOUND: {"2", "3", "4", "5", "6"},
                 Components.LOCAL: {"3", "4", "5"},
             }
         ),
