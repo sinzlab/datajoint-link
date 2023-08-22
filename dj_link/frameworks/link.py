@@ -35,6 +35,6 @@ def create_link(
         }
         controller = DJController(handlers, translator)
         mixin = create_mixin(controller, tables.source, tables.outbound, tables.local)
-        return type(obj.__name__, (type(tables.local()), mixin), {})
+        return type(obj.__name__, (mixin, type(tables.local())), {})
 
     return inner
