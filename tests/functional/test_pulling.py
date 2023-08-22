@@ -1,26 +1,14 @@
 import os
 
 import datajoint as dj
-import pytest
 
 from dj_link import link
-
-
-@pytest.fixture()
-def create_table():
-    def _create_table(name, tier, definition, *, parts=None):
-        if tier is dj.Part:
-            assert parts is None
-        if parts is None:
-            parts = []
-        return type(name, (tier,), {"definition": definition, **{part.__name__: part for part in parts}})
-
-    return _create_table
 
 
 def test_pulling(
     create_random_string,
     prepare_link,
+    prepare_table,
     tmpdir,
     create_table,
     connection_config,
@@ -29,7 +17,6 @@ def test_pulling(
     databases,
     minios,
     configured_environment,
-    dj_connection,
 ):
     def create_random_binary_file(n_bytes=1024):
         filepath = tmpdir / create_random_string()
@@ -67,12 +54,14 @@ def test_pulling(
                 f"foo: int\n---\nbar: attach@{source_store_spec.name}",
                 parts=part_table_classes,
             )
-            with dj_connection(databases["source"], user_specs["source"]) as connection:
-                schema = dj.schema(schema_names["source"], connection=connection)
-                schema(table_cls)
-                table_cls().insert(expected)
-                for part_table_name, part_table_expected in expected_parts.items():
-                    getattr(table_cls(), part_table_name).insert(part_table_expected)
+            prepare_table(
+                databases["source"],
+                user_specs["source"],
+                schema_names["source"],
+                table_cls,
+                data=expected,
+                parts=expected_parts,
+            )
 
         with connection_config(databases["local"], user_specs["local"]), configured_environment(
             user_specs["link"], schema_names["outbound"]

@@ -4,11 +4,13 @@ from dj_link import link
 
 
 def test_if_source_attribute_returns_source_table_cls(
-    prepare_link, create_table, connection_config, databases, configured_environment
+    prepare_link, connection_config, databases, configured_environment, create_table, prepare_table
 ):
     schema_names, user_specs = prepare_link()
 
-    source_table_name = create_table(databases["source"], user_specs["source"], schema_names["source"], "foo: int\n---")
+    source_table_name = "Foo"
+    table_cls = create_table(source_table_name, dj.Manual, "foo: int\n---")
+    prepare_table(databases["source"], user_specs["source"], schema_names["source"], table_cls)
 
     with connection_config(databases["local"], user_specs["local"]), configured_environment(
         user_specs["link"], schema_names["outbound"]
@@ -22,14 +24,14 @@ def test_if_source_attribute_returns_source_table_cls(
 
 
 def test_if_source_attributes_of_different_local_tables_differ(
-    prepare_link, databases, create_table, connection_config, configured_environment
+    prepare_link, databases, connection_config, configured_environment, create_table, prepare_table
 ):
     schema_names, user_specs = prepare_link()
 
-    source_table_names = (
-        create_table(databases["source"], user_specs["source"], schema_names["source"], "foo: int\n---")
-        for _ in range(2)
-    )
+    source_table_names = ("Foo", "Bar")
+    for name in source_table_names:
+        table_cls = create_table(name, dj.Manual, "foo: int\n---")
+        prepare_table(databases["source"], user_specs["source"], schema_names["source"], table_cls)
 
     with connection_config(databases["local"], user_specs["local"]), configured_environment(
         user_specs["link"], schema_names["outbound"]

@@ -626,25 +626,6 @@ def configured_environment(temp_env_vars):
 
 
 @pytest.fixture()
-def create_table(dj_connection, create_random_string):
-    def _create_table(db_spec, user_spec, schema_name, definition, data=None):
-        def create_random_table_name():
-            return create_random_string().title()
-
-        if data is None:
-            data = []
-        with dj_connection(db_spec, user_spec) as connection:
-            table_name = create_random_table_name()
-            table_cls = type(table_name, (dj.Manual,), {"definition": definition})
-            schema = dj.schema(schema_name, connection=connection)
-            schema(table_cls)
-            table_cls().insert(data)
-        return table_name
-
-    return _create_table
-
-
-@pytest.fixture()
 def prepare_multiple_links(create_random_string, create_user, databases):
     def _prepare_multiple_links(n_local_schemas):
         def create_schema_names():
@@ -682,3 +663,31 @@ def prepare_link(prepare_multiple_links):
         return schema_names, user_specs
 
     return _prepare_link
+
+
+@pytest.fixture()
+def create_table():
+    def _create_table(name, tier, definition, *, parts=None):
+        if tier is dj.Part:
+            assert parts is None
+        if parts is None:
+            parts = []
+        return type(name, (tier,), {"definition": definition, **{part.__name__: part for part in parts}})
+
+    return _create_table
+
+
+@pytest.fixture()
+def prepare_table(dj_connection):
+    def _prepare_table(database, user, schema, table_cls, *, data=None, parts=None):
+        if data is None:
+            data = []
+        if parts is None:
+            parts = {}
+        with dj_connection(database, user) as connection:
+            dj.schema(schema, connection=connection)(table_cls)
+            table_cls().insert(data)
+            for name, part_data in parts.items():
+                getattr(table_cls, name).insert(part_data)
+
+    return _prepare_table
