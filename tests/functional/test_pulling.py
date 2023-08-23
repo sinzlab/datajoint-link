@@ -24,11 +24,16 @@ def test_pulling(
             file.write(os.urandom(n_bytes))
         return filepath
 
-    expected = [{"foo": 1, "bar": create_random_binary_file()}, {"foo": 2, "bar": create_random_binary_file()}]
+    expected = [
+        {"foo": 1, "bar": create_random_binary_file()},
+        {"foo": 2, "bar": create_random_binary_file()},
+        {"foo": 3, "bar": create_random_binary_file()},
+    ]
     expected_parts = {
         "Part1": [
             {"foo": 1, "baz": 1, "egg": create_random_binary_file()},
             {"foo": 2, "baz": 13, "egg": create_random_binary_file()},
+            {"foo": 3, "baz": 623, "egg": create_random_binary_file()},
         ],
         "Part2": [{"foo": 1, "bacon": 3, "apple": 34}, {"foo": 2, "bacon": 64, "apple": 72}],
     }
