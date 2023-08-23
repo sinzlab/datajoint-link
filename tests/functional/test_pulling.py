@@ -66,9 +66,13 @@ def test_pulling(
         with connection_config(databases["local"], user_specs["local"]), configured_environment(
             user_specs["link"], schema_names["outbound"]
         ), temp_dj_store_config([source_store_spec, local_store_spec]):
-            local_table_cls = link(databases["source"].container.name, schema_names["source"], schema_names["local"])(
-                type(source_table_name, (dj.Manual,), {})
-            )
+            local_table_cls = link(
+                databases["source"].container.name,
+                schema_names["source"],
+                schema_names["outbound"],
+                "Outbound",
+                schema_names["local"],
+            )(type(source_table_name, (dj.Manual,), {}))
             local_table_cls().pull()
             actual = local_table_cls().fetch(as_dict=True, download_path=tmpdir)
             assert len(actual) == len(expected)

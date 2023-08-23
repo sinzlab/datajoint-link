@@ -16,8 +16,14 @@ from .facade import DJLinkFacade
 from .mixin import create_mixin
 
 
-def create_link(
-    source_host: str, source_schema: str, local_schema: str, *, stores: Optional[Mapping[str, str]] = None
+def create_link(  # noqa: PLR0913
+    source_host: str,
+    source_schema: str,
+    outbound_schema: str,
+    outbound_table: str,
+    local_schema: str,
+    *,
+    stores: Optional[Mapping[str, str]] = None,
 ) -> Callable[[type], Any]:
     """Create a link."""
     if stores is None:
@@ -25,7 +31,11 @@ def create_link(
 
     def inner(obj: type) -> Any:
         translator = IdentificationTranslator()
-        tables = create_tables(DJConfiguration(source_host, source_schema, local_schema, obj.__name__, stores))
+        tables = create_tables(
+            DJConfiguration(
+                source_host, source_schema, outbound_schema, outbound_table, local_schema, obj.__name__, stores
+            )
+        )
         facade = DJLinkFacade(tables.source, tables.outbound, tables.local)
         gateway = DJLinkGateway(facade, translator)
         dj_presenter = DJPresenter()

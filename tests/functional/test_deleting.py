@@ -20,15 +20,19 @@ def test_deleting(
     with connection_config(databases["local"], user_specs["local"]), configured_environment(
         user_specs["link"], schema_names["outbound"]
     ):
-        local_table_cls = link(databases["source"].container.name, schema_names["source"], schema_names["local"])(
-            type("Foo", tuple(), {})
-        )
+        local_table_cls = link(
+            databases["source"].container.name,
+            schema_names["source"],
+            schema_names["outbound"],
+            "Outbound",
+            schema_names["local"],
+        )(type("Foo", tuple(), {}))
         local_table_cls().pull()
 
     with dj_connection(databases["source"], user_specs["admin"]) as connection:
         table_classes = {}
         dj.schema(schema_names["outbound"], connection=connection).spawn_missing_classes(context=table_classes)
-        outbound_table_cls = next(iter(table_classes.values()))
+        outbound_table_cls = table_classes["Outbound"]
         row = (outbound_table_cls & {"foo": 1}).fetch1()
         (outbound_table_cls() & row).delete_quick()
         row["is_flagged"] = "TRUE"

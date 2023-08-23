@@ -8,8 +8,6 @@ import datajoint as dj
 
 from .config import (
     create_local_credential_provider,
-    create_outbound_schema_name_provider,
-    create_outbound_table_name_provider,
     create_source_credential_provider,
     create_table_definition_provider,
 )
@@ -22,6 +20,8 @@ class DJConfiguration:
 
     source_host: str
     source_schema: str
+    outbound_schema: str
+    outbound_table_name: str
     local_schema: str
     source_table_name: str
     replacement_stores: Mapping[str, str] = field(default_factory=dict)
@@ -45,14 +45,8 @@ def create_tables(config: DJConfiguration) -> DJTables:
     )
     local_credential_provider = create_local_credential_provider()
     outbound_table = create_dj_table_factory(
-        create_outbound_table_name_provider(
-            config.source_table_name,
-            source_credential_provider,
-            local_credential_provider,
-            config.source_schema,
-            config.local_schema,
-        ),
-        create_dj_schema_factory(create_outbound_schema_name_provider(), source_connection),
+        lambda: config.outbound_table_name,
+        create_dj_schema_factory(lambda: config.outbound_schema, source_connection),
         tier=Tiers.MANUAL,
         definition=lambda: "\n".join(
             [
