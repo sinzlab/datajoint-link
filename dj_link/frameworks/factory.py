@@ -1,6 +1,7 @@
 """Contains the DataJoint table factory."""
 from __future__ import annotations
 
+import functools
 from enum import Enum
 from typing import Callable, Mapping, Optional, cast, overload
 
@@ -14,9 +15,12 @@ def create_dj_connection_factory(
     credential_provider: Callable[[], DatabaseServerCredentials]
 ) -> Callable[[], dj.Connection]:
     """Create a factory producing DataJoint connections."""
+    create_cached_connection = functools.lru_cache(dj.Connection)
 
     def create_dj_connection() -> dj.Connection:
-        return dj.Connection(credential_provider().host, credential_provider().username, credential_provider().password)
+        return create_cached_connection(
+            credential_provider().host, credential_provider().username, credential_provider().password
+        )
 
     return create_dj_connection
 
