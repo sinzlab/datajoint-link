@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, cast
+from typing import cast
 
 import datajoint as dj
 
@@ -16,13 +16,12 @@ class Mixin:
     local_table: Callable[[], dj.Table]
     outbound_table: Callable[[], dj.Table]
     source_table: Callable[[], dj.Table]
-    restriction: Any
+    proj: Callable[[], dj.Table]
 
-    @classmethod
-    def delete(cls) -> None:
+    def delete(self) -> None:
         """Delete pulled entities from the local table."""
-        primary_keys = (cls.local_table().proj() & cls().restriction).fetch(as_dict=True)
-        cls.controller.delete(primary_keys)
+        primary_keys = self.proj().fetch(as_dict=True)
+        self.controller.delete(primary_keys)
 
     @property
     def source(self) -> dj.Table:

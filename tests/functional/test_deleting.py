@@ -6,6 +6,8 @@ from dj_link import link
 def test_deleting(
     prepare_link, prepare_table, dj_connection, databases, connection_config, configured_environment, create_table
 ):
+    data = [{"foo": 1}, {"foo": 2}, {"foo": 3}]
+    expected = [{"foo": 2}, {"foo": 3}]
     schema_names, user_specs = prepare_link()
 
     table_cls = create_table("Foo", dj.Manual, "foo: int")
@@ -14,7 +16,7 @@ def test_deleting(
         user_specs["source"],
         schema_names["source"],
         table_cls,
-        data=[{"foo": 1}, {"foo": 2}, {"foo": 3}],
+        data=data,
     )
 
     with connection_config(databases["local"], user_specs["local"]), configured_environment(
@@ -42,6 +44,6 @@ def test_deleting(
         user_specs["link"], schema_names["outbound"]
     ):
         (local_table_cls() & {"foo": 1}).delete()
-        assert {"foo": 1} not in local_table_cls().fetch(as_dict=True)
+        assert local_table_cls().fetch(as_dict=True) == expected
 
     assert (outbound_table_cls() & {"foo": 1}).fetch1("is_deprecated") == "TRUE"
