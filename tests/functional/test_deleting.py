@@ -27,7 +27,7 @@ def test_deleting(
             "Outbound",
             schema_names["local"],
         )(type("Foo", tuple(), {}))
-        local_table_cls().pull()
+        local_table_cls().source.pull()
 
     with dj_connection(databases["source"], user_specs["admin"]) as connection:
         table_classes = {}

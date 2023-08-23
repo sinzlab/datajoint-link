@@ -85,7 +85,7 @@ def test_pulling(
                 "Outbound",
                 schema_names["local"],
             )(type(source_table_name, (dj.Manual,), {}))
-            local_table_cls().pull([{"foo": 1}, {"foo": 2}])
+            (local_table_cls().source & [{"foo": 1}, {"foo": 2}]).pull()
             actual = local_table_cls().fetch(as_dict=True, download_path=tmpdir)
             assert len(actual) == len(expected)
             assert all(entry in expected for entry in actual)

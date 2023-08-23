@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 import datajoint as dj
-from datajoint import AndList
 
 from dj_link.adapters.controller import DJController
 
@@ -20,12 +19,6 @@ class Mixin:
     restriction: Any
 
     @classmethod
-    def pull(cls, *restrictions: Any) -> None:
-        """Pull idle entities from the source table into the local table."""
-        primary_keys = (cls.source_table().proj() & AndList(restrictions)).fetch(as_dict=True)
-        cls.controller.pull(primary_keys)
-
-    @classmethod
     def delete(cls) -> None:
         """Delete pulled entities from the local table."""
         primary_keys = (cls.local_table().proj() & cls().restriction).fetch(as_dict=True)
@@ -34,12 +27,31 @@ class Mixin:
     @property
     def source(self) -> dj.Table:
         """Return the source table."""
-        return self.source_table()
+        source_table_cls = type(self.source_table())
+        return cast(
+            dj.Table,
+            type(
+                source_table_cls.__name__,
+                (source_table_cls,),
+                {"pull": create_pull_method(self.controller)},
+            )(),
+        )
 
     @property
     def outbound(self) -> dj.Table:
         """Return the outbound table."""
         return self.outbound_table()
+
+
+def create_pull_method(controller: DJController) -> Callable[[dj.Table], None]:
+    """Create pull method used by source table."""
+
+    def pull(self: dj.Table) -> None:
+        """Pull idle entities from the source table into the local table."""
+        primary_keys = self.proj().fetch(as_dict=True)
+        controller.pull(primary_keys)
+
+    return pull
 
 
 def create_mixin(
