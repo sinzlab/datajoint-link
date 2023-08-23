@@ -1,3 +1,4 @@
+import functools
 import os
 
 import datajoint as dj
@@ -18,24 +19,30 @@ def test_pulling(
     minios,
     configured_environment,
 ):
-    def create_random_binary_file(n_bytes=1024):
+    @functools.lru_cache()
+    def create_random_binary_file(seed, *, n_bytes=1024):
         filepath = tmpdir / create_random_string()
         with open(filepath, "wb") as file:
             file.write(os.urandom(n_bytes))
         return filepath
 
-    expected = [
-        {"foo": 1, "bar": create_random_binary_file()},
-        {"foo": 2, "bar": create_random_binary_file()},
-        {"foo": 3, "bar": create_random_binary_file()},
+    data = [
+        {"foo": 1, "bar": create_random_binary_file(1)},
+        {"foo": 2, "bar": create_random_binary_file(2)},
+        {"foo": 3, "bar": create_random_binary_file(3)},
     ]
-    expected_parts = {
+    data_parts = {
         "Part1": [
-            {"foo": 1, "baz": 1, "egg": create_random_binary_file()},
-            {"foo": 2, "baz": 13, "egg": create_random_binary_file()},
-            {"foo": 3, "baz": 623, "egg": create_random_binary_file()},
+            {"foo": 1, "baz": 1, "egg": create_random_binary_file(4)},
+            {"foo": 2, "baz": 13, "egg": create_random_binary_file(5)},
+            {"foo": 3, "baz": 623, "egg": create_random_binary_file(6)},
         ],
         "Part2": [{"foo": 1, "bacon": 3, "apple": 34}, {"foo": 2, "bacon": 64, "apple": 72}],
+    }
+    expected = data[:2]
+    expected_parts = {
+        "Part1": data_parts["Part1"][:2],
+        "Part2": data_parts["Part2"][:2],
     }
 
     schema_names, user_specs = prepare_link()
@@ -64,8 +71,8 @@ def test_pulling(
                 user_specs["source"],
                 schema_names["source"],
                 table_cls,
-                data=expected,
-                parts=expected_parts,
+                data=data,
+                parts=data_parts,
             )
 
         with connection_config(databases["local"], user_specs["local"]), configured_environment(
@@ -78,7 +85,7 @@ def test_pulling(
                 "Outbound",
                 schema_names["local"],
             )(type(source_table_name, (dj.Manual,), {}))
-            local_table_cls().pull()
+            local_table_cls().pull([{"foo": 1}, {"foo": 2}])
             actual = local_table_cls().fetch(as_dict=True, download_path=tmpdir)
             assert len(actual) == len(expected)
             assert all(entry in expected for entry in actual)
