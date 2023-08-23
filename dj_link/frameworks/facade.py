@@ -20,7 +20,7 @@ from dj_link.adapters.facade import DJAssignments, DJProcess
 from dj_link.adapters.facade import DJLinkFacade as AbstractDJLinkFacade
 
 
-class Connection(Protocol):  # pylint: disable=too-few-public-methods
+class Connection(Protocol):
     """DataJoint connection protocol."""
 
     @property

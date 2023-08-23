@@ -13,12 +13,6 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-      - id: pylint
-        name: pylint
-        entry: pdm run lint_pylint
-        language: system
-        types: [python]
-        pass_filenames: false
       - id: pytest
         name: pytest
         entry: pdm run tests

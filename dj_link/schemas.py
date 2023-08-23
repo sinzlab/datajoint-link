@@ -7,7 +7,7 @@ from datajoint.schemas import Schema
 from datajoint.table import Table
 
 
-class LazySchema:  # pylint: disable=too-many-instance-attributes
+class LazySchema:
     """A proxy for a "Schema" instance which initializes said instance in a lazy way.
 
     This class initializes the underlying schema if the "initialize" or "__call__" method is called or the "schema"

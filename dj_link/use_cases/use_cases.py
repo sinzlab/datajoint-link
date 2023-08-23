@@ -14,7 +14,7 @@ from dj_link.entities.link import pull as pull_domain_service
 from .gateway import LinkGateway
 
 
-class ResponseModel:  # pylint: disable=too-few-public-methods
+class ResponseModel:
     """Base class for all response models."""
 
 
