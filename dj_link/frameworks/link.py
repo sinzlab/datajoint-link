@@ -44,7 +44,7 @@ def create_link(  # noqa: PLR0913
             UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=dj_presenter.delete),
         }
         controller = DJController(handlers, translator)
-        mixin = create_mixin(controller, tables.source, tables.outbound, tables.local)
+        mixin = create_mixin(controller, tables.source, tables.outbound)
         return type(obj.__name__, (mixin, type(tables.local())), {})
 
     return inner

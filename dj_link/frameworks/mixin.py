@@ -13,7 +13,6 @@ class Mixin:
     """Mixin class for adding functionality to the local DataJoint table."""
 
     controller: DJController
-    local_table: Callable[[], dj.Table]
     outbound_table: Callable[[], dj.Table]
     source_table: Callable[[], dj.Table]
     proj: Callable[[], dj.Table]
@@ -57,7 +56,6 @@ def create_mixin(
     controller: DJController,
     source_table: Callable[[], dj.Table],
     outbound_table: Callable[[], dj.Table],
-    local_table: Callable[[], dj.Table],
 ) -> type[Mixin]:
     """Create a new subclass of the mixin that is configured to work with a specific link."""
     return type(
@@ -67,6 +65,5 @@ def create_mixin(
             "controller": controller,
             "source_table": staticmethod(source_table),
             "outbound_table": staticmethod(outbound_table),
-            "local_table": staticmethod(local_table),
         },
     )
