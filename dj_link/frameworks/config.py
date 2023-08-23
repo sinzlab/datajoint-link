@@ -4,7 +4,6 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
-from hashlib import sha1
 
 import datajoint as dj
 
@@ -45,28 +44,6 @@ def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[
         return table().describe(printout=False)
 
     return provide_definition
-
-
-def create_outbound_table_name_provider(
-    source_table_name: str,
-    source_credentials: Callable[[], DatabaseServerCredentials],
-    local_credentials: Callable[[], DatabaseServerCredentials],
-    source_schema_name: str,
-    local_schema_name: str,
-) -> Callable[[], str]:
-    """Create an object that provides the correct link-specific name for the outbound table when called."""
-
-    def provide_name() -> str:
-        link_identifiers = [
-            source_table_name,
-            source_credentials().host,
-            local_credentials().host,
-            source_schema_name,
-            local_schema_name,
-        ]
-        return "Outbound" + sha1(",".join(link_identifiers).encode()).hexdigest()
-
-    return provide_name
 
 
 def create_outbound_schema_name_provider() -> Callable[[], str]:
