@@ -6,7 +6,7 @@ groups = ["default", "dev", "profiling"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:e82b77e63c6b971fbfac5477555d418b95630095756568e1c3e1205650a18f88"
+content_hash = "sha256:56d0b534e7f7c058e62b8983c10386cf65c74750cd0e91bd3e8874a0dbcdef13"
 
 [[package]]
 name = "appnope"
@@ -515,14 +515,6 @@ files = [
     {file = "fonttools-4.41.1-cp39-cp39-win_amd64.whl", hash = "sha256:1df1b6f4c7c4bc8201eb47f3b268adbf2539943aa43c400f84556557e3e109c0"},
     {file = "fonttools-4.41.1-py3-none-any.whl", hash = "sha256:952cb405f78734cf6466252fec42e206450d1a6715746013f64df9cbd4f896fa"},
     {file = "fonttools-4.41.1.tar.gz", hash = "sha256:e16a9449f21a93909c5be2f5ed5246420f2316e94195dbfccb5238aaa38f9751"},
-]
-
-[[package]]
-name = "gprof2dot"
-version = "2021.2.21"
-summary = "Generate a dot graph from the output of several profilers."
-files = [
-    {file = "gprof2dot-2021.2.21.tar.gz", hash = "sha256:1223189383b53dcc8ecfd45787ac48c0ed7b4dbc16ee8b88695d053eea1acabf"},
 ]
 
 [[package]]

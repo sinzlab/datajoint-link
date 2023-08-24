@@ -22,34 +22,6 @@ classifiers = [
 [project.urls]
 homepage = "https://github.com/sinzlab/link"
 
-[tool.pdm.version]
-source = "scm"
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "pytest>=6.2",
-    "pytest-sugar>=0.9",
-    "pytest-cov>=2.11",
-    "docker>=4.4",
-    "pymysql>=1.0",
-    "mypy>=0.812",
-    "black>=22.10.0",
-    "minio>=7.1.12",
-    "neovim>=0.3.1",
-    "pdbpp>=0.10.3",
-    "ruff>=0.0.270",
-]
-profiling = [
-    "gprof2dot~=2021.2",
-]
-
-[tool.pdm.scripts]
-lint_black = "black --check --diff ."
-lint_mypy = "mypy"
-lint_ruff = "ruff check ."
-tests = "pytest -m 'not slow'"
-functional_tests = "docker compose run functional_tests"
-
 [tool.black]
 line-length = 120
 
@@ -111,6 +83,32 @@ source = ["dj_link"]
 
 [tool.coverage.report]
 exclude_lines = ["if TYPE_CHECKING:"]
+
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest>=6.2",
+    "pytest-sugar>=0.9",
+    "pytest-cov>=2.11",
+    "docker>=4.4",
+    "pymysql>=1.0",
+    "mypy>=0.812",
+    "black>=22.10.0",
+    "minio>=7.1.12",
+    "neovim>=0.3.1",
+    "pdbpp>=0.10.3",
+    "ruff>=0.0.270",
+]
+
+[tool.pdm.scripts]
+lint_black = "black --check --diff ."
+lint_mypy = "mypy"
+lint_ruff = "ruff check ."
+tests = "pytest -m 'not slow'"
+functional_tests = "docker compose run functional_tests"
 
 [build-system]
 requires = ["pdm-backend"]
