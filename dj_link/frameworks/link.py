@@ -13,7 +13,7 @@ from dj_link.use_cases.use_cases import UseCases, delete, pull
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
-from .mixin import create_mixin
+from .mixin import create_local_mixin
 
 
 def create_link(  # noqa: PLR0913
@@ -44,7 +44,7 @@ def create_link(  # noqa: PLR0913
             UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=dj_presenter.delete),
         }
         controller = DJController(handlers, translator)
-        mixin = create_mixin(controller, tables.source, tables.outbound)
+        mixin = create_local_mixin(controller, tables.source, tables.outbound)
         return type(obj.__name__, (mixin, type(tables.local())), {})
 
     return inner

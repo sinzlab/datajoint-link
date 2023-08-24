@@ -37,6 +37,23 @@ class LocalMixin:
         )
 
 
+def create_local_mixin(
+    controller: DJController,
+    source_table: Callable[[], dj.Table],
+    outbound_table: Callable[[], dj.Table],
+) -> type[LocalMixin]:
+    """Create a new subclass of the mixin that is configured to work with a specific link."""
+    return type(
+        LocalMixin.__name__,
+        (LocalMixin,),
+        {
+            "controller": controller,
+            "source_table": staticmethod(source_table),
+            "outbound_table": staticmethod(outbound_table),
+        },
+    )
+
+
 class SourceMixin:
     """Mixin class for the source table."""
 
@@ -53,20 +70,3 @@ class SourceMixin:
     def flagged(self) -> Sequence[PrimaryKey]:
         """Return the primary keys of all flagged entities."""
         return (self.outbound_table() & "is_flagged = 'TRUE'").proj().fetch(as_dict=True)
-
-
-def create_mixin(
-    controller: DJController,
-    source_table: Callable[[], dj.Table],
-    outbound_table: Callable[[], dj.Table],
-) -> type[LocalMixin]:
-    """Create a new subclass of the mixin that is configured to work with a specific link."""
-    return type(
-        LocalMixin.__name__,
-        (LocalMixin,),
-        {
-            "controller": controller,
-            "source_table": staticmethod(source_table),
-            "outbound_table": staticmethod(outbound_table),
-        },
-    )
