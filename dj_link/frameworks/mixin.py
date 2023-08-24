@@ -11,7 +11,7 @@ from dj_link.adapters.custom_types import PrimaryKey
 
 
 class LocalMixin:
-    """Mixin class for adding functionality to the local DataJoint table."""
+    """Mixin class for local table."""
 
     controller: DJController
     outbound_table: Callable[[], dj.Table]
@@ -31,38 +31,28 @@ class LocalMixin:
             dj.Table,
             type(
                 source_table_cls.__name__,
-                (source_table_cls,),
-                {
-                    "pull": create_pull_method(self.controller),
-                    "flagged": property(create_flagged_method(self.outbound_table)),
-                },
+                (SourceMixin, source_table_cls),
+                {"controller": self.controller, "outbound_table": staticmethod(self.outbound_table)},
             )(),
         )
 
-    @property
-    def outbound(self) -> dj.Table:
-        """Return the outbound table."""
-        return self.outbound_table()
 
+class SourceMixin:
+    """Mixin class for the source table."""
 
-def create_pull_method(controller: DJController) -> Callable[[dj.Table], None]:
-    """Create pull method used by source table."""
+    proj: Callable[[], dj.Table]
+    controller: DJController
+    outbound_table: Callable[[], dj.Table]
 
-    def pull(self: dj.Table) -> None:
+    def pull(self) -> None:
         """Pull idle entities from the source table into the local table."""
         primary_keys = self.proj().fetch(as_dict=True)
-        controller.pull(primary_keys)
+        self.controller.pull(primary_keys)
 
-    return pull
-
-
-def create_flagged_method(outbound_table: Callable[[], dj.Table]) -> Callable[[dj.Table], Sequence[PrimaryKey]]:
-    """Create a method that returns the primary keys of all flagged entities when called."""
-
-    def flagged(self: dj.Table) -> Sequence[PrimaryKey]:
-        return (outbound_table() & "is_flagged = 'TRUE'").proj().fetch(as_dict=True)
-
-    return flagged
+    @property
+    def flagged(self) -> Sequence[PrimaryKey]:
+        """Return the primary keys of all flagged entities."""
+        return (self.outbound_table() & "is_flagged = 'TRUE'").proj().fetch(as_dict=True)
 
 
 def create_mixin(
