@@ -72,7 +72,6 @@ files = [
 ]
 strict = false
 mypy_path = "stubs"
-ignore_errors = true
 warn_unused_ignores = true
 warn_unused_configs = true
 warn_redundant_casts = true
@@ -82,39 +81,21 @@ disallow_untyped_decorators = true
 no_implicit_reexport = true
 strict_equality = true
 strict_concatenate = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
 enable_error_code = [
     "possibly-undefined",
 ]
 
 [[tool.mypy.overrides]]
 module = [
-    "dj_link.*",
-    "tests.conftest",
-    "tests.unit.frameworks.datajoint.test_facade",
+    "tests.docker.*",
+    "tests.functional.*",
 ]
-ignore_errors = false
-
-[[tool.mypy.overrides]]
-module = [
-    "datajoint.*",
-    "dj_link.adapters.*",
-    "dj_link.entities.*",
-    "dj_link.frameworks.*",
-    "dj_link.use_cases.*",
-    "tests.conftest",
-    "tests.integration.test_datajoint_persistence",
-    "tests.integration.test_pull",
-    "tests.integration.test_use_cases",
-    "tests.unit.entities.assignments",
-    "tests.unit.entities.test_link",
-    "tests.unit.entities.test_state",
-]
-ignore_errors = false
-disallow_any_generics = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-warn_return_any = true
+ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = [
