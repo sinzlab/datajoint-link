@@ -43,7 +43,7 @@ def test_deleting(
     with connection_config(databases["local"], user_specs["local"]), configured_environment(
         user_specs["link"], schema_names["outbound"]
     ):
-        (local_table_cls() & {"foo": 1}).delete()
+        (local_table_cls() & local_table_cls().source.flagged).delete()
         assert local_table_cls().fetch(as_dict=True) == expected
 
     assert (outbound_table_cls() & {"foo": 1}).fetch1("is_deprecated") == "TRUE"

@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import cast
+from typing import Sequence, cast
 
 import datajoint as dj
 
 from dj_link.adapters.controller import DJController
+from dj_link.adapters.custom_types import PrimaryKey
 
 
 class Mixin:
@@ -31,7 +32,10 @@ class Mixin:
             type(
                 source_table_cls.__name__,
                 (source_table_cls,),
-                {"pull": create_pull_method(self.controller)},
+                {
+                    "pull": create_pull_method(self.controller),
+                    "flagged": property(create_flagged_method(self.outbound_table)),
+                },
             )(),
         )
 
@@ -50,6 +54,15 @@ def create_pull_method(controller: DJController) -> Callable[[dj.Table], None]:
         controller.pull(primary_keys)
 
     return pull
+
+
+def create_flagged_method(outbound_table: Callable[[], dj.Table]) -> Callable[[dj.Table], Sequence[PrimaryKey]]:
+    """Create a method that returns the primary keys of all flagged entities when called."""
+
+    def flagged(self: dj.Table) -> Sequence[PrimaryKey]:
+        return (outbound_table() & "is_flagged = 'TRUE'").proj().fetch(as_dict=True)
+
+    return flagged
 
 
 def create_mixin(
