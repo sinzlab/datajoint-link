@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from .docker import ContainerRunner
+from .runner import ContainerRunner
 
 
 def test_if_subclass_of_abstract_context_manager():

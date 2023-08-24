@@ -16,7 +16,7 @@ import pymysql
 import pytest
 from minio.deleteobjects import DeleteObject
 
-from tests.docker.docker import ContainerRunner
+from tests.docker.runner import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
 REMOVE = True
