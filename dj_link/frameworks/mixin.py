@@ -10,7 +10,7 @@ from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
 
 
-class Mixin:
+class LocalMixin:
     """Mixin class for adding functionality to the local DataJoint table."""
 
     controller: DJController
@@ -69,11 +69,11 @@ def create_mixin(
     controller: DJController,
     source_table: Callable[[], dj.Table],
     outbound_table: Callable[[], dj.Table],
-) -> type[Mixin]:
+) -> type[LocalMixin]:
     """Create a new subclass of the mixin that is configured to work with a specific link."""
     return type(
-        Mixin.__name__,
-        (Mixin,),
+        LocalMixin.__name__,
+        (LocalMixin,),
         {
             "controller": controller,
             "source_table": staticmethod(source_table),
