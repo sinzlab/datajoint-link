@@ -5,7 +5,18 @@ from dataclasses import dataclass
 from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
-from .state import STATE_MAP, Components, Entity, PersistentState, Processes, Update, states
+from .state import (
+    STATE_MAP,
+    Components,
+    Entity,
+    EntityOperationResult,
+    InvalidOperation,
+    Operations,
+    PersistentState,
+    Processes,
+    Update,
+    states,
+)
 
 
 def create_link(
@@ -153,9 +164,35 @@ def pull_legacy(
     return outbound_transfers | local_transfers
 
 
-def process(link: Link) -> set[Update]:
+@dataclass(frozen=True)
+class LinkOperationResult:
+    """Represents the result of an operation on all entities of a link."""
+
+    operation: Operations
+    updates: frozenset[Update]
+    errors: frozenset[InvalidOperation]
+
+    def __post_init__(self) -> None:
+        """Validate the result."""
+        assert all(
+            result.operation is self.operation for result in (self.updates | self.errors)
+        ), "Not all results have same operation."
+
+
+def create_link_operation_result(results: Iterable[EntityOperationResult]) -> LinkOperationResult:
+    """Create the result of an operation on a link from results of individual entities."""
+    results = set(results)
+    operation = next(iter(results)).operation
+    return LinkOperationResult(
+        operation,
+        updates=frozenset(result for result in results if isinstance(result, Update)),
+        errors=frozenset(result for result in results if isinstance(result, InvalidOperation)),
+    )
+
+
+def process(link: Link) -> LinkOperationResult:
     """Process all entities in the link producing appropriate updates."""
-    return {entity.process() for entity in link[Components.SOURCE]}
+    return create_link_operation_result(entity.process() for entity in link[Components.SOURCE])
 
 
 def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
@@ -163,25 +200,17 @@ def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
     assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
 
 
-def pull(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+def pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Pull all requested entities producing appropriate updates."""
     _validate_requested(link, requested)
-    return {entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested}
+    return create_link_operation_result(
+        entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested
+    )
 
 
-def delete(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
+def delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Delete all requested identifiers producing appropriate updates."""
     _validate_requested(link, requested)
-    return {entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested}
-
-
-def flag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
-    """Flag the requested entities producing appropriate updates."""
-    _validate_requested(link, requested)
-    return {entity.flag() for entity in link[Components.SOURCE] if entity.identifier in requested}
-
-
-def unflag(link: Link, *, requested: Iterable[Identifier]) -> set[Update]:
-    """Unflag the requested entities producing the appropriate updates."""
-    _validate_requested(link, requested)
-    return {entity.unflag() for entity in link[Components.SOURCE] if entity.identifier in requested}
+    return create_link_operation_result(
+        entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested
+    )

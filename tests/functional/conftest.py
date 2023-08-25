@@ -16,8 +16,7 @@ import pymysql
 import pytest
 from minio.deleteobjects import DeleteObject
 
-from dj_link import LazySchema, Link
-from dj_link.docker import ContainerRunner
+from tests.docker.runner import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
 REMOVE = True
@@ -287,16 +286,6 @@ def create_containers(docker_client, specs):
 
 
 @pytest.fixture(scope=SCOPE)
-def containers(docker_client, get_db_spec, get_minio_spec):
-    containers = {
-        "databases": {kind: get_db_spec(kind) for kind in ["source", "local"]},
-        "minios": {kind: get_minio_spec(kind) for kind in ["source", "local"]},
-    }
-    with create_containers(docker_client, {**containers["databases"], **containers["minios"]}):
-        yield containers
-
-
-@pytest.fixture(scope=SCOPE)
 def databases(get_db_spec, docker_client):
     kinds_to_specs = {kind: get_db_spec(kind) for kind in ["source", "local"]}
     with create_containers(docker_client, kinds_to_specs.values()):
@@ -308,20 +297,6 @@ def minios(get_minio_spec, docker_client):
     kinds_to_specs = {kind: get_minio_spec(kind) for kind in ["source", "local"]}
     with create_containers(docker_client, kinds_to_specs.values()):
         yield kinds_to_specs
-
-
-@pytest.fixture(scope=SCOPE)
-def src_db_spec(databases, create_user):
-    for name, user in databases["source"].config.users.items():
-        databases["source"].config.users[name] = create_user(databases["source"], user.grants)
-    return databases["source"]
-
-
-@pytest.fixture(scope=SCOPE)
-def local_db_spec(databases, create_user):
-    for name, user in databases["local"].config.users.items():
-        databases["local"].config.users[name] = create_user(databases["local"], user.grants)
-    return databases["local"]
 
 
 @contextmanager
@@ -341,16 +316,6 @@ def mysql_conn(db_spec):
 
 
 @pytest.fixture(scope=SCOPE)
-def src_minio_spec(minios):
-    return minios["source"]
-
-
-@pytest.fixture(scope=SCOPE)
-def local_minio_spec(minios):
-    return minios["local"]
-
-
-@pytest.fixture(scope=SCOPE)
 def get_minio_client():
     def _get_minio_client(spec):
         return minio.Minio(
@@ -361,11 +326,6 @@ def get_minio_client():
         )
 
     return _get_minio_client
-
-
-@pytest.fixture()
-def src_store_config(temp_stores):
-    return temp_stores["source"]
 
 
 @pytest.fixture()
@@ -382,11 +342,6 @@ def get_store_spec(create_random_string):
         )
 
     return _get_store_spec
-
-
-@pytest.fixture()
-def local_store_config(temp_stores):
-    return temp_stores["local"]
 
 
 @pytest.fixture()
@@ -477,126 +432,6 @@ def temp_stores(temp_store, src_minio_spec, local_minio_spec):
 
 
 @pytest.fixture()
-def test_session(src_db_spec, local_db_spec, dj_connection, outbound_schema_name):
-    with dj_connection(src_db_spec, src_db_spec.config.users["end_user"]) as src_conn:
-        with dj_connection(local_db_spec, local_db_spec.config.users["end_user"]) as local_conn:
-            src_schema = LazySchema(src_db_spec.config.schema_name, connection=src_conn)
-            local_schema = LazySchema(local_db_spec.config.schema_name, connection=local_conn)
-            yield dict(src=src_schema, local=local_schema)
-            local_schema.drop(force=True)
-        with mysql_conn(src_db_spec) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(f"DROP DATABASE IF EXISTS {outbound_schema_name};")
-            conn.commit()
-        src_schema.drop(force=True)
-
-
-@pytest.fixture()
-def src_schema(test_session):
-    return test_session["src"]
-
-
-@pytest.fixture()
-def local_schema(test_session):
-    return test_session["local"]
-
-
-@pytest.fixture()
-def src_table_name():
-    return "Table"
-
-
-@pytest.fixture()
-def src_table_definition():
-    return """
-    prim_attr: int
-    ---
-    sec_attr: int
-    """
-
-
-@pytest.fixture()
-def src_table_cls(src_table_name, src_table_definition):
-    class Table(dj.Manual):
-        definition = src_table_definition
-
-    Table.__name__ = src_table_name
-    return Table
-
-
-@pytest.fixture()
-def n_entities():
-    return int(os.environ.get("N_ENTITIES", 10))
-
-
-@pytest.fixture()
-def src_data(n_entities):
-    return [dict(prim_attr=i, sec_attr=-i) for i in range(n_entities)]
-
-
-@pytest.fixture()
-def src_table_with_data(
-    src_schema, src_table_cls, src_data, src_db_spec, connection_config, src_store_config, temp_dj_store_config
-):
-    with connection_config(src_db_spec, src_db_spec.config.users["end_user"]), temp_dj_store_config([src_store_config]):
-        src_table = src_schema(src_table_cls)
-        src_table().insert(src_data)
-    return src_table
-
-
-@pytest.fixture()
-def remote_schema(src_db_spec):
-    os.environ["LINK_USER"] = src_db_spec.config.users["dj_user"].name
-    os.environ["LINK_PASS"] = src_db_spec.config.users["dj_user"].password
-    return LazySchema(src_db_spec.config.schema_name, host=src_db_spec.container.name)
-
-
-@pytest.fixture()
-def stores(request, src_store_config, local_store_config):
-    if getattr(request.module, "USES_EXTERNAL"):
-        return {local_store_config.name: src_store_config.name}
-
-
-@pytest.fixture()
-def local_table_cls(
-    local_schema,
-    remote_schema,
-    stores,
-    connection_config,
-    temp_dj_store_config,
-    local_db_spec,
-    local_store_config,
-    src_store_config,
-):
-    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), temp_dj_store_config(
-        [local_store_config, src_store_config]
-    ):
-
-        @Link(local_schema, remote_schema, stores=stores)
-        class Table:
-            """Local table."""
-
-    return Table
-
-
-@pytest.fixture()
-def local_table_cls_with_pulled_data(
-    src_table_with_data,
-    local_table_cls,
-    connection_config,
-    temp_dj_store_config,
-    local_db_spec,
-    src_store_config,
-    local_store_config,
-):
-    with connection_config(local_db_spec, local_db_spec.config.users["end_user"]), temp_dj_store_config(
-        [src_store_config, local_store_config]
-    ):
-        local_table_cls().pull()
-    return local_table_cls
-
-
-@pytest.fixture()
 def temp_env_vars():
     @contextmanager
     def _temp_env_vars(**vars):
@@ -625,25 +460,6 @@ def configured_environment(temp_env_vars):
 
 
 @pytest.fixture()
-def create_table(dj_connection, create_random_string):
-    def _create_table(db_spec, user_spec, schema_name, definition, data=None):
-        def create_random_table_name():
-            return create_random_string().title()
-
-        if data is None:
-            data = []
-        with dj_connection(db_spec, user_spec) as connection:
-            table_name = create_random_table_name()
-            table_cls = type(table_name, (dj.Manual,), {"definition": definition})
-            schema = dj.schema(schema_name, connection=connection)
-            schema(table_cls)
-            table_cls().insert(data)
-        return table_name
-
-    return _create_table
-
-
-@pytest.fixture()
 def prepare_multiple_links(create_random_string, create_user, databases):
     def _prepare_multiple_links(n_local_schemas):
         def create_schema_names():
@@ -653,6 +469,7 @@ def prepare_multiple_links(create_random_string, create_user, databases):
 
         schema_names = create_schema_names()
         user_specs = {
+            "admin": create_user(databases["source"], grants=["GRANT ALL PRIVILEGES ON *.* TO '$name'@'%';"]),
             "source": create_user(
                 databases["source"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
             ),
@@ -681,3 +498,31 @@ def prepare_link(prepare_multiple_links):
         return schema_names, user_specs
 
     return _prepare_link
+
+
+@pytest.fixture()
+def create_table():
+    def _create_table(name, tier, definition, *, parts=None):
+        if tier is dj.Part:
+            assert parts is None
+        if parts is None:
+            parts = []
+        return type(name, (tier,), {"definition": definition, **{part.__name__: part for part in parts}})
+
+    return _create_table
+
+
+@pytest.fixture()
+def prepare_table(dj_connection):
+    def _prepare_table(database, user, schema, table_cls, *, data=None, parts=None):
+        if data is None:
+            data = []
+        if parts is None:
+            parts = {}
+        with dj_connection(database, user) as connection:
+            dj.schema(schema, connection=connection)(table_cls)
+            table_cls().insert(data)
+            for name, part_data in parts.items():
+                getattr(table_cls, name).insert(part_data)
+
+    return _prepare_table

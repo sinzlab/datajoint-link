@@ -41,9 +41,6 @@ services:
   mypy:
     build: .
     command: ["lint_mypy"]
-  pylint:
-    build: .
-    command: ["lint_pylint"]
   ruff:
     build: .
     command: ["lint_ruff"]

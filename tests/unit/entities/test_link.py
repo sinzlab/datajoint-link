@@ -6,10 +6,9 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Link, Transfer, create_link, delete, flag, process, pull, pull_legacy, unflag
+from dj_link.entities.link import Link, Transfer, create_link, delete, process, pull, pull_legacy
 from dj_link.entities.state import Components, Processes, State, states
-
-from .assignments import create_assignments, create_identifier, create_identifiers
+from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
 class TestCreateLink:
@@ -32,7 +31,7 @@ class TestCreateLink:
         assignments = create_assignments(
             {
                 Components.SOURCE: {"1", "2", "3", "4", "5", "6", "7", "8"},
-                Components.OUTBOUND: {"2", "3", "4", "5", "7", "8"},
+                Components.OUTBOUND: {"2", "3", "4", "5", "6", "7", "8"},
                 Components.LOCAL: {"3", "4", "5", "8"},
             }
         )
@@ -85,11 +84,14 @@ class TestCreateLink:
         assert {(entity.identifier, entity.current_process) for entity in link[Components.SOURCE]} == set(expected)
 
     @staticmethod
-    @pytest.mark.parametrize(("tainted_identifiers", "is_tainted"), [(create_identifiers("1"), True), (set(), False)])
-    def test_tainted_attribute_is_set(tainted_identifiers: Iterable[Identifier], is_tainted: bool) -> None:
-        link = create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers=tainted_identifiers)
-        entity = next(iter(link[Components.SOURCE]))
-        assert entity.is_tainted is is_tainted
+    def test_tainted_attribute_is_set() -> None:
+        link = create_link(
+            create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"1"}}),
+            tainted_identifiers=create_identifiers("1"),
+        )
+        expected = {(create_identifier("1"), True), (create_identifier("2"), False)}
+        actual = {(entity.identifier, entity.is_tainted) for entity in link[Components.SOURCE]}
+        assert actual == expected
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -275,11 +277,11 @@ class TestPullLegacy:
         assert actual == expected
 
 
-def test_process_produces_correct_transitions() -> None:
+def test_process_produces_correct_updates() -> None:
     link = create_link(
         create_assignments(
             {
-                Components.SOURCE: {"1", "2", "3", "4", "5"},
+                Components.SOURCE: {"1", "2", "3", "4"},
                 Components.OUTBOUND: {"1", "2", "3", "4"},
                 Components.LOCAL: {"2", "4"},
             }
@@ -289,13 +291,12 @@ def test_process_produces_correct_transitions() -> None:
             Processes.DELETE: create_identifiers("3", "4"),
         },
     )
-    actual = {(update.identifier, update.transition.new) for update in process(link)}
+    actual = {(update.identifier, update.transition.new) for update in process(link).updates}
     expected = {
         (create_identifier("1"), states.Received),
         (create_identifier("2"), states.Pulled),
         (create_identifier("3"), states.Idle),
         (create_identifier("4"), states.Activated),
-        (create_identifier("5"), states.Idle),
     }
     assert actual == expected
 
@@ -308,8 +309,9 @@ class TestPull:
 
     @staticmethod
     def test_idle_entity_becomes_activated(link: Link) -> None:
-        update = next(iter(pull(link, requested=create_identifiers("1"))))
-        assert {update.identifier} == create_identifiers("1")
+        result = pull(link, requested=create_identifiers("1"))
+        update = next(iter(result.updates))
+        assert update.identifier == create_identifier("1")
         assert update.transition.new is states.Activated
 
     @staticmethod
@@ -333,7 +335,8 @@ def link() -> Link:
 class TestDelete:
     @staticmethod
     def test_pulled_entity_becomes_received(link: Link) -> None:
-        update = next(iter(delete(link, requested=create_identifiers("1"))))
+        result = delete(link, requested=create_identifiers("1"))
+        update = next(iter(result.updates))
         assert {update.identifier} == create_identifiers("1")
         assert update.transition.new is states.Received
 
@@ -346,44 +349,3 @@ class TestDelete:
     def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
             delete(link, requested=create_identifiers("2"))
-
-
-class TestFlag:
-    @staticmethod
-    def test_pulled_entity_becomes_tainted(link: Link) -> None:
-        update = next(iter(flag(link, requested=create_identifiers("1"))))
-        assert {update.identifier} == create_identifiers("1")
-        assert update.transition.new is states.Tainted
-
-    @staticmethod
-    def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers requested."):
-            flag(link, requested={})
-
-    @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            flag(link, requested=create_identifiers("2"))
-
-
-class TestUnflag:
-    @staticmethod
-    @pytest.fixture()
-    def link() -> Link:
-        return create_link(create_assignments({Components.SOURCE: {"1"}}), tainted_identifiers=create_identifiers("1"))
-
-    @staticmethod
-    def test_deprecated_entity_becomes_idle(link: Link) -> None:
-        update = next(iter(unflag(link, requested=create_identifiers("1"))))
-        assert {update.identifier} == create_identifiers("1")
-        assert update.transition.new is states.Idle
-
-    @staticmethod
-    def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers requested."):
-            unflag(link, requested={})
-
-    @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            unflag(link, requested=create_identifiers("2"))

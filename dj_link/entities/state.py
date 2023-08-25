@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Optional
+from typing import Optional, Union
 
 from .custom_types import Identifier
 
@@ -12,41 +12,34 @@ class State:
     """An entity's state."""
 
     @classmethod
-    def pull(cls, entity: Entity) -> Update:
+    def pull(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to pull an entity."""
-        return cls._create_no_transition_update(entity.identifier)
+        return cls._create_invalid_operation_result(Operations.PULL, entity.identifier)
 
     @classmethod
-    def delete(cls, entity: Entity) -> Update:
+    def delete(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to delete the entity."""
-        return cls._create_no_transition_update(entity.identifier)
+        return cls._create_invalid_operation_result(Operations.DELETE, entity.identifier)
 
     @classmethod
-    def process(cls, entity: Entity) -> Update:
+    def process(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to process the entity."""
-        return cls._create_no_transition_update(entity.identifier)
+        return cls._create_invalid_operation_result(Operations.PROCESS, entity.identifier)
 
     @classmethod
-    def flag(cls, entity: Entity) -> Update:
-        """Return the commands needed to flag the entity."""
-        return cls._create_no_transition_update(entity.identifier)
+    def _create_invalid_operation_result(cls, operation: Operations, identifier: Identifier) -> EntityOperationResult:
+        return InvalidOperation(operation, identifier)
 
     @classmethod
-    def unflag(cls, entity: Entity) -> Update:
-        """Return the commands needed to unflag the entity."""
-        return cls._create_no_transition_update(entity.identifier)
-
-    @classmethod
-    def _create_no_transition_update(cls, identifier: Identifier) -> Update:
-        return cls._create_update(identifier, cls)
-
-    @classmethod
-    def _create_update(cls, identifier: Identifier, new_state: type[State]) -> Update:
+    def _create_valid_operation_result(
+        cls, operation: Operations, identifier: Identifier, new_state: type[State]
+    ) -> EntityOperationResult:
         transition = Transition(cls, new_state)
         return Update(
+            operation,
             identifier,
             transition,
-            commands=frozenset(TRANSITION_MAP.get(transition, set())),
+            command=TRANSITION_MAP[transition],
         )
 
 
@@ -73,9 +66,9 @@ class Idle(State):
     """The default state of an entity."""
 
     @classmethod
-    def pull(cls, entity: Entity) -> Update:
+    def pull(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to pull an idle entity."""
-        return cls._create_update(entity.identifier, Activated)
+        return cls._create_valid_operation_result(Operations.PULL, entity.identifier, Activated)
 
 
 states.register(Idle)
@@ -85,17 +78,16 @@ class Activated(State):
     """The state of an activated entity."""
 
     @classmethod
-    def process(cls, entity: Entity) -> Update:
+    def process(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to process an activated entity."""
         new_state: type[State]
-        if entity.current_process is Processes.PULL:
+        if entity.is_tainted:
+            new_state = Deprecated
+        elif entity.current_process is Processes.PULL:
             new_state = Received
         elif entity.current_process is Processes.DELETE:
-            if entity.is_tainted:
-                new_state = Deprecated
-            else:
-                new_state = Idle
-        return cls._create_update(entity.identifier, new_state)
+            new_state = Idle
+        return cls._create_valid_operation_result(Operations.PROCESS, entity.identifier, new_state)
 
 
 states.register(Activated)
@@ -105,14 +97,17 @@ class Received(State):
     """The state of an received entity."""
 
     @classmethod
-    def process(cls, entity: Entity) -> Update:
+    def process(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to process a received entity."""
         new_state: type[State]
         if entity.current_process is Processes.PULL:
-            new_state = Pulled
+            if entity.is_tainted:
+                new_state = Tainted
+            else:
+                new_state = Pulled
         elif entity.current_process is Processes.DELETE:
             new_state = Activated
-        return cls._create_update(entity.identifier, new_state)
+        return cls._create_valid_operation_result(Operations.PROCESS, entity.identifier, new_state)
 
 
 states.register(Received)
@@ -122,14 +117,9 @@ class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
     @classmethod
-    def delete(cls, entity: Entity) -> Update:
+    def delete(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to delete a pulled entity."""
-        return cls._create_update(entity.identifier, Received)
-
-    @classmethod
-    def flag(cls, entity: Entity) -> Update:
-        """Return the commands needed to flag a pulled entity."""
-        return cls._create_update(entity.identifier, Tainted)
+        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
 
 
 states.register(Pulled)
@@ -139,14 +129,9 @@ class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
     @classmethod
-    def delete(cls, entity: Entity) -> Update:
+    def delete(cls, entity: Entity) -> EntityOperationResult:
         """Return the commands needed to delete a tainted entity."""
-        return cls._create_update(entity.identifier, Received)
-
-    @classmethod
-    def unflag(cls, entity: Entity) -> Update:
-        """Return the commands needed to unflag a tainted entity."""
-        return cls._create_update(entity.identifier, Pulled)
+        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
 
 
 states.register(Tainted)
@@ -154,11 +139,6 @@ states.register(Tainted)
 
 class Deprecated(State):
     """The state of a faulty entity that was deleted by the local side."""
-
-    @classmethod
-    def unflag(cls, entity: Entity) -> Update:
-        """Return the commands to unflag a deprecated entity."""
-        return cls._create_update(entity.identifier, Idle)
 
 
 states.register(Deprecated)
@@ -171,6 +151,10 @@ class Transition:
     current: type[State]
     new: type[State]
 
+    def __post_init__(self) -> None:
+        """Validate the transition."""
+        assert self.current is not self.new, "Current and new state are identical."
+
 
 class Commands(Enum):
     """Names for all the commands necessary to transition entities between states."""
@@ -181,36 +165,49 @@ class Commands(Enum):
     FINISH_PULL_PROCESS = auto()
     START_DELETE_PROCESS = auto()
     FINISH_DELETE_PROCESS = auto()
-    FLAG = auto()
-    UNFLAG = auto()
+    DEPRECATE = auto()
 
 
-TRANSITION_MAP: dict[Transition, set[Commands]] = {
-    Transition(Idle, Activated): {Commands.START_PULL_PROCESS},
-    Transition(Activated, Received): {Commands.ADD_TO_LOCAL},
-    Transition(Activated, Idle): {Commands.FINISH_DELETE_PROCESS},
-    Transition(Activated, Deprecated): {Commands.FINISH_DELETE_PROCESS},
-    Transition(Received, Pulled): {Commands.FINISH_PULL_PROCESS},
-    Transition(Received, Activated): {Commands.REMOVE_FROM_LOCAL},
-    Transition(Pulled, Received): {Commands.START_DELETE_PROCESS},
-    Transition(Pulled, Tainted): {Commands.FLAG},
-    Transition(Tainted, Pulled): {Commands.UNFLAG},
-    Transition(Tainted, Received): {Commands.START_DELETE_PROCESS},
-    Transition(Deprecated, Idle): {Commands.UNFLAG},
+TRANSITION_MAP: dict[Transition, Commands] = {
+    Transition(Idle, Activated): Commands.START_PULL_PROCESS,
+    Transition(Activated, Received): Commands.ADD_TO_LOCAL,
+    Transition(Activated, Idle): Commands.FINISH_DELETE_PROCESS,
+    Transition(Activated, Deprecated): Commands.DEPRECATE,
+    Transition(Received, Pulled): Commands.FINISH_PULL_PROCESS,
+    Transition(Received, Tainted): Commands.FINISH_PULL_PROCESS,
+    Transition(Received, Activated): Commands.REMOVE_FROM_LOCAL,
+    Transition(Pulled, Received): Commands.START_DELETE_PROCESS,
+    Transition(Tainted, Received): Commands.START_DELETE_PROCESS,
 }
+
+
+class Operations(Enum):
+    """Names for all operations that can be performed on entities."""
+
+    PULL = auto()
+    DELETE = auto()
+    PROCESS = auto()
 
 
 @dataclass(frozen=True)
 class Update:
     """Represents the persistent update needed to transition an entity."""
 
+    operation: Operations
     identifier: Identifier
     transition: Transition
-    commands: frozenset[Commands]
+    command: Commands
 
-    def __bool__(self) -> bool:
-        """Return true if the state does not change in the update."""
-        return self.transition.current is not self.transition.new
+
+@dataclass(frozen=True)
+class InvalidOperation:
+    """Represents the result of attempting an operation that is invalid in the entity's current state."""
+
+    operation: Operations
+    identifier: Identifier
+
+
+EntityOperationResult = Union[Update, InvalidOperation]
 
 
 class Processes(Enum):
@@ -274,7 +271,7 @@ STATE_MAP = {
         has_process=False,
     ): Tainted,
     PersistentState(
-        frozenset({Components.SOURCE}),
+        frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=True,
         has_process=False,
     ): Deprecated,
@@ -290,22 +287,14 @@ class Entity:
     current_process: Optional[Processes]
     is_tainted: bool
 
-    def pull(self) -> Update:
+    def pull(self) -> EntityOperationResult:
         """Pull the entity."""
         return self.state.pull(self)
 
-    def delete(self) -> Update:
+    def delete(self) -> EntityOperationResult:
         """Delete the entity."""
         return self.state.delete(self)
 
-    def process(self) -> Update:
+    def process(self) -> EntityOperationResult:
         """Process the entity."""
         return self.state.process(self)
-
-    def flag(self) -> Update:
-        """Flag the entity."""
-        return self.state.flag(self)
-
-    def unflag(self) -> Update:
-        """Unflag the entity."""
-        return self.state.unflag(self)

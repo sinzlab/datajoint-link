@@ -1,1 +1,4 @@
-"""Contains a set of adapters used to convert data from the external to the internal format and vice versa."""
+"""Contains code initializing the adapters."""
+from .custom_types import PrimaryKey
+
+__all__ = ["PrimaryKey"]

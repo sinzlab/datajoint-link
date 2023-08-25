@@ -1,5 +1,4 @@
 .pdm.toml
 .venv
 dist/
-profiling/stats
 reports/

@@ -5,7 +5,10 @@ readme = "README.md"
 authors = [
     {name = "Christoph Blessing", email = "33834216+cblessing24@users.noreply.github.com"},
 ]
-dependencies = ["datajoint >= 0.12, < 0.13"]
+dependencies = [
+    "datajoint >= 0.12, < 0.13",
+    "numpy < 1.20",
+]
 requires-python = ">=3.8"
 dynamic = ["version"]
 license = {text = "GNU GPLv3"}
@@ -18,36 +21,6 @@ classifiers = [
 
 [project.urls]
 homepage = "https://github.com/sinzlab/link"
-
-[tool.pdm.version]
-source = "scm"
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "pytest~=6.2",
-    "pytest-sugar~=0.9",
-    "pytest-cov~=2.11",
-    "docker~=4.4",
-    "pymysql~=1.0",
-    "pylint~=2.7",
-    "mypy~=0.812",
-    "black>=22.10.0",
-    "minio>=7.1.12",
-    "neovim>=0.3.1",
-    "pdbpp>=0.10.3",
-    "ruff>=0.0.270",
-]
-profiling = [
-    "gprof2dot~=2021.2",
-]
-
-[tool.pdm.scripts]
-lint_black = "black --check --diff ."
-lint_mypy = "mypy"
-lint_pylint = "pylint dj_link"
-lint_ruff = "ruff check ."
-tests = "pytest -m 'not slow'"
-functional_tests = "docker compose run functional_tests"
 
 [tool.black]
 line-length = 120
@@ -67,10 +40,10 @@ python_version = "3.8"
 files = [
     "dj_link", 
     "tests",
+    "stubs",
 ]
 strict = false
 mypy_path = "stubs"
-ignore_errors = true
 warn_unused_ignores = true
 warn_unused_configs = true
 warn_redundant_casts = true
@@ -80,36 +53,21 @@ disallow_untyped_decorators = true
 no_implicit_reexport = true
 strict_equality = true
 strict_concatenate = true
-
-[[tool.mypy.overrides]]
-module = [
-    "dj_link.*",
-    "tests.conftest",
-    "tests.integration.test_pull",
-    "tests.unit.adapters.datajoint.test_gateway",
-    "tests.unit.entities.assignments",
-    "tests.unit.entities.test_link",
-    "tests.unit.entities.test_state",
-    "tests.unit.frameworks.datajoint.test_facade",
-]
-ignore_errors = false
-
-[[tool.mypy.overrides]]
-module = [
-    "dj_link.entities.link",
-    "dj_link.entities.state",
-    "tests.conftest",
-    "tests.integration.test_pull",
-    "tests.unit.adapters.datajoint.test_gateway",
-    "tests.unit.entities.assignments",
-    "tests.unit.entities.test_link",
-    "tests.unit.entities.test_state",
-]
 disallow_any_generics = true
 disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 warn_return_any = true
+enable_error_code = [
+    "possibly-undefined",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.docker.*",
+    "tests.functional.*",
+]
+ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = [
@@ -125,6 +83,32 @@ source = ["dj_link"]
 
 [tool.coverage.report]
 exclude_lines = ["if TYPE_CHECKING:"]
+
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest>=6.2",
+    "pytest-sugar>=0.9",
+    "pytest-cov>=2.11",
+    "docker>=4.4",
+    "pymysql>=1.0",
+    "mypy>=0.812",
+    "black>=22.10.0",
+    "minio>=7.1.12",
+    "neovim>=0.3.1",
+    "pdbpp>=0.10.3",
+    "ruff>=0.0.270",
+]
+
+[tool.pdm.scripts]
+lint_black = "black --check --diff ."
+lint_mypy = "mypy"
+lint_ruff = "ruff check ."
+tests = "pytest -m 'not slow'"
+functional_tests = "docker compose run functional_tests"
 
 [build-system]
 requires = ["pdm-backend"]
@@ -142,10 +126,12 @@ markers = [
 [tool.ruff]
 line-length = 120
 select = ["E", "F", "I", "D", "PL", "PT"]
+ignore = ["F821"]
 include = ["dj_link/*.py", "tests/*.py"]
 
 [tool.ruff.per-file-ignores]
 "tests/*.py" = ["D", "PL"]
+"stubs/*.pyi" = ["D"]
 
 [tool.ruff.pydocstyle]
 convention = "pep257"
