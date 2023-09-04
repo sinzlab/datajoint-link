@@ -44,12 +44,3 @@ def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[
         return table().describe(printout=False)
 
     return provide_definition
-
-
-def create_outbound_schema_name_provider() -> Callable[[], str]:
-    """Create an object that provides the name of the outbound schema when called."""
-
-    def provide_outbound_schema_name() -> str:
-        return os.environ["LINK_OUTBOUND"]
-
-    return provide_outbound_schema_name
