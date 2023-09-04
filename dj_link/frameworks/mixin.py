@@ -23,6 +23,7 @@ class LocalMixin:
         """Delete pulled entities from the local table."""
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.delete(primary_keys)
+        self._controller.process(primary_keys)
 
     @property
     def source(self) -> dj.Table:
@@ -46,6 +47,7 @@ class SourceMixin:
         """Pull idle entities from the source table into the local table."""
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.pull(primary_keys)
+        self._controller.process(primary_keys)
 
     @property
     def flagged(self) -> Sequence[PrimaryKey]:

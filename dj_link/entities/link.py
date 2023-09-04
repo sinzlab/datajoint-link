@@ -147,9 +147,12 @@ def create_link_operation_result(results: Iterable[EntityOperationResult]) -> Li
     )
 
 
-def process(link: Link) -> LinkOperationResult:
+def process(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Process all entities in the link producing appropriate updates."""
-    return create_link_operation_result(entity.process() for entity in link[Components.SOURCE])
+    _validate_requested(link, requested)
+    return create_link_operation_result(
+        entity.process() for entity in link[Components.SOURCE] if entity.identifier in requested
+    )
 
 
 def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:

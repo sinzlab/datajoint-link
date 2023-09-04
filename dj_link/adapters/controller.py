@@ -29,3 +29,7 @@ class DJController:
     def delete(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the delete use-case."""
         self.__handlers[UseCases.DELETE](self.__translator.to_identifiers(primary_keys))
+
+    def process(self, primary_keys: Iterable[PrimaryKey]) -> None:
+        """Execute the process use-case."""
+        self.__handlers[UseCases.PROCESS](self.__translator.to_identifiers(primary_keys))

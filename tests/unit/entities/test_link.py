@@ -176,17 +176,20 @@ def test_process_produces_correct_updates() -> None:
     link = create_link(
         create_assignments(
             {
-                Components.SOURCE: {"1", "2", "3", "4"},
-                Components.OUTBOUND: {"1", "2", "3", "4"},
-                Components.LOCAL: {"2", "4"},
+                Components.SOURCE: {"1", "2", "3", "4", "5"},
+                Components.OUTBOUND: {"1", "2", "3", "4", "5"},
+                Components.LOCAL: {"2", "4", "5"},
             }
         ),
         processes={
             Processes.PULL: create_identifiers("1", "2"),
-            Processes.DELETE: create_identifiers("3", "4"),
+            Processes.DELETE: create_identifiers("3", "4", "5"),
         },
     )
-    actual = {(update.identifier, update.transition.new) for update in process(link).updates}
+    actual = {
+        (update.identifier, update.transition.new)
+        for update in process(link, requested=create_identifiers("1", "2", "3", "4")).updates
+    }
     expected = {
         (create_identifier("1"), states.Received),
         (create_identifier("2"), states.Pulled),

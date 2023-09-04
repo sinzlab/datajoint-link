@@ -64,16 +64,15 @@ def has_state(
     if tainted_identifiers is None:
         tainted_identifiers = set()
     if processes is None:
-        processes = defaultdict(set)
+        processes = {}
 
     if any(link[component].identifiers != assignments[component] for component in Components):
         return False
     if {entity.identifier for entity in link[Components.SOURCE] if entity.is_tainted} != set(tainted_identifiers):
         return False
     if any(
-        {entity.identifier for entity in link[Components.SOURCE] if entity.current_process is process}
-        != processes[process]
-        for process in Processes
+        {entity.identifier for entity in link[Components.SOURCE] if entity.current_process is process} != identifiers
+        for process, identifiers in processes.items()
     ):
         return False
     return True
@@ -99,7 +98,8 @@ def test_idle_entity_gets_pulled() -> None:
     )
     assert has_state(
         gateway.create_link(),
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        processes={Processes.PULL: create_identifiers("1")},
     )
 
 
@@ -123,7 +123,11 @@ def test_pulled_entity_gets_deleted() -> None:
         link_gateway=gateway,
         output_port=FakeOutputPort[DeleteResponseModel](),
     )
-    assert has_state(gateway.create_link(), create_assignments({Components.SOURCE: {"1"}}))
+    assert has_state(
+        gateway.create_link(),
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        processes={Processes.DELETE: create_identifiers("1")},
+    )
 
 
 def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
