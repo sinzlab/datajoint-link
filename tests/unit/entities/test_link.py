@@ -6,7 +6,7 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Link, Transfer, create_link, delete, process, pull, pull_legacy
+from dj_link.entities.link import Link, create_link, delete, process, pull
 from dj_link.entities.state import Components, Processes, State, states
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
@@ -170,111 +170,6 @@ class TestLink:
     ) -> None:
         link = create_link(assignments)
         assert set(link[Components.SOURCE].identifiers) == create_identifiers("1", "2")
-
-
-class TestTransfer:
-    @staticmethod
-    @pytest.mark.parametrize(
-        ("origin", "expectation"),
-        [
-            (Components.SOURCE, does_not_raise()),
-            (Components.OUTBOUND, pytest.raises(AssertionError)),
-            (Components.LOCAL, pytest.raises(AssertionError)),
-        ],
-    )
-    def test_origin_must_be_source(origin: Components, expectation: ContextManager[None]) -> None:
-        with expectation:
-            Transfer(create_identifier("1"), origin, Components.LOCAL, identifier_only=False)
-
-    @staticmethod
-    @pytest.mark.parametrize(
-        ("destination", "identifier_only", "expectation"),
-        [
-            (Components.SOURCE, False, pytest.raises(AssertionError)),
-            (Components.OUTBOUND, True, does_not_raise()),
-            (Components.LOCAL, False, does_not_raise()),
-        ],
-    )
-    def test_destination_must_be_outbound_or_local(
-        destination: Components, identifier_only: bool, expectation: ContextManager[None]
-    ) -> None:
-        with expectation:
-            Transfer(create_identifier("1"), Components.SOURCE, destination, identifier_only)
-
-    @staticmethod
-    @pytest.mark.parametrize(
-        ("destination", "identifier_only", "expectation"),
-        [
-            (Components.OUTBOUND, False, pytest.raises(AssertionError)),
-            (Components.LOCAL, False, does_not_raise()),
-            (Components.OUTBOUND, True, does_not_raise()),
-            (Components.LOCAL, True, pytest.raises(AssertionError)),
-        ],
-    )
-    def test_identifier_only_must_be_true_only_if_destination_is_outbound(
-        destination: Components, identifier_only: bool, expectation: ContextManager[None]
-    ) -> None:
-        with expectation:
-            Transfer(create_identifier("1"), Components.SOURCE, destination, identifier_only)
-
-
-class TestPullLegacy:
-    @staticmethod
-    @pytest.mark.parametrize(
-        ("assignments", "requested", "expectation"),
-        [
-            (
-                create_assignments({Components.SOURCE: {"1"}}),
-                create_identifiers("1", "2"),
-                pytest.raises(AssertionError),
-            ),
-            (
-                create_assignments({Components.SOURCE: {"1"}}),
-                create_identifiers("1"),
-                does_not_raise(),
-            ),
-            (create_assignments({Components.SOURCE: {"1", "2"}}), create_identifiers("1"), does_not_raise()),
-        ],
-    )
-    def test_requested_identifiers_can_not_be_superset_of_source_identifiers(
-        assignments: Mapping[Components, Iterable[Identifier]],
-        requested: set[Identifier],
-        expectation: ContextManager[None],
-    ) -> None:
-        link = create_link(assignments)
-        with expectation:
-            pull_legacy(link, requested=requested)
-
-    @staticmethod
-    @pytest.mark.parametrize(
-        ("assignments", "requested", "expectation"),
-        [
-            (
-                create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
-                create_identifiers("1"),
-                pytest.raises(AssertionError),
-            ),
-            (create_assignments({Components.SOURCE: {"1"}}), create_identifiers("1"), does_not_raise()),
-        ],
-    )
-    def test_can_not_pull_already_pulled_entities(
-        assignments: Mapping[Components, Iterable[Identifier]],
-        requested: Iterable[Identifier],
-        expectation: ContextManager[None],
-    ) -> None:
-        link = create_link(assignments)
-        with expectation:
-            pull_legacy(link, requested=requested)
-
-    @staticmethod
-    def test_if_correct_transfer_specifications_are_returned() -> None:
-        link = create_link(create_assignments({Components.SOURCE: {"1", "2"}}))
-        expected = {
-            Transfer(create_identifier("1"), Components.SOURCE, Components.OUTBOUND, identifier_only=True),
-            Transfer(create_identifier("1"), Components.SOURCE, Components.LOCAL, identifier_only=False),
-        }
-        actual = pull_legacy(link, requested=create_identifiers("1"))
-        assert actual == expected
 
 
 def test_process_produces_correct_updates() -> None:
