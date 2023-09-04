@@ -10,9 +10,11 @@ from dj_link.entities.state import Commands, Components, Processes, Update
 from dj_link.use_cases.gateway import LinkGateway
 from dj_link.use_cases.use_cases import (
     DeleteResponseModel,
+    ProcessResponseModel,
     PullResponseModel,
     ResponseModel,
     delete,
+    process,
     pull,
 )
 from tests.assignments import create_assignments, create_identifiers
@@ -141,3 +143,25 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
         output_port=output_port,
     )
     assert isinstance(output_port.response, DeleteResponseModel)
+
+
+def test_entity_undergoing_process_gets_processed() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        processes={Processes.PULL: create_identifiers("1")},
+    )
+    process(create_identifiers("1"), link_gateway=gateway, output_port=FakeOutputPort[ProcessResponseModel]())
+    assert has_state(
+        gateway.create_link(),
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+    )
+
+
+def test_correct_response_model_gets_passed_to_process_output_port() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        processes={Processes.PULL: create_identifiers("1")},
+    )
+    output_port = FakeOutputPort[ProcessResponseModel]()
+    process(create_identifiers("1"), link_gateway=gateway, output_port=output_port)
+    assert isinstance(output_port.response, ProcessResponseModel)
