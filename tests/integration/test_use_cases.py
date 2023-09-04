@@ -91,7 +91,7 @@ class FakeOutputPort(Generic[T]):
         self.response = response
 
 
-def test_idle_entity_gets_pulled() -> None:
+def test_pull_process_gets_started_when_idle_entity_gets_pulled() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     pull(
         create_identifiers("1"),
@@ -116,7 +116,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     assert isinstance(output_port.response, PullResponseModel)
 
 
-def test_pulled_entity_gets_deleted() -> None:
+def test_delete_process_is_started_when_pulled_entity_is_deleted() -> None:
     gateway = FakeLinkGateway(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
