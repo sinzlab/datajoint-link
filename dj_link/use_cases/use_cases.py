@@ -55,11 +55,8 @@ def process(
     requested: Iterable[Identifier], *, link_gateway: LinkGateway, output_port: Callable[[ProcessResponseModel], None]
 ) -> None:
     """Process entities."""
-    while True:
-        result = process_domain_service(link_gateway.create_link(), requested=requested)
-        if not result.updates:
-            break
-        link_gateway.apply(result.updates)
+    result = process_domain_service(link_gateway.create_link(), requested=requested)
+    link_gateway.apply(result.updates)
     output_port(ProcessResponseModel())
 
 
