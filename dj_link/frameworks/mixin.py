@@ -12,29 +12,6 @@ from dj_link.adapters.custom_types import PrimaryKey
 from . import DJTables
 
 
-class LocalEndpoint(Table):
-    """Mixin class for the local endpoint."""
-
-    _controller: DJController
-    _source: Callable[[], SourceEndpoint]
-
-    def delete(self) -> None:
-        """Delete pulled entities from the local table."""
-        primary_keys = self.proj().fetch(as_dict=True)
-        self._controller.delete(primary_keys)
-        self.source.in_transit.process()
-
-    @property
-    def source(self) -> SourceEndpoint:
-        """Return the source endpoint."""
-        return self._source()
-
-
-def create_local_mixin(controller: DJController, source: Callable[[], SourceEndpoint]) -> type[LocalEndpoint]:
-    """Create a new subclass of the mixin that is configured to work with a specific link."""
-    return type(LocalEndpoint.__name__, (LocalEndpoint,), {"_controller": controller, "_source": staticmethod(source)})
-
-
 class SourceEndpoint(Table):
     """Mixin class for the source endpoint."""
 
@@ -96,6 +73,29 @@ def create_transit_endpoint(controller: DJController, source_table: Table, outbo
         type(type(source_table).__name__, (TransitEndpoint, type(source_table)), {"_controller": controller}),
     )
     return in_transit_cls() & (outbound_table & "process != 'NONE'")
+
+
+class LocalEndpoint(Table):
+    """Mixin class for the local endpoint."""
+
+    _controller: DJController
+    _source: Callable[[], SourceEndpoint]
+
+    def delete(self) -> None:
+        """Delete pulled entities from the local table."""
+        primary_keys = self.proj().fetch(as_dict=True)
+        self._controller.delete(primary_keys)
+        self.source.in_transit.process()
+
+    @property
+    def source(self) -> SourceEndpoint:
+        """Return the source endpoint."""
+        return self._source()
+
+
+def create_local_mixin(controller: DJController, source: Callable[[], SourceEndpoint]) -> type[LocalEndpoint]:
+    """Create a new subclass of the mixin that is configured to work with a specific link."""
+    return type(LocalEndpoint.__name__, (LocalEndpoint,), {"_controller": controller, "_source": staticmethod(source)})
 
 
 def create_local_endpoint(controller: DJController, tables: DJTables) -> LocalEndpoint:
