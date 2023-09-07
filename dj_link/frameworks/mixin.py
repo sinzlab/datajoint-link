@@ -2,28 +2,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Protocol, Sequence, TypeVar, cast
+from typing import Protocol, Sequence, cast
 
 from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
 
 from . import DJTables
-
-
-class Table(Protocol):
-    """DataJoint table protocol."""
-
-    def fetch(self, as_dict: bool | None = ...) -> list[PrimaryKey]:
-        """Fetch entities from the table."""
-
-    def proj(self) -> Table:
-        """Project the table onto its primary attributes."""
-
-    def __and__(self: _T, condition: str | Table) -> _T:
-        """Restrict the table according to the given condition."""
-
-
-_T = TypeVar("_T", bound=Table)
+from .custom_types import Table
 
 
 class LocalEndpoint(Table, Protocol):
