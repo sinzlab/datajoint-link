@@ -93,11 +93,6 @@ class LocalEndpoint(Table):
         return self._source()
 
 
-def create_local_mixin(controller: DJController, source: Callable[[], SourceEndpoint]) -> type[LocalEndpoint]:
-    """Create a new subclass of the mixin that is configured to work with a specific link."""
-    return type(LocalEndpoint.__name__, (LocalEndpoint,), {"_controller": controller, "_source": staticmethod(source)})
-
-
 def create_local_endpoint(controller: DJController, tables: DJTables) -> LocalEndpoint:
     """Create the local endpoint."""
     return cast(
@@ -105,12 +100,12 @@ def create_local_endpoint(controller: DJController, tables: DJTables) -> LocalEn
         type(
             type(tables.local()).__name__,
             (
-                create_local_mixin(
-                    controller,
-                    create_source_endpoint_factory(controller, tables.source, tables.outbound),
-                ),
+                LocalEndpoint,
                 type(tables.local()),
             ),
-            {},
+            {
+                "_controller": controller,
+                "_source": staticmethod(create_source_endpoint_factory(controller, tables.source, tables.outbound)),
+            },
         ),
     )
