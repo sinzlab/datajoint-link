@@ -4,11 +4,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Sequence, cast
 
+from datajoint import Table
+
 from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
 
 from . import DJTables
-from .custom_types import Table
 
 
 class LocalEndpoint(Table):
@@ -106,9 +107,7 @@ def create_local_endpoint(controller: DJController, tables: DJTables) -> LocalEn
             (
                 create_local_mixin(
                     controller,
-                    create_source_endpoint_factory(
-                        controller, cast(Callable[[], Table], tables.source), cast(Callable[[], Table], tables.outbound)
-                    ),
+                    create_source_endpoint_factory(controller, tables.source, tables.outbound),
                 ),
                 type(tables.local()),
             ),
