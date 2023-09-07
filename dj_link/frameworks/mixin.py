@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Protocol, Sequence, cast
-
-import datajoint as dj
+from typing import Protocol, Sequence, TypeVar, cast
 
 from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
@@ -12,27 +10,62 @@ from dj_link.adapters.custom_types import PrimaryKey
 from . import DJTables
 
 
-class SourceEndpoint(Protocol):
+class Table(Protocol):
+    """DataJoint table protocol."""
+
+    def fetch(self, as_dict: bool | None = ...) -> list[PrimaryKey]:
+        """Fetch entities from the table."""
+
+    def proj(self) -> Table:
+        """Project the table onto its primary attributes."""
+
+    def __and__(self: _T, condition: str | Table) -> _T:
+        """Restrict the table according to the given condition."""
+
+
+_T = TypeVar("_T", bound=Table)
+
+
+class LocalEndpoint(Table, Protocol):
+    """Protocol for the local endpoint."""
+
+    _controller: DJController
+    _source: Callable[[], SourceEndpoint]
+
+    @property
+    def source(self) -> SourceEndpoint:
+        """Return the source endpoint."""
+
+
+class SourceEndpoint(Table, Protocol):
     """Protocol for the source endpoint."""
 
-    in_transit: TransitMixin
+    _controller: DJController
+    _outbound_table: Callable[[], Table]
+
+    in_transit: TransitEndpoint
+
+
+class TransitEndpoint(Table, Protocol):
+    """Protocol for the transit endpoint."""
+
+    _controller: DJController
+
+    def process(self) -> None:
+        """Process all transiting entities."""
 
 
 class LocalMixin:
     """Mixin class for the local endpoint."""
 
-    proj: Callable[[], dj.Table]
-    _controller: DJController
-    _source: Callable[[], SourceEndpoint]
-
-    def delete(self) -> None:
+    def delete(self: LocalEndpoint) -> None:
         """Delete pulled entities from the local table."""
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.delete(primary_keys)
         self.source.in_transit.process()
 
     @property
-    def source(self) -> SourceEndpoint:
+    def source(self: LocalEndpoint) -> SourceEndpoint:
         """Return the source endpoint."""
         return self._source()
 
@@ -45,26 +78,20 @@ def create_local_mixin(controller: DJController, source: Callable[[], SourceEndp
 class SourceMixin:
     """Mixin class for the source endpoint."""
 
-    proj: Callable[[], dj.Table]
-    in_transit: TransitMixin
-    _controller: DJController
-    _outbound_table: Callable[[], dj.Table]
-    __and__: Callable[[SourceMixin, dj.Table], dj.Table]
-
-    def pull(self) -> None:
+    def pull(self: SourceEndpoint) -> None:
         """Pull idle entities from the source table into the local table."""
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.pull(primary_keys)
         self.in_transit.process()
 
     @property
-    def flagged(self) -> Sequence[PrimaryKey]:
+    def flagged(self: SourceEndpoint) -> Sequence[PrimaryKey]:
         """Return the primary keys of all flagged entities."""
         return (self._outbound_table() & "is_flagged = 'TRUE'").proj().fetch(as_dict=True)
 
 
 def create_source_endpoint_factory(
-    controller: DJController, source_table: Callable[[], dj.Table], outbound_table: Callable[[], dj.Table]
+    controller: DJController, source_table: Callable[[], Table], outbound_table: Callable[[], Table]
 ) -> Callable[[], SourceEndpoint]:
     """Create a callable that returns the source endpoint when called."""
 
@@ -86,31 +113,16 @@ def create_source_endpoint_factory(
     return create_source_endpoint
 
 
-class TransitEndpoint(Protocol):
-    """Protocol for the transit endpoint."""
-
-    def process(self) -> None:
-        """Process all transiting entities."""
-
-    def __and__(self, condition: dj.Table) -> TransitEndpoint:
-        """Restrict the endpoint with the given condition."""
-
-
 class TransitMixin:
     """Mixin class used to create the transit endpoint when combined with the source table."""
 
-    proj: Callable[[], dj.Table]
-    _controller: DJController
-
-    def process(self) -> None:
+    def process(self: TransitEndpoint) -> None:
         """Process all transiting entities."""
         while primary_keys := self.proj().fetch(as_dict=True):
             self._controller.process(primary_keys)
 
 
-def create_transit_endpoint(
-    controller: DJController, source_table: dj.Table, outbound_table: dj.Table
-) -> TransitEndpoint:
+def create_transit_endpoint(controller: DJController, source_table: Table, outbound_table: Table) -> TransitEndpoint:
     """Create the endpoint responsible for transiting entities."""
     in_transit_cls = cast(
         "type[TransitEndpoint]",
@@ -119,15 +131,18 @@ def create_transit_endpoint(
     return in_transit_cls() & (outbound_table & "process != 'NONE'")
 
 
-def create_local_endpoint(controller: DJController, tables: DJTables) -> dj.Table:
+def create_local_endpoint(controller: DJController, tables: DJTables) -> LocalEndpoint:
     """Create the local endpoint."""
     return cast(
-        dj.Table,
+        LocalEndpoint,
         type(
             type(tables.local()).__name__,
             (
                 create_local_mixin(
-                    controller, create_source_endpoint_factory(controller, tables.source, tables.outbound)
+                    controller,
+                    create_source_endpoint_factory(
+                        controller, cast(Callable[[], Table], tables.source), cast(Callable[[], Table], tables.outbound)
+                    ),
                 ),
                 type(tables.local()),
             ),
