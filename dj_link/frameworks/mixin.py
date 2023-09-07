@@ -93,10 +93,10 @@ class LocalEndpoint(Table):
         return self._source()
 
 
-def create_local_endpoint(controller: DJController, tables: DJTables) -> LocalEndpoint:
+def create_local_endpoint(controller: DJController, tables: DJTables) -> type[LocalEndpoint]:
     """Create the local endpoint."""
     return cast(
-        LocalEndpoint,
+        "type[LocalEndpoint]",
         type(
             type(tables.local()).__name__,
             (
