@@ -19,14 +19,28 @@ class ResponseModel:
 
 
 @dataclass(frozen=True)
+class PullRequestModel:
+    """Request model for the pull use-case."""
+
+    requested: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
 class PullResponseModel(ResponseModel):
     """Response model for the pull use-case."""
 
 
 def pull(
-    requested: Iterable[Identifier], *, link_gateway: LinkGateway, output_port: Callable[[PullResponseModel], None]
+    request: Iterable[Identifier] | PullRequestModel,
+    *,
+    link_gateway: LinkGateway,
+    output_port: Callable[[PullResponseModel], None],
 ) -> None:
     """Pull entities across the link."""
+    if isinstance(request, PullRequestModel):
+        requested = request.requested
+    else:
+        requested = frozenset(request)
     result = pull_domain_service(link_gateway.create_link(), requested=requested)
     link_gateway.apply(result.updates)
     output_port(PullResponseModel())

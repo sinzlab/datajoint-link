@@ -11,6 +11,7 @@ from dj_link.use_cases.gateway import LinkGateway
 from dj_link.use_cases.use_cases import (
     DeleteResponseModel,
     ProcessResponseModel,
+    PullRequestModel,
     PullResponseModel,
     ResponseModel,
     delete,
@@ -94,7 +95,7 @@ class FakeOutputPort(Generic[T]):
 def test_pull_process_gets_started_when_idle_entity_gets_pulled() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     pull(
-        create_identifiers("1"),
+        PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[PullResponseModel](),
     )
@@ -109,7 +110,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     output_port = FakeOutputPort[PullResponseModel]()
     pull(
-        create_identifiers("1"),
+        PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=output_port,
     )
