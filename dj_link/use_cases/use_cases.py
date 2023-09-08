@@ -4,7 +4,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Iterable
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import delete as delete_domain_service
@@ -35,17 +34,10 @@ class PullResponseModel(ResponseModel):
 
 
 def pull(
-    request: Iterable[Identifier] | PullRequestModel,
-    *,
-    link_gateway: LinkGateway,
-    output_port: Callable[[PullResponseModel], None],
+    request: PullRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[PullResponseModel], None]
 ) -> None:
     """Pull entities across the link."""
-    if isinstance(request, PullRequestModel):
-        requested = request.requested
-    else:
-        requested = frozenset(request)
-    result = pull_domain_service(link_gateway.create_link(), requested=requested)
+    result = pull_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
     output_port(PullResponseModel())
 
@@ -63,17 +55,10 @@ class DeleteResponseModel(ResponseModel):
 
 
 def delete(
-    request: Iterable[Identifier] | DeleteRequestModel,
-    *,
-    link_gateway: LinkGateway,
-    output_port: Callable[[DeleteResponseModel], None],
+    request: DeleteRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[DeleteResponseModel], None]
 ) -> None:
     """Delete pulled entities."""
-    if isinstance(request, DeleteRequestModel):
-        requested = request.requested
-    else:
-        requested = frozenset(request)
-    result = delete_domain_service(link_gateway.create_link(), requested=requested)
+    result = delete_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
     output_port(DeleteResponseModel())
 
@@ -91,17 +76,10 @@ class ProcessResponseModel(ResponseModel):
 
 
 def process(
-    request: Iterable[Identifier] | ProcessRequestModel,
-    *,
-    link_gateway: LinkGateway,
-    output_port: Callable[[ProcessResponseModel], None],
+    request: ProcessRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[ProcessResponseModel], None]
 ) -> None:
     """Process entities."""
-    if isinstance(request, ProcessRequestModel):
-        requested = request.requested
-    else:
-        requested = frozenset(request)
-    result = process_domain_service(link_gateway.create_link(), requested=requested)
+    result = process_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
     output_port(ProcessResponseModel())
 
