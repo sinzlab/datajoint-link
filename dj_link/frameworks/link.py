@@ -9,7 +9,7 @@ from dj_link.adapters.controller import DJController
 from dj_link.adapters.gateway import DJLinkGateway
 from dj_link.adapters.identification import IdentificationTranslator
 from dj_link.adapters.presenter import DJPresenter
-from dj_link.use_cases.use_cases import UseCases, delete, pull
+from dj_link.use_cases.use_cases import UseCases, delete, process, pull
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
@@ -42,6 +42,7 @@ def create_link(  # noqa: PLR0913
         handlers = {
             UseCases.PULL: partial(pull, link_gateway=gateway, output_port=dj_presenter.pull),
             UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=dj_presenter.delete),
+            UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=dj_presenter.process),
         }
         controller = DJController(handlers, translator)
         return create_local_endpoint(controller, tables)

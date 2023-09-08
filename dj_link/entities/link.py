@@ -15,7 +15,6 @@ from .state import (
     PersistentState,
     Processes,
     Update,
-    states,
 )
 
 
@@ -123,48 +122,6 @@ class Component(FrozenSet[Entity]):
 
 
 @dataclass(frozen=True)
-class Transfer:
-    """Specification for the transfer of an identifier from one component to another within a link."""
-
-    identifier: Identifier
-    origin: Components
-    destination: Components
-    identifier_only: bool
-
-    def __post_init__(self) -> None:
-        """Validate the created specification."""
-        assert self.origin is Components.SOURCE, "Origin must be source."
-        assert self.destination in (Components.OUTBOUND, Components.LOCAL), "Destiny must be outbound or local."
-        if self.destination is Components.OUTBOUND:
-            assert self.identifier_only, "Only identifier can be transferred to outbound."
-        else:
-            assert not self.identifier_only, "Whole entity must be transferred to local."
-
-
-def pull_legacy(
-    link: Link,
-    *,
-    requested: Iterable[Identifier],
-) -> set[Transfer]:
-    """Create the transfer specifications needed for pulling the requested identifiers."""
-    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested must not be superset of source."
-    assert all(
-        entity.state is states.Idle for entity in link[Components.SOURCE] if entity.identifier in set(requested)
-    ), "Requested entities must be idle."
-    outbound_destined = set(requested) - link[Components.OUTBOUND].identifiers
-    local_destined = set(requested) - link[Components.LOCAL].identifiers
-    outbound_transfers = {
-        Transfer(i, origin=Components.SOURCE, destination=Components.OUTBOUND, identifier_only=True)
-        for i in outbound_destined
-    }
-    local_transfers = {
-        Transfer(i, origin=Components.SOURCE, destination=Components.LOCAL, identifier_only=False)
-        for i in local_destined
-    }
-    return outbound_transfers | local_transfers
-
-
-@dataclass(frozen=True)
 class LinkOperationResult:
     """Represents the result of an operation on all entities of a link."""
 
@@ -190,9 +147,12 @@ def create_link_operation_result(results: Iterable[EntityOperationResult]) -> Li
     )
 
 
-def process(link: Link) -> LinkOperationResult:
+def process(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Process all entities in the link producing appropriate updates."""
-    return create_link_operation_result(entity.process() for entity in link[Components.SOURCE])
+    _validate_requested(link, requested)
+    return create_link_operation_result(
+        entity.process() for entity in link[Components.SOURCE] if entity.identifier in requested
+    )
 
 
 def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:

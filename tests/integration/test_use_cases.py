@@ -10,9 +10,11 @@ from dj_link.entities.state import Commands, Components, Processes, Update
 from dj_link.use_cases.gateway import LinkGateway
 from dj_link.use_cases.use_cases import (
     DeleteResponseModel,
+    ProcessResponseModel,
     PullResponseModel,
     ResponseModel,
     delete,
+    process,
     pull,
 )
 from tests.assignments import create_assignments, create_identifiers
@@ -64,16 +66,15 @@ def has_state(
     if tainted_identifiers is None:
         tainted_identifiers = set()
     if processes is None:
-        processes = defaultdict(set)
+        processes = {}
 
     if any(link[component].identifiers != assignments[component] for component in Components):
         return False
     if {entity.identifier for entity in link[Components.SOURCE] if entity.is_tainted} != set(tainted_identifiers):
         return False
     if any(
-        {entity.identifier for entity in link[Components.SOURCE] if entity.current_process is process}
-        != processes[process]
-        for process in Processes
+        {entity.identifier for entity in link[Components.SOURCE] if entity.current_process is process} != identifiers
+        for process, identifiers in processes.items()
     ):
         return False
     return True
@@ -90,7 +91,7 @@ class FakeOutputPort(Generic[T]):
         self.response = response
 
 
-def test_idle_entity_gets_pulled() -> None:
+def test_pull_process_gets_started_when_idle_entity_gets_pulled() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     pull(
         create_identifiers("1"),
@@ -99,7 +100,8 @@ def test_idle_entity_gets_pulled() -> None:
     )
     assert has_state(
         gateway.create_link(),
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        processes={Processes.PULL: create_identifiers("1")},
     )
 
 
@@ -114,7 +116,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     assert isinstance(output_port.response, PullResponseModel)
 
 
-def test_pulled_entity_gets_deleted() -> None:
+def test_delete_process_is_started_when_pulled_entity_is_deleted() -> None:
     gateway = FakeLinkGateway(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
@@ -123,7 +125,11 @@ def test_pulled_entity_gets_deleted() -> None:
         link_gateway=gateway,
         output_port=FakeOutputPort[DeleteResponseModel](),
     )
-    assert has_state(gateway.create_link(), create_assignments({Components.SOURCE: {"1"}}))
+    assert has_state(
+        gateway.create_link(),
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+        processes={Processes.DELETE: create_identifiers("1")},
+    )
 
 
 def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
@@ -137,3 +143,25 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
         output_port=output_port,
     )
     assert isinstance(output_port.response, DeleteResponseModel)
+
+
+def test_entity_undergoing_process_gets_processed() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        processes={Processes.PULL: create_identifiers("1")},
+    )
+    process(create_identifiers("1"), link_gateway=gateway, output_port=FakeOutputPort[ProcessResponseModel]())
+    assert has_state(
+        gateway.create_link(),
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
+    )
+
+
+def test_correct_response_model_gets_passed_to_process_output_port() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
+        processes={Processes.PULL: create_identifiers("1")},
+    )
+    output_port = FakeOutputPort[ProcessResponseModel]()
+    process(create_identifiers("1"), link_gateway=gateway, output_port=output_port)
+    assert isinstance(output_port.response, ProcessResponseModel)

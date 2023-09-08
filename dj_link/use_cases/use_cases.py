@@ -8,7 +8,7 @@ from typing import Iterable
 
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import delete as delete_domain_service
-from dj_link.entities.link import process
+from dj_link.entities.link import process as process_domain_service
 from dj_link.entities.link import pull as pull_domain_service
 
 from .gateway import LinkGateway
@@ -28,9 +28,7 @@ def pull(
 ) -> None:
     """Pull entities across the link."""
     result = pull_domain_service(link_gateway.create_link(), requested=requested)
-    while result.updates:
-        link_gateway.apply(result.updates)
-        result = process(link_gateway.create_link())
+    link_gateway.apply(result.updates)
     output_port(PullResponseModel())
 
 
@@ -44,10 +42,22 @@ def delete(
 ) -> None:
     """Delete pulled entities."""
     result = delete_domain_service(link_gateway.create_link(), requested=requested)
-    while result.updates:
-        link_gateway.apply(result.updates)
-        result = process(link_gateway.create_link())
+    link_gateway.apply(result.updates)
     output_port(DeleteResponseModel())
+
+
+@dataclass(frozen=True)
+class ProcessResponseModel(ResponseModel):
+    """Response model for the process use-case."""
+
+
+def process(
+    requested: Iterable[Identifier], *, link_gateway: LinkGateway, output_port: Callable[[ProcessResponseModel], None]
+) -> None:
+    """Process entities."""
+    result = process_domain_service(link_gateway.create_link(), requested=requested)
+    link_gateway.apply(result.updates)
+    output_port(ProcessResponseModel())
 
 
 class UseCases(Enum):
@@ -55,3 +65,4 @@ class UseCases(Enum):
 
     PULL = auto()
     DELETE = auto()
+    PROCESS = auto()

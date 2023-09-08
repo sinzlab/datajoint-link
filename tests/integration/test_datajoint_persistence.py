@@ -370,7 +370,7 @@ def test_add_to_local_command() -> None:
         ),
     )
 
-    gateway.apply(process(gateway.create_link()).updates)
+    gateway.apply(process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
 
     assert has_state(
         tables,
@@ -408,7 +408,7 @@ def test_add_to_local_command_with_error() -> None:
 
     tables["local"].children(as_objects=True)[0].error_on_insert = RuntimeError
     try:
-        gateway.apply(process(gateway.create_link()).updates)
+        gateway.apply(process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
     except RuntimeError:
         pass
 
@@ -425,7 +425,7 @@ def test_add_to_local_command_with_external_file(tmpdir: Path) -> None:
     tables["source"].insert([{"a": 0, "external": insert_filepath}])
     os.remove(insert_filepath)
     tables["outbound"].insert([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}])
-    gateway.apply(process(gateway.create_link()).updates)
+    gateway.apply(process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
     fetch_filepath = Path(tables["local"].fetch(as_dict=True, download_path=str(tmpdir))[0]["external"])
     with fetch_filepath.open(mode="rb") as file:
         assert file.read() == data
@@ -444,7 +444,7 @@ def test_remove_from_local_command() -> None:
     )
 
     with as_stdin(StringIO("y")):
-        gateway.apply(process(gateway.create_link()).updates)
+        gateway.apply(process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
 
     assert has_state(
         tables,
@@ -485,7 +485,7 @@ class TestFinishPullProcessCommand:
     def test_state_after_command(initial_state: State) -> None:
         tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-        gateway.apply(process(gateway.create_link()).updates)
+        gateway.apply(process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
 
         assert has_state(
             tables,
@@ -502,7 +502,9 @@ class TestFinishPullProcessCommand:
 
         tables["outbound"].error_on_insert = RuntimeError
         try:
-            gateway.apply(process(gateway.create_link()).updates)
+            gateway.apply(
+                process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates
+            )
         except RuntimeError:
             pass
 
@@ -558,7 +560,7 @@ def test_finish_delete_process_command() -> None:
         ),
     )
 
-    gateway.apply(process(gateway.create_link()).updates)
+    gateway.apply(process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
 
     assert has_state(tables, State(source=TableState([{"a": 0, "b": 1}])))
 
@@ -576,7 +578,7 @@ class TestDeprecateProcessCommand:
     def test_state_after_command(initial_state: State) -> None:
         tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-        gateway.apply(process(gateway.create_link()).updates)
+        gateway.apply(process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
 
         assert has_state(
             tables,
@@ -592,7 +594,9 @@ class TestDeprecateProcessCommand:
 
         tables["outbound"].error_on_insert = RuntimeError
         try:
-            gateway.apply(process(gateway.create_link()).updates)
+            gateway.apply(
+                process(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates
+            )
         except RuntimeError:
             pass
 
@@ -617,7 +621,9 @@ def test_applying_multiple_commands() -> None:
     )
 
     with as_stdin(StringIO("y")):
-        gateway.apply(process(gateway.create_link()).updates)
+        gateway.apply(
+            process(gateway.create_link(), requested=gateway.translator.to_identifiers([{"a": 0}, {"a": 1}])).updates
+        )
 
     assert has_state(
         tables,
