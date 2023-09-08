@@ -14,12 +14,16 @@ from dj_link.entities.link import pull as pull_domain_service
 from .gateway import LinkGateway
 
 
+class RequestModel:
+    """Base class for all request models."""
+
+
 class ResponseModel:
     """Base class for all response models."""
 
 
 @dataclass(frozen=True)
-class PullRequestModel:
+class PullRequestModel(RequestModel):
     """Request model for the pull use-case."""
 
     requested: frozenset[Identifier]
@@ -47,7 +51,7 @@ def pull(
 
 
 @dataclass(frozen=True)
-class DeleteRequestModel:
+class DeleteRequestModel(RequestModel):
     """Request model for the delete use-case."""
 
     requested: frozenset[Identifier]
@@ -75,7 +79,7 @@ def delete(
 
 
 @dataclass(frozen=True)
-class ProcessRequestModel:
+class ProcessRequestModel(RequestModel):
     """Request model for the process use-case."""
 
     requested: frozenset[Identifier]
