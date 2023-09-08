@@ -47,17 +47,38 @@ def pull(
 
 
 @dataclass(frozen=True)
+class DeleteRequestModel:
+    """Request model for the delete use-case."""
+
+    requested: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
 class DeleteResponseModel(ResponseModel):
     """Response model for the delete use-case."""
 
 
 def delete(
-    requested: Iterable[Identifier], *, link_gateway: LinkGateway, output_port: Callable[[DeleteResponseModel], None]
+    request: Iterable[Identifier] | DeleteRequestModel,
+    *,
+    link_gateway: LinkGateway,
+    output_port: Callable[[DeleteResponseModel], None],
 ) -> None:
     """Delete pulled entities."""
+    if isinstance(request, DeleteRequestModel):
+        requested = request.requested
+    else:
+        requested = frozenset(request)
     result = delete_domain_service(link_gateway.create_link(), requested=requested)
     link_gateway.apply(result.updates)
     output_port(DeleteResponseModel())
+
+
+@dataclass(frozen=True)
+class ProcessRequestModel:
+    """Request model for the process use-case."""
+
+    requested: frozenset[Identifier]
 
 
 @dataclass(frozen=True)
@@ -66,9 +87,16 @@ class ProcessResponseModel(ResponseModel):
 
 
 def process(
-    requested: Iterable[Identifier], *, link_gateway: LinkGateway, output_port: Callable[[ProcessResponseModel], None]
+    request: Iterable[Identifier] | ProcessRequestModel,
+    *,
+    link_gateway: LinkGateway,
+    output_port: Callable[[ProcessResponseModel], None],
 ) -> None:
     """Process entities."""
+    if isinstance(request, ProcessRequestModel):
+        requested = request.requested
+    else:
+        requested = frozenset(request)
     result = process_domain_service(link_gateway.create_link(), requested=requested)
     link_gateway.apply(result.updates)
     output_port(ProcessResponseModel())
