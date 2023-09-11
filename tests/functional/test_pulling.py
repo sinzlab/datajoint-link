@@ -93,3 +93,4 @@ def test_pulling(
                 actual = getattr(local_table_cls(), part_table_name).fetch(as_dict=True, download_path=tmpdir)
                 assert len(actual) == len(part_table_expected)
                 assert all(entry in part_table_expected for entry in actual)
+            assert local_table_cls().source.proj().fetch(as_dict=True) == [{"foo": 3}]
