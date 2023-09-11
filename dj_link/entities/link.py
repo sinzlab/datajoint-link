@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
+from typing import Any, FrozenSet, Iterable, Iterator, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
 from .state import (
@@ -110,6 +110,10 @@ class Link:
             Components.LOCAL: self.local,
         }
         return component_map[component]
+
+    def __iter__(self) -> Iterator[Entity]:
+        """Iterate over all entities in the link."""
+        return iter(self.source)
 
 
 class Component(FrozenSet[Entity]):

@@ -9,11 +9,17 @@ from dj_link.entities.link import Link, create_link
 from dj_link.entities.state import Commands, Components, Processes, Update
 from dj_link.use_cases.gateway import LinkGateway
 from dj_link.use_cases.use_cases import (
+    DeleteRequestModel,
     DeleteResponseModel,
+    ListIdleEntitiesRequestModel,
+    ListIdleEntitiesResponseModel,
+    ProcessRequestModel,
     ProcessResponseModel,
+    PullRequestModel,
     PullResponseModel,
     ResponseModel,
     delete,
+    list_idle_entities,
     process,
     pull,
 )
@@ -85,16 +91,21 @@ T = TypeVar("T", bound=ResponseModel)
 
 class FakeOutputPort(Generic[T]):
     def __init__(self) -> None:
-        self.response: T | None = None
+        self._response: T | None = None
+
+    @property
+    def response(self) -> T:
+        assert self._response is not None
+        return self._response
 
     def __call__(self, response: T) -> None:
-        self.response = response
+        self._response = response
 
 
 def test_pull_process_gets_started_when_idle_entity_gets_pulled() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     pull(
-        create_identifiers("1"),
+        PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[PullResponseModel](),
     )
@@ -109,7 +120,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     output_port = FakeOutputPort[PullResponseModel]()
     pull(
-        create_identifiers("1"),
+        PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=output_port,
     )
@@ -121,7 +132,7 @@ def test_delete_process_is_started_when_pulled_entity_is_deleted() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     delete(
-        create_identifiers("1"),
+        DeleteRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[DeleteResponseModel](),
     )
@@ -138,7 +149,7 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
     )
     output_port = FakeOutputPort[DeleteResponseModel]()
     delete(
-        create_identifiers("1"),
+        DeleteRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=output_port,
     )
@@ -150,7 +161,11 @@ def test_entity_undergoing_process_gets_processed() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         processes={Processes.PULL: create_identifiers("1")},
     )
-    process(create_identifiers("1"), link_gateway=gateway, output_port=FakeOutputPort[ProcessResponseModel]())
+    process(
+        ProcessRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=FakeOutputPort[ProcessResponseModel](),
+    )
     assert has_state(
         gateway.create_link(),
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
@@ -163,5 +178,18 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
         processes={Processes.PULL: create_identifiers("1")},
     )
     output_port = FakeOutputPort[ProcessResponseModel]()
-    process(create_identifiers("1"), link_gateway=gateway, output_port=output_port)
+    process(
+        ProcessRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=output_port,
+    )
     assert isinstance(output_port.response, ProcessResponseModel)
+
+
+def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() -> None:
+    link_gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
+    )
+    output_port = FakeOutputPort[ListIdleEntitiesResponseModel]()
+    list_idle_entities(ListIdleEntitiesRequestModel(), link_gateway=link_gateway, output_port=output_port)
+    assert set(output_port.response.identifiers) == create_identifiers("1")

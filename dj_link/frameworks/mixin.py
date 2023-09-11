@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Sequence, cast
+from typing import Iterable, Sequence, cast
 
 from datajoint import Table
 
@@ -33,7 +33,10 @@ class SourceEndpoint(Table):
 
 
 def create_source_endpoint_factory(
-    controller: DJController, source_table: Callable[[], Table], outbound_table: Callable[[], Table]
+    controller: DJController,
+    source_table: Callable[[], Table],
+    outbound_table: Callable[[], Table],
+    restriction: Iterable[PrimaryKey],
 ) -> Callable[[], SourceEndpoint]:
     """Create a callable that returns the source endpoint when called."""
 
@@ -49,7 +52,8 @@ def create_source_endpoint_factory(
                     "_outbound_table": staticmethod(outbound_table),
                     "in_transit": create_transit_endpoint(controller, source_table(), outbound_table()),
                 },
-            )(),
+            )()
+            & restriction,
         )
 
     return create_source_endpoint
@@ -93,7 +97,9 @@ class LocalEndpoint(Table):
         return self._source()
 
 
-def create_local_endpoint(controller: DJController, tables: DJTables) -> type[LocalEndpoint]:
+def create_local_endpoint(
+    controller: DJController, tables: DJTables, source_restriction: Iterable[PrimaryKey]
+) -> type[LocalEndpoint]:
     """Create the local endpoint."""
     return cast(
         "type[LocalEndpoint]",
@@ -105,7 +111,9 @@ def create_local_endpoint(controller: DJController, tables: DJTables) -> type[Lo
             ),
             {
                 "_controller": controller,
-                "_source": staticmethod(create_source_endpoint_factory(controller, tables.source, tables.outbound)),
+                "_source": staticmethod(
+                    create_source_endpoint_factory(controller, tables.source, tables.outbound, source_restriction)
+                ),
             },
         ),
     )
