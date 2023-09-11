@@ -11,12 +11,15 @@ from dj_link.use_cases.gateway import LinkGateway
 from dj_link.use_cases.use_cases import (
     DeleteRequestModel,
     DeleteResponseModel,
+    ListIdleEntitiesRequestModel,
+    ListIdleEntitiesResponseModel,
     ProcessRequestModel,
     ProcessResponseModel,
     PullRequestModel,
     PullResponseModel,
     ResponseModel,
     delete,
+    list_idle_entities,
     process,
     pull,
 )
@@ -88,10 +91,15 @@ T = TypeVar("T", bound=ResponseModel)
 
 class FakeOutputPort(Generic[T]):
     def __init__(self) -> None:
-        self.response: T | None = None
+        self._response: T | None = None
+
+    @property
+    def response(self) -> T:
+        assert self._response is not None
+        return self._response
 
     def __call__(self, response: T) -> None:
-        self.response = response
+        self._response = response
 
 
 def test_pull_process_gets_started_when_idle_entity_gets_pulled() -> None:
@@ -176,3 +184,12 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
         output_port=output_port,
     )
     assert isinstance(output_port.response, ProcessResponseModel)
+
+
+def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() -> None:
+    link_gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
+    )
+    output_port = FakeOutputPort[ListIdleEntitiesResponseModel]()
+    list_idle_entities(ListIdleEntitiesRequestModel(), link_gateway=link_gateway, output_port=output_port)
+    assert set(output_port.response.identifiers) == create_identifiers("1")
