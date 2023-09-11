@@ -72,19 +72,19 @@ class Table:
 
 Note that the name of the declared class must match the name of the table from which the data will be pulled.
 
-The class returned by the decorator behaves like a regular table with some added functionality. For one it allows the browsing of data present in the source table:
+The class returned by the decorator behaves like a regular table with some added functionality. For one it allows the browsing of rows that can be pulled from the source:
 
 ```python
 Table().source
 ```
 
-All the data can be pulled like so:
+All the rows can be pulled like so:
 
 ```python
 Table().source.pull()
 ```
 
-That said usually we only want to pull some rows that match a certain criteria:
+That said usually we only want to pull rows that match a certain criteria:
 
 ```python
 (Table().source & "foo = 1").pull()
