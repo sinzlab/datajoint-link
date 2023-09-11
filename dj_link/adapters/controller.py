@@ -5,6 +5,7 @@ from typing import Callable, Iterable, Mapping
 
 from dj_link.use_cases.use_cases import (
     DeleteRequestModel,
+    ListIdleEntitiesRequestModel,
     ProcessRequestModel,
     PullRequestModel,
     RequestModel,
@@ -40,3 +41,7 @@ class DJController:
         self.__handlers[UseCases.PROCESS](
             ProcessRequestModel(frozenset(self.__translator.to_identifiers(primary_keys)))
         )
+
+    def list_idle_entities(self) -> None:
+        """Execute the use-case that lists idle entities."""
+        self.__handlers[UseCases.LISTIDLEENTITIES](ListIdleEntitiesRequestModel())
