@@ -1,16 +1,58 @@
 """Contains the presenter class and related classes/functions."""
+from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Callable, Iterable
 
 from dj_link.use_cases.use_cases import (
-    DeleteResponseModel,
     ListIdleEntitiesResponseModel,
-    ProcessResponseModel,
-    PullResponseModel,
+    OperationResponse,
 )
 
 from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
+
+
+@dataclass(frozen=True)
+class OperationRecord:
+    """Record of a finished operation."""
+
+    requests: list[Request]
+    successes: list[Sucess]
+    failures: list[Failure]
+
+
+@dataclass(frozen=True)
+class Request:
+    """Record of a request to perform a certain operation on a particular entity."""
+
+    primary_key: PrimaryKey
+    operation: str
+
+
+@dataclass(frozen=True)
+class Sucess:
+    """Record of a successful operation on a particular entity."""
+
+    primary_key: PrimaryKey
+    operation: str
+    transition: Transition
+
+
+@dataclass(frozen=True)
+class Transition:
+    """Record of a transition between two states."""
+
+    old: str
+    new: str
+
+
+@dataclass(frozen=True)
+class Failure:
+    """Record of a failed operation on a particular entity."""
+
+    primary_key: PrimaryKey
+    operation: str
 
 
 class DJPresenter:
@@ -21,19 +63,37 @@ class DJPresenter:
         translator: IdentificationTranslator,
         *,
         update_idle_entities_list: Callable[[Iterable[PrimaryKey]], None],
+        show: Callable[[OperationRecord], None],
     ) -> None:
         """Initialize the presenter."""
         self._translator = translator
         self._update_idle_entities_list = update_idle_entities_list
+        self._show = show
 
-    def pull(self, response: PullResponseModel) -> None:
-        """Present information about a finished pull use-case."""
-
-    def delete(self, response: DeleteResponseModel) -> None:
-        """Present information about a finished delete use-case."""
-
-    def process(self, response: ProcessResponseModel) -> None:
-        """Present information about a finished process use-case."""
+    def present_operation_response(self, response: OperationResponse) -> None:
+        """Present information about a finished operation."""
+        self._show(
+            OperationRecord(
+                [
+                    Request(self._translator.to_primary_key(identifier), response.operation.name)
+                    for identifier in response.requested
+                ],
+                [
+                    Sucess(
+                        self._translator.to_primary_key(update.identifier),
+                        operation=response.operation.name,
+                        transition=Transition(
+                            update.transition.current.__name__.upper(), update.transition.new.__name__.upper()
+                        ),
+                    )
+                    for update in response.updates
+                ],
+                [
+                    Failure(self._translator.to_primary_key(operation.identifier), operation.operation.name)
+                    for operation in response.errors
+                ],
+            )
+        )
 
     def update_idle_entities_list(self, response: ListIdleEntitiesResponseModel) -> None:
         """Update the list of idle entities."""

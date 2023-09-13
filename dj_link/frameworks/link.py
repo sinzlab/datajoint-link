@@ -2,20 +2,38 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import asdict
 from functools import partial
 from typing import Any, Mapping, Optional
+
+from datajoint.settings import logging
 
 from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
 from dj_link.adapters.gateway import DJLinkGateway
 from dj_link.adapters.identification import IdentificationTranslator
-from dj_link.adapters.presenter import DJPresenter
+from dj_link.adapters.presenter import DJPresenter, OperationRecord
 from dj_link.use_cases.use_cases import UseCases, delete, list_idle_entities, process, pull
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
 from .mixin import create_local_endpoint
 from .sequence import IterationCallbackList, create_content_replacer
+
+
+def create_operation_logger() -> Callable[[OperationRecord], None]:
+    """Create a function that logs information about finished operations."""
+    logger = logging.getLogger("dj_link[operations]")
+
+    def log(record: OperationRecord) -> None:
+        for request in record.requests:
+            logger.info(f"Operation requested {asdict(request)}")
+        for success in record.successes:
+            logger.info(f"Operation succeeded {asdict(success)}")
+        for failure in record.failures:
+            logger.info(f"Operation failed {asdict(failure)}")
+
+    return log
 
 
 def create_link(  # noqa: PLR0913
@@ -41,15 +59,22 @@ def create_link(  # noqa: PLR0913
         facade = DJLinkFacade(tables.source, tables.outbound, tables.local)
         gateway = DJLinkGateway(facade, translator)
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
-        dj_presenter = DJPresenter(translator, update_idle_entities_list=create_content_replacer(source_restriction))
+        dj_presenter = DJPresenter(
+            translator,
+            update_idle_entities_list=create_content_replacer(source_restriction),
+            show=create_operation_logger(),
+        )
         handlers = {
-            UseCases.PULL: partial(pull, link_gateway=gateway, output_port=dj_presenter.pull),
-            UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=dj_presenter.delete),
-            UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=dj_presenter.process),
+            UseCases.PULL: partial(pull, link_gateway=gateway, output_port=dj_presenter.present_operation_response),
+            UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=dj_presenter.present_operation_response),
+            UseCases.PROCESS: partial(
+                process, link_gateway=gateway, output_port=dj_presenter.present_operation_response
+            ),
             UseCases.LISTIDLEENTITIES: partial(
                 list_idle_entities, link_gateway=gateway, output_port=dj_presenter.update_idle_entities_list
             ),
         }
+        logging.info("Hello")
         controller = DJController(handlers, translator)
         source_restriction.callback = controller.list_idle_entities
 

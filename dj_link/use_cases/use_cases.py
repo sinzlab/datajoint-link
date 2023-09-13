@@ -9,7 +9,7 @@ from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import delete as delete_domain_service
 from dj_link.entities.link import process as process_domain_service
 from dj_link.entities.link import pull as pull_domain_service
-from dj_link.entities.state import states
+from dj_link.entities.state import InvalidOperation, Operations, Update, states
 
 from .gateway import LinkGateway
 
@@ -30,17 +30,22 @@ class PullRequestModel(RequestModel):
 
 
 @dataclass(frozen=True)
-class PullResponseModel(ResponseModel):
-    """Response model for the pull use-case."""
+class OperationResponse(ResponseModel):
+    """Response model for all use-cases that operate on entities."""
+
+    operation: Operations
+    requested: frozenset[Identifier]
+    updates: frozenset[Update]
+    errors: frozenset[InvalidOperation]
 
 
 def pull(
-    request: PullRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[PullResponseModel], None]
+    request: PullRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
 ) -> None:
     """Pull entities across the link."""
     result = pull_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
-    output_port(PullResponseModel())
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
 @dataclass(frozen=True)
@@ -50,18 +55,13 @@ class DeleteRequestModel(RequestModel):
     requested: frozenset[Identifier]
 
 
-@dataclass(frozen=True)
-class DeleteResponseModel(ResponseModel):
-    """Response model for the delete use-case."""
-
-
 def delete(
-    request: DeleteRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[DeleteResponseModel], None]
+    request: DeleteRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
 ) -> None:
     """Delete pulled entities."""
     result = delete_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
-    output_port(DeleteResponseModel())
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
 @dataclass(frozen=True)
@@ -71,18 +71,13 @@ class ProcessRequestModel(RequestModel):
     requested: frozenset[Identifier]
 
 
-@dataclass(frozen=True)
-class ProcessResponseModel(ResponseModel):
-    """Response model for the process use-case."""
-
-
 def process(
-    request: ProcessRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[ProcessResponseModel], None]
+    request: ProcessRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
 ) -> None:
     """Process entities."""
     result = process_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
-    output_port(ProcessResponseModel())
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
 @dataclass(frozen=True)
