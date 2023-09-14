@@ -13,7 +13,7 @@ from dj_link.adapters.present import (
     create_idle_entities_updater,
     create_operation_response_presenter,
 )
-from dj_link.use_cases.use_cases import UseCases, delete, list_idle_entities, process, pull
+from dj_link.service.use_cases import UseCases, delete, list_idle_entities, process, pull
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade

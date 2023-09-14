@@ -7,8 +7,8 @@ from typing import Generic, TypeVar
 from dj_link.entities.custom_types import Identifier
 from dj_link.entities.link import Link, create_link
 from dj_link.entities.state import Commands, Components, Operations, Processes, Update
-from dj_link.use_cases.gateway import LinkGateway
-from dj_link.use_cases.use_cases import (
+from dj_link.service.gateway import LinkGateway
+from dj_link.service.use_cases import (
     DeleteRequestModel,
     ListIdleEntitiesRequestModel,
     ListIdleEntitiesResponseModel,

@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Iterable
 
-from dj_link.use_cases.use_cases import (
+from dj_link.service.use_cases import (
     ListIdleEntitiesResponseModel,
     OperationResponse,
 )

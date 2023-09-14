@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Callable, Iterable, Mapping
 
-from dj_link.use_cases.use_cases import (
+from dj_link.service.use_cases import (
     DeleteRequestModel,
     ListIdleEntitiesRequestModel,
     ProcessRequestModel,
