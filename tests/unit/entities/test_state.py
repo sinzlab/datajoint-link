@@ -4,9 +4,9 @@ from typing import Iterable
 
 import pytest
 
-from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import create_link
-from dj_link.entities.state import (
+from dj_link.domain.custom_types import Identifier
+from dj_link.domain.link import create_link
+from dj_link.domain.state import (
     Commands,
     Components,
     InvalidOperation,

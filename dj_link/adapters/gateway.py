@@ -5,9 +5,9 @@ from collections import defaultdict
 from itertools import groupby
 from typing import Iterable
 
-from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Link, create_link
-from dj_link.entities.state import Commands, Components, Processes, Update
+from dj_link.domain.custom_types import Identifier
+from dj_link.domain.link import Link, create_link
+from dj_link.domain.state import Commands, Components, Processes, Update
 from dj_link.service.gateway import LinkGateway
 
 from .custom_types import PrimaryKey

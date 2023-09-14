@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from typing import Union
 from uuid import UUID, uuid4
 
-from dj_link.entities.custom_types import Identifier
+from dj_link.domain.custom_types import Identifier
 
 from .custom_types import PrimaryKey
 

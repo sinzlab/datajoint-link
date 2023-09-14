@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import Iterable, Mapping, Optional
 from uuid import UUID, uuid4
 
-from dj_link.entities.custom_types import Identifier
-from dj_link.entities.state import Components
+from dj_link.domain.custom_types import Identifier
+from dj_link.domain.state import Components
 
 __UUIDS: dict[str, UUID] = {}
 

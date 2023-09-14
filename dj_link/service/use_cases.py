@@ -5,11 +5,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import delete as delete_domain_service
-from dj_link.entities.link import process as process_domain_service
-from dj_link.entities.link import pull as pull_domain_service
-from dj_link.entities.state import InvalidOperation, Operations, Update, states
+from dj_link.domain.custom_types import Identifier
+from dj_link.domain.link import delete as delete_domain_service
+from dj_link.domain.link import process as process_domain_service
+from dj_link.domain.link import pull as pull_domain_service
+from dj_link.domain.state import InvalidOperation, Operations, Update, states
 
 from .gateway import LinkGateway
 

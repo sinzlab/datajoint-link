@@ -4,9 +4,9 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Generic, TypeVar
 
-from dj_link.entities.custom_types import Identifier
-from dj_link.entities.link import Link, create_link
-from dj_link.entities.state import Commands, Components, Operations, Processes, Update
+from dj_link.domain.custom_types import Identifier
+from dj_link.domain.link import Link, create_link
+from dj_link.domain.state import Commands, Components, Operations, Processes, Update
 from dj_link.service.gateway import LinkGateway
 from dj_link.service.use_cases import (
     DeleteRequestModel,
