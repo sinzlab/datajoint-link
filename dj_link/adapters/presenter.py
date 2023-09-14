@@ -63,24 +63,33 @@ class DJPresenter:
         translator: IdentificationTranslator,
         *,
         update_idle_entities_list: Callable[[Iterable[PrimaryKey]], None],
-        show: Callable[[OperationRecord], None],
     ) -> None:
         """Initialize the presenter."""
         self._translator = translator
         self._update_idle_entities_list = update_idle_entities_list
-        self._show = show
 
-    def present_operation_response(self, response: OperationResponse) -> None:
-        """Present information about a finished operation."""
-        self._show(
+    def update_idle_entities_list(self, response: ListIdleEntitiesResponseModel) -> None:
+        """Update the list of idle entities."""
+        self._update_idle_entities_list(
+            self._translator.to_primary_key(identifier) for identifier in response.identifiers
+        )
+
+
+def create_operation_response_presenter(
+    translator: IdentificationTranslator, show: Callable[[OperationRecord], None]
+) -> Callable[[OperationResponse], None]:
+    """Create a callable that when called presents information about a finished operation."""
+
+    def present_operation_response(response: OperationResponse) -> None:
+        show(
             OperationRecord(
                 [
-                    Request(self._translator.to_primary_key(identifier), response.operation.name)
+                    Request(translator.to_primary_key(identifier), response.operation.name)
                     for identifier in response.requested
                 ],
                 [
                     Sucess(
-                        self._translator.to_primary_key(update.identifier),
+                        translator.to_primary_key(update.identifier),
                         operation=response.operation.name,
                         transition=Transition(
                             update.transition.current.__name__.upper(), update.transition.new.__name__.upper()
@@ -89,14 +98,10 @@ class DJPresenter:
                     for update in response.updates
                 ],
                 [
-                    Failure(self._translator.to_primary_key(operation.identifier), operation.operation.name)
+                    Failure(translator.to_primary_key(operation.identifier), operation.operation.name)
                     for operation in response.errors
                 ],
             )
         )
 
-    def update_idle_entities_list(self, response: ListIdleEntitiesResponseModel) -> None:
-        """Update the list of idle entities."""
-        self._update_idle_entities_list(
-            self._translator.to_primary_key(identifier) for identifier in response.identifiers
-        )
+    return present_operation_response
