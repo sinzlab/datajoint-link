@@ -12,7 +12,11 @@ from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
 from dj_link.adapters.gateway import DJLinkGateway
 from dj_link.adapters.identification import IdentificationTranslator
-from dj_link.adapters.presenter import DJPresenter, OperationRecord, create_operation_response_presenter
+from dj_link.adapters.presenter import (
+    OperationRecord,
+    create_idle_entities_updater,
+    create_operation_response_presenter,
+)
 from dj_link.use_cases.use_cases import UseCases, delete, list_idle_entities, process, pull
 
 from . import DJConfiguration, create_tables
@@ -59,14 +63,14 @@ def create_link(  # noqa: PLR0913
         facade = DJLinkFacade(tables.source, tables.outbound, tables.local)
         gateway = DJLinkGateway(facade, translator)
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
-        dj_presenter = DJPresenter(translator, update_idle_entities_list=create_content_replacer(source_restriction))
+        idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         operation_presenter = create_operation_response_presenter(translator, create_operation_logger())
         handlers = {
             UseCases.PULL: partial(pull, link_gateway=gateway, output_port=operation_presenter),
             UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=operation_presenter),
             UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),
             UseCases.LISTIDLEENTITIES: partial(
-                list_idle_entities, link_gateway=gateway, output_port=dj_presenter.update_idle_entities_list
+                list_idle_entities, link_gateway=gateway, output_port=idle_entities_updater
             ),
         }
         logging.info("Hello")

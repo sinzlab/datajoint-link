@@ -55,26 +55,6 @@ class Failure:
     operation: str
 
 
-class DJPresenter:
-    """DataJoint-specific presenter."""
-
-    def __init__(
-        self,
-        translator: IdentificationTranslator,
-        *,
-        update_idle_entities_list: Callable[[Iterable[PrimaryKey]], None],
-    ) -> None:
-        """Initialize the presenter."""
-        self._translator = translator
-        self._update_idle_entities_list = update_idle_entities_list
-
-    def update_idle_entities_list(self, response: ListIdleEntitiesResponseModel) -> None:
-        """Update the list of idle entities."""
-        self._update_idle_entities_list(
-            self._translator.to_primary_key(identifier) for identifier in response.identifiers
-        )
-
-
 def create_operation_response_presenter(
     translator: IdentificationTranslator, show: Callable[[OperationRecord], None]
 ) -> Callable[[OperationResponse], None]:
@@ -105,3 +85,14 @@ def create_operation_response_presenter(
         )
 
     return present_operation_response
+
+
+def create_idle_entities_updater(
+    translator: IdentificationTranslator, update: Callable[[Iterable[PrimaryKey]], None]
+) -> Callable[[ListIdleEntitiesResponseModel], None]:
+    """Create a callable that when called updates the list of idle entities."""
+
+    def update_idle_entities(response: ListIdleEntitiesResponseModel) -> None:
+        update(translator.to_primary_key(identifier) for identifier in response.identifiers)
+
+    return update_idle_entities
