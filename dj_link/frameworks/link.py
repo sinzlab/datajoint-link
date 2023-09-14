@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import asdict
 from functools import partial
 from typing import Any, Mapping, Optional
 
@@ -12,7 +11,6 @@ from dj_link.adapters.custom_types import PrimaryKey
 from dj_link.adapters.gateway import DJLinkGateway
 from dj_link.adapters.identification import IdentificationTranslator
 from dj_link.adapters.present import (
-    OperationRecord,
     create_idle_entities_updater,
     create_operation_response_presenter,
 )
@@ -20,23 +18,9 @@ from dj_link.use_cases.use_cases import UseCases, delete, list_idle_entities, pr
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
+from .log import create_operation_logger
 from .mixin import create_local_endpoint
 from .sequence import IterationCallbackList, create_content_replacer
-
-
-def create_operation_logger() -> Callable[[OperationRecord], None]:
-    """Create a function that logs information about finished operations."""
-    logger = logging.getLogger("dj_link[operations]")
-
-    def log(record: OperationRecord) -> None:
-        for request in record.requests:
-            logger.info(f"Operation requested {asdict(request)}")
-        for success in record.successes:
-            logger.info(f"Operation succeeded {asdict(success)}")
-        for failure in record.failures:
-            logger.info(f"Operation failed {asdict(failure)}")
-
-    return log
 
 
 def create_link(  # noqa: PLR0913
