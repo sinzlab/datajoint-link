@@ -1,12 +1,11 @@
 """Contains the link decorator that is used by the user to establish a link."""
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import asdict
 from functools import partial
 from typing import Any, Mapping, Optional
-
-from datajoint.settings import logging
 
 from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
