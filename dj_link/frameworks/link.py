@@ -11,7 +11,7 @@ from dj_link.adapters.controller import DJController
 from dj_link.adapters.custom_types import PrimaryKey
 from dj_link.adapters.gateway import DJLinkGateway
 from dj_link.adapters.identification import IdentificationTranslator
-from dj_link.adapters.presenter import (
+from dj_link.adapters.present import (
     OperationRecord,
     create_idle_entities_updater,
     create_operation_response_presenter,

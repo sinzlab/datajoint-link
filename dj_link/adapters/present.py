@@ -1,4 +1,4 @@
-"""Contains the presenter class and related classes/functions."""
+"""Logic associated with presenting information about finished use-cases."""
 from __future__ import annotations
 
 from dataclasses import dataclass
