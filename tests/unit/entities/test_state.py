@@ -44,7 +44,11 @@ def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: t
         processes={Processes.PULL: create_identifiers("2", "3")},
     )
     entity = next(entity for entity in link[Components.SOURCE] if entity.identifier == identifier)
-    assert all(isinstance(getattr(entity, method)(), InvalidOperation) for method in methods)
+    method_operation_map = {"pull": Operations.PULL, "delete": Operations.DELETE, "process": Operations.PROCESS}
+    assert all(
+        getattr(entity, method)() == InvalidOperation(method_operation_map[method], entity.identifier)
+        for method in methods
+    )
 
 
 def test_pulling_idle_entity_returns_correct_commands() -> None:
