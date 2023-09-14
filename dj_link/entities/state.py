@@ -28,7 +28,7 @@ class State:
 
     @classmethod
     def _create_invalid_operation_result(cls, operation: Operations, identifier: Identifier) -> EntityOperationResult:
-        return InvalidOperation(operation, identifier)
+        return InvalidOperation(operation, identifier, cls)
 
     @classmethod
     def _create_valid_operation_result(
@@ -205,6 +205,7 @@ class InvalidOperation:
 
     operation: Operations
     identifier: Identifier
+    state: type[State]
 
 
 EntityOperationResult = Union[Update, InvalidOperation]

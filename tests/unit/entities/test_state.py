@@ -46,7 +46,7 @@ def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: t
     entity = next(entity for entity in link[Components.SOURCE] if entity.identifier == identifier)
     method_operation_map = {"pull": Operations.PULL, "delete": Operations.DELETE, "process": Operations.PROCESS}
     assert all(
-        getattr(entity, method)() == InvalidOperation(method_operation_map[method], entity.identifier)
+        getattr(entity, method)() == InvalidOperation(method_operation_map[method], entity.identifier, state)
         for method in methods
     )
 
