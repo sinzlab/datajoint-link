@@ -122,7 +122,8 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
         link_gateway=gateway,
         output_port=output_port,
     )
-    assert isinstance(output_port.response, OperationResponse)
+    assert output_port.response.requested == create_identifiers("1")
+    assert output_port.response.operation is Operations.PULL
 
 
 def test_delete_process_is_started_when_pulled_entity_is_deleted() -> None:
