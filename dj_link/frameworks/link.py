@@ -1,7 +1,6 @@
 """Contains the link decorator that is used by the user to establish a link."""
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable
 from functools import partial
 from typing import Any, Mapping, Optional
@@ -56,7 +55,6 @@ def create_link(  # noqa: PLR0913
                 list_idle_entities, link_gateway=gateway, output_port=idle_entities_updater
             ),
         }
-        logging.info("Hello")
         controller = DJController(handlers, translator)
         source_restriction.callback = controller.list_idle_entities
 
