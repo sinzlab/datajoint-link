@@ -102,15 +102,6 @@ class Link:
     outbound: Component
     local: Component
 
-    def __getitem__(self, component: Components) -> Component:
-        """Return the entities in the given component."""
-        component_map = {
-            Components.SOURCE: self.source,
-            Components.OUTBOUND: self.outbound,
-            Components.LOCAL: self.local,
-        }
-        return component_map[component]
-
     def __iter__(self) -> Iterator[Entity]:
         """Iterate over all entities in the link."""
         return iter(self.source)
