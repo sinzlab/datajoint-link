@@ -164,7 +164,7 @@ def process(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResu
 
 def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
     assert requested, "No identifiers requested."
-    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+    assert set(requested) <= link.identifiers, "Requested identifiers not present in link."
 
 
 def pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
