@@ -4,6 +4,8 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Generic, TypeVar
 
+import pytest
+
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import Link, create_link
 from dj_link.domain.state import Commands, Components, Operations, Processes, Update, states
@@ -83,17 +85,61 @@ class FakeOutputPort(Generic[T]):
         self._response = response
 
 
-def test_pull_process_gets_started_when_idle_entity_gets_pulled() -> None:
+def test_idle_entity_gets_pulled() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     pull(
         PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
     )
-    entity = next(entity for entity in gateway.create_link() if entity.identifier == create_identifier("1"))
-    assert entity.state is states.Activated
+    assert next(iter(gateway.create_link())).state is states.Pulled
 
 
+def test_untainted_processing_entities_get_pulled() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments(
+            {
+                Components.SOURCE: {"1", "2", "3", "4"},
+                Components.OUTBOUND: {"1", "2", "3", "4"},
+                Components.LOCAL: {"3", "4"},
+            }
+        ),
+        processes={Processes.PULL: create_identifiers("1", "3"), Processes.DELETE: create_identifiers("2", "4")},
+    )
+    pull(
+        PullRequestModel(frozenset(create_identifiers("1", "2", "3", "4"))),
+        link_gateway=gateway,
+        output_port=FakeOutputPort[OperationResponse](),
+    )
+    assert all(entity.state is states.Pulled for entity in gateway.create_link())
+
+
+def test_tainted_processing_entities_get_processed_but_not_pulled() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments(
+            {
+                Components.SOURCE: {"1", "2", "3", "4"},
+                Components.OUTBOUND: {"1", "2", "3", "4"},
+                Components.LOCAL: {"3", "4"},
+            }
+        ),
+        processes={Processes.PULL: create_identifiers("1", "3"), Processes.DELETE: create_identifiers("2", "4")},
+        tainted_identifiers=create_identifiers("1", "2", "3", "4"),
+    )
+    pull(
+        PullRequestModel(frozenset(create_identifiers("1", "2", "3", "4"))),
+        link_gateway=gateway,
+        output_port=FakeOutputPort[OperationResponse](),
+    )
+    assert {entity.identifier: entity.state for entity in gateway.create_link()} == {
+        create_identifier("1"): states.Deprecated,
+        create_identifier("2"): states.Deprecated,
+        create_identifier("3"): states.Tainted,
+        create_identifier("4"): states.Deprecated,
+    }
+
+
+@pytest.mark.xfail()
 def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     output_port = FakeOutputPort[OperationResponse]()

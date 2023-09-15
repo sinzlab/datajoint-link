@@ -43,8 +43,18 @@ def pull(
     request: PullRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
 ) -> None:
     """Pull entities across the link."""
+    while True:
+        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
+        if not result.updates:
+            break
+        link_gateway.apply(result.updates)
     result = pull_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
+    while True:
+        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
+        if not result.updates:
+            break
+        link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
