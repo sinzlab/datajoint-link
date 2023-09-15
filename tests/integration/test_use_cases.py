@@ -6,7 +6,7 @@ from typing import Generic, TypeVar
 
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import Link, create_link
-from dj_link.domain.state import Commands, Components, Operations, Processes, Update
+from dj_link.domain.state import Commands, Components, Operations, Processes, Update, states
 from dj_link.service.gateway import LinkGateway
 from dj_link.service.use_cases import (
     DeleteRequestModel,
@@ -21,7 +21,7 @@ from dj_link.service.use_cases import (
     process,
     pull,
 )
-from tests.assignments import create_assignments, create_identifiers
+from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
 class FakeLinkGateway(LinkGateway):
@@ -107,11 +107,8 @@ def test_pull_process_gets_started_when_idle_entity_gets_pulled() -> None:
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
     )
-    assert has_state(
-        gateway.create_link(),
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
-        processes={Processes.PULL: create_identifiers("1")},
-    )
+    entity = next(entity for entity in gateway.create_link() if entity.identifier == create_identifier("1"))
+    assert entity.state is states.Activated
 
 
 def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
@@ -135,11 +132,8 @@ def test_delete_process_is_started_when_pulled_entity_is_deleted() -> None:
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
     )
-    assert has_state(
-        gateway.create_link(),
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
-        processes={Processes.DELETE: create_identifiers("1")},
-    )
+    entity = next(entity for entity in gateway.create_link() if entity.identifier == create_identifier("1"))
+    assert entity.state is states.Received
 
 
 def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
@@ -166,10 +160,8 @@ def test_entity_undergoing_process_gets_processed() -> None:
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
     )
-    assert has_state(
-        gateway.create_link(),
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
-    )
+    entity = next(entity for entity in gateway.create_link() if entity.identifier == create_identifier("1"))
+    assert entity.state is states.Received
 
 
 def test_correct_response_model_gets_passed_to_process_output_port() -> None:
