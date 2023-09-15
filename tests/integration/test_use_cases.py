@@ -58,6 +58,11 @@ class FakeLinkGateway(LinkGateway):
             if update.command is Commands.FINISH_DELETE_PROCESS:
                 self.processes[Processes.DELETE].remove(update.identifier)
                 self.assignments[Components.OUTBOUND].remove(update.identifier)
+            if update.command is Commands.DEPRECATE:
+                try:
+                    self.processes[Processes.DELETE].remove(update.identifier)
+                except KeyError:
+                    self.processes[Processes.PULL].remove(update.identifier)
 
 
 T = TypeVar("T", bound=ResponseModel)
