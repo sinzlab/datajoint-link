@@ -115,6 +115,11 @@ class Link:
         """Iterate over all entities in the link."""
         return iter(self.source)
 
+    @property
+    def identifiers(self) -> frozenset[Identifier]:
+        """Return the identifiers of all entities in the link."""
+        return frozenset(entity.identifier for entity in self)
+
 
 class Component(FrozenSet[Entity]):
     """Contains all entities present in a component."""
