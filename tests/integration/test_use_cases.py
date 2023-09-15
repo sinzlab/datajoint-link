@@ -47,22 +47,24 @@ class FakeLinkGateway(LinkGateway):
             if update.command is Commands.START_PULL_PROCESS:
                 self.processes[Processes.PULL].add(update.identifier)
                 self.assignments[Components.OUTBOUND].add(update.identifier)
-            if update.command is Commands.ADD_TO_LOCAL:
+            elif update.command is Commands.ADD_TO_LOCAL:
                 self.assignments[Components.LOCAL].add(update.identifier)
-            if update.command is Commands.FINISH_PULL_PROCESS:
+            elif update.command is Commands.FINISH_PULL_PROCESS:
                 self.processes[Processes.PULL].remove(update.identifier)
-            if update.command is Commands.START_DELETE_PROCESS:
+            elif update.command is Commands.START_DELETE_PROCESS:
                 self.processes[Processes.DELETE].add(update.identifier)
-            if update.command is Commands.REMOVE_FROM_LOCAL:
+            elif update.command is Commands.REMOVE_FROM_LOCAL:
                 self.assignments[Components.LOCAL].remove(update.identifier)
-            if update.command is Commands.FINISH_DELETE_PROCESS:
+            elif update.command is Commands.FINISH_DELETE_PROCESS:
                 self.processes[Processes.DELETE].remove(update.identifier)
                 self.assignments[Components.OUTBOUND].remove(update.identifier)
-            if update.command is Commands.DEPRECATE:
+            elif update.command is Commands.DEPRECATE:
                 try:
                     self.processes[Processes.DELETE].remove(update.identifier)
                 except KeyError:
                     self.processes[Processes.PULL].remove(update.identifier)
+            else:
+                raise ValueError("Unsupported command encountered")
 
 
 T = TypeVar("T", bound=ResponseModel)
