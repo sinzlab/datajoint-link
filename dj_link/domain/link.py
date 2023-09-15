@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, FrozenSet, Iterable, Iterator, Mapping, Optional, TypeVar
+from typing import Any, Iterable, Iterator, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
 from .state import (
@@ -87,14 +87,14 @@ def create_link(
     validate_arguments(assignments, tainted_identifiers, processes)
     processes_map = invert_mapping(processes)
     entity_assignments = assign_entities(create_entities(assignments))
-    return Link(source=Component(entity_assignments[Components.SOURCE]))
+    return Link(source=frozenset(entity_assignments[Components.SOURCE]))
 
 
 @dataclass(frozen=True)
 class Link:
     """The state of a link between two databases."""
 
-    source: Component
+    source: frozenset[Entity]
 
     def __iter__(self) -> Iterator[Entity]:
         """Iterate over all entities in the link."""
@@ -103,15 +103,6 @@ class Link:
     @property
     def identifiers(self) -> frozenset[Identifier]:
         """Return the identifiers of all entities in the link."""
-        return frozenset(entity.identifier for entity in self)
-
-
-class Component(FrozenSet[Entity]):
-    """Contains all entities present in a component."""
-
-    @property
-    def identifiers(self) -> frozenset[Identifier]:
-        """Return all identifiers of entities in the component."""
         return frozenset(entity.identifier for entity in self)
 
 
