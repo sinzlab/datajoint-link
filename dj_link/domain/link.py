@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable, Iterator, Mapping, Optional, TypeVar
+from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
 from .state import (
@@ -87,18 +87,11 @@ def create_link(
     validate_arguments(assignments, tainted_identifiers, processes)
     processes_map = invert_mapping(processes)
     entity_assignments = assign_entities(create_entities(assignments))
-    return Link(source=frozenset(entity_assignments[Components.SOURCE]))
+    return Link(entity_assignments[Components.SOURCE])
 
 
-@dataclass(frozen=True)
-class Link:
+class Link(FrozenSet[Entity]):
     """The state of a link between two databases."""
-
-    source: frozenset[Entity]
-
-    def __iter__(self) -> Iterator[Entity]:
-        """Iterate over all entities in the link."""
-        return iter(self.source)
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
