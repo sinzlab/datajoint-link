@@ -60,30 +60,6 @@ class FakeLinkGateway(LinkGateway):
                 self.assignments[Components.OUTBOUND].remove(update.identifier)
 
 
-def has_state(
-    link: Link,
-    assignments: Mapping[Components, Iterable[Identifier]],
-    *,
-    tainted_identifiers: Iterable[Identifier] | None = None,
-    processes: Mapping[Processes, Iterable[Identifier]] | None = None,
-) -> bool:
-    if tainted_identifiers is None:
-        tainted_identifiers = set()
-    if processes is None:
-        processes = {}
-
-    if any(link[component].identifiers != assignments[component] for component in Components):
-        return False
-    if {entity.identifier for entity in link[Components.SOURCE] if entity.is_tainted} != set(tainted_identifiers):
-        return False
-    if any(
-        {entity.identifier for entity in link[Components.SOURCE] if entity.current_process is process} != identifiers
-        for process, identifiers in processes.items()
-    ):
-        return False
-    return True
-
-
 T = TypeVar("T", bound=ResponseModel)
 
 
