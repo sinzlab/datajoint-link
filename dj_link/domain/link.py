@@ -154,9 +154,7 @@ def create_link_operation_result(results: Iterable[EntityOperationResult]) -> Li
 def process(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Process all entities in the link producing appropriate updates."""
     _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.process() for entity in link[Components.SOURCE] if entity.identifier in requested
-    )
+    return create_link_operation_result(entity.process() for entity in link if entity.identifier in requested)
 
 
 def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
@@ -167,14 +165,10 @@ def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
 def pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Pull all requested entities producing appropriate updates."""
     _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested
-    )
+    return create_link_operation_result(entity.pull() for entity in link if entity.identifier in requested)
 
 
 def delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Delete all requested identifiers producing appropriate updates."""
     _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested
-    )
+    return create_link_operation_result(entity.delete() for entity in link if entity.identifier in requested)

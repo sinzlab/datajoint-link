@@ -40,7 +40,7 @@ class TestCreateLink:
             tainted_identifiers=create_identifiers("5", "6", "7", "8"),
             processes={Processes.PULL: create_identifiers("2", "3", "7", "8")},
         )
-        assert {entity.identifier for entity in link[Components.SOURCE] if entity.state is state} == set(expected)
+        assert {entity.identifier for entity in link if entity.state is state} == set(expected)
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -81,7 +81,7 @@ class TestCreateLink:
             (create_identifier("4"), Processes.DELETE),
             (create_identifier("5"), None),
         }
-        assert {(entity.identifier, entity.current_process) for entity in link[Components.SOURCE]} == set(expected)
+        assert {(entity.identifier, entity.current_process) for entity in link} == set(expected)
 
     @staticmethod
     def test_tainted_attribute_is_set() -> None:
@@ -90,7 +90,7 @@ class TestCreateLink:
             tainted_identifiers=create_identifiers("1"),
         )
         expected = {(create_identifier("1"), True), (create_identifier("2"), False)}
-        actual = {(entity.identifier, entity.is_tainted) for entity in link[Components.SOURCE]}
+        actual = {(entity.identifier, entity.is_tainted) for entity in link}
         assert actual == expected
 
     @staticmethod
@@ -160,16 +160,11 @@ class TestLink:
         return create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
 
     @staticmethod
-    def test_can_get_entities_in_component(assignments: Mapping[Components, Iterable[Identifier]]) -> None:
-        link = create_link(assignments)
-        assert {entity.identifier for entity in link[Components.SOURCE]} == create_identifiers("1", "2")
-
-    @staticmethod
     def test_can_get_identifiers_of_entities_in_component(
         assignments: Mapping[Components, Iterable[Identifier]]
     ) -> None:
         link = create_link(assignments)
-        assert set(link[Components.SOURCE].identifiers) == create_identifiers("1", "2")
+        assert set(link.identifiers) == create_identifiers("1", "2")
 
 
 def test_process_produces_correct_updates() -> None:

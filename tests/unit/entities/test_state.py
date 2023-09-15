@@ -43,7 +43,7 @@ def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: t
         tainted_identifiers=create_identifiers("5", "6"),
         processes={Processes.PULL: create_identifiers("2", "3")},
     )
-    entity = next(entity for entity in link[Components.SOURCE] if entity.identifier == identifier)
+    entity = next(entity for entity in link if entity.identifier == identifier)
     method_operation_map = {"pull": Operations.PULL, "delete": Operations.DELETE, "process": Operations.PROCESS}
     assert all(
         getattr(entity, method)() == InvalidOperation(method_operation_map[method], entity.identifier, state)
@@ -53,7 +53,7 @@ def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: t
 
 def test_pulling_idle_entity_returns_correct_commands() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
-    entity = next(iter(link[Components.SOURCE]))
+    entity = next(iter(link))
     assert entity.pull() == Update(
         Operations.PULL,
         create_identifier("1"),
@@ -82,7 +82,7 @@ def test_processing_activated_entity_returns_correct_commands(
         processes={process: create_identifiers("1")},
         tainted_identifiers=tainted_identifiers,
     )
-    entity = next(iter(link[Components.SOURCE]))
+    entity = next(iter(link))
     assert entity.process() == Update(
         Operations.PROCESS,
         create_identifier("1"),
@@ -108,7 +108,7 @@ def test_processing_received_entity_returns_correct_commands(
         processes={process: {create_identifier("1")}},
         tainted_identifiers=tainted_identifiers,
     )
-    entity = next(iter(link[Components.SOURCE]))
+    entity = next(iter(link))
     assert entity.process() == Update(
         Operations.PROCESS,
         create_identifier("1"),
@@ -121,7 +121,7 @@ def test_deleting_pulled_entity_returns_correct_commands() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
-    entity = next(iter(link[Components.SOURCE]))
+    entity = next(iter(link))
     assert entity.delete() == Update(
         Operations.DELETE,
         create_identifier("1"),
@@ -135,7 +135,7 @@ def test_deleting_tainted_entity_returns_correct_commands() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
         tainted_identifiers={create_identifier("1")},
     )
-    entity = next(iter(link[Components.SOURCE]))
+    entity = next(iter(link))
     assert entity.delete() == Update(
         Operations.DELETE,
         create_identifier("1"),
