@@ -87,11 +87,7 @@ def create_link(
     validate_arguments(assignments, tainted_identifiers, processes)
     processes_map = invert_mapping(processes)
     entity_assignments = assign_entities(create_entities(assignments))
-    return Link(
-        source=Component(entity_assignments[Components.SOURCE]),
-        outbound=Component(entity_assignments[Components.OUTBOUND]),
-        local=Component(entity_assignments[Components.LOCAL]),
-    )
+    return Link(source=Component(entity_assignments[Components.SOURCE]))
 
 
 @dataclass(frozen=True)
@@ -99,8 +95,6 @@ class Link:
     """The state of a link between two databases."""
 
     source: Component
-    outbound: Component
-    local: Component
 
     def __iter__(self) -> Iterator[Entity]:
         """Iterate over all entities in the link."""
