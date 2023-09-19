@@ -84,19 +84,6 @@ class FakeOutputPort(Generic[T]):
         self._response = response
 
 
-@pytest.mark.xfail()
-def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
-    gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
-    output_port = FakeOutputPort[OperationResponse]()
-    pull(
-        PullRequestModel(frozenset(create_identifiers("1"))),
-        link_gateway=gateway,
-        output_port=output_port,
-    )
-    assert output_port.response.requested == create_identifiers("1")
-    assert output_port.response.operation is Operations.PULL
-
-
 def create_gateway(state: type[State], process: Processes | None = None, is_tainted: bool = False) -> FakeLinkGateway:
     if state in (states.Activated, states.Received):
         assert process is not None
@@ -162,6 +149,19 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
         output_port=FakeOutputPort[OperationResponse](),
     )
     assert next(iter(gateway.create_link())).state is expected
+
+
+@pytest.mark.xfail()
+def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
+    gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
+    output_port = FakeOutputPort[OperationResponse]()
+    pull(
+        PullRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=output_port,
+    )
+    assert output_port.response.requested == create_identifiers("1")
+    assert output_port.response.operation is Operations.PULL
 
 
 @pytest.mark.parametrize(
