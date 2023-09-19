@@ -84,60 +84,6 @@ class FakeOutputPort(Generic[T]):
         self._response = response
 
 
-def test_idle_entity_gets_pulled() -> None:
-    gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
-    pull(
-        PullRequestModel(frozenset(create_identifiers("1"))),
-        link_gateway=gateway,
-        output_port=FakeOutputPort[OperationResponse](),
-    )
-    assert next(iter(gateway.create_link())).state is states.Pulled
-
-
-def test_untainted_processing_entities_get_pulled() -> None:
-    gateway = FakeLinkGateway(
-        create_assignments(
-            {
-                Components.SOURCE: {"1", "2", "3", "4"},
-                Components.OUTBOUND: {"1", "2", "3", "4"},
-                Components.LOCAL: {"3", "4"},
-            }
-        ),
-        processes={Processes.PULL: create_identifiers("1", "3"), Processes.DELETE: create_identifiers("2", "4")},
-    )
-    pull(
-        PullRequestModel(frozenset(create_identifiers("1", "2", "3", "4"))),
-        link_gateway=gateway,
-        output_port=FakeOutputPort[OperationResponse](),
-    )
-    assert all(entity.state is states.Pulled for entity in gateway.create_link())
-
-
-def test_tainted_processing_entities_get_processed_but_not_pulled() -> None:
-    gateway = FakeLinkGateway(
-        create_assignments(
-            {
-                Components.SOURCE: {"1", "2", "3", "4"},
-                Components.OUTBOUND: {"1", "2", "3", "4"},
-                Components.LOCAL: {"3", "4"},
-            }
-        ),
-        processes={Processes.PULL: create_identifiers("1", "3"), Processes.DELETE: create_identifiers("2", "4")},
-        tainted_identifiers=create_identifiers("1", "2", "3", "4"),
-    )
-    pull(
-        PullRequestModel(frozenset(create_identifiers("1", "2", "3", "4"))),
-        link_gateway=gateway,
-        output_port=FakeOutputPort[OperationResponse](),
-    )
-    assert {entity.identifier: entity.state for entity in gateway.create_link()} == {
-        create_identifier("1"): states.Deprecated,
-        create_identifier("2"): states.Deprecated,
-        create_identifier("3"): states.Tainted,
-        create_identifier("4"): states.Deprecated,
-    }
-
-
 @pytest.mark.xfail()
 def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
@@ -212,6 +158,33 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
     gateway = create_gateway(**state)
     delete(
         DeleteRequestModel(frozenset(create_identifiers("1"))),
+        link_gateway=gateway,
+        output_port=FakeOutputPort[OperationResponse](),
+    )
+    assert next(iter(gateway.create_link())).state is expected
+
+
+@pytest.mark.parametrize(
+    ("state", "expected"),
+    [
+        ({"state": states.Idle, "is_tainted": False, "process": None}, states.Pulled),
+        ({"state": states.Activated, "is_tainted": False, "process": Processes.PULL}, states.Pulled),
+        ({"state": states.Activated, "is_tainted": False, "process": Processes.DELETE}, states.Pulled),
+        ({"state": states.Activated, "is_tainted": True, "process": Processes.PULL}, states.Deprecated),
+        ({"state": states.Activated, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
+        ({"state": states.Received, "is_tainted": False, "process": Processes.PULL}, states.Pulled),
+        ({"state": states.Received, "is_tainted": False, "process": Processes.DELETE}, states.Pulled),
+        ({"state": states.Received, "is_tainted": True, "process": Processes.PULL}, states.Tainted),
+        ({"state": states.Received, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
+        ({"state": states.Pulled, "is_tainted": False, "process": None}, states.Pulled),
+        ({"state": states.Tainted, "is_tainted": True, "process": None}, states.Tainted),
+        ({"state": states.Deprecated, "is_tainted": True, "process": None}, states.Deprecated),
+    ],
+)
+def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
+    gateway = create_gateway(**state)
+    pull(
+        PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
     )
