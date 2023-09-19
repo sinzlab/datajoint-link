@@ -69,8 +69,18 @@ def delete(
     request: DeleteRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
 ) -> None:
     """Delete pulled entities."""
+    while True:
+        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
+        if not result.updates:
+            break
+        link_gateway.apply(result.updates)
     result = delete_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
+    while True:
+        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
+        if not result.updates:
+            break
+        link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 

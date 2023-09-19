@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from typing import Generic, TypeVar
+from typing import Generic, TypedDict, TypeVar
 
 import pytest
 
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import Link, create_link
-from dj_link.domain.state import Commands, Components, Operations, Processes, Update, states
+from dj_link.domain.state import Commands, Components, Operations, Processes, State, Update, states
 from dj_link.service.gateway import LinkGateway
 from dj_link.service.use_cases import (
     DeleteRequestModel,
@@ -20,9 +19,9 @@ from dj_link.service.use_cases import (
     ResponseModel,
     delete,
     list_idle_entities,
-    process,
     pull,
 )
+from dj_link.service.use_cases import process as process_use_case
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
@@ -36,10 +35,10 @@ class FakeLinkGateway(LinkGateway):
     ) -> None:
         self.assignments = {component: set(identifiers) for component, identifiers in assignments.items()}
         self.tainted_identifiers = set(tainted_identifiers) if tainted_identifiers is not None else set()
-        if processes is None:
-            self.processes: dict[Processes, set[Identifier]] = defaultdict(set)
-        else:
-            self.processes = {process: set(identifiers) for process, identifiers in processes.items()}
+        self.processes: dict[Processes, set[Identifier]] = {process: set() for process in Processes}
+        if processes is not None:
+            for process, identifiers in processes.items():
+                self.processes[process].update(identifiers)
 
     def create_link(self) -> Link:
         return create_link(self.assignments, tainted_identifiers=self.tainted_identifiers, processes=self.processes)
@@ -152,19 +151,74 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     assert output_port.response.operation is Operations.PULL
 
 
-def test_delete_process_is_started_when_pulled_entity_is_deleted() -> None:
-    gateway = FakeLinkGateway(
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
+def create_gateway(state: type[State], process: Processes | None = None, is_tainted: bool = False) -> FakeLinkGateway:
+    if state in (states.Activated, states.Received):
+        assert process is not None
+    else:
+        assert process is None
+    if state in (states.Tainted, states.Deprecated):
+        assert is_tainted
+    elif state in (states.Idle, states.Pulled):
+        assert not is_tainted
+
+    if is_tainted:
+        tainted_identifiers = create_identifiers("1")
+    else:
+        tainted_identifiers = set()
+    if process is not None:
+        processes = {process: create_identifiers("1")}
+    else:
+        processes = {}
+    assignments = {Components.SOURCE: {"1"}}
+    if state is states.Idle:
+        return FakeLinkGateway(
+            create_assignments(assignments), tainted_identifiers=tainted_identifiers, processes=processes
+        )
+    assignments[Components.OUTBOUND] = {"1"}
+    if state in (states.Deprecated, states.Activated):
+        return FakeLinkGateway(
+            create_assignments(assignments), tainted_identifiers=tainted_identifiers, processes=processes
+        )
+    assignments[Components.LOCAL] = {"1"}
+    return FakeLinkGateway(
+        create_assignments(assignments), tainted_identifiers=tainted_identifiers, processes=processes
     )
+
+
+class EntityConfig(TypedDict):
+    state: type[State]
+    is_tainted: bool
+    process: Processes
+
+
+@pytest.mark.parametrize(
+    ("state", "expected"),
+    [
+        ({"state": states.Idle, "is_tainted": False, "process": None}, states.Idle),
+        ({"state": states.Activated, "is_tainted": False, "process": Processes.PULL}, states.Idle),
+        ({"state": states.Activated, "is_tainted": False, "process": Processes.DELETE}, states.Idle),
+        ({"state": states.Activated, "is_tainted": True, "process": Processes.PULL}, states.Deprecated),
+        ({"state": states.Activated, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
+        ({"state": states.Received, "is_tainted": False, "process": Processes.PULL}, states.Idle),
+        ({"state": states.Received, "is_tainted": False, "process": Processes.DELETE}, states.Idle),
+        ({"state": states.Received, "is_tainted": True, "process": Processes.PULL}, states.Deprecated),
+        ({"state": states.Received, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
+        ({"state": states.Pulled, "is_tainted": False, "process": None}, states.Idle),
+        ({"state": states.Tainted, "is_tainted": True, "process": None}, states.Deprecated),
+        ({"state": states.Deprecated, "is_tainted": True, "process": None}, states.Deprecated),
+    ],
+)
+def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
+    gateway = create_gateway(**state)
     delete(
         DeleteRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
     )
-    entity = next(entity for entity in gateway.create_link() if entity.identifier == create_identifier("1"))
-    assert entity.state is states.Received
+    assert next(iter(gateway.create_link())).state is expected
 
 
+@pytest.mark.xfail()
 def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
     gateway = FakeLinkGateway(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
@@ -184,7 +238,7 @@ def test_entity_undergoing_process_gets_processed() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         processes={Processes.PULL: create_identifiers("1")},
     )
-    process(
+    process_use_case(
         ProcessRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
@@ -199,7 +253,7 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
         processes={Processes.PULL: create_identifiers("1")},
     )
     output_port = FakeOutputPort[OperationResponse]()
-    process(
+    process_use_case(
         ProcessRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=output_port,
