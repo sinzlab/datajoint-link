@@ -6,7 +6,6 @@ from typing import Callable, Iterable, Mapping
 from dj_link.service.use_cases import (
     DeleteRequestModel,
     ListIdleEntitiesRequestModel,
-    ProcessRequestModel,
     PullRequestModel,
     RequestModel,
     UseCases,
@@ -35,12 +34,6 @@ class DJController:
     def delete(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the delete use-case."""
         self.__handlers[UseCases.DELETE](DeleteRequestModel(frozenset(self.__translator.to_identifiers(primary_keys))))
-
-    def process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Execute the process use-case."""
-        self.__handlers[UseCases.PROCESS](
-            ProcessRequestModel(frozenset(self.__translator.to_identifiers(primary_keys)))
-        )
 
     def list_idle_entities(self) -> None:
         """Execute the use-case that lists idle entities."""
