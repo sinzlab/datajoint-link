@@ -119,20 +119,6 @@ assert (Helper() & "foo = 1").fetch1("is_deprecated") == "TRUE" # No error!
 
 Now it is save to delete the row from the source table as well!
 
-### :rocket: Transit
-
-Sometimes rows that are being pulled or deleted can get stuck in transit. They can be displayed like so:
-
-```python
-Table().source.in_transit
-```
-
-Processing of these rows can be resumed like so:
-
-```python
-Table().source.in_transit.process()
-```
-
 ## :package: External Storage
 
 Data stored in a source table that refers to one (or more) external stores can be stored in different store(s) after pulling:
