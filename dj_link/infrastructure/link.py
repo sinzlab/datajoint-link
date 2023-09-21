@@ -18,6 +18,7 @@ from dj_link.service.use_cases import (
     ProcessToCompletionResponse,
     ResponseRelay,
     UseCases,
+    create_response_forwarder,
     delete,
     list_idle_entities,
     process,
@@ -61,9 +62,11 @@ def create_link(  # noqa: PLR0913
         complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
         process_to_completion_service = partial(
             process_to_completion,
-            process_service=partial(process, link_gateway=gateway, output_port=process_relay),
+            process_service=partial(
+                process, link_gateway=gateway, output_port=create_response_forwarder([process_relay, lambda x: None])
+            ),
             process_service_relay=process_relay,
-            output_port=complete_process_relay,
+            output_port=create_response_forwarder([complete_process_relay, lambda x: None]),
         )
         handlers = {
             UseCases.PULL: partial(

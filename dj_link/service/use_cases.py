@@ -1,7 +1,7 @@
 """Contains all the use-cases."""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Generic, TypeVar
@@ -142,6 +142,17 @@ class ResponseRelay(Generic[_T]):
     def __call__(self, response: _T) -> None:
         """Store the response of the relayed service."""
         self._response = response
+
+
+def create_response_forwarder(recipients: Iterable[Callable[[_T], None]]) -> Callable[[_T], None]:
+    """Create an object that forwards the response it gets called with to multiple recipients."""
+    recipients = list(recipients)
+
+    def duplicate_response(response: _T) -> None:
+        for recipient in recipients:
+            recipient(response)
+
+    return duplicate_response
 
 
 def process_to_completion(
