@@ -13,13 +13,13 @@ class State:
 
     @classmethod
     def start_pull(cls, entity: Entity) -> EntityOperationResult:
-        """Return the command needed to start the pull process for an entity."""
+        """Return the command needed to start the pull process for the entity."""
         return cls._create_invalid_operation_result(Operations.START_PULL, entity.identifier)
 
     @classmethod
-    def delete(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to delete the entity."""
-        return cls._create_invalid_operation_result(Operations.DELETE, entity.identifier)
+    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+        """Return the commands needed to start the delete process for the entity."""
+        return cls._create_invalid_operation_result(Operations.START_DELETE, entity.identifier)
 
     @classmethod
     def process(cls, entity: Entity) -> EntityOperationResult:
@@ -117,9 +117,9 @@ class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
     @classmethod
-    def delete(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to delete a pulled entity."""
-        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
+    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+        """Return the commands needed to start the delete process for the entity."""
+        return cls._create_valid_operation_result(Operations.START_DELETE, entity.identifier, Received)
 
 
 states.register(Pulled)
@@ -129,9 +129,9 @@ class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
     @classmethod
-    def delete(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to delete a tainted entity."""
-        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
+    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+        """Return the commands needed to start the delete process for the entity."""
+        return cls._create_valid_operation_result(Operations.START_DELETE, entity.identifier, Received)
 
 
 states.register(Tainted)
@@ -185,7 +185,7 @@ class Operations(Enum):
     """Names for all operations that can be performed on entities."""
 
     START_PULL = auto()
-    DELETE = auto()
+    START_DELETE = auto()
     PROCESS = auto()
 
 
@@ -289,12 +289,12 @@ class Entity:
     is_tainted: bool
 
     def start_pull(self) -> EntityOperationResult:
-        """Pull the entity."""
+        """Start the pull process for the entity."""
         return self.state.start_pull(self)
 
-    def delete(self) -> EntityOperationResult:
-        """Delete the entity."""
-        return self.state.delete(self)
+    def start_delete(self) -> EntityOperationResult:
+        """Start the delete process for the entity."""
+        return self.state.start_delete(self)
 
     def process(self) -> EntityOperationResult:
         """Process the entity."""

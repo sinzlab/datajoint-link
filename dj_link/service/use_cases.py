@@ -7,8 +7,8 @@ from enum import Enum, auto
 from typing import Generic, TypeVar
 
 from dj_link.domain.custom_types import Identifier
-from dj_link.domain.link import delete as delete_domain_service
 from dj_link.domain.link import process as process_domain_service
+from dj_link.domain.link import start_delete as delete_domain_service
 from dj_link.domain.link import start_pull as pull_domain_service
 from dj_link.domain.state import InvalidOperation, Operations, Update, states
 

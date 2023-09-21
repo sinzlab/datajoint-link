@@ -142,7 +142,7 @@ def start_pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationR
     return create_link_operation_result(entity.start_pull() for entity in link if entity.identifier in requested)
 
 
-def delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
-    """Delete all requested identifiers producing appropriate updates."""
+def start_delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
+    """Start the delete process on the requested entities."""
     _validate_requested(link, requested)
-    return create_link_operation_result(entity.delete() for entity in link if entity.identifier in requested)
+    return create_link_operation_result(entity.start_delete() for entity in link if entity.identifier in requested)

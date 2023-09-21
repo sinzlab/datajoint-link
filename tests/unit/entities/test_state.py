@@ -23,12 +23,12 @@ from tests.assignments import create_assignments, create_identifier, create_iden
 @pytest.mark.parametrize(
     ("identifier", "state", "methods"),
     [
-        (create_identifier("1"), states.Idle, ["delete", "process"]),
-        (create_identifier("2"), states.Activated, ["start_pull", "delete"]),
-        (create_identifier("3"), states.Received, ["start_pull", "delete"]),
+        (create_identifier("1"), states.Idle, ["start_delete", "process"]),
+        (create_identifier("2"), states.Activated, ["start_pull", "start_delete"]),
+        (create_identifier("3"), states.Received, ["start_pull", "start_delete"]),
         (create_identifier("4"), states.Pulled, ["start_pull", "process"]),
         (create_identifier("5"), states.Tainted, ["start_pull", "process"]),
-        (create_identifier("6"), states.Deprecated, ["start_pull", "delete", "process"]),
+        (create_identifier("6"), states.Deprecated, ["start_pull", "start_delete", "process"]),
     ],
 )
 def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: type[State], methods: str) -> None:
@@ -46,7 +46,7 @@ def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: t
     entity = next(entity for entity in link if entity.identifier == identifier)
     method_operation_map = {
         "start_pull": Operations.START_PULL,
-        "delete": Operations.DELETE,
+        "start_delete": Operations.START_DELETE,
         "process": Operations.PROCESS,
     }
     assert all(
@@ -121,27 +121,27 @@ def test_processing_received_entity_returns_correct_commands(
     )
 
 
-def test_deleting_pulled_entity_returns_correct_commands() -> None:
+def test_starting_delete_on_pulled_entity_returns_correct_commands() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     entity = next(iter(link))
-    assert entity.delete() == Update(
-        Operations.DELETE,
+    assert entity.start_delete() == Update(
+        Operations.START_DELETE,
         create_identifier("1"),
         Transition(states.Pulled, states.Received),
         command=Commands.START_DELETE_PROCESS,
     )
 
 
-def test_deleting_tainted_entity_returns_correct_commands() -> None:
+def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
         tainted_identifiers={create_identifier("1")},
     )
     entity = next(iter(link))
-    assert entity.delete() == Update(
-        Operations.DELETE,
+    assert entity.start_delete() == Update(
+        Operations.START_DELETE,
         create_identifier("1"),
         Transition(states.Tainted, states.Received),
         command=Commands.START_DELETE_PROCESS,

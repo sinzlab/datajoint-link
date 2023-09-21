@@ -245,7 +245,7 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
         output_port=FakeOutputPort[DeleteResponse](),
     )
     assert output_port.response.requested == create_identifiers("1")
-    assert output_port.response.operation is Operations.DELETE
+    assert output_port.response.operation is Operations.START_DELETE
 
 
 def test_entity_undergoing_process_gets_processed() -> None:
