@@ -1,4 +1,4 @@
-"""Contains all the use-cases."""
+"""Contains all the services."""
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable

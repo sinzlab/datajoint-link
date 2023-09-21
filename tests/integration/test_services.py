@@ -10,7 +10,7 @@ from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import Link, create_link
 from dj_link.domain.state import Commands, Components, Operations, Processes, State, Update, states
 from dj_link.service.gateway import LinkGateway
-from dj_link.service.use_cases import (
+from dj_link.service.services import (
     DeleteRequestModel,
     DeleteResponse,
     ListIdleEntitiesRequestModel,
@@ -27,7 +27,7 @@ from dj_link.service.use_cases import (
     process_to_completion,
     pull,
 )
-from dj_link.service.use_cases import process as process_service
+from dj_link.service.services import process as process_service
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
