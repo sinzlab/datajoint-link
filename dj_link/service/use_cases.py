@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Generic, TypeVar
 
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import delete as delete_domain_service
@@ -39,23 +40,27 @@ class OperationResponse(ResponseModel):
     errors: frozenset[InvalidOperation]
 
 
+@dataclass(frozen=True)
+class PullResponse(ResponseModel):
+    """Response model for the pull use-case."""
+
+    requested: frozenset[Identifier]
+
+
 def pull(
-    request: PullRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
+    request: PullRequestModel,
+    *,
+    link_gateway: LinkGateway,
+    process_to_completion_service: Callable[[ProcessToCompletionRequest], None],
+    process_to_completion_service_relay: ResponseRelay[ProcessToCompletionResponse],
+    output_port: Callable[[PullResponse], None],
 ) -> None:
     """Pull entities across the link."""
-    while True:
-        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
-        if not result.updates:
-            break
-        link_gateway.apply(result.updates)
+    process_to_completion_service(ProcessToCompletionRequest(request.requested))
     result = pull_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
-    while True:
-        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
-        if not result.updates:
-            break
-        link_gateway.apply(result.updates)
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+    process_to_completion_service(ProcessToCompletionRequest(request.requested))
+    output_port(PullResponse(request.requested))
 
 
 @dataclass(frozen=True)
@@ -65,23 +70,27 @@ class DeleteRequestModel(RequestModel):
     requested: frozenset[Identifier]
 
 
+@dataclass(frozen=True)
+class DeleteResponse(ResponseModel):
+    """Response model for the delete use-case."""
+
+    requested: frozenset[Identifier]
+
+
 def delete(
-    request: DeleteRequestModel, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
+    request: DeleteRequestModel,
+    *,
+    link_gateway: LinkGateway,
+    process_to_completion_service: Callable[[ProcessToCompletionRequest], None],
+    process_to_completion_service_relay: ResponseRelay[ProcessToCompletionResponse],
+    output_port: Callable[[DeleteResponse], None],
 ) -> None:
     """Delete pulled entities."""
-    while True:
-        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
-        if not result.updates:
-            break
-        link_gateway.apply(result.updates)
+    process_to_completion_service(ProcessToCompletionRequest(request.requested))
     result = delete_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
-    while True:
-        result = process_domain_service(link_gateway.create_link(), requested=request.requested)
-        if not result.updates:
-            break
-        link_gateway.apply(result.updates)
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+    process_to_completion_service(ProcessToCompletionRequest(request.requested))
+    output_port(DeleteResponse(request.requested))
 
 
 @dataclass(frozen=True)
@@ -98,6 +107,56 @@ def process(
     result = process_domain_service(link_gateway.create_link(), requested=request.requested)
     link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+
+
+@dataclass(frozen=True)
+class ProcessToCompletionRequest(RequestModel):
+    """Request model for the process to completion use-case."""
+
+    requested: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
+class ProcessToCompletionResponse(ResponseModel):
+    """Response model for the process to completion use-case."""
+
+    requested: frozenset[Identifier]
+
+
+_T = TypeVar("_T", bound=ResponseModel)
+
+
+class ResponseRelay(Generic[_T]):
+    """A relay that makes the response of one service available to another."""
+
+    def __init__(self) -> None:
+        """Initialize the relay."""
+        self._response: _T | None = None
+
+    @property
+    def response(self) -> _T:
+        """Return the response of the relayed service."""
+        assert self._response is not None
+        return self._response
+
+    def __call__(self, response: _T) -> None:
+        """Store the response of the relayed service."""
+        self._response = response
+
+
+def process_to_completion(
+    request: ProcessToCompletionRequest,
+    *,
+    process_service: Callable[[ProcessRequestModel], None],
+    process_service_relay: ResponseRelay[OperationResponse],
+    output_port: Callable[[ProcessToCompletionResponse], None],
+) -> None:
+    """Process entities until their processes are complete."""
+    while True:
+        process_service(ProcessRequestModel(request.requested))
+        if not process_service_relay.response.updates:
+            break
+    output_port(ProcessToCompletionResponse(request.requested))
 
 
 @dataclass(frozen=True)

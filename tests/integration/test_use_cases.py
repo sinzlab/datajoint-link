@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from functools import partial
 from typing import Generic, TypedDict, TypeVar
 
 import pytest
@@ -11,17 +12,22 @@ from dj_link.domain.state import Commands, Components, Operations, Processes, St
 from dj_link.service.gateway import LinkGateway
 from dj_link.service.use_cases import (
     DeleteRequestModel,
+    DeleteResponse,
     ListIdleEntitiesRequestModel,
     ListIdleEntitiesResponseModel,
     OperationResponse,
     ProcessRequestModel,
+    ProcessToCompletionResponse,
     PullRequestModel,
+    PullResponse,
     ResponseModel,
+    ResponseRelay,
     delete,
     list_idle_entities,
+    process_to_completion,
     pull,
 )
-from dj_link.service.use_cases import process as process_use_case
+from dj_link.service.use_cases import process as process_service
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
@@ -143,10 +149,19 @@ class EntityConfig(TypedDict):
 )
 def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     gateway = create_gateway(**state)
+    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
+    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     delete(
         DeleteRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        output_port=FakeOutputPort[OperationResponse](),
+        process_to_completion_service=partial(
+            process_to_completion,
+            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
+            process_service_relay=process_relay,
+            output_port=complete_process_relay,
+        ),
+        process_to_completion_service_relay=ResponseRelay(),
+        output_port=FakeOutputPort[DeleteResponse](),
     )
     assert next(iter(gateway.create_link())).state is expected
 
@@ -155,10 +170,19 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
 def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     output_port = FakeOutputPort[OperationResponse]()
+    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
+    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     pull(
         PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        output_port=output_port,
+        process_to_completion_service=partial(
+            process_to_completion,
+            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
+            process_service_relay=process_relay,
+            output_port=complete_process_relay,
+        ),
+        process_to_completion_service_relay=complete_process_relay,
+        output_port=FakeOutputPort[PullResponse](),
     )
     assert output_port.response.requested == create_identifiers("1")
     assert output_port.response.operation is Operations.PULL
@@ -183,10 +207,19 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
 )
 def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     gateway = create_gateway(**state)
+    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
+    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     pull(
         PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        output_port=FakeOutputPort[OperationResponse](),
+        process_to_completion_service=partial(
+            process_to_completion,
+            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
+            process_service_relay=process_relay,
+            output_port=complete_process_relay,
+        ),
+        process_to_completion_service_relay=complete_process_relay,
+        output_port=FakeOutputPort[PullResponse](),
     )
     assert next(iter(gateway.create_link())).state is expected
 
@@ -197,10 +230,19 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     output_port = FakeOutputPort[OperationResponse]()
+    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
+    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     delete(
         DeleteRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        output_port=output_port,
+        process_to_completion_service=partial(
+            process_to_completion,
+            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
+            process_service_relay=process_relay,
+            output_port=complete_process_relay,
+        ),
+        process_to_completion_service_relay=ResponseRelay(),
+        output_port=FakeOutputPort[DeleteResponse](),
     )
     assert output_port.response.requested == create_identifiers("1")
     assert output_port.response.operation is Operations.DELETE
@@ -211,7 +253,7 @@ def test_entity_undergoing_process_gets_processed() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         processes={Processes.PULL: create_identifiers("1")},
     )
-    process_use_case(
+    process_service(
         ProcessRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
@@ -226,7 +268,7 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
         processes={Processes.PULL: create_identifiers("1")},
     )
     output_port = FakeOutputPort[OperationResponse]()
-    process_use_case(
+    process_service(
         ProcessRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=output_port,
