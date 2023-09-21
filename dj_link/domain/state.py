@@ -12,9 +12,9 @@ class State:
     """An entity's state."""
 
     @classmethod
-    def pull(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to pull an entity."""
-        return cls._create_invalid_operation_result(Operations.PULL, entity.identifier)
+    def start_pull(cls, entity: Entity) -> EntityOperationResult:
+        """Return the command needed to start the pull process for an entity."""
+        return cls._create_invalid_operation_result(Operations.START_PULL, entity.identifier)
 
     @classmethod
     def delete(cls, entity: Entity) -> EntityOperationResult:
@@ -66,9 +66,9 @@ class Idle(State):
     """The default state of an entity."""
 
     @classmethod
-    def pull(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to pull an idle entity."""
-        return cls._create_valid_operation_result(Operations.PULL, entity.identifier, Activated)
+    def start_pull(cls, entity: Entity) -> EntityOperationResult:
+        """Return the command needed to start the pull process for an entity."""
+        return cls._create_valid_operation_result(Operations.START_PULL, entity.identifier, Activated)
 
 
 states.register(Idle)
@@ -184,7 +184,7 @@ TRANSITION_MAP: dict[Transition, Commands] = {
 class Operations(Enum):
     """Names for all operations that can be performed on entities."""
 
-    PULL = auto()
+    START_PULL = auto()
     DELETE = auto()
     PROCESS = auto()
 
@@ -288,9 +288,9 @@ class Entity:
     current_process: Optional[Processes]
     is_tainted: bool
 
-    def pull(self) -> EntityOperationResult:
+    def start_pull(self) -> EntityOperationResult:
         """Pull the entity."""
-        return self.state.pull(self)
+        return self.state.start_pull(self)
 
     def delete(self) -> EntityOperationResult:
         """Delete the entity."""

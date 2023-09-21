@@ -6,7 +6,7 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from dj_link.domain.custom_types import Identifier
-from dj_link.domain.link import Link, create_link, delete, process, pull
+from dj_link.domain.link import Link, create_link, delete, process, start_pull
 from dj_link.domain.state import Components, Processes, State, states
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
@@ -202,7 +202,7 @@ class TestPull:
 
     @staticmethod
     def test_idle_entity_becomes_activated(link: Link) -> None:
-        result = pull(link, requested=create_identifiers("1"))
+        result = start_pull(link, requested=create_identifiers("1"))
         update = next(iter(result.updates))
         assert update.identifier == create_identifier("1")
         assert update.transition.new is states.Activated
@@ -210,12 +210,12 @@ class TestPull:
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="No identifiers requested."):
-            pull(link, requested={})
+            start_pull(link, requested={})
 
     @staticmethod
     def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            pull(link, requested=create_identifiers("2"))
+            start_pull(link, requested=create_identifiers("2"))
 
 
 @pytest.fixture()

@@ -185,7 +185,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
         output_port=FakeOutputPort[PullResponse](),
     )
     assert output_port.response.requested == create_identifiers("1")
-    assert output_port.response.operation is Operations.PULL
+    assert output_port.response.operation is Operations.START_PULL
 
 
 @pytest.mark.parametrize(

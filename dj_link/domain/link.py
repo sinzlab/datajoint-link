@@ -136,10 +136,10 @@ def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
     assert set(requested) <= link.identifiers, "Requested identifiers not present in link."
 
 
-def pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
-    """Pull all requested entities producing appropriate updates."""
+def start_pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
+    """Start the pull process on the requested entities."""
     _validate_requested(link, requested)
-    return create_link_operation_result(entity.pull() for entity in link if entity.identifier in requested)
+    return create_link_operation_result(entity.start_pull() for entity in link if entity.identifier in requested)
 
 
 def delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
