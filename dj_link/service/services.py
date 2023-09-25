@@ -30,16 +30,6 @@ class PullRequest(Request):
 
 
 @dataclass(frozen=True)
-class OperationResponse(Response):
-    """Response model for all use-cases that operate on entities."""
-
-    operation: Operations
-    requested: frozenset[Identifier]
-    updates: frozenset[Update]
-    errors: frozenset[InvalidOperation]
-
-
-@dataclass(frozen=True)
 class PullResponse(Response):
     """Response model for the pull use-case."""
 
@@ -91,22 +81,6 @@ def delete(
 
 
 @dataclass(frozen=True)
-class ProcessRequest(Request):
-    """Request model for the process use-case."""
-
-    requested: frozenset[Identifier]
-
-
-def process(
-    request: ProcessRequest, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
-) -> None:
-    """Process entities."""
-    result = process_domain_service(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
-
-
-@dataclass(frozen=True)
 class ProcessToCompletionRequest(Request):
     """Request model for the process to completion use-case."""
 
@@ -130,6 +104,32 @@ def process_to_completion(
     while process_service(ProcessRequest(request.requested)).updates:
         pass
     output_port(ProcessToCompletionResponse(request.requested))
+
+
+@dataclass(frozen=True)
+class ProcessRequest(Request):
+    """Request model for the process use-case."""
+
+    requested: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
+class OperationResponse(Response):
+    """Response model for all use-cases that operate on entities."""
+
+    operation: Operations
+    requested: frozenset[Identifier]
+    updates: frozenset[Update]
+    errors: frozenset[InvalidOperation]
+
+
+def process(
+    request: ProcessRequest, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
+) -> None:
+    """Process entities."""
+    result = process_domain_service(link_gateway.create_link(), requested=request.requested)
+    link_gateway.apply(result.updates)
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
 @dataclass(frozen=True)
