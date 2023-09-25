@@ -121,50 +121,52 @@ class ProcessToCompletionResponse(ResponseModel):
     requested: frozenset[Identifier]
 
 
-_T = TypeVar("_T", bound=ResponseModel)
+_Response = TypeVar("_Response", bound=ResponseModel)
 
 
-class ResponseRelay(Generic[_T]):
+class ResponseRelay(Generic[_Response]):
     """A relay that makes the response of one service available to another."""
 
     def __init__(self) -> None:
         """Initialize the relay."""
-        self._response: _T | None = None
+        self._response: _Response | None = None
 
     @property
-    def response(self) -> _T:
+    def response(self) -> _Response:
         """Return the response of the relayed service."""
         assert self._response is not None
         return self._response
 
-    def get_response(self) -> _T:
+    def get_response(self) -> _Response:
         """Return the response of the relayed service."""
         assert self._response is not None
         return self._response
 
-    def __call__(self, response: _T) -> None:
+    def __call__(self, response: _Response) -> None:
         """Store the response of the relayed service."""
         self._response = response
 
 
-_V = TypeVar("_V", bound=RequestModel)
+_Request = TypeVar("_Request", bound=RequestModel)
 
 
-def create_returning_service(service: Callable[[_V], None], get_response: Callable[[], _T]) -> Callable[[_V], _T]:
+def create_returning_service(
+    service: Callable[[_Request], None], get_response: Callable[[], _Response]
+) -> Callable[[_Request], _Response]:
     """Create a version of the provided service that returns its response when executed."""
 
-    def execute(request: _V) -> _T:
+    def execute(request: _Request) -> _Response:
         service(request)
         return get_response()
 
     return execute
 
 
-def create_response_forwarder(recipients: Iterable[Callable[[_T], None]]) -> Callable[[_T], None]:
+def create_response_forwarder(recipients: Iterable[Callable[[_Response], None]]) -> Callable[[_Response], None]:
     """Create an object that forwards the response it gets called with to multiple recipients."""
     recipients = list(recipients)
 
-    def duplicate_response(response: _T) -> None:
+    def duplicate_response(response: _Response) -> None:
         for recipient in recipients:
             recipient(response)
 
