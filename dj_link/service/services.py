@@ -131,12 +131,6 @@ class ResponseRelay(Generic[_Response]):
         """Initialize the relay."""
         self._response: _Response | None = None
 
-    @property
-    def response(self) -> _Response:
-        """Return the response of the relayed service."""
-        assert self._response is not None
-        return self._response
-
     def get_response(self) -> _Response:
         """Return the response of the relayed service."""
         assert self._response is not None
