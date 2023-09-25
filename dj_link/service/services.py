@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Generic, TypeVar
+from typing import Generic, Protocol, TypeVar
 
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import process as process_domain_service
@@ -141,6 +141,37 @@ class ResponseRelay(Generic[_T]):
 
     def __call__(self, response: _T) -> None:
         """Store the response of the relayed service."""
+        self._response = response
+
+
+_V = TypeVar("_V", bound=RequestModel)
+
+_Request_contra = TypeVar("_Request_contra", bound=RequestModel, contravariant=True)
+_Response_co = TypeVar("_Response_co", bound=ResponseModel, covariant=True)
+
+
+class Service(Protocol[_Request_contra, _Response_co]):
+    """Protocol for services."""
+
+    def __call__(self, request: _Request_contra, *, output_port: Callable[[_Response_co], None]) -> None:
+        """Execute the service."""
+
+
+class ResponseReturner(Generic[_V, _T]):
+    """A wrapper around a service that returns the response when called."""
+
+    def __init__(self, service: Service[_V, _T]) -> None:
+        """Initialize the merger."""
+        self._service = service
+        self._response: _T | None = None
+
+    def __call__(self, request: _V) -> _T:
+        """Return the response of the executed service."""
+        self._service(request, output_port=self._save_response)
+        assert self._response is not None
+        return self._response
+
+    def _save_response(self, response: _T) -> None:
         self._response = response
 
 
