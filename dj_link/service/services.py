@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Generic, Protocol, TypeVar
+from typing import Generic, TypeVar
 
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import process as process_domain_service
@@ -51,8 +51,7 @@ def pull(
     request: PullRequestModel,
     *,
     link_gateway: LinkGateway,
-    process_to_completion_service: Callable[[ProcessToCompletionRequest], None],
-    process_to_completion_service_relay: ResponseRelay[ProcessToCompletionResponse],
+    process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
     output_port: Callable[[PullResponse], None],
 ) -> None:
     """Pull entities across the link."""
@@ -81,8 +80,7 @@ def delete(
     request: DeleteRequestModel,
     *,
     link_gateway: LinkGateway,
-    process_to_completion_service: Callable[[ProcessToCompletionRequest], None],
-    process_to_completion_service_relay: ResponseRelay[ProcessToCompletionResponse],
+    process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
     output_port: Callable[[DeleteResponse], None],
 ) -> None:
     """Delete pulled entities."""
@@ -139,6 +137,11 @@ class ResponseRelay(Generic[_T]):
         assert self._response is not None
         return self._response
 
+    def get_response(self) -> _T:
+        """Return the response of the relayed service."""
+        assert self._response is not None
+        return self._response
+
     def __call__(self, response: _T) -> None:
         """Store the response of the relayed service."""
         self._response = response
@@ -146,33 +149,15 @@ class ResponseRelay(Generic[_T]):
 
 _V = TypeVar("_V", bound=RequestModel)
 
-_Request_contra = TypeVar("_Request_contra", bound=RequestModel, contravariant=True)
-_Response_co = TypeVar("_Response_co", bound=ResponseModel, covariant=True)
 
+def create_returning_service(service: Callable[[_V], None], get_response: Callable[[], _T]) -> Callable[[_V], _T]:
+    """Create a version of the provided service that returns its response when executed."""
 
-class Service(Protocol[_Request_contra, _Response_co]):
-    """Protocol for services."""
+    def execute(request: _V) -> _T:
+        service(request)
+        return get_response()
 
-    def __call__(self, request: _Request_contra, *, output_port: Callable[[_Response_co], None]) -> None:
-        """Execute the service."""
-
-
-class ResponseReturner(Generic[_V, _T]):
-    """A wrapper around a service that returns the response when called."""
-
-    def __init__(self, service: Service[_V, _T]) -> None:
-        """Initialize the merger."""
-        self._service = service
-        self._response: _T | None = None
-
-    def __call__(self, request: _V) -> _T:
-        """Return the response of the executed service."""
-        self._service(request, output_port=self._save_response)
-        assert self._response is not None
-        return self._response
-
-    def _save_response(self, response: _T) -> None:
-        self._response = response
+    return execute
 
 
 def create_response_forwarder(recipients: Iterable[Callable[[_T], None]]) -> Callable[[_T], None]:
@@ -189,15 +174,12 @@ def create_response_forwarder(recipients: Iterable[Callable[[_T], None]]) -> Cal
 def process_to_completion(
     request: ProcessToCompletionRequest,
     *,
-    process_service: Callable[[ProcessRequestModel], None],
-    process_service_relay: ResponseRelay[OperationResponse],
+    process_service: Callable[[ProcessRequestModel], OperationResponse],
     output_port: Callable[[ProcessToCompletionResponse], None],
 ) -> None:
     """Process entities until their processes are complete."""
-    while True:
-        process_service(ProcessRequestModel(request.requested))
-        if not process_service_relay.response.updates:
-            break
+    while process_service(ProcessRequestModel(request.requested)).updates:
+        pass
     output_port(ProcessToCompletionResponse(request.requested))
 
 

@@ -22,6 +22,7 @@ from dj_link.service.services import (
     PullResponse,
     ResponseModel,
     ResponseRelay,
+    create_returning_service,
     delete,
     list_idle_entities,
     process_to_completion,
@@ -154,13 +155,17 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
     delete(
         DeleteRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        process_to_completion_service=partial(
-            process_to_completion,
-            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
-            process_service_relay=process_relay,
-            output_port=complete_process_relay,
+        process_to_completion_service=create_returning_service(
+            partial(
+                process_to_completion,
+                process_service=create_returning_service(
+                    partial(process_service, link_gateway=gateway, output_port=process_relay),
+                    process_relay.get_response,
+                ),
+                output_port=complete_process_relay,
+            ),
+            complete_process_relay.get_response,
         ),
-        process_to_completion_service_relay=ResponseRelay(),
         output_port=FakeOutputPort[DeleteResponse](),
     )
     assert next(iter(gateway.create_link())).state is expected
@@ -171,17 +176,21 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
     output_port = FakeOutputPort[OperationResponse]()
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+    process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     pull(
         PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        process_to_completion_service=partial(
-            process_to_completion,
-            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
-            process_service_relay=process_relay,
-            output_port=complete_process_relay,
+        process_to_completion_service=create_returning_service(
+            partial(
+                process_to_completion,
+                process_service=create_returning_service(
+                    partial(process_service, link_gateway=gateway, output_port=process_relay),
+                    process_relay.get_response,
+                ),
+                output_port=process_to_completion_relay,
+            ),
+            process_to_completion_relay.get_response,
         ),
-        process_to_completion_service_relay=complete_process_relay,
         output_port=FakeOutputPort[PullResponse](),
     )
     assert output_port.response.requested == create_identifiers("1")
@@ -208,17 +217,21 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
 def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     gateway = create_gateway(**state)
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+    process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     pull(
         PullRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        process_to_completion_service=partial(
-            process_to_completion,
-            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
-            process_service_relay=process_relay,
-            output_port=complete_process_relay,
+        process_to_completion_service=create_returning_service(
+            partial(
+                process_to_completion,
+                process_service=create_returning_service(
+                    partial(process_service, link_gateway=gateway, output_port=process_relay),
+                    process_relay.get_response,
+                ),
+                output_port=process_to_completion_relay,
+            ),
+            process_to_completion_relay.get_response,
         ),
-        process_to_completion_service_relay=complete_process_relay,
         output_port=FakeOutputPort[PullResponse](),
     )
     assert next(iter(gateway.create_link())).state is expected
@@ -231,17 +244,21 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
     )
     output_port = FakeOutputPort[OperationResponse]()
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+    process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     delete(
         DeleteRequestModel(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
-        process_to_completion_service=partial(
-            process_to_completion,
-            process_service=partial(process_service, link_gateway=gateway, output_port=process_relay),
-            process_service_relay=process_relay,
-            output_port=complete_process_relay,
+        process_to_completion_service=create_returning_service(
+            partial(
+                process_to_completion,
+                process_service=create_returning_service(
+                    partial(process_service, link_gateway=gateway, output_port=process_relay),
+                    process_relay.get_response,
+                ),
+                output_port=process_to_completion_relay,
+            ),
+            process_to_completion_relay.get_response,
         ),
-        process_to_completion_service_relay=ResponseRelay(),
         output_port=FakeOutputPort[DeleteResponse](),
     )
     assert output_port.response.requested == create_identifiers("1")

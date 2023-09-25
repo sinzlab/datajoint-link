@@ -19,6 +19,7 @@ from dj_link.service.services import (
     ResponseRelay,
     UseCases,
     create_response_forwarder,
+    create_returning_service,
     delete,
     list_idle_entities,
     process,
@@ -59,28 +60,33 @@ def create_link(  # noqa: PLR0913
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         operation_presenter = create_operation_response_presenter(translator, create_operation_logger())
         process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-        complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
-        process_to_completion_service = partial(
-            process_to_completion,
-            process_service=partial(
-                process, link_gateway=gateway, output_port=create_response_forwarder([process_relay, lambda x: None])
+        process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+        process_to_completion_service = create_returning_service(
+            partial(
+                process_to_completion,
+                process_service=create_returning_service(
+                    partial(
+                        process,
+                        link_gateway=gateway,
+                        output_port=create_response_forwarder([process_relay, lambda x: None]),
+                    ),
+                    process_relay.get_response,
+                ),
+                output_port=create_response_forwarder([process_to_completion_relay, lambda x: None]),
             ),
-            process_service_relay=process_relay,
-            output_port=create_response_forwarder([complete_process_relay, lambda x: None]),
+            process_to_completion_relay.get_response,
         )
         handlers = {
             UseCases.PULL: partial(
                 pull,
                 link_gateway=gateway,
                 process_to_completion_service=process_to_completion_service,
-                process_to_completion_service_relay=complete_process_relay,
                 output_port=lambda x: None,
             ),
             UseCases.DELETE: partial(
                 delete,
                 link_gateway=gateway,
                 process_to_completion_service=process_to_completion_service,
-                process_to_completion_service_relay=complete_process_relay,
                 output_port=lambda x: None,
             ),
             UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),
