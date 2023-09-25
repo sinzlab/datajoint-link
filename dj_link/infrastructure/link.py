@@ -23,6 +23,7 @@ from dj_link.service.services import (
     process,
     process_to_completion,
     pull,
+    start_pull_process,
 )
 
 from . import DJConfiguration, create_tables
@@ -74,11 +75,15 @@ def create_link(  # noqa: PLR0913
             ),
             process_to_completion_relay.get_response,
         )
+        start_pull_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
         handlers = {
             UseCases.PULL: partial(
                 pull,
-                link_gateway=gateway,
                 process_to_completion_service=process_to_completion_service,
+                start_pull_process_service=create_returning_service(
+                    partial(start_pull_process, link_gateway=gateway, output_port=start_pull_process_relay),
+                    start_pull_process_relay.get_response,
+                ),
                 output_port=lambda x: None,
             ),
             UseCases.DELETE: partial(

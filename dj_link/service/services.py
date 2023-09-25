@@ -8,7 +8,7 @@ from enum import Enum, auto
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import process as process_domain_service
 from dj_link.domain.link import start_delete as delete_domain_service
-from dj_link.domain.link import start_pull as pull_domain_service
+from dj_link.domain.link import start_pull
 from dj_link.domain.state import InvalidOperation, Operations, Update, states
 
 from .gateway import LinkGateway
@@ -39,16 +39,34 @@ class PullResponse(Response):
 def pull(
     request: PullRequest,
     *,
-    link_gateway: LinkGateway,
     process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
+    start_pull_process_service: Callable[[StartPullProcessRequest], OperationResponse],
     output_port: Callable[[PullResponse], None],
 ) -> None:
     """Pull entities across the link."""
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
-    result = pull_domain_service(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
+    start_pull_process_service(StartPullProcessRequest(request.requested))
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
     output_port(PullResponse(request.requested))
+
+
+@dataclass(frozen=True)
+class StartPullProcessRequest(Request):
+    """Request model for the start-pull-process service."""
+
+    requested: frozenset[Identifier]
+
+
+def start_pull_process(
+    request: StartPullProcessRequest,
+    *,
+    link_gateway: LinkGateway,
+    output_port: Callable[[OperationResponse], None],
+) -> None:
+    """Start the pull process for the requested entities."""
+    result = start_pull(link_gateway.create_link(), requested=request.requested)
+    link_gateway.apply(result.updates)
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
 @dataclass(frozen=True)

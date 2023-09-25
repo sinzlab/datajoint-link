@@ -26,6 +26,7 @@ from dj_link.service.services import (
     list_idle_entities,
     process_to_completion,
     pull,
+    start_pull_process,
 )
 from dj_link.service.services import process as process_service
 from tests.assignments import create_assignments, create_identifier, create_identifiers
@@ -176,9 +177,9 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     output_port = FakeOutputPort[OperationResponse]()
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+    start_pull_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     pull(
         PullRequest(frozenset(create_identifiers("1"))),
-        link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
                 process_to_completion,
@@ -189,6 +190,10 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
                 output_port=process_to_completion_relay,
             ),
             process_to_completion_relay.get_response,
+        ),
+        start_pull_process_service=create_returning_service(
+            partial(start_pull_process, link_gateway=gateway, output_port=start_pull_process_relay),
+            start_pull_process_relay.get_response,
         ),
         output_port=FakeOutputPort[PullResponse](),
     )
@@ -217,9 +222,9 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
     gateway = create_gateway(**state)
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+    start_pull_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     pull(
         PullRequest(frozenset(create_identifiers("1"))),
-        link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
                 process_to_completion,
@@ -230,6 +235,10 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
                 output_port=process_to_completion_relay,
             ),
             process_to_completion_relay.get_response,
+        ),
+        start_pull_process_service=create_returning_service(
+            partial(start_pull_process, link_gateway=gateway, output_port=start_pull_process_relay),
+            start_pull_process_relay.get_response,
         ),
         output_port=FakeOutputPort[PullResponse](),
     )
