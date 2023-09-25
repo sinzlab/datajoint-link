@@ -10,6 +10,7 @@ from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import Link, create_link
 from dj_link.domain.state import Commands, Components, Operations, Processes, State, Update, states
 from dj_link.service.gateway import LinkGateway
+from dj_link.service.io import ResponseRelay, create_returning_service
 from dj_link.service.services import (
     DeleteRequest,
     DeleteResponse,
@@ -21,8 +22,6 @@ from dj_link.service.services import (
     PullRequest,
     PullResponse,
     Response,
-    ResponseRelay,
-    create_returning_service,
     delete,
     list_idle_entities,
     process_to_completion,

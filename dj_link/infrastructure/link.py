@@ -13,13 +13,11 @@ from dj_link.adapters.present import (
     create_idle_entities_updater,
     create_operation_response_presenter,
 )
+from dj_link.service.io import ResponseRelay, create_response_forwarder, create_returning_service
 from dj_link.service.services import (
     OperationResponse,
     ProcessToCompletionResponse,
-    ResponseRelay,
     UseCases,
-    create_response_forwarder,
-    create_returning_service,
     delete,
     list_idle_entities,
     process,
