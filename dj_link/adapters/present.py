@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Callable, Iterable
 
 from dj_link.service.services import (
-    ListIdleEntitiesResponseModel,
+    ListIdleEntitiesResponse,
     OperationResponse,
 )
 
@@ -98,10 +98,10 @@ def create_operation_response_presenter(
 
 def create_idle_entities_updater(
     translator: IdentificationTranslator, update: Callable[[Iterable[PrimaryKey]], None]
-) -> Callable[[ListIdleEntitiesResponseModel], None]:
+) -> Callable[[ListIdleEntitiesResponse], None]:
     """Create a callable that when called updates the list of idle entities."""
 
-    def update_idle_entities(response: ListIdleEntitiesResponseModel) -> None:
+    def update_idle_entities(response: ListIdleEntitiesResponse) -> None:
         update(translator.to_primary_key(identifier) for identifier in response.identifiers)
 
     return update_idle_entities

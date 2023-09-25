@@ -11,16 +11,16 @@ from dj_link.domain.link import Link, create_link
 from dj_link.domain.state import Commands, Components, Operations, Processes, State, Update, states
 from dj_link.service.gateway import LinkGateway
 from dj_link.service.services import (
-    DeleteRequestModel,
+    DeleteRequest,
     DeleteResponse,
-    ListIdleEntitiesRequestModel,
-    ListIdleEntitiesResponseModel,
+    ListIdleEntitiesRequest,
+    ListIdleEntitiesResponse,
     OperationResponse,
-    ProcessRequestModel,
+    ProcessRequest,
     ProcessToCompletionResponse,
-    PullRequestModel,
+    PullRequest,
     PullResponse,
-    ResponseModel,
+    Response,
     ResponseRelay,
     create_returning_service,
     delete,
@@ -75,7 +75,7 @@ class FakeLinkGateway(LinkGateway):
                 raise ValueError("Unsupported command encountered")
 
 
-T = TypeVar("T", bound=ResponseModel)
+T = TypeVar("T", bound=Response)
 
 
 class FakeOutputPort(Generic[T]):
@@ -153,7 +153,7 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     delete(
-        DeleteRequestModel(frozenset(create_identifiers("1"))),
+        DeleteRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
@@ -178,7 +178,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     pull(
-        PullRequestModel(frozenset(create_identifiers("1"))),
+        PullRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
@@ -219,7 +219,7 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     pull(
-        PullRequestModel(frozenset(create_identifiers("1"))),
+        PullRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
@@ -246,7 +246,7 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
     delete(
-        DeleteRequestModel(frozenset(create_identifiers("1"))),
+        DeleteRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
@@ -271,7 +271,7 @@ def test_entity_undergoing_process_gets_processed() -> None:
         processes={Processes.PULL: create_identifiers("1")},
     )
     process_service(
-        ProcessRequestModel(frozenset(create_identifiers("1"))),
+        ProcessRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
     )
@@ -286,7 +286,7 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
     )
     output_port = FakeOutputPort[OperationResponse]()
     process_service(
-        ProcessRequestModel(frozenset(create_identifiers("1"))),
+        ProcessRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=output_port,
     )
@@ -298,6 +298,6 @@ def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() 
     link_gateway = FakeLinkGateway(
         create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     )
-    output_port = FakeOutputPort[ListIdleEntitiesResponseModel]()
-    list_idle_entities(ListIdleEntitiesRequestModel(), link_gateway=link_gateway, output_port=output_port)
+    output_port = FakeOutputPort[ListIdleEntitiesResponse]()
+    list_idle_entities(ListIdleEntitiesRequest(), link_gateway=link_gateway, output_port=output_port)
     assert set(output_port.response.identifiers) == create_identifiers("1")
