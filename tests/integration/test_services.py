@@ -26,6 +26,7 @@ from dj_link.service.services import (
     list_idle_entities,
     process_to_completion,
     pull,
+    start_delete_process,
     start_pull_process,
 )
 from dj_link.service.services import process as process_service
@@ -152,9 +153,9 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
     gateway = create_gateway(**state)
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+    start_delete_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     delete(
         DeleteRequest(frozenset(create_identifiers("1"))),
-        link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
                 process_to_completion,
@@ -165,6 +166,10 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
                 output_port=complete_process_relay,
             ),
             complete_process_relay.get_response,
+        ),
+        start_delete_process_service=create_returning_service(
+            partial(start_delete_process, link_gateway=gateway, output_port=start_delete_process_relay),
+            start_delete_process_relay.get_response,
         ),
         output_port=FakeOutputPort[DeleteResponse](),
     )
@@ -253,9 +258,9 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
     output_port = FakeOutputPort[OperationResponse]()
     process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
+    start_delete_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
     delete(
         DeleteRequest(frozenset(create_identifiers("1"))),
-        link_gateway=gateway,
         process_to_completion_service=create_returning_service(
             partial(
                 process_to_completion,
@@ -266,6 +271,10 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
                 output_port=process_to_completion_relay,
             ),
             process_to_completion_relay.get_response,
+        ),
+        start_delete_process_service=create_returning_service(
+            partial(start_delete_process, link_gateway=gateway, output_port=start_delete_process_relay),
+            start_delete_process_relay.get_response,
         ),
         output_port=FakeOutputPort[DeleteResponse](),
     )

@@ -23,6 +23,7 @@ from dj_link.service.services import (
     process,
     process_to_completion,
     pull,
+    start_delete_process,
     start_pull_process,
 )
 
@@ -76,6 +77,7 @@ def create_link(  # noqa: PLR0913
             process_to_completion_relay.get_response,
         )
         start_pull_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
+        start_delete_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
         handlers = {
             UseCases.PULL: partial(
                 pull,
@@ -88,8 +90,11 @@ def create_link(  # noqa: PLR0913
             ),
             UseCases.DELETE: partial(
                 delete,
-                link_gateway=gateway,
                 process_to_completion_service=process_to_completion_service,
+                start_delete_process_service=create_returning_service(
+                    partial(start_delete_process, link_gateway=gateway, output_port=start_delete_process_relay),
+                    start_delete_process_relay.get_response,
+                ),
                 output_port=lambda x: None,
             ),
             UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),

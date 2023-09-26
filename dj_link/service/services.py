@@ -7,8 +7,7 @@ from enum import Enum, auto
 
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import process as process_domain_service
-from dj_link.domain.link import start_delete as delete_domain_service
-from dj_link.domain.link import start_pull
+from dj_link.domain.link import start_delete, start_pull
 from dj_link.domain.state import InvalidOperation, Operations, Update, states
 
 from .gateway import LinkGateway
@@ -86,16 +85,34 @@ class DeleteResponse(Response):
 def delete(
     request: DeleteRequest,
     *,
-    link_gateway: LinkGateway,
     process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
+    start_delete_process_service: Callable[[StartDeleteProcessRequest], OperationResponse],
     output_port: Callable[[DeleteResponse], None],
 ) -> None:
     """Delete pulled entities."""
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
-    result = delete_domain_service(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
+    start_delete_process_service(StartDeleteProcessRequest(request.requested))
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
     output_port(DeleteResponse(request.requested))
+
+
+@dataclass(frozen=True)
+class StartDeleteProcessRequest(Request):
+    """Request model for the start-delete-process service."""
+
+    requested: frozenset[Identifier]
+
+
+def start_delete_process(
+    request: StartDeleteProcessRequest,
+    *,
+    link_gateway: LinkGateway,
+    output_port: Callable[[OperationResponse], None],
+) -> None:
+    """Start the delete process for the requested entities."""
+    result = start_delete(link_gateway.create_link(), requested=request.requested)
+    link_gateway.apply(result.updates)
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
 @dataclass(frozen=True)
