@@ -50,25 +50,6 @@ def pull(
 
 
 @dataclass(frozen=True)
-class StartPullProcessRequest(Request):
-    """Request model for the start-pull-process service."""
-
-    requested: frozenset[Identifier]
-
-
-def start_pull_process(
-    request: StartPullProcessRequest,
-    *,
-    link_gateway: LinkGateway,
-    output_port: Callable[[OperationResponse], None],
-) -> None:
-    """Start the pull process for the requested entities."""
-    result = start_pull(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
-
-
-@dataclass(frozen=True)
 class DeleteRequest(Request):
     """Request model for the delete use-case."""
 
@@ -94,25 +75,6 @@ def delete(
     start_delete_process_service(StartDeleteProcessRequest(request.requested))
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
     output_port(DeleteResponse(request.requested))
-
-
-@dataclass(frozen=True)
-class StartDeleteProcessRequest(Request):
-    """Request model for the start-delete-process service."""
-
-    requested: frozenset[Identifier]
-
-
-def start_delete_process(
-    request: StartDeleteProcessRequest,
-    *,
-    link_gateway: LinkGateway,
-    output_port: Callable[[OperationResponse], None],
-) -> None:
-    """Start the delete process for the requested entities."""
-    result = start_delete(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
 @dataclass(frozen=True)
@@ -142,13 +104,6 @@ def process_to_completion(
 
 
 @dataclass(frozen=True)
-class ProcessRequest(Request):
-    """Request model for the process use-case."""
-
-    requested: frozenset[Identifier]
-
-
-@dataclass(frozen=True)
 class OperationResponse(Response):
     """Response model for all use-cases that operate on entities."""
 
@@ -156,6 +111,51 @@ class OperationResponse(Response):
     requested: frozenset[Identifier]
     updates: frozenset[Update]
     errors: frozenset[InvalidOperation]
+
+
+@dataclass(frozen=True)
+class StartPullProcessRequest(Request):
+    """Request model for the start-pull-process service."""
+
+    requested: frozenset[Identifier]
+
+
+def start_pull_process(
+    request: StartPullProcessRequest,
+    *,
+    link_gateway: LinkGateway,
+    output_port: Callable[[OperationResponse], None],
+) -> None:
+    """Start the pull process for the requested entities."""
+    result = start_pull(link_gateway.create_link(), requested=request.requested)
+    link_gateway.apply(result.updates)
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+
+
+@dataclass(frozen=True)
+class StartDeleteProcessRequest(Request):
+    """Request model for the start-delete-process service."""
+
+    requested: frozenset[Identifier]
+
+
+def start_delete_process(
+    request: StartDeleteProcessRequest,
+    *,
+    link_gateway: LinkGateway,
+    output_port: Callable[[OperationResponse], None],
+) -> None:
+    """Start the delete process for the requested entities."""
+    result = start_delete(link_gateway.create_link(), requested=request.requested)
+    link_gateway.apply(result.updates)
+    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+
+
+@dataclass(frozen=True)
+class ProcessRequest(Request):
+    """Request model for the process use-case."""
+
+    requested: frozenset[Identifier]
 
 
 def process(
