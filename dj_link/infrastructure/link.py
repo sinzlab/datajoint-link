@@ -68,7 +68,7 @@ def create_link(  # noqa: PLR0913
                     partial(
                         process,
                         link_gateway=gateway,
-                        output_port=create_response_forwarder([process_relay, lambda x: None]),
+                        output_port=create_response_forwarder([process_relay, operation_presenter]),
                     ),
                     process_relay.get_response,
                 ),
@@ -83,7 +83,11 @@ def create_link(  # noqa: PLR0913
                 pull,
                 process_to_completion_service=process_to_completion_service,
                 start_pull_process_service=create_returning_service(
-                    partial(start_pull_process, link_gateway=gateway, output_port=start_pull_process_relay),
+                    partial(
+                        start_pull_process,
+                        link_gateway=gateway,
+                        output_port=create_response_forwarder([start_pull_process_relay, operation_presenter]),
+                    ),
                     start_pull_process_relay.get_response,
                 ),
                 output_port=lambda x: None,
@@ -92,7 +96,11 @@ def create_link(  # noqa: PLR0913
                 delete,
                 process_to_completion_service=process_to_completion_service,
                 start_delete_process_service=create_returning_service(
-                    partial(start_delete_process, link_gateway=gateway, output_port=start_delete_process_relay),
+                    partial(
+                        start_delete_process,
+                        link_gateway=gateway,
+                        output_port=create_response_forwarder([start_delete_process_relay, operation_presenter]),
+                    ),
                     start_delete_process_relay.get_response,
                 ),
                 output_port=lambda x: None,
