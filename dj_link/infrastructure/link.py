@@ -13,10 +13,8 @@ from dj_link.adapters.present import (
     create_idle_entities_updater,
     create_operation_response_presenter,
 )
-from dj_link.service.io import ResponseRelay, create_response_forwarder, create_returning_service
+from dj_link.service.io import make_responsive
 from dj_link.service.services import (
-    OperationResponse,
-    ProcessToCompletionResponse,
     UseCases,
     delete,
     list_idle_entities,
@@ -59,50 +57,29 @@ def create_link(  # noqa: PLR0913
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         operation_presenter = create_operation_response_presenter(translator, create_operation_logger())
-        process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-        process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
-        process_to_completion_service = create_returning_service(
-            partial(
-                process_to_completion,
-                process_service=create_returning_service(
-                    partial(
-                        process,
-                        link_gateway=gateway,
-                        output_port=create_response_forwarder([process_relay, operation_presenter]),
-                    ),
-                    process_relay.get_response,
-                ),
-                output_port=create_response_forwarder([process_to_completion_relay, lambda x: None]),
-            ),
-            process_to_completion_relay.get_response,
+        process_service = partial(
+            make_responsive(partial(process, link_gateway=gateway)), output_port=operation_presenter
         )
-        start_pull_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-        start_delete_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
+        start_pull_process_service = partial(
+            make_responsive(partial(start_pull_process, link_gateway=gateway)), output_port=operation_presenter
+        )
+        start_delete_process_service = partial(
+            make_responsive(partial(start_delete_process, link_gateway=gateway)), output_port=operation_presenter
+        )
+        process_to_completion_service = partial(
+            make_responsive(partial(process_to_completion, process_service=process_service)), output_port=lambda x: None
+        )
         handlers = {
             UseCases.PULL: partial(
                 pull,
                 process_to_completion_service=process_to_completion_service,
-                start_pull_process_service=create_returning_service(
-                    partial(
-                        start_pull_process,
-                        link_gateway=gateway,
-                        output_port=create_response_forwarder([start_pull_process_relay, operation_presenter]),
-                    ),
-                    start_pull_process_relay.get_response,
-                ),
+                start_pull_process_service=start_pull_process_service,
                 output_port=lambda x: None,
             ),
             UseCases.DELETE: partial(
                 delete,
                 process_to_completion_service=process_to_completion_service,
-                start_delete_process_service=create_returning_service(
-                    partial(
-                        start_delete_process,
-                        link_gateway=gateway,
-                        output_port=create_response_forwarder([start_delete_process_relay, operation_presenter]),
-                    ),
-                    start_delete_process_relay.get_response,
-                ),
+                start_delete_process_service=start_delete_process_service,
                 output_port=lambda x: None,
             ),
             UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),

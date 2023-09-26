@@ -1,7 +1,8 @@
 """Contains logic related to input/output handling to/from services."""
 from __future__ import annotations
 
-from typing import Callable, Generic, Iterable, TypeVar
+from functools import partial
+from typing import Any, Callable, Generic, Iterable, Protocol, TypeVar
 
 from .services import Request, Response
 
@@ -49,3 +50,37 @@ def create_response_forwarder(recipients: Iterable[Callable[[_Response], None]])
             recipient(response)
 
     return duplicate_response
+
+
+_Response_co = TypeVar("_Response_co", bound=Response, covariant=True)
+
+_Request_contra = TypeVar("_Request_contra", bound=Request, contravariant=True)
+
+
+class Service(Protocol[_Request_contra, _Response_co]):
+    """Protocol for services."""
+
+    def __call__(self, request: _Request_contra, *, output_port: Callable[[_Response_co], None], **kwargs: Any) -> None:
+        """Execute the service."""
+
+
+class ReturningService(Protocol[_Request_contra, _Response_co]):
+    """Protocol for services that return their response."""
+
+    def __call__(
+        self, request: _Request_contra, *, output_port: Callable[[_Response_co], None], **kwargs: Any
+    ) -> _Response_co:
+        """Execute the service."""
+
+
+def make_responsive(service: Service[_Request, _Response]) -> ReturningService[_Request, _Response]:
+    """Create a version of the service that returns its response in addition to sending it to the output port."""
+    relay: ResponseRelay[_Response] = ResponseRelay()
+    service = partial(service, output_port=relay)
+
+    def returning_service(request: _Request, *, output_port: Callable[[_Response], None], **kwargs: Any) -> _Response:
+        service(request, **kwargs)
+        output_port(relay.get_response())
+        return relay.get_response()
+
+    return returning_service
