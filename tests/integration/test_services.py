@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from functools import partial
 from typing import Generic, TypedDict, TypeVar
 
@@ -10,7 +10,7 @@ from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import Link, create_link
 from dj_link.domain.state import Commands, Components, Operations, Processes, State, Update, states
 from dj_link.service.gateway import LinkGateway
-from dj_link.service.io import ResponseRelay, create_returning_service
+from dj_link.service.io import Service, make_responsive
 from dj_link.service.services import (
     DeleteRequest,
     DeleteResponse,
@@ -18,18 +18,18 @@ from dj_link.service.services import (
     ListIdleEntitiesResponse,
     OperationResponse,
     ProcessRequest,
-    ProcessToCompletionResponse,
+    ProcessToCompletionRequest,
     PullRequest,
     PullResponse,
     Response,
     delete,
     list_idle_entities,
+    process,
     process_to_completion,
     pull,
     start_delete_process,
     start_pull_process,
 )
-from dj_link.service.services import process as process_service
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
@@ -45,8 +45,8 @@ class FakeLinkGateway(LinkGateway):
         self.tainted_identifiers = set(tainted_identifiers) if tainted_identifiers is not None else set()
         self.processes: dict[Processes, set[Identifier]] = {process: set() for process in Processes}
         if processes is not None:
-            for process, identifiers in processes.items():
-                self.processes[process].update(identifiers)
+            for entity_process, identifiers in processes.items():
+                self.processes[entity_process].update(identifiers)
 
     def create_link(self) -> Link:
         return create_link(self.assignments, tainted_identifiers=self.tainted_identifiers, processes=self.processes)
@@ -126,160 +126,135 @@ def create_gateway(state: type[State], process: Processes | None = None, is_tain
     )
 
 
+def create_process_to_completion_service(gateway: FakeLinkGateway) -> Callable[[ProcessToCompletionRequest], None]:
+    process_service = partial(make_responsive(partial(process, link_gateway=gateway)), output_port=lambda x: None)
+    return partial(
+        make_responsive(
+            partial(
+                process_to_completion,
+                process_service=process_service,
+            ),
+        ),
+        output_port=lambda x: None,
+    )
+
+
+def create_pull_service(gateway: FakeLinkGateway) -> Service[PullRequest, PullResponse]:
+    process_to_completion_service = create_process_to_completion_service(gateway)
+    start_pull_process_service = partial(
+        make_responsive(partial(start_pull_process, link_gateway=gateway)), output_port=lambda x: None
+    )
+    return partial(
+        pull,
+        process_to_completion_service=process_to_completion_service,
+        start_pull_process_service=start_pull_process_service,
+    )
+
+
+def create_delete_service(gateway: FakeLinkGateway) -> Service[DeleteRequest, DeleteResponse]:
+    process_to_completion_service = create_process_to_completion_service(gateway)
+    start_delete_process_service = partial(
+        make_responsive(partial(start_delete_process, link_gateway=gateway)), output_port=lambda x: None
+    )
+    return partial(
+        delete,
+        process_to_completion_service=process_to_completion_service,
+        start_delete_process_service=start_delete_process_service,
+    )
+
+
 class EntityConfig(TypedDict):
     state: type[State]
     is_tainted: bool
-    process: Processes
+    process: Processes | None
+
+
+STATES: list[EntityConfig] = [
+    {"state": states.Idle, "is_tainted": False, "process": None},
+    {"state": states.Activated, "is_tainted": False, "process": Processes.PULL},
+    {"state": states.Activated, "is_tainted": False, "process": Processes.DELETE},
+    {"state": states.Activated, "is_tainted": True, "process": Processes.PULL},
+    {"state": states.Activated, "is_tainted": True, "process": Processes.DELETE},
+    {"state": states.Received, "is_tainted": False, "process": Processes.PULL},
+    {"state": states.Received, "is_tainted": False, "process": Processes.DELETE},
+    {"state": states.Received, "is_tainted": True, "process": Processes.PULL},
+    {"state": states.Received, "is_tainted": True, "process": Processes.DELETE},
+    {"state": states.Pulled, "is_tainted": False, "process": None},
+    {"state": states.Tainted, "is_tainted": True, "process": None},
+    {"state": states.Deprecated, "is_tainted": True, "process": None},
+]
 
 
 @pytest.mark.parametrize(
     ("state", "expected"),
     [
-        ({"state": states.Idle, "is_tainted": False, "process": None}, states.Idle),
-        ({"state": states.Activated, "is_tainted": False, "process": Processes.PULL}, states.Idle),
-        ({"state": states.Activated, "is_tainted": False, "process": Processes.DELETE}, states.Idle),
-        ({"state": states.Activated, "is_tainted": True, "process": Processes.PULL}, states.Deprecated),
-        ({"state": states.Activated, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
-        ({"state": states.Received, "is_tainted": False, "process": Processes.PULL}, states.Idle),
-        ({"state": states.Received, "is_tainted": False, "process": Processes.DELETE}, states.Idle),
-        ({"state": states.Received, "is_tainted": True, "process": Processes.PULL}, states.Deprecated),
-        ({"state": states.Received, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
-        ({"state": states.Pulled, "is_tainted": False, "process": None}, states.Idle),
-        ({"state": states.Tainted, "is_tainted": True, "process": None}, states.Deprecated),
-        ({"state": states.Deprecated, "is_tainted": True, "process": None}, states.Deprecated),
+        (STATES[0], states.Idle),
+        (STATES[1], states.Idle),
+        (STATES[2], states.Idle),
+        (STATES[3], states.Deprecated),
+        (STATES[4], states.Deprecated),
+        (STATES[5], states.Idle),
+        (STATES[6], states.Idle),
+        (STATES[7], states.Deprecated),
+        (STATES[8], states.Deprecated),
+        (STATES[9], states.Idle),
+        (STATES[10], states.Deprecated),
+        (STATES[11], states.Deprecated),
     ],
 )
 def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     gateway = create_gateway(**state)
-    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    complete_process_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
-    start_delete_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    delete(
-        DeleteRequest(frozenset(create_identifiers("1"))),
-        process_to_completion_service=create_returning_service(
-            partial(
-                process_to_completion,
-                process_service=create_returning_service(
-                    partial(process_service, link_gateway=gateway, output_port=process_relay),
-                    process_relay.get_response,
-                ),
-                output_port=complete_process_relay,
-            ),
-            complete_process_relay.get_response,
-        ),
-        start_delete_process_service=create_returning_service(
-            partial(start_delete_process, link_gateway=gateway, output_port=start_delete_process_relay),
-            start_delete_process_relay.get_response,
-        ),
-        output_port=FakeOutputPort[DeleteResponse](),
-    )
+    delete_service = create_delete_service(gateway)
+    delete_service(DeleteRequest(frozenset(create_identifiers("1"))), output_port=lambda x: None)
     assert next(iter(gateway.create_link())).state is expected
 
 
-@pytest.mark.xfail()
-def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
-    gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
-    output_port = FakeOutputPort[OperationResponse]()
-    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
-    start_pull_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    pull(
-        PullRequest(frozenset(create_identifiers("1"))),
-        process_to_completion_service=create_returning_service(
-            partial(
-                process_to_completion,
-                process_service=create_returning_service(
-                    partial(process_service, link_gateway=gateway, output_port=process_relay),
-                    process_relay.get_response,
-                ),
-                output_port=process_to_completion_relay,
-            ),
-            process_to_completion_relay.get_response,
-        ),
-        start_pull_process_service=create_returning_service(
-            partial(start_pull_process, link_gateway=gateway, output_port=start_pull_process_relay),
-            start_pull_process_relay.get_response,
-        ),
-        output_port=FakeOutputPort[PullResponse](),
+def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
+    gateway = FakeLinkGateway(
+        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
+    output_port = FakeOutputPort[DeleteResponse]()
+    delete_service = create_delete_service(gateway)
+    delete_service(DeleteRequest(frozenset(create_identifiers("1"))), output_port=output_port)
     assert output_port.response.requested == create_identifiers("1")
-    assert output_port.response.operation is Operations.START_PULL
 
 
 @pytest.mark.parametrize(
     ("state", "expected"),
     [
-        ({"state": states.Idle, "is_tainted": False, "process": None}, states.Pulled),
-        ({"state": states.Activated, "is_tainted": False, "process": Processes.PULL}, states.Pulled),
-        ({"state": states.Activated, "is_tainted": False, "process": Processes.DELETE}, states.Pulled),
-        ({"state": states.Activated, "is_tainted": True, "process": Processes.PULL}, states.Deprecated),
-        ({"state": states.Activated, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
-        ({"state": states.Received, "is_tainted": False, "process": Processes.PULL}, states.Pulled),
-        ({"state": states.Received, "is_tainted": False, "process": Processes.DELETE}, states.Pulled),
-        ({"state": states.Received, "is_tainted": True, "process": Processes.PULL}, states.Tainted),
-        ({"state": states.Received, "is_tainted": True, "process": Processes.DELETE}, states.Deprecated),
-        ({"state": states.Pulled, "is_tainted": False, "process": None}, states.Pulled),
-        ({"state": states.Tainted, "is_tainted": True, "process": None}, states.Tainted),
-        ({"state": states.Deprecated, "is_tainted": True, "process": None}, states.Deprecated),
+        (STATES[0], states.Pulled),
+        (STATES[1], states.Pulled),
+        (STATES[2], states.Pulled),
+        (STATES[3], states.Deprecated),
+        (STATES[4], states.Deprecated),
+        (STATES[5], states.Pulled),
+        (STATES[6], states.Pulled),
+        (STATES[7], states.Tainted),
+        (STATES[8], states.Deprecated),
+        (STATES[9], states.Pulled),
+        (STATES[10], states.Tainted),
+        (STATES[11], states.Deprecated),
     ],
 )
 def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     gateway = create_gateway(**state)
-    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
-    start_pull_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    pull(
+    pull_service = create_pull_service(gateway)
+    pull_service(
         PullRequest(frozenset(create_identifiers("1"))),
-        process_to_completion_service=create_returning_service(
-            partial(
-                process_to_completion,
-                process_service=create_returning_service(
-                    partial(process_service, link_gateway=gateway, output_port=process_relay),
-                    process_relay.get_response,
-                ),
-                output_port=process_to_completion_relay,
-            ),
-            process_to_completion_relay.get_response,
-        ),
-        start_pull_process_service=create_returning_service(
-            partial(start_pull_process, link_gateway=gateway, output_port=start_pull_process_relay),
-            start_pull_process_relay.get_response,
-        ),
-        output_port=FakeOutputPort[PullResponse](),
+        output_port=lambda x: None,
     )
     assert next(iter(gateway.create_link())).state is expected
 
 
-@pytest.mark.xfail()
-def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
-    gateway = FakeLinkGateway(
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
-    )
-    output_port = FakeOutputPort[OperationResponse]()
-    process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    process_to_completion_relay: ResponseRelay[ProcessToCompletionResponse] = ResponseRelay()
-    start_delete_process_relay: ResponseRelay[OperationResponse] = ResponseRelay()
-    delete(
-        DeleteRequest(frozenset(create_identifiers("1"))),
-        process_to_completion_service=create_returning_service(
-            partial(
-                process_to_completion,
-                process_service=create_returning_service(
-                    partial(process_service, link_gateway=gateway, output_port=process_relay),
-                    process_relay.get_response,
-                ),
-                output_port=process_to_completion_relay,
-            ),
-            process_to_completion_relay.get_response,
-        ),
-        start_delete_process_service=create_returning_service(
-            partial(start_delete_process, link_gateway=gateway, output_port=start_delete_process_relay),
-            start_delete_process_relay.get_response,
-        ),
-        output_port=FakeOutputPort[DeleteResponse](),
+def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
+    gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
+    output_port = FakeOutputPort[PullResponse]()
+    pull_service = create_pull_service(gateway)
+    pull_service(
+        PullRequest(frozenset(create_identifiers("1"))),
+        output_port=output_port,
     )
     assert output_port.response.requested == create_identifiers("1")
-    assert output_port.response.operation is Operations.START_DELETE
 
 
 def test_entity_undergoing_process_gets_processed() -> None:
@@ -287,7 +262,7 @@ def test_entity_undergoing_process_gets_processed() -> None:
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
         processes={Processes.PULL: create_identifiers("1")},
     )
-    process_service(
+    process(
         ProcessRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=FakeOutputPort[OperationResponse](),
@@ -302,7 +277,7 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
         processes={Processes.PULL: create_identifiers("1")},
     )
     output_port = FakeOutputPort[OperationResponse]()
-    process_service(
+    process(
         ProcessRequest(frozenset(create_identifiers("1"))),
         link_gateway=gateway,
         output_port=output_port,
