@@ -17,9 +17,9 @@ import pytest
 from dj_link.adapters import PrimaryKey
 from dj_link.adapters.gateway import DJLinkGateway
 from dj_link.adapters.identification import IdentificationTranslator
-from dj_link.entities.link import create_link, delete, process, pull
-from dj_link.entities.state import Components, Processes
-from dj_link.frameworks.facade import DJLinkFacade, Table
+from dj_link.domain.link import create_link, process, start_delete, start_pull
+from dj_link.domain.state import Components, Processes
+from dj_link.infrastructure.facade import DJLinkFacade, Table
 
 
 class FakeConnection:
@@ -460,7 +460,7 @@ def test_start_pull_process() -> None:
         "link", primary={"a"}, non_primary={"b"}, initial=State(source=TableState([{"a": 0, "b": 1}]))
     )
 
-    gateway.apply(pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
+    gateway.apply(start_pull(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
 
     assert has_state(
         tables,
@@ -525,7 +525,9 @@ class TestStartDeleteProcessCommand:
     def test_state_after_command(initial_state: State) -> None:
         tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-        gateway.apply(delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
+        gateway.apply(
+            start_delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates
+        )
 
         assert has_state(
             tables,
@@ -542,7 +544,9 @@ class TestStartDeleteProcessCommand:
 
         tables["outbound"].error_on_insert = RuntimeError
         try:
-            gateway.apply(delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates)
+            gateway.apply(
+                start_delete(gateway.create_link(), requested={gateway.translator.to_identifier({"a": 0})}).updates
+            )
         except RuntimeError:
             pass
 

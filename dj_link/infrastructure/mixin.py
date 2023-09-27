@@ -18,13 +18,10 @@ class SourceEndpoint(Table):
     _controller: DJController
     _outbound_table: Callable[[], Table]
 
-    in_transit: TransitEndpoint
-
     def pull(self) -> None:
         """Pull idle entities from the source table into the local table."""
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.pull(primary_keys)
-        self.in_transit.process()
 
     @property
     def flagged(self) -> Sequence[PrimaryKey]:
@@ -50,33 +47,12 @@ def create_source_endpoint_factory(
                 {
                     "_controller": controller,
                     "_outbound_table": staticmethod(outbound_table),
-                    "in_transit": create_transit_endpoint(controller, source_table(), outbound_table()),
                 },
             )()
             & restriction,
         )
 
     return create_source_endpoint
-
-
-class TransitEndpoint(Table):
-    """Mixin class used to create the transit endpoint when combined with the source table."""
-
-    _controller: DJController
-
-    def process(self) -> None:
-        """Process all transiting entities."""
-        while primary_keys := self.proj().fetch(as_dict=True):
-            self._controller.process(primary_keys)
-
-
-def create_transit_endpoint(controller: DJController, source_table: Table, outbound_table: Table) -> TransitEndpoint:
-    """Create the endpoint responsible for transiting entities."""
-    in_transit_cls = cast(
-        "type[TransitEndpoint]",
-        type(type(source_table).__name__, (TransitEndpoint, type(source_table)), {"_controller": controller}),
-    )
-    return in_transit_cls() & (outbound_table & "process != 'NONE'")
 
 
 class LocalEndpoint(Table):
@@ -89,7 +65,6 @@ class LocalEndpoint(Table):
         """Delete pulled entities from the local table."""
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.delete(primary_keys)
-        self.source.in_transit.process()
 
     @property
     def source(self) -> SourceEndpoint:

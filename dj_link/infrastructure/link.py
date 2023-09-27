@@ -13,7 +13,17 @@ from dj_link.adapters.present import (
     create_idle_entities_updater,
     create_operation_response_presenter,
 )
-from dj_link.use_cases.use_cases import UseCases, delete, list_idle_entities, process, pull
+from dj_link.service.io import make_responsive
+from dj_link.service.services import (
+    Services,
+    delete,
+    list_idle_entities,
+    process,
+    process_to_completion,
+    pull,
+    start_delete_process,
+    start_pull_process,
+)
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
@@ -47,11 +57,33 @@ def create_link(  # noqa: PLR0913
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         operation_presenter = create_operation_response_presenter(translator, create_operation_logger())
+        process_service = partial(
+            make_responsive(partial(process, link_gateway=gateway)), output_port=operation_presenter
+        )
+        start_pull_process_service = partial(
+            make_responsive(partial(start_pull_process, link_gateway=gateway)), output_port=operation_presenter
+        )
+        start_delete_process_service = partial(
+            make_responsive(partial(start_delete_process, link_gateway=gateway)), output_port=operation_presenter
+        )
+        process_to_completion_service = partial(
+            make_responsive(partial(process_to_completion, process_service=process_service)), output_port=lambda x: None
+        )
         handlers = {
-            UseCases.PULL: partial(pull, link_gateway=gateway, output_port=operation_presenter),
-            UseCases.DELETE: partial(delete, link_gateway=gateway, output_port=operation_presenter),
-            UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),
-            UseCases.LISTIDLEENTITIES: partial(
+            Services.PULL: partial(
+                pull,
+                process_to_completion_service=process_to_completion_service,
+                start_pull_process_service=start_pull_process_service,
+                output_port=lambda x: None,
+            ),
+            Services.DELETE: partial(
+                delete,
+                process_to_completion_service=process_to_completion_service,
+                start_delete_process_service=start_delete_process_service,
+                output_port=lambda x: None,
+            ),
+            Services.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),
+            Services.LIST_IDLE_ENTITIES: partial(
                 list_idle_entities, link_gateway=gateway, output_port=idle_entities_updater
             ),
         }

@@ -4,8 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Iterable
 
-from dj_link.use_cases.use_cases import (
-    ListIdleEntitiesResponseModel,
+from dj_link.service.services import (
+    ListIdleEntitiesResponse,
     OperationResponse,
 )
 
@@ -53,12 +53,16 @@ class Failure:
 
     primary_key: PrimaryKey
     operation: str
+    state: str
 
 
 def create_operation_response_presenter(
     translator: IdentificationTranslator, show: Callable[[OperationRecord], None]
 ) -> Callable[[OperationResponse], None]:
     """Create a callable that when called presents information about a finished operation."""
+
+    def get_class_name(obj: type) -> str:
+        return obj.__name__
 
     def present_operation_response(response: OperationResponse) -> None:
         show(
@@ -72,14 +76,19 @@ def create_operation_response_presenter(
                         translator.to_primary_key(update.identifier),
                         operation=response.operation.name,
                         transition=Transition(
-                            update.transition.current.__name__.upper(), update.transition.new.__name__.upper()
+                            get_class_name(update.transition.current).upper(),
+                            get_class_name(update.transition.new).upper(),
                         ),
                     )
                     for update in response.updates
                 ],
                 [
-                    Failure(translator.to_primary_key(operation.identifier), operation.operation.name)
-                    for operation in response.errors
+                    Failure(
+                        translator.to_primary_key(error.identifier),
+                        error.operation.name,
+                        get_class_name(error.state).upper(),
+                    )
+                    for error in response.errors
                 ],
             )
         )
@@ -89,10 +98,10 @@ def create_operation_response_presenter(
 
 def create_idle_entities_updater(
     translator: IdentificationTranslator, update: Callable[[Iterable[PrimaryKey]], None]
-) -> Callable[[ListIdleEntitiesResponseModel], None]:
+) -> Callable[[ListIdleEntitiesResponse], None]:
     """Create a callable that when called updates the list of idle entities."""
 
-    def update_idle_entities(response: ListIdleEntitiesResponseModel) -> None:
+    def update_idle_entities(response: ListIdleEntitiesResponse) -> None:
         update(translator.to_primary_key(identifier) for identifier in response.identifiers)
 
     return update_idle_entities

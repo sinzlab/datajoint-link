@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, FrozenSet, Iterable, Iterator, Mapping, Optional, TypeVar
+from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 
 from .custom_types import Identifier
 from .state import (
@@ -87,41 +87,15 @@ def create_link(
     validate_arguments(assignments, tainted_identifiers, processes)
     processes_map = invert_mapping(processes)
     entity_assignments = assign_entities(create_entities(assignments))
-    return Link(
-        source=Component(entity_assignments[Components.SOURCE]),
-        outbound=Component(entity_assignments[Components.OUTBOUND]),
-        local=Component(entity_assignments[Components.LOCAL]),
-    )
+    return Link(entity_assignments[Components.SOURCE])
 
 
-@dataclass(frozen=True)
-class Link:
+class Link(FrozenSet[Entity]):
     """The state of a link between two databases."""
-
-    source: Component
-    outbound: Component
-    local: Component
-
-    def __getitem__(self, component: Components) -> Component:
-        """Return the entities in the given component."""
-        component_map = {
-            Components.SOURCE: self.source,
-            Components.OUTBOUND: self.outbound,
-            Components.LOCAL: self.local,
-        }
-        return component_map[component]
-
-    def __iter__(self) -> Iterator[Entity]:
-        """Iterate over all entities in the link."""
-        return iter(self.source)
-
-
-class Component(FrozenSet[Entity]):
-    """Contains all entities present in a component."""
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
-        """Return all identifiers of entities in the component."""
+        """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
 
 
@@ -154,27 +128,21 @@ def create_link_operation_result(results: Iterable[EntityOperationResult]) -> Li
 def process(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Process all entities in the link producing appropriate updates."""
     _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.process() for entity in link[Components.SOURCE] if entity.identifier in requested
-    )
+    return create_link_operation_result(entity.process() for entity in link if entity.identifier in requested)
 
 
 def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
     assert requested, "No identifiers requested."
-    assert set(requested) <= link[Components.SOURCE].identifiers, "Requested identifiers not present in link."
+    assert set(requested) <= link.identifiers, "Requested identifiers not present in link."
 
 
-def pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
-    """Pull all requested entities producing appropriate updates."""
+def start_pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
+    """Start the pull process on the requested entities."""
     _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.pull() for entity in link[Components.SOURCE] if entity.identifier in requested
-    )
+    return create_link_operation_result(entity.start_pull() for entity in link if entity.identifier in requested)
 
 
-def delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
-    """Delete all requested identifiers producing appropriate updates."""
+def start_delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
+    """Start the delete process on the requested entities."""
     _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.delete() for entity in link[Components.SOURCE] if entity.identifier in requested
-    )
+    return create_link_operation_result(entity.start_delete() for entity in link if entity.identifier in requested)

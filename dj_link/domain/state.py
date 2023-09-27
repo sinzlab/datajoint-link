@@ -12,14 +12,14 @@ class State:
     """An entity's state."""
 
     @classmethod
-    def pull(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to pull an entity."""
-        return cls._create_invalid_operation_result(Operations.PULL, entity.identifier)
+    def start_pull(cls, entity: Entity) -> EntityOperationResult:
+        """Return the command needed to start the pull process for the entity."""
+        return cls._create_invalid_operation_result(Operations.START_PULL, entity.identifier)
 
     @classmethod
-    def delete(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to delete the entity."""
-        return cls._create_invalid_operation_result(Operations.DELETE, entity.identifier)
+    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+        """Return the commands needed to start the delete process for the entity."""
+        return cls._create_invalid_operation_result(Operations.START_DELETE, entity.identifier)
 
     @classmethod
     def process(cls, entity: Entity) -> EntityOperationResult:
@@ -28,7 +28,7 @@ class State:
 
     @classmethod
     def _create_invalid_operation_result(cls, operation: Operations, identifier: Identifier) -> EntityOperationResult:
-        return InvalidOperation(operation, identifier)
+        return InvalidOperation(operation, identifier, cls)
 
     @classmethod
     def _create_valid_operation_result(
@@ -66,9 +66,9 @@ class Idle(State):
     """The default state of an entity."""
 
     @classmethod
-    def pull(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to pull an idle entity."""
-        return cls._create_valid_operation_result(Operations.PULL, entity.identifier, Activated)
+    def start_pull(cls, entity: Entity) -> EntityOperationResult:
+        """Return the command needed to start the pull process for an entity."""
+        return cls._create_valid_operation_result(Operations.START_PULL, entity.identifier, Activated)
 
 
 states.register(Idle)
@@ -117,9 +117,9 @@ class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
     @classmethod
-    def delete(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to delete a pulled entity."""
-        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
+    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+        """Return the commands needed to start the delete process for the entity."""
+        return cls._create_valid_operation_result(Operations.START_DELETE, entity.identifier, Received)
 
 
 states.register(Pulled)
@@ -129,9 +129,9 @@ class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
     @classmethod
-    def delete(cls, entity: Entity) -> EntityOperationResult:
-        """Return the commands needed to delete a tainted entity."""
-        return cls._create_valid_operation_result(Operations.DELETE, entity.identifier, Received)
+    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+        """Return the commands needed to start the delete process for the entity."""
+        return cls._create_valid_operation_result(Operations.START_DELETE, entity.identifier, Received)
 
 
 states.register(Tainted)
@@ -184,8 +184,8 @@ TRANSITION_MAP: dict[Transition, Commands] = {
 class Operations(Enum):
     """Names for all operations that can be performed on entities."""
 
-    PULL = auto()
-    DELETE = auto()
+    START_PULL = auto()
+    START_DELETE = auto()
     PROCESS = auto()
 
 
@@ -205,6 +205,7 @@ class InvalidOperation:
 
     operation: Operations
     identifier: Identifier
+    state: type[State]
 
 
 EntityOperationResult = Union[Update, InvalidOperation]
@@ -287,13 +288,13 @@ class Entity:
     current_process: Optional[Processes]
     is_tainted: bool
 
-    def pull(self) -> EntityOperationResult:
-        """Pull the entity."""
-        return self.state.pull(self)
+    def start_pull(self) -> EntityOperationResult:
+        """Start the pull process for the entity."""
+        return self.state.start_pull(self)
 
-    def delete(self) -> EntityOperationResult:
-        """Delete the entity."""
-        return self.state.delete(self)
+    def start_delete(self) -> EntityOperationResult:
+        """Start the delete process for the entity."""
+        return self.state.start_delete(self)
 
     def process(self) -> EntityOperationResult:
         """Process the entity."""

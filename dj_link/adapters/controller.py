@@ -3,13 +3,12 @@ from __future__ import annotations
 
 from typing import Callable, Iterable, Mapping
 
-from dj_link.use_cases.use_cases import (
-    DeleteRequestModel,
-    ListIdleEntitiesRequestModel,
-    ProcessRequestModel,
-    PullRequestModel,
-    RequestModel,
-    UseCases,
+from dj_link.service.services import (
+    DeleteRequest,
+    ListIdleEntitiesRequest,
+    PullRequest,
+    Request,
+    Services,
 )
 
 from .custom_types import PrimaryKey
@@ -21,7 +20,7 @@ class DJController:
 
     def __init__(
         self,
-        handlers: Mapping[UseCases, Callable[[RequestModel], None]],
+        handlers: Mapping[Services, Callable[[Request], None]],
         translator: IdentificationTranslator,
     ) -> None:
         """Initialize the translator."""
@@ -30,18 +29,12 @@ class DJController:
 
     def pull(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the pull use-case."""
-        self.__handlers[UseCases.PULL](PullRequestModel(frozenset(self.__translator.to_identifiers(primary_keys))))
+        self.__handlers[Services.PULL](PullRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
 
     def delete(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the delete use-case."""
-        self.__handlers[UseCases.DELETE](DeleteRequestModel(frozenset(self.__translator.to_identifiers(primary_keys))))
-
-    def process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Execute the process use-case."""
-        self.__handlers[UseCases.PROCESS](
-            ProcessRequestModel(frozenset(self.__translator.to_identifiers(primary_keys)))
-        )
+        self.__handlers[Services.DELETE](DeleteRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
 
     def list_idle_entities(self) -> None:
         """Execute the use-case that lists idle entities."""
-        self.__handlers[UseCases.LISTIDLEENTITIES](ListIdleEntitiesRequestModel())
+        self.__handlers[Services.LIST_IDLE_ENTITIES](ListIdleEntitiesRequest())
