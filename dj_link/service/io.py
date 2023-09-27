@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable, Generic, Iterable, Protocol, TypeVar
+from typing import Any, Callable, Generic, Protocol, TypeVar
 
 from .services import Request, Response
 
@@ -27,30 +27,6 @@ class ResponseRelay(Generic[_Response]):
 
 
 _Request = TypeVar("_Request", bound=Request)
-
-
-def create_returning_service(
-    service: Callable[[_Request], None], get_response: Callable[[], _Response]
-) -> Callable[[_Request], _Response]:
-    """Create a version of the provided service that returns its response when executed."""
-
-    def execute(request: _Request) -> _Response:
-        service(request)
-        return get_response()
-
-    return execute
-
-
-def create_response_forwarder(recipients: Iterable[Callable[[_Response], None]]) -> Callable[[_Response], None]:
-    """Create an object that forwards the response it gets called with to multiple recipients."""
-    recipients = list(recipients)
-
-    def duplicate_response(response: _Response) -> None:
-        for recipient in recipients:
-            recipient(response)
-
-    return duplicate_response
-
 
 _Response_co = TypeVar("_Response_co", bound=Response, covariant=True)
 
