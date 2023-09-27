@@ -195,10 +195,10 @@ def list_idle_entities(
     )
 
 
-class UseCases(Enum):
-    """Names for all available use-cases."""
+class Services(Enum):
+    """Names for all available services."""
 
     PULL = auto()
     DELETE = auto()
     PROCESS = auto()
-    LISTIDLEENTITIES = auto()
+    LIST_IDLE_ENTITIES = auto()

@@ -15,7 +15,7 @@ from dj_link.adapters.present import (
 )
 from dj_link.service.io import make_responsive
 from dj_link.service.services import (
-    UseCases,
+    Services,
     delete,
     list_idle_entities,
     process,
@@ -70,20 +70,20 @@ def create_link(  # noqa: PLR0913
             make_responsive(partial(process_to_completion, process_service=process_service)), output_port=lambda x: None
         )
         handlers = {
-            UseCases.PULL: partial(
+            Services.PULL: partial(
                 pull,
                 process_to_completion_service=process_to_completion_service,
                 start_pull_process_service=start_pull_process_service,
                 output_port=lambda x: None,
             ),
-            UseCases.DELETE: partial(
+            Services.DELETE: partial(
                 delete,
                 process_to_completion_service=process_to_completion_service,
                 start_delete_process_service=start_delete_process_service,
                 output_port=lambda x: None,
             ),
-            UseCases.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),
-            UseCases.LISTIDLEENTITIES: partial(
+            Services.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),
+            Services.LIST_IDLE_ENTITIES: partial(
                 list_idle_entities, link_gateway=gateway, output_port=idle_entities_updater
             ),
         }

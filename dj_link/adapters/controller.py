@@ -8,7 +8,7 @@ from dj_link.service.services import (
     ListIdleEntitiesRequest,
     PullRequest,
     Request,
-    UseCases,
+    Services,
 )
 
 from .custom_types import PrimaryKey
@@ -20,7 +20,7 @@ class DJController:
 
     def __init__(
         self,
-        handlers: Mapping[UseCases, Callable[[Request], None]],
+        handlers: Mapping[Services, Callable[[Request], None]],
         translator: IdentificationTranslator,
     ) -> None:
         """Initialize the translator."""
@@ -29,12 +29,12 @@ class DJController:
 
     def pull(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the pull use-case."""
-        self.__handlers[UseCases.PULL](PullRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
+        self.__handlers[Services.PULL](PullRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
 
     def delete(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the delete use-case."""
-        self.__handlers[UseCases.DELETE](DeleteRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
+        self.__handlers[Services.DELETE](DeleteRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
 
     def list_idle_entities(self) -> None:
         """Execute the use-case that lists idle entities."""
-        self.__handlers[UseCases.LISTIDLEENTITIES](ListIdleEntitiesRequest())
+        self.__handlers[Services.LIST_IDLE_ENTITIES](ListIdleEntitiesRequest())
