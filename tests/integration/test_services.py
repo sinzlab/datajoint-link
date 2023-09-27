@@ -8,7 +8,7 @@ import pytest
 
 from dj_link.domain.custom_types import Identifier
 from dj_link.domain.link import Link, create_link
-from dj_link.domain.state import Commands, Components, Operations, Processes, State, Update, states
+from dj_link.domain.state import Commands, Components, InvalidOperation, Operations, Processes, State, Update, states
 from dj_link.service.gateway import LinkGateway
 from dj_link.service.io import Service, make_responsive
 from dj_link.service.services import (
@@ -246,15 +246,40 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
     assert next(iter(gateway.create_link())).state is expected
 
 
-def test_correct_response_model_gets_passed_to_pull_output_port() -> None:
-    gateway = FakeLinkGateway(create_assignments({Components.SOURCE: {"1"}}))
+@pytest.mark.parametrize(
+    ("state", "produces_error"),
+    [
+        (STATES[0], False),
+        (STATES[1], False),
+        (STATES[2], False),
+        (STATES[3], True),
+        (STATES[4], True),
+        (STATES[5], False),
+        (STATES[6], False),
+        (STATES[7], False),
+        (STATES[8], True),
+        (STATES[9], False),
+        (STATES[10], False),
+        (STATES[11], True),
+    ],
+)
+def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityConfig, produces_error: bool) -> None:
+    if produces_error:
+        errors = {
+            InvalidOperation(
+                operation=Operations.START_PULL, identifier=create_identifier("1"), state=states.Deprecated
+            )
+        }
+    else:
+        errors = set()
+    gateway = create_gateway(**state)
     output_port = FakeOutputPort[PullResponse]()
     pull_service = create_pull_service(gateway)
     pull_service(
         PullRequest(frozenset(create_identifiers("1"))),
         output_port=output_port,
     )
-    assert output_port.response.requested == create_identifiers("1")
+    assert output_port.response == PullResponse(requested=frozenset(create_identifiers("1")), errors=frozenset(errors))
 
 
 def test_entity_undergoing_process_gets_processed() -> None:

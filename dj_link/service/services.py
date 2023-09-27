@@ -33,6 +33,7 @@ class PullResponse(Response):
     """Response model for the pull use-case."""
 
     requested: frozenset[Identifier]
+    errors: frozenset[InvalidOperation]
 
 
 def pull(
@@ -44,9 +45,10 @@ def pull(
 ) -> None:
     """Pull entities across the link."""
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
-    start_pull_process_service(StartPullProcessRequest(request.requested))
+    response = start_pull_process_service(StartPullProcessRequest(request.requested))
+    errors = (error for error in response.errors if error.state is states.Deprecated)
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
-    output_port(PullResponse(request.requested))
+    output_port(PullResponse(request.requested, errors=frozenset(errors)))
 
 
 @dataclass(frozen=True)
