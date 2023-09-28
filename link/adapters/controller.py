@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Callable, Iterable, Mapping
 
-from dj_link.service.services import (
+from link.service.services import (
     DeleteRequest,
     ListIdleEntitiesRequest,
     PullRequest,

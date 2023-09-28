@@ -14,12 +14,12 @@ from typing import Any, Literal, Optional, TextIO, Type, TypedDict, Union
 
 import pytest
 
-from dj_link.adapters import PrimaryKey
-from dj_link.adapters.gateway import DJLinkGateway
-from dj_link.adapters.identification import IdentificationTranslator
-from dj_link.domain.link import create_link, process, start_delete, start_pull
-from dj_link.domain.state import Components, Processes
-from dj_link.infrastructure.facade import DJLinkFacade, Table
+from link.adapters import PrimaryKey
+from link.adapters.gateway import DJLinkGateway
+from link.adapters.identification import IdentificationTranslator
+from link.domain.link import create_link, process, start_delete, start_pull
+from link.domain.state import Components, Processes
+from link.infrastructure.facade import DJLinkFacade, Table
 
 
 class FakeConnection:

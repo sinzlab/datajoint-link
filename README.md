@@ -57,7 +57,7 @@ LINK_PASS=secret-password
 The destination table is created by passing information about where to find the source table to the `link` decorator:
 
 ```python
-from dj_link import link
+from link import link
 
 @link(
     "databaseserver.com", 

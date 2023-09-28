@@ -9,7 +9,7 @@ services:
   functional_tests:
     build: .
     volumes:
-      - $PWD/dj_link:/src/dj_link:ro
+      - $PWD/link:/src/link:ro
       - $PWD/tests:/src/tests:ro
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -21,7 +21,7 @@ services:
   tests_with_coverage:
     build: .
     volumes:
-      - $PWD/dj_link:/src/dj_link:ro
+      - $PWD/link:/src/link:ro
       - $PWD/tests:/src/tests:ro
       - $PWD/reports:/src/reports
       - /var/run/docker.sock:/var/run/docker.sock

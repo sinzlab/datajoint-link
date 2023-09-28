@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dj_link.adapters.custom_types import PrimaryKey
-from dj_link.adapters.identification import IdentificationTranslator
+from link.adapters.custom_types import PrimaryKey
+from link.adapters.identification import IdentificationTranslator
 
 
 def test_primary_key_translated_to_identifier_and_back_is_identical_to_original() -> None:

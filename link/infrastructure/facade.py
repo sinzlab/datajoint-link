@@ -15,9 +15,9 @@ from typing import (
     cast,
 )
 
-from dj_link.adapters import PrimaryKey
-from dj_link.adapters.facade import DJAssignments, DJProcess
-from dj_link.adapters.facade import DJLinkFacade as AbstractDJLinkFacade
+from link.adapters import PrimaryKey
+from link.adapters.facade import DJAssignments, DJProcess
+from link.adapters.facade import DJLinkFacade as AbstractDJLinkFacade
 
 
 class Connection(Protocol):

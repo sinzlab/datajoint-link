@@ -4,8 +4,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from dj_link.domain.link import Link
-from dj_link.domain.state import Update
+from link.domain.link import Link
+from link.domain.state import Update
 
 
 class LinkGateway(ABC):

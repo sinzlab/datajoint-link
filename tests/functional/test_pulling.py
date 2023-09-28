@@ -3,7 +3,7 @@ import os
 
 import datajoint as dj
 
-from dj_link import link
+from link import link
 
 
 def test_pulling(
