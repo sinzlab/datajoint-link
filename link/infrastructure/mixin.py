@@ -6,8 +6,8 @@ from typing import Iterable, Sequence, cast
 
 from datajoint import Table
 
-from dj_link.adapters.controller import DJController
-from dj_link.adapters.custom_types import PrimaryKey
+from link.adapters.controller import DJController
+from link.adapters.custom_types import PrimaryKey
 
 from . import DJTables
 

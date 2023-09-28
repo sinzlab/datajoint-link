@@ -6,7 +6,7 @@ from typing import Callable
 
 import pytest
 
-from dj_link.infrastructure import dj_helpers
+from link.infrastructure import dj_helpers
 
 
 class TestReplaceStores:

@@ -6,12 +6,12 @@ from typing import Generic, TypedDict, TypeVar
 
 import pytest
 
-from dj_link.domain.custom_types import Identifier
-from dj_link.domain.link import Link, create_link
-from dj_link.domain.state import Commands, Components, InvalidOperation, Operations, Processes, State, Update, states
-from dj_link.service.gateway import LinkGateway
-from dj_link.service.io import Service, make_responsive
-from dj_link.service.services import (
+from link.domain.custom_types import Identifier
+from link.domain.link import Link, create_link
+from link.domain.state import Commands, Components, InvalidOperation, Operations, Processes, State, Update, states
+from link.service.gateway import LinkGateway
+from link.service.io import Service, make_responsive
+from link.service.services import (
     DeleteRequest,
     DeleteResponse,
     ListIdleEntitiesRequest,

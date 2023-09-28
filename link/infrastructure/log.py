@@ -3,12 +3,12 @@ import logging
 from dataclasses import asdict
 from typing import Callable
 
-from dj_link.adapters.present import OperationRecord
+from link.adapters.present import OperationRecord
 
 
 def create_operation_logger() -> Callable[[OperationRecord], None]:
     """Create a function that logs information about finished operations."""
-    logger = logging.getLogger("dj_link[operations]")
+    logger = logging.getLogger("link[operations]")
 
     def log(record: OperationRecord) -> None:
         for request in record.requests:

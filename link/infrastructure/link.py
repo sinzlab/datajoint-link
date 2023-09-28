@@ -5,16 +5,16 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any, Mapping, Optional
 
-from dj_link.adapters.controller import DJController
-from dj_link.adapters.custom_types import PrimaryKey
-from dj_link.adapters.gateway import DJLinkGateway
-from dj_link.adapters.identification import IdentificationTranslator
-from dj_link.adapters.present import (
+from link.adapters.controller import DJController
+from link.adapters.custom_types import PrimaryKey
+from link.adapters.gateway import DJLinkGateway
+from link.adapters.identification import IdentificationTranslator
+from link.adapters.present import (
     create_idle_entities_updater,
     create_operation_response_presenter,
 )
-from dj_link.service.io import make_responsive
-from dj_link.service.services import (
+from link.service.io import make_responsive
+from link.service.services import (
     Services,
     delete,
     list_idle_entities,

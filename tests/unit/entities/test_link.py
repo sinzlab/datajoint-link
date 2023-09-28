@@ -5,9 +5,9 @@ from typing import ContextManager, Iterable, Mapping
 
 import pytest
 
-from dj_link.domain.custom_types import Identifier
-from dj_link.domain.link import Link, create_link, process, start_delete, start_pull
-from dj_link.domain.state import Components, Processes, State, states
+from link.domain.custom_types import Identifier
+from link.domain.link import Link, create_link, process, start_delete, start_pull
+from link.domain.state import Components, Processes, State, states
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 

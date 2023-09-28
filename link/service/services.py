@@ -5,10 +5,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from dj_link.domain.custom_types import Identifier
-from dj_link.domain.link import process as process_domain_service
-from dj_link.domain.link import start_delete, start_pull
-from dj_link.domain.state import InvalidOperation, Operations, Update, states
+from link.domain.custom_types import Identifier
+from link.domain.link import process as process_domain_service
+from link.domain.link import start_delete, start_pull
+from link.domain.state import InvalidOperation, Operations, Update, states
 
 from .gateway import LinkGateway
 
