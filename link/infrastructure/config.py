@@ -41,6 +41,6 @@ def create_table_definition_provider(table: Callable[[], dj.Table]) -> Callable[
     """Create an object that provides the definition of the table produced by the given factory when called."""
 
     def provide_definition() -> str:
-        return str(table().heading)
+        return str(table().heading).replace('"current_timestamp()"', "CURRENT_TIMESTAMP")
 
     return provide_definition
