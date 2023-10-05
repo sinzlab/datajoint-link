@@ -20,7 +20,7 @@ from tests.docker.runner import ContainerRunner
 
 SCOPE = os.environ.get("SCOPE", "session")
 REMOVE = True
-DATABASE_IMAGE = "datajoint/mysql:latest"
+DATABASE_IMAGE = "cblessing24/mariadb:11.1"
 MINIO_IMAGE = "minio/minio:latest"
 DATABASE_ROOT_PASSWORD = "root"
 
