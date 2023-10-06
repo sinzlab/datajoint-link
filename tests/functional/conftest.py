@@ -4,10 +4,9 @@ import os
 import pathlib
 from concurrent import futures
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from random import choices
 from string import ascii_lowercase
-from typing import Dict
 
 import datajoint as dj
 import docker
@@ -59,7 +58,6 @@ class HealthCheckConfig:
 @dataclass(frozen=True)
 class DatabaseConfig:
     password: str  # MYSQL root user password
-    users: Dict[str, UserConfig]
     schema_name: str
 
 
@@ -71,6 +69,7 @@ class DatabaseSpec:
 
 @dataclass(frozen=True)
 class UserConfig:
+    host: str
     name: str
     password: str
     grants: list[str]
@@ -105,35 +104,6 @@ def docker_client():
 
 
 @pytest.fixture(scope=SCOPE)
-def create_user_configs(outbound_schema_name):
-    def _create_user_configs(schema_name):
-        return dict(
-            admin_user=UserConfig(
-                "admin_user",
-                "admin_user_password",
-                grants=[
-                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
-                ],
-            ),
-            end_user=UserConfig(
-                "end_user",
-                "end_user_password",
-                grants=[r"GRANT ALL PRIVILEGES ON `end_user\_%`.* TO '$name'@'%';"],
-            ),
-            dj_user=UserConfig(
-                "dj_user",
-                "dj_user_password",
-                grants=[
-                    f"GRANT SELECT, REFERENCES ON `{schema_name}`.* TO '$name'@'%';",
-                    f"GRANT ALL PRIVILEGES ON `{outbound_schema_name}`.* TO '$name'@'%';",
-                ],
-            ),
-        )
-
-    return _create_user_configs
-
-
-@pytest.fixture(scope=SCOPE)
 def create_random_string():
     def _create_random_string(length=6):
         return "".join(choices(ascii_lowercase, k=length))
@@ -147,7 +117,7 @@ def network():
 
 
 @pytest.fixture(scope=SCOPE)
-def get_db_spec(create_random_string, create_user_configs, network):
+def get_db_spec(create_random_string, network):
     def _get_db_spec(name):
         schema_name = "end_user_schema"
         return DatabaseSpec(
@@ -160,7 +130,6 @@ def get_db_spec(create_random_string, create_user_configs, network):
             ),
             DatabaseConfig(
                 password=DATABASE_ROOT_PASSWORD,
-                users=create_user_configs(schema_name),
                 schema_name=schema_name,
             ),
         )
@@ -186,13 +155,6 @@ def get_minio_spec(create_random_string, network):
         )
 
     return _get_minio_spec
-
-
-@pytest.fixture(scope=SCOPE)
-def outbound_schema_name():
-    name = "outbound_schema"
-    os.environ["LINK_OUTBOUND"] = name
-    return name
 
 
 def get_runner_kwargs(docker_client, spec):
@@ -235,20 +197,15 @@ def get_runner_kwargs(docker_client, spec):
 
 
 @pytest.fixture(scope=SCOPE)
-def create_user_config(create_random_string):
-    def _create_user_config(grants):
-        name = create_random_string()
-        return UserConfig(
-            name=name, password=create_random_string(), grants=[grant.replace("$name", name) for grant in grants]
-        )
-
-    return _create_user_config
-
-
-@pytest.fixture(scope=SCOPE)
-def create_user(create_user_config):
+def create_user(create_random_string):
     def _create_user(db_spec, grants):
-        config = create_user_config(grants)
+        user_name = create_random_string()
+        config = UserConfig(
+            host=db_spec.container.name,
+            name=user_name,
+            password=create_random_string(),
+            grants=[grant.replace("$name", user_name) for grant in grants],
+        )
         with mysql_conn(db_spec) as connection:
             with connection.cursor() as cursor:
                 cursor.execute(f"CREATE USER '{config.name}'@'%' IDENTIFIED BY '{config.password}';")
@@ -347,8 +304,10 @@ def get_store_spec(create_random_string):
 @pytest.fixture()
 def dj_connection():
     @contextmanager
-    def _dj_connection(db_spec, user_spec):
-        connection = dj.Connection(db_spec.container.name, user_spec.name, user_spec.password)
+    def _dj_connection():
+        connection = dj.Connection(
+            dj.config["database.host"], dj.config["database.user"], dj.config["database.password"]
+        )
         try:
             yield connection
         finally:
@@ -360,12 +319,12 @@ def dj_connection():
 @pytest.fixture()
 def connection_config():
     @contextmanager
-    def _connection_config(db_spec, user):
+    def _connection_config(actor):
         try:
             with dj.config(
-                database__host=db_spec.container.name,
-                database__user=user.name,
-                database__password=user.password,
+                database__host=actor.credentials.host,
+                database__user=actor.credentials.name,
+                database__password=actor.credentials.password,
                 safemode=False,
             ):
                 dj.conn(reset=True)
@@ -450,13 +409,31 @@ def temp_env_vars():
 
 
 @pytest.fixture()
+def act_as(connection_config, temp_env_vars):
+    @contextmanager
+    def _act_as(actor):
+        with connection_config(actor), temp_env_vars(**actor.environment):
+            yield
+
+    return _act_as
+
+
+@pytest.fixture()
 def configured_environment(temp_env_vars):
     @contextmanager
-    def _configured_environment(user_spec, schema_name):
-        with temp_env_vars(LINK_USER=user_spec.name, LINK_PASS=user_spec.password, LINK_OUTBOUND=schema_name):
+    def _configured_environment(actor, schema_name):
+        with temp_env_vars(
+            LINK_USER=actor.credentials.name, LINK_PASS=actor.credentials.password, LINK_OUTBOUND=schema_name
+        ):
             yield
 
     return _configured_environment
+
+
+@dataclass(frozen=True)
+class Actor:
+    credentials: UserConfig
+    environment: dict[str, str] = field(default_factory=dict)
 
 
 @pytest.fixture()
@@ -468,24 +445,37 @@ def prepare_multiple_links(create_random_string, create_user, databases):
             return names
 
         schema_names = create_schema_names()
-        user_specs = {
-            "admin": create_user(databases["source"], grants=["GRANT ALL PRIVILEGES ON *.* TO '$name'@'%';"]),
-            "source": create_user(
-                databases["source"], grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"]
-            ),
-            "local": create_user(
-                databases["local"],
-                grants=[f"GRANT ALL PRIVILEGES ON `{name}`.* TO '$name'@'%';" for name in schema_names["local"]],
-            ),
-            "link": create_user(
+        link_actor = Actor(
+            create_user(
                 databases["source"],
                 grants=[
                     f"GRANT SELECT, REFERENCES ON `{schema_names['source']}`.* TO '$name'@'%';",
                     f"GRANT ALL PRIVILEGES ON `{schema_names['outbound']}`.* TO '$name'@'%';",
                 ],
+            )
+        )
+        actors = {
+            "admin": Actor(create_user(databases["source"], grants=["GRANT ALL PRIVILEGES ON *.* TO '$name'@'%';"])),
+            "source": Actor(
+                create_user(
+                    databases["source"],
+                    grants=[f"GRANT ALL PRIVILEGES ON `{schema_names['source']}`.* TO '$name'@'%';"],
+                )
             ),
+            "local": Actor(
+                create_user(
+                    databases["local"],
+                    grants=[f"GRANT ALL PRIVILEGES ON `{name}`.* TO '$name'@'%';" for name in schema_names["local"]],
+                ),
+                {
+                    "LINK_USER": link_actor.credentials.name,
+                    "LINK_PASS": link_actor.credentials.password,
+                    "LINK_OUTBOUND": schema_names["outbound"],
+                },
+            ),
+            "link": link_actor,
         }
-        return schema_names, user_specs
+        return schema_names, actors
 
     return _prepare_multiple_links
 
@@ -514,12 +504,12 @@ def create_table():
 
 @pytest.fixture()
 def prepare_table(dj_connection):
-    def _prepare_table(database, user, schema, table_cls, *, data=None, parts=None, context=None):
+    def _prepare_table(schema, table_cls, *, data=None, parts=None, context=None):
         if data is None:
             data = []
         if parts is None:
             parts = {}
-        with dj_connection(database, user) as connection:
+        with dj_connection() as connection:
             dj.schema(schema, connection=connection, context=context)(table_cls)
             table_cls().insert(data, allow_direct_insert=True)
             for name, part_data in parts.items():

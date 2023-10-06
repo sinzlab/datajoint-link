@@ -12,12 +12,10 @@ def test_pulling(
     prepare_table,
     tmpdir,
     create_table,
-    connection_config,
     temp_dj_store_config,
     temp_store,
-    databases,
     minios,
-    configured_environment,
+    act_as,
 ):
     @functools.lru_cache()
     def create_random_binary_file(seed, *, n_bytes=1024):
@@ -45,7 +43,7 @@ def test_pulling(
         "Part2": data_parts["Part2"][:2],
     }
 
-    schema_names, user_specs = prepare_link()
+    schema_names, actors = prepare_link()
     with temp_store(minios["source"]) as source_store_spec, temp_store(minios["local"]) as local_store_spec:
         part_table_definitions = {
             "Part1": f"-> master\nbaz: int\n---\negg: attach@{source_store_spec.name}",
@@ -66,20 +64,12 @@ def test_pulling(
                 f"foo: int\n---\nbar: attach@{source_store_spec.name}",
                 parts=part_table_classes,
             )
-            prepare_table(
-                databases["source"],
-                user_specs["source"],
-                schema_names["source"],
-                table_cls,
-                data=data,
-                parts=data_parts,
-            )
+            with act_as(actors["source"]):
+                prepare_table(schema_names["source"], table_cls, data=data, parts=data_parts)
 
-        with connection_config(databases["local"], user_specs["local"]), configured_environment(
-            user_specs["link"], schema_names["outbound"]
-        ), temp_dj_store_config([source_store_spec, local_store_spec]):
+        with act_as(actors["local"]), temp_dj_store_config([source_store_spec, local_store_spec]):
             local_table_cls = link(
-                databases["source"].container.name,
+                actors["source"].credentials.host,
                 schema_names["source"],
                 schema_names["outbound"],
                 "Outbound",
