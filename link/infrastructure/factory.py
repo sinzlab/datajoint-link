@@ -94,7 +94,7 @@ def create_dj_table_factory(  # noqa: PLR0913
                     if not child.table_name.startswith(parts().table_name + "__"):
                         continue
                     part_definition = child.describe(printout=False).replace(parts().full_table_name, "master")
-                    part_definitions[dj.utils.to_camel_case(child.table_name.split("__")[1])] = part_definition
+                    part_definitions[dj.utils.to_camel_case(child.table_name.split("__")[-1])] = part_definition
             for part_name, part_definition in part_definitions.items():
                 part_definitions[part_name] = replace_stores(part_definition, replacement_stores)
             part_tables: dict[str, type[dj.Part]] = {}

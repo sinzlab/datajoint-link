@@ -1,5 +1,4 @@
 import datajoint as dj
-import pytest
 
 from link import link
 
@@ -50,7 +49,6 @@ def test_local_table_creation_from_source_table_that_uses_current_timestamp_defa
         )(type(source_table_name, (dj.Manual,), {}))
 
 
-@pytest.mark.xfail()
 def test_part_tables_of_computed_source_gets_created_with_correct_name(
     prepare_link, create_table, prepare_table, databases, configured_environment, connection_config
 ):
