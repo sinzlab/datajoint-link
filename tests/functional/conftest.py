@@ -521,7 +521,7 @@ def prepare_table(dj_connection):
             parts = {}
         with dj_connection(database, user) as connection:
             dj.schema(schema, connection=connection, context=context)(table_cls)
-            table_cls().insert(data)
+            table_cls().insert(data, allow_direct_insert=True)
             for name, part_data in parts.items():
                 getattr(table_cls, name).insert(part_data)
 
