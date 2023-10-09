@@ -2,6 +2,7 @@ import functools
 import os
 
 import datajoint as dj
+import pytest
 
 from link import link
 
@@ -84,3 +85,25 @@ def test_pulling(
                 assert len(actual) == len(part_table_expected)
                 assert all(entry in part_table_expected for entry in actual)
             assert local_table_cls().source.proj().fetch(as_dict=True) == [{"foo": 3}]
+
+
+@pytest.mark.xfail()
+def test_tier_prefix_is_ignored_when_matching_parts(prepare_link, act_as, create_table, prepare_table):
+    schema_names, actors = prepare_link()
+    source_table_name = "Foo"
+    data = [{"foo": 1}]
+    data_parts = {"Bar": [{"foo": 1}]}
+    with act_as(actors["source"]):
+        source_table_cls = create_table(
+            source_table_name, dj.Computed, "foo: int", parts=[create_table("Bar", dj.Part, "-> master")]
+        )
+        prepare_table(schema_names["source"], source_table_cls, data=data, parts=data_parts)
+    with act_as(actors["local"]):
+        local_table_cls = link(
+            actors["source"].credentials.host,
+            schema_names["source"],
+            schema_names["outbound"],
+            "Outbound",
+            schema_names["local"],
+        )(type(source_table_name, tuple(), {}))
+        local_table_cls().source.pull()
