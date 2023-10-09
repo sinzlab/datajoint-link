@@ -102,18 +102,13 @@ class DJLinkFacade(AbstractDJLinkFacade):
             assert is_part_table(parent, part)
             return part.table_name[len(parent.table_name) :]
 
+        def get_parts(parent: Table) -> dict[str, Table]:
+            parts = (child for child in parent.children(as_objects=True) if is_part_table(parent, child))
+            return {remove_parent_prefix_from_part_name(parent, part): part for part in parts}
+
         def add_parts_to_local(download_path: str) -> None:
-            local_parts = {
-                remove_parent_prefix_from_part_name(self.local(), child): child
-                for child in self.local().children(as_objects=True)
-                if is_part_table(self.local(), child)
-            }
-            source_parts = {
-                remove_parent_prefix_from_part_name(self.source(), child): child
-                for child in self.source().children(as_objects=True)
-                if is_part_table(self.source(), child)
-            }
-            for source_name, source_part in source_parts.items():
+            local_parts = get_parts(self.local())
+            for source_name, source_part in get_parts(self.source()).items():
                 local_parts[source_name].insert(
                     (source_part & primary_keys).fetch(as_dict=True, download_path=download_path)
                 )
