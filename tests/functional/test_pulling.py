@@ -2,7 +2,6 @@ import functools
 import os
 
 import datajoint as dj
-import pytest
 
 from link import link
 
@@ -87,7 +86,6 @@ def test_pulling(
             assert local_table_cls().source.proj().fetch(as_dict=True) == [{"foo": 3}]
 
 
-@pytest.mark.xfail()
 def test_tier_prefix_is_ignored_when_matching_parts(prepare_link, act_as, create_table, prepare_table):
     schema_names, actors = prepare_link()
     source_table_name = "Foo"
