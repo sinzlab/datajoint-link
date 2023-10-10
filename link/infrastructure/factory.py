@@ -80,6 +80,7 @@ def create_dj_table_factory(  # noqa: PLR0913
     if context is None:
         context = {}
 
+    @functools.lru_cache(maxsize=None)
     def create_dj_table() -> dj.Table:
         spawned_table_classes: dict[str, type[dj.Table]] = {}
         schema_factory().spawn_missing_classes(context=spawned_table_classes)
