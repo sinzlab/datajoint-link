@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Iterable
 
 import pytest
@@ -7,14 +8,9 @@ import pytest
 from link.domain.custom_types import Identifier
 from link.domain.link import create_link
 from link.domain.state import (
-    Commands,
     Components,
-    InvalidOperation,
-    Operations,
     Processes,
     State,
-    Transition,
-    Update,
     states,
 )
 from tests.assignments import create_assignments, create_identifier, create_identifiers
@@ -31,7 +27,7 @@ from tests.assignments import create_assignments, create_identifier, create_iden
         (create_identifier("6"), states.Deprecated, ["start_pull", "start_delete", "process"]),
     ],
 )
-def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: type[State], methods: str) -> None:
+def test_invalid_transitions_returns_unchanged_entity(identifier: Identifier, state: type[State], methods: str) -> None:
     link = create_link(
         create_assignments(
             {
@@ -44,42 +40,29 @@ def test_invalid_transitions_produce_no_updates(identifier: Identifier, state: t
         processes={Processes.PULL: create_identifiers("2", "3")},
     )
     entity = next(entity for entity in link if entity.identifier == identifier)
-    method_operation_map = {
-        "start_pull": Operations.START_PULL,
-        "start_delete": Operations.START_DELETE,
-        "process": Operations.PROCESS,
-    }
-    assert all(
-        getattr(entity, method)() == InvalidOperation(method_operation_map[method], entity.identifier, state)
-        for method in methods
-    )
+    assert all(getattr(entity, method)() == entity for method in methods)
 
 
-def test_start_pulling_idle_entity_returns_correct_commands() -> None:
+def test_start_pulling_idle_entity_returns_correct_entity() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link))
-    assert entity.start_pull() == Update(
-        Operations.START_PULL,
-        create_identifier("1"),
-        Transition(states.Idle, states.Activated),
-        command=Commands.START_PULL_PROCESS,
-    )
+    assert entity.start_pull() == replace(entity, state=states.Activated, current_process=Processes.PULL)
 
 
 @pytest.mark.parametrize(
-    ("process", "tainted_identifiers", "new_state", "command"),
+    ("process", "tainted_identifiers", "new_state", "new_process"),
     [
-        (Processes.PULL, set(), states.Received, Commands.ADD_TO_LOCAL),
-        (Processes.PULL, create_identifiers("1"), states.Deprecated, Commands.DEPRECATE),
-        (Processes.DELETE, set(), states.Idle, Commands.FINISH_DELETE_PROCESS),
-        (Processes.DELETE, create_identifiers("1"), states.Deprecated, Commands.DEPRECATE),
+        (Processes.PULL, set(), states.Received, Processes.PULL),
+        (Processes.PULL, create_identifiers("1"), states.Deprecated, None),
+        (Processes.DELETE, set(), states.Idle, None),
+        (Processes.DELETE, create_identifiers("1"), states.Deprecated, None),
     ],
 )
-def test_processing_activated_entity_returns_correct_commands(
+def test_processing_activated_entity_returns_correct_entity(
     process: Processes,
     tainted_identifiers: Iterable[Identifier],
     new_state: type[State],
-    command: Commands,
+    new_process: Processes | None,
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
@@ -87,25 +70,20 @@ def test_processing_activated_entity_returns_correct_commands(
         tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link))
-    assert entity.process() == Update(
-        Operations.PROCESS,
-        create_identifier("1"),
-        Transition(states.Activated, new_state),
-        command=command,
-    )
+    assert entity.process() == replace(entity, state=new_state, current_process=new_process)
 
 
 @pytest.mark.parametrize(
-    ("process", "tainted_identifiers", "new_state", "command"),
+    ("process", "tainted_identifiers", "new_state", "new_process"),
     [
-        (Processes.PULL, set(), states.Pulled, Commands.FINISH_PULL_PROCESS),
-        (Processes.PULL, create_identifiers("1"), states.Tainted, Commands.FINISH_PULL_PROCESS),
-        (Processes.DELETE, set(), states.Activated, Commands.REMOVE_FROM_LOCAL),
-        (Processes.DELETE, create_identifiers("1"), states.Activated, Commands.REMOVE_FROM_LOCAL),
+        (Processes.PULL, set(), states.Pulled, None),
+        (Processes.PULL, create_identifiers("1"), states.Tainted, None),
+        (Processes.DELETE, set(), states.Activated, Processes.DELETE),
+        (Processes.DELETE, create_identifiers("1"), states.Activated, Processes.DELETE),
     ],
 )
-def test_processing_received_entity_returns_correct_commands(
-    process: Processes, tainted_identifiers: Iterable[Identifier], new_state: type[State], command: Commands
+def test_processing_received_entity_returns_correct_entity(
+    process: Processes, tainted_identifiers: Iterable[Identifier], new_state: type[State], new_process: Processes | None
 ) -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}}),
@@ -113,25 +91,15 @@ def test_processing_received_entity_returns_correct_commands(
         tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link))
-    assert entity.process() == Update(
-        Operations.PROCESS,
-        create_identifier("1"),
-        Transition(states.Received, new_state),
-        command=command,
-    )
+    assert entity.process() == replace(entity, state=new_state, current_process=new_process)
 
 
-def test_starting_delete_on_pulled_entity_returns_correct_commands() -> None:
+def test_starting_delete_on_pulled_entity_returns_correct_entity() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     entity = next(iter(link))
-    assert entity.start_delete() == Update(
-        Operations.START_DELETE,
-        create_identifier("1"),
-        Transition(states.Pulled, states.Received),
-        command=Commands.START_DELETE_PROCESS,
-    )
+    assert entity.start_delete() == replace(entity, state=states.Received, current_process=Processes.DELETE)
 
 
 def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
@@ -140,9 +108,4 @@ def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
         tainted_identifiers={create_identifier("1")},
     )
     entity = next(iter(link))
-    assert entity.start_delete() == Update(
-        Operations.START_DELETE,
-        create_identifier("1"),
-        Transition(states.Tainted, states.Received),
-        command=Commands.START_DELETE_PROCESS,
-    )
+    assert entity.start_delete() == replace(entity, state=states.Received, current_process=Processes.DELETE)

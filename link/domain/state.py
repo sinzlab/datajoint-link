@@ -1,7 +1,7 @@
 """Contains everything state related."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum, auto
 from typing import Optional, Union
 
@@ -12,35 +12,19 @@ class State:
     """An entity's state."""
 
     @classmethod
-    def start_pull(cls, entity: Entity) -> EntityOperationResult:
+    def start_pull(cls, entity: Entity) -> Entity:
         """Return the command needed to start the pull process for the entity."""
-        return cls._create_invalid_operation_result(Operations.START_PULL, entity.identifier)
+        return entity
 
     @classmethod
-    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+    def start_delete(cls, entity: Entity) -> Entity:
         """Return the commands needed to start the delete process for the entity."""
-        return cls._create_invalid_operation_result(Operations.START_DELETE, entity.identifier)
+        return entity
 
     @classmethod
-    def process(cls, entity: Entity) -> EntityOperationResult:
+    def process(cls, entity: Entity) -> Entity:
         """Return the commands needed to process the entity."""
-        return cls._create_invalid_operation_result(Operations.PROCESS, entity.identifier)
-
-    @classmethod
-    def _create_invalid_operation_result(cls, operation: Operations, identifier: Identifier) -> EntityOperationResult:
-        return InvalidOperation(operation, identifier, cls)
-
-    @classmethod
-    def _create_valid_operation_result(
-        cls, operation: Operations, identifier: Identifier, new_state: type[State]
-    ) -> EntityOperationResult:
-        transition = Transition(cls, new_state)
-        return Update(
-            operation,
-            identifier,
-            transition,
-            command=TRANSITION_MAP[transition],
-        )
+        return entity
 
 
 class States:
@@ -66,9 +50,9 @@ class Idle(State):
     """The default state of an entity."""
 
     @classmethod
-    def start_pull(cls, entity: Entity) -> EntityOperationResult:
+    def start_pull(cls, entity: Entity) -> Entity:
         """Return the command needed to start the pull process for an entity."""
-        return cls._create_valid_operation_result(Operations.START_PULL, entity.identifier, Activated)
+        return replace(entity, state=Activated, current_process=Processes.PULL)
 
 
 states.register(Idle)
@@ -78,16 +62,15 @@ class Activated(State):
     """The state of an activated entity."""
 
     @classmethod
-    def process(cls, entity: Entity) -> EntityOperationResult:
+    def process(cls, entity: Entity) -> Entity:
         """Return the commands needed to process an activated entity."""
-        new_state: type[State]
         if entity.is_tainted:
-            new_state = Deprecated
+            return replace(entity, state=Deprecated, current_process=None)
         elif entity.current_process is Processes.PULL:
-            new_state = Received
+            return replace(entity, state=Received)
         elif entity.current_process is Processes.DELETE:
-            new_state = Idle
-        return cls._create_valid_operation_result(Operations.PROCESS, entity.identifier, new_state)
+            return replace(entity, state=Idle, current_process=None)
+        raise RuntimeError
 
 
 states.register(Activated)
@@ -97,17 +80,16 @@ class Received(State):
     """The state of an received entity."""
 
     @classmethod
-    def process(cls, entity: Entity) -> EntityOperationResult:
+    def process(cls, entity: Entity) -> Entity:
         """Return the commands needed to process a received entity."""
-        new_state: type[State]
         if entity.current_process is Processes.PULL:
             if entity.is_tainted:
-                new_state = Tainted
+                return replace(entity, state=Tainted, current_process=None)
             else:
-                new_state = Pulled
+                return replace(entity, state=Pulled, current_process=None)
         elif entity.current_process is Processes.DELETE:
-            new_state = Activated
-        return cls._create_valid_operation_result(Operations.PROCESS, entity.identifier, new_state)
+            return replace(entity, state=Activated)
+        raise RuntimeError
 
 
 states.register(Received)
@@ -117,9 +99,9 @@ class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
     @classmethod
-    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+    def start_delete(cls, entity: Entity) -> Entity:
         """Return the commands needed to start the delete process for the entity."""
-        return cls._create_valid_operation_result(Operations.START_DELETE, entity.identifier, Received)
+        return replace(entity, state=Received, current_process=Processes.DELETE)
 
 
 states.register(Pulled)
@@ -129,9 +111,9 @@ class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
     @classmethod
-    def start_delete(cls, entity: Entity) -> EntityOperationResult:
+    def start_delete(cls, entity: Entity) -> Entity:
         """Return the commands needed to start the delete process for the entity."""
-        return cls._create_valid_operation_result(Operations.START_DELETE, entity.identifier, Received)
+        return replace(entity, state=Received, current_process=Processes.DELETE)
 
 
 states.register(Tainted)
@@ -288,14 +270,14 @@ class Entity:
     current_process: Optional[Processes]
     is_tainted: bool
 
-    def start_pull(self) -> EntityOperationResult:
+    def start_pull(self) -> Entity:
         """Start the pull process for the entity."""
         return self.state.start_pull(self)
 
-    def start_delete(self) -> EntityOperationResult:
+    def start_delete(self) -> Entity:
         """Start the delete process for the entity."""
         return self.state.start_delete(self)
 
-    def process(self) -> EntityOperationResult:
+    def process(self) -> Entity:
         """Process the entity."""
         return self.state.process(self)
