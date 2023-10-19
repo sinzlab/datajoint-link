@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
+from typing import Any, Iterable, Iterator, Mapping, Optional, Set, TypeVar
 
 from .custom_types import Identifier
 from .state import (
@@ -91,8 +91,12 @@ def create_link(
     return Link(entity_assignments[Components.SOURCE])
 
 
-class Link(FrozenSet[Entity]):
+class Link(Set[Entity]):
     """The state of a link between two databases."""
+
+    def __init__(self, entities: Iterable[Entity]) -> None:
+        """Initialize the link."""
+        self._entities = set(entities)
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
@@ -136,6 +140,18 @@ class Link(FrozenSet[Entity]):
     def _validate_requested(self, requested: Iterable[Identifier]) -> None:
         assert requested, "No identifiers requested."
         assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
+
+    def __contains__(self, entity: object) -> bool:
+        """Check if the link contains the given entity."""
+        return entity in self._entities
+
+    def __iter__(self) -> Iterator[Entity]:
+        """Iterate over all entities in the link."""
+        return iter(self._entities)
+
+    def __len__(self) -> int:
+        """Return the number of entities in the link."""
+        return len(self._entities)
 
 
 @dataclass(frozen=True)
