@@ -6,8 +6,8 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from link.domain.custom_types import Identifier
-from link.domain.link import Link, create_link, process, start_delete, start_pull
-from link.domain.state import Components, Processes, State, states
+from link.domain.link import Link, create_link
+from link.domain.state import Components, Operations, Processes, State, states
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
@@ -183,7 +183,7 @@ def test_process_produces_correct_updates() -> None:
     )
     actual = {
         (update.identifier, update.transition.new)
-        for update in process(link, requested=create_identifiers("1", "2", "3", "4")).updates
+        for update in link.apply(Operations.PROCESS, requested=create_identifiers("1", "2", "3", "4")).updates
     }
     expected = {
         (create_identifier("1"), states.Received),
@@ -202,7 +202,7 @@ class TestStartPull:
 
     @staticmethod
     def test_idle_entity_becomes_activated(link: Link) -> None:
-        result = start_pull(link, requested=create_identifiers("1"))
+        result = link.apply(Operations.START_PULL, requested=create_identifiers("1"))
         update = next(iter(result.updates))
         assert update.identifier == create_identifier("1")
         assert update.transition.new is states.Activated
@@ -210,12 +210,12 @@ class TestStartPull:
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="No identifiers requested."):
-            start_pull(link, requested={})
+            link.apply(Operations.START_PULL, requested={})
 
     @staticmethod
     def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            start_pull(link, requested=create_identifiers("2"))
+            link.apply(Operations.START_PULL, requested=create_identifiers("2"))
 
 
 @pytest.fixture()
@@ -228,7 +228,7 @@ def link() -> Link:
 class TestStartDelete:
     @staticmethod
     def test_pulled_entity_becomes_received(link: Link) -> None:
-        result = start_delete(link, requested=create_identifiers("1"))
+        result = link.apply(Operations.START_DELETE, requested=create_identifiers("1"))
         update = next(iter(result.updates))
         assert {update.identifier} == create_identifiers("1")
         assert update.transition.new is states.Received
@@ -236,9 +236,9 @@ class TestStartDelete:
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="No identifiers requested."):
-            start_delete(link, requested={})
+            link.apply(Operations.START_DELETE, requested={})
 
     @staticmethod
     def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            start_delete(link, requested=create_identifiers("2"))
+            link.apply(Operations.START_DELETE, requested=create_identifiers("2"))

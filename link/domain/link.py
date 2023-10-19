@@ -99,6 +99,44 @@ class Link(FrozenSet[Entity]):
         """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
 
+    def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> LinkOperationResult:
+        """Apply an operation to the requested entities."""
+        if operation is Operations.START_PULL:
+            return self._start_pull(requested)
+        if operation is Operations.START_DELETE:
+            return self._start_delete(requested)
+        if operation is Operations.PROCESS:
+            return self._process(requested)
+
+    def _process(self, requested: Iterable[Identifier]) -> LinkOperationResult:
+        """Process all entities in the link producing appropriate updates."""
+        self._validate_requested(requested)
+        return create_link_operation_result(
+            entity.apply(Operations.PROCESS).operation_results[0] for entity in self if entity.identifier in requested
+        )
+
+    def _start_delete(self, requested: Iterable[Identifier]) -> LinkOperationResult:
+        """Start the delete process on the requested entities."""
+        self._validate_requested(requested)
+        return create_link_operation_result(
+            entity.apply(Operations.START_DELETE).operation_results[0]
+            for entity in self
+            if entity.identifier in requested
+        )
+
+    def _start_pull(self, requested: Iterable[Identifier]) -> LinkOperationResult:
+        """Start the pull process on the requested entities."""
+        self._validate_requested(requested)
+        return create_link_operation_result(
+            entity.apply(Operations.START_PULL).operation_results[0]
+            for entity in self
+            if entity.identifier in requested
+        )
+
+    def _validate_requested(self, requested: Iterable[Identifier]) -> None:
+        assert requested, "No identifiers requested."
+        assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
+
 
 @dataclass(frozen=True)
 class LinkOperationResult:
@@ -123,33 +161,4 @@ def create_link_operation_result(results: Iterable[EntityOperationResult]) -> Li
         operation,
         updates=frozenset(result for result in results if isinstance(result, Update)),
         errors=frozenset(result for result in results if isinstance(result, InvalidOperation)),
-    )
-
-
-def process(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
-    """Process all entities in the link producing appropriate updates."""
-    _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.apply(Operations.PROCESS).operation_results[0] for entity in link if entity.identifier in requested
-    )
-
-
-def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
-    assert requested, "No identifiers requested."
-    assert set(requested) <= link.identifiers, "Requested identifiers not present in link."
-
-
-def start_pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
-    """Start the pull process on the requested entities."""
-    _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.apply(Operations.START_PULL).operation_results[0] for entity in link if entity.identifier in requested
-    )
-
-
-def start_delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
-    """Start the delete process on the requested entities."""
-    _validate_requested(link, requested)
-    return create_link_operation_result(
-        entity.apply(Operations.START_DELETE).operation_results[0] for entity in link if entity.identifier in requested
     )

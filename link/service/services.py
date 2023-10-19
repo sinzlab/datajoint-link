@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 from link.domain.custom_types import Identifier
-from link.domain.link import process as process_domain_service
-from link.domain.link import start_delete, start_pull
 from link.domain.state import InvalidOperation, Operations, Update, states
 
 from .gateway import LinkGateway
@@ -129,7 +127,7 @@ def start_pull_process(
     output_port: Callable[[OperationResponse], None],
 ) -> None:
     """Start the pull process for the requested entities."""
-    result = start_pull(link_gateway.create_link(), requested=request.requested)
+    result = link_gateway.create_link().apply(Operations.START_PULL, requested=request.requested)
     link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
@@ -148,7 +146,7 @@ def start_delete_process(
     output_port: Callable[[OperationResponse], None],
 ) -> None:
     """Start the delete process for the requested entities."""
-    result = start_delete(link_gateway.create_link(), requested=request.requested)
+    result = link_gateway.create_link().apply(Operations.START_DELETE, requested=request.requested)
     link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
@@ -164,7 +162,7 @@ def process(
     request: ProcessRequest, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
 ) -> None:
     """Process entities."""
-    result = process_domain_service(link_gateway.create_link(), requested=request.requested)
+    result = link_gateway.create_link().apply(Operations.PROCESS, requested=request.requested)
     link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
