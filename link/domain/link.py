@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable, Iterator, Mapping, Optional, Set, TypeVar
+from typing import Any, Iterable, Iterator, Mapping, Optional, Set, Tuple, TypeVar
 
 from .custom_types import Identifier
 from .state import (
@@ -94,14 +94,22 @@ def create_link(
 class Link(Set[Entity]):
     """The state of a link between two databases."""
 
-    def __init__(self, entities: Iterable[Entity]) -> None:
+    def __init__(
+        self, entities: Iterable[Entity], operation_results: Tuple[LinkOperationResult, ...] = tuple()
+    ) -> None:
         """Initialize the link."""
         self._entities = set(entities)
+        self._operation_results = operation_results
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
         """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
+
+    @property
+    def operation_results(self) -> Tuple[LinkOperationResult, ...]:
+        """Return the results of operations performed on this link."""
+        return self._operation_results
 
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> LinkOperationResult:
         """Apply an operation to the requested entities."""
