@@ -7,7 +7,6 @@ from typing import Any, FrozenSet, Iterable, Mapping, Optional, TypeVar
 from .custom_types import Identifier
 from .state import (
     STATE_MAP,
-    TRANSITION_MAP,
     Components,
     Entity,
     EntityOperationResult,
@@ -15,7 +14,6 @@ from .state import (
     Operations,
     PersistentState,
     Processes,
-    Transition,
     Update,
 )
 
@@ -132,7 +130,7 @@ def process(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResu
     """Process all entities in the link producing appropriate updates."""
     _validate_requested(link, requested)
     return create_link_operation_result(
-        _create_update(entity, Operations.PROCESS) for entity in link if entity.identifier in requested
+        entity.apply(Operations.PROCESS).operation_results[0] for entity in link if entity.identifier in requested
     )
 
 
@@ -141,19 +139,11 @@ def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
     assert set(requested) <= link.identifiers, "Requested identifiers not present in link."
 
 
-def _create_update(current: Entity, operation: Operations) -> EntityOperationResult:
-    new = current.apply(operation)
-    if current.state is new.state:
-        return InvalidOperation(operation, current.identifier, current.state)
-    transition = Transition(current.state, new.state)
-    return Update(operation, current.identifier, transition, TRANSITION_MAP[transition])
-
-
 def start_pull(link: Link, *, requested: Iterable[Identifier]) -> LinkOperationResult:
     """Start the pull process on the requested entities."""
     _validate_requested(link, requested)
     return create_link_operation_result(
-        _create_update(entity, Operations.START_PULL) for entity in link if entity.identifier in requested
+        entity.apply(Operations.START_PULL).operation_results[0] for entity in link if entity.identifier in requested
     )
 
 
@@ -161,5 +151,5 @@ def start_delete(link: Link, *, requested: Iterable[Identifier]) -> LinkOperatio
     """Start the delete process on the requested entities."""
     _validate_requested(link, requested)
     return create_link_operation_result(
-        _create_update(entity, Operations.START_DELETE) for entity in link if entity.identifier in requested
+        entity.apply(Operations.START_DELETE).operation_results[0] for entity in link if entity.identifier in requested
     )
