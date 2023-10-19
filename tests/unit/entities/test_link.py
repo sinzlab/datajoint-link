@@ -79,7 +79,7 @@ class TestCreateLink:
             (create_identifier("2"), Processes.DELETE),
             (create_identifier("3"), Processes.PULL),
             (create_identifier("4"), Processes.DELETE),
-            (create_identifier("5"), None),
+            (create_identifier("5"), Processes.NONE),
         }
         assert {(entity.identifier, entity.current_process) for entity in link} == set(expected)
 

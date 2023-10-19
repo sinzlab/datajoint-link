@@ -70,8 +70,9 @@ def create_link(
             return Entity(
                 identifier,
                 state=state,
-                current_process=processes_map.get(identifier),
+                current_process=processes_map.get(identifier, Processes.NONE),
                 is_tainted=is_tainted(identifier),
+                operation_results=tuple(),
             )
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
