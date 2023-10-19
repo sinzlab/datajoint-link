@@ -270,14 +270,23 @@ class Entity:
     current_process: Optional[Processes]
     is_tainted: bool
 
-    def start_pull(self) -> Entity:
+    def apply(self, operation: Operations) -> Entity:
+        """Apply an operation to the entity."""
+        if operation is Operations.START_PULL:
+            return self._start_pull()
+        if operation is Operations.START_DELETE:
+            return self._start_delete()
+        if operation is Operations.PROCESS:
+            return self._process()
+
+    def _start_pull(self) -> Entity:
         """Start the pull process for the entity."""
         return self.state.start_pull(self)
 
-    def start_delete(self) -> Entity:
+    def _start_delete(self) -> Entity:
         """Start the delete process for the entity."""
         return self.state.start_delete(self)
 
-    def process(self) -> Entity:
+    def _process(self) -> Entity:
         """Process the entity."""
         return self.state.process(self)

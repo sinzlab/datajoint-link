@@ -141,12 +141,7 @@ def _validate_requested(link: Link, requested: Iterable[Identifier]) -> None:
 
 
 def _create_update(current: Entity, operation: Operations) -> EntityOperationResult:
-    operations_map = {
-        Operations.START_PULL: "start_pull",
-        Operations.START_DELETE: "start_delete",
-        Operations.PROCESS: "process",
-    }
-    new = getattr(current, operations_map[operation])()
+    new = current.apply(operation)
     if current.state is new.state:
         return InvalidOperation(operation, current.identifier, current.state)
     transition = Transition(current.state, new.state)
