@@ -113,41 +113,22 @@ class Link(Set[Entity]):
 
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> LinkOperationResult:
         """Apply an operation to the requested entities."""
-        if operation is Operations.START_PULL:
-            return self._start_pull(requested)
-        if operation is Operations.START_DELETE:
-            return self._start_delete(requested)
-        if operation is Operations.PROCESS:
-            return self._process(requested)
 
-    def _process(self, requested: Iterable[Identifier]) -> LinkOperationResult:
-        """Process all entities in the link producing appropriate updates."""
-        self._validate_requested(requested)
-        return create_link_operation_result(
-            entity.apply(Operations.PROCESS).operation_results[0] for entity in self if entity.identifier in requested
-        )
+        def create_operation_result(results: Iterable[EntityOperationResult]) -> LinkOperationResult:
+            """Create the result of an operation on a link from results of individual entities."""
+            results = set(results)
+            operation = next(iter(results)).operation
+            return LinkOperationResult(
+                operation,
+                updates=frozenset(result for result in results if isinstance(result, Update)),
+                errors=frozenset(result for result in results if isinstance(result, InvalidOperation)),
+            )
 
-    def _start_delete(self, requested: Iterable[Identifier]) -> LinkOperationResult:
-        """Start the delete process on the requested entities."""
-        self._validate_requested(requested)
-        return create_link_operation_result(
-            entity.apply(Operations.START_DELETE).operation_results[0]
-            for entity in self
-            if entity.identifier in requested
-        )
-
-    def _start_pull(self, requested: Iterable[Identifier]) -> LinkOperationResult:
-        """Start the pull process on the requested entities."""
-        self._validate_requested(requested)
-        return create_link_operation_result(
-            entity.apply(Operations.START_PULL).operation_results[0]
-            for entity in self
-            if entity.identifier in requested
-        )
-
-    def _validate_requested(self, requested: Iterable[Identifier]) -> None:
         assert requested, "No identifiers requested."
         assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
+        return create_operation_result(
+            entity.apply(operation).operation_results[0] for entity in self if entity.identifier in requested
+        )
 
     def __contains__(self, entity: object) -> bool:
         """Check if the link contains the given entity."""
@@ -175,14 +156,3 @@ class LinkOperationResult:
         assert all(
             result.operation is self.operation for result in (self.updates | self.errors)
         ), "Not all results have same operation."
-
-
-def create_link_operation_result(results: Iterable[EntityOperationResult]) -> LinkOperationResult:
-    """Create the result of an operation on a link from results of individual entities."""
-    results = set(results)
-    operation = next(iter(results)).operation
-    return LinkOperationResult(
-        operation,
-        updates=frozenset(result for result in results if isinstance(result, Update)),
-        errors=frozenset(result for result in results if isinstance(result, InvalidOperation)),
-    )
