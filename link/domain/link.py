@@ -111,7 +111,7 @@ class Link(Set[Entity]):
         """Return the results of operations performed on this link."""
         return self._operation_results
 
-    def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> LinkOperationResult:
+    def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
 
         def create_operation_result(results: Iterable[EntityOperationResult]) -> LinkOperationResult:
@@ -126,9 +126,12 @@ class Link(Set[Entity]):
 
         assert requested, "No identifiers requested."
         assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
-        return create_operation_result(
-            entity.apply(operation).operation_results[0] for entity in self if entity.identifier in requested
+        changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
+        unchanged = {entity for entity in self if entity.identifier not in requested}
+        operation_results = self.operation_results + (
+            create_operation_result(entity.operation_results[0] for entity in changed),
         )
+        return Link(changed | unchanged, operation_results)
 
     def __contains__(self, entity: object) -> bool:
         """Check if the link contains the given entity."""

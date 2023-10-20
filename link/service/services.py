@@ -127,7 +127,7 @@ def start_pull_process(
     output_port: Callable[[OperationResponse], None],
 ) -> None:
     """Start the pull process for the requested entities."""
-    result = link_gateway.create_link().apply(Operations.START_PULL, requested=request.requested)
+    result = link_gateway.create_link().apply(Operations.START_PULL, requested=request.requested).operation_results[0]
     link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
@@ -146,7 +146,7 @@ def start_delete_process(
     output_port: Callable[[OperationResponse], None],
 ) -> None:
     """Start the delete process for the requested entities."""
-    result = link_gateway.create_link().apply(Operations.START_DELETE, requested=request.requested)
+    result = link_gateway.create_link().apply(Operations.START_DELETE, requested=request.requested).operation_results[0]
     link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
@@ -162,7 +162,7 @@ def process(
     request: ProcessRequest, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
 ) -> None:
     """Process entities."""
-    result = link_gateway.create_link().apply(Operations.PROCESS, requested=request.requested)
+    result = link_gateway.create_link().apply(Operations.PROCESS, requested=request.requested).operation_results[0]
     link_gateway.apply(result.updates)
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 

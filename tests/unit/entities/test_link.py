@@ -167,7 +167,7 @@ class TestLink:
         assert set(link.identifiers) == create_identifiers("1", "2")
 
 
-def test_process_produces_correct_updates() -> None:
+def test_link_is_processed_correctly() -> None:
     link = create_link(
         create_assignments(
             {
@@ -182,14 +182,15 @@ def test_process_produces_correct_updates() -> None:
         },
     )
     actual = {
-        (update.identifier, update.transition.new)
-        for update in link.apply(Operations.PROCESS, requested=create_identifiers("1", "2", "3", "4")).updates
+        (entity.identifier, entity.state)
+        for entity in link.apply(Operations.PROCESS, requested=create_identifiers("1", "2", "3", "4"))
     }
     expected = {
         (create_identifier("1"), states.Received),
         (create_identifier("2"), states.Pulled),
         (create_identifier("3"), states.Idle),
         (create_identifier("4"), states.Activated),
+        (create_identifier("5"), states.Received),
     }
     assert actual == expected
 
@@ -202,10 +203,10 @@ class TestStartPull:
 
     @staticmethod
     def test_idle_entity_becomes_activated(link: Link) -> None:
-        result = link.apply(Operations.START_PULL, requested=create_identifiers("1"))
-        update = next(iter(result.updates))
-        assert update.identifier == create_identifier("1")
-        assert update.transition.new is states.Activated
+        link = link.apply(Operations.START_PULL, requested=create_identifiers("1"))
+        entity = next(iter(link))
+        assert entity.identifier == create_identifier("1")
+        assert entity.state is states.Activated
 
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
@@ -228,10 +229,10 @@ def link() -> Link:
 class TestStartDelete:
     @staticmethod
     def test_pulled_entity_becomes_received(link: Link) -> None:
-        result = link.apply(Operations.START_DELETE, requested=create_identifiers("1"))
-        update = next(iter(result.updates))
-        assert {update.identifier} == create_identifiers("1")
-        assert update.transition.new is states.Received
+        link = link.apply(Operations.START_DELETE, requested=create_identifiers("1"))
+        entity = next(iter(link))
+        assert entity.identifier == create_identifier("1")
+        assert entity.state is states.Received
 
     @staticmethod
     def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
