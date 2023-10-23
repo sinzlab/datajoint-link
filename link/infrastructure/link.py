@@ -24,6 +24,7 @@ from link.service.services import (
     start_delete_process,
     start_pull_process,
 )
+from link.service.uow import UnitOfWork
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
@@ -54,17 +55,16 @@ def create_link(  # noqa: PLR0913
         )
         facade = DJLinkFacade(tables.source, tables.outbound, tables.local)
         gateway = DJLinkGateway(facade, translator)
+        uow = UnitOfWork(gateway)
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         operation_presenter = create_operation_response_presenter(translator, create_operation_logger())
-        process_service = partial(
-            make_responsive(partial(process, link_gateway=gateway)), output_port=operation_presenter
-        )
+        process_service = partial(make_responsive(partial(process, uow=uow)), output_port=operation_presenter)
         start_pull_process_service = partial(
-            make_responsive(partial(start_pull_process, link_gateway=gateway)), output_port=operation_presenter
+            make_responsive(partial(start_pull_process, uow=uow)), output_port=operation_presenter
         )
         start_delete_process_service = partial(
-            make_responsive(partial(start_delete_process, link_gateway=gateway)), output_port=operation_presenter
+            make_responsive(partial(start_delete_process, uow=uow)), output_port=operation_presenter
         )
         process_to_completion_service = partial(
             make_responsive(partial(process_to_completion, process_service=process_service)), output_port=lambda x: None
@@ -82,10 +82,8 @@ def create_link(  # noqa: PLR0913
                 start_delete_process_service=start_delete_process_service,
                 output_port=lambda x: None,
             ),
-            Services.PROCESS: partial(process, link_gateway=gateway, output_port=operation_presenter),
-            Services.LIST_IDLE_ENTITIES: partial(
-                list_idle_entities, link_gateway=gateway, output_port=idle_entities_updater
-            ),
+            Services.PROCESS: partial(process, uow=uow, output_port=operation_presenter),
+            Services.LIST_IDLE_ENTITIES: partial(list_idle_entities, uow=uow, output_port=idle_entities_updater),
         }
         controller = DJController(handlers, translator)
         source_restriction.callback = controller.list_idle_entities
