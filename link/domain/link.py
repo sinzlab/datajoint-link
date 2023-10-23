@@ -129,7 +129,7 @@ class Link(Set[Entity]):
         changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
         unchanged = {entity for entity in self if entity.identifier not in requested}
         operation_results = self.operation_results + (
-            create_operation_result(entity.operation_results[0] for entity in changed),
+            create_operation_result(entity.operation_results[-1] for entity in changed),
         )
         return Link(changed | unchanged, operation_results)
 

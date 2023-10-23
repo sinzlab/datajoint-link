@@ -30,12 +30,14 @@ class UnitOfWork(ABC):
             apply = getattr(entity, "apply")
             augmented = augment_apply(entity, apply)
             object.__setattr__(entity, "apply", augmented)
+            object.__setattr__(entity, "_is_expired", False)
             self._entities[entity.identifier] = entity
 
         def augment_apply(current: Entity, apply: Callable[[Operations], Entity]) -> Callable[[Operations], Entity]:
             def track_and_apply(operation: Operations) -> Entity:
-                if self._link is None:
-                    raise RuntimeError
+                assert hasattr(current, "_is_expired")
+                if current._is_expired is True:
+                    raise RuntimeError("Can not apply operation to expired entity")
                 new = apply(operation)
                 store_update(operation, current, new)
                 track_entity(new)
@@ -68,7 +70,7 @@ class UnitOfWork(ABC):
     def link(self) -> Link:
         """Return the link object that is governed by this unit of work."""
         if self._link is None:
-            raise RuntimeError
+            raise RuntimeError("Not available outside of context")
         return self._link
 
     def commit(self) -> None:
@@ -77,10 +79,12 @@ class UnitOfWork(ABC):
             identifier, updates = self._updates.popitem()
             while updates:
                 self._gateway.apply([updates.popleft()])
-        self._link = None
+        self.rollback()
 
     def rollback(self) -> None:
         """Throw away any not yet persisted updates."""
         self._link = None
+        for entity in self._entities.values():
+            object.__setattr__(entity, "_is_expired", True)
         self._entities = {}
         self._updates = defaultdict(deque)
