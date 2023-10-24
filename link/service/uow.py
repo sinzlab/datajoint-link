@@ -4,13 +4,20 @@ from __future__ import annotations
 from abc import ABC
 from collections import defaultdict, deque
 from types import TracebackType
-from typing import Callable
+from typing import Callable, Iterable, Protocol
 
 from link.domain.custom_types import Identifier
 from link.domain.link import Link
 from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition, Update
 
 from .gateway import LinkGateway
+
+
+class SupportsLinkApply(Protocol):
+    """Protocol for an object that supports applying operations to links."""
+
+    def __call__(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
+        """Apply the operation to the link."""
 
 
 class UnitOfWork(ABC):
@@ -21,29 +28,48 @@ class UnitOfWork(ABC):
         self._gateway = gateway
         self._link: Link | None = None
         self._updates: dict[Identifier, deque[Update]] = defaultdict(deque)
-        self._entities: dict[Identifier, Entity] = {}
 
     def __enter__(self) -> UnitOfWork:
         """Enter the context in which updates to entities can be made."""
 
-        def track_entity(entity: Entity) -> None:
-            apply = getattr(entity, "apply")
-            augmented = augment_apply(entity, apply)
+        def augment_link(link: Link) -> None:
+            original = getattr(link, "apply")
+            augmented = augment_link_apply(link, original)
+            object.__setattr__(link, "apply", augmented)
+            object.__setattr__(link, "_is_expired", False)
+
+        def augment_link_apply(current: Link, original: SupportsLinkApply) -> SupportsLinkApply:
+            def augmented(operation: Operations, *, requested: Iterable[Identifier]) -> Link:
+                assert hasattr(current, "_is_expired")
+                if current._is_expired:
+                    raise RuntimeError("Can not apply operation to expired link")
+                self._link = original(operation, requested=requested)
+                augment_link(self._link)
+                object.__setattr__(current, "_is_expired", True)
+                return self._link
+
+            return augmented
+
+        def augment_entity(entity: Entity) -> None:
+            original = getattr(entity, "apply")
+            augmented = augment_entity_apply(entity, original)
             object.__setattr__(entity, "apply", augmented)
             object.__setattr__(entity, "_is_expired", False)
-            self._entities[entity.identifier] = entity
 
-        def augment_apply(current: Entity, apply: Callable[[Operations], Entity]) -> Callable[[Operations], Entity]:
-            def track_and_apply(operation: Operations) -> Entity:
+        def augment_entity_apply(
+            current: Entity, original: Callable[[Operations], Entity]
+        ) -> Callable[[Operations], Entity]:
+            def augmented(operation: Operations) -> Entity:
                 assert hasattr(current, "_is_expired")
                 if current._is_expired is True:
                     raise RuntimeError("Can not apply operation to expired entity")
-                new = apply(operation)
+                new = original(operation)
                 store_update(operation, current, new)
-                track_entity(new)
+                augment_entity(new)
+                object.__setattr__(current, "_is_expired", True)
                 return new
 
-            return track_and_apply
+            return augmented
 
         def store_update(operation: Operations, current: Entity, new: Entity) -> None:
             assert current.identifier == new.identifier
@@ -54,10 +80,10 @@ class UnitOfWork(ABC):
                 Update(operation, current.identifier, transition, TRANSITION_MAP[transition])
             )
 
-        link = self._gateway.create_link()
-        for entity in link:
-            track_entity(entity)
-        self._link = link
+        self._link = self._gateway.create_link()
+        augment_link(self._link)
+        for entity in self._link:
+            augment_entity(entity)
         return self
 
     def __exit__(
@@ -65,6 +91,7 @@ class UnitOfWork(ABC):
     ) -> None:
         """Exit the context rolling back any not yet persisted updates."""
         self.rollback()
+        self._link = None
 
     @property
     def link(self) -> Link:
@@ -75,6 +102,8 @@ class UnitOfWork(ABC):
 
     def commit(self) -> None:
         """Persist updates made to the link."""
+        if self._link is None:
+            raise RuntimeError("Not available outside of context")
         while self._updates:
             identifier, updates = self._updates.popitem()
             while updates:
@@ -83,8 +112,9 @@ class UnitOfWork(ABC):
 
     def rollback(self) -> None:
         """Throw away any not yet persisted updates."""
-        self._link = None
-        for entity in self._entities.values():
+        if self._link is None:
+            raise RuntimeError("Not available outside of context")
+        object.__setattr__(self._link, "_is_expired", True)
+        for entity in self._link:
             object.__setattr__(entity, "_is_expired", True)
-        self._entities = {}
-        self._updates = defaultdict(deque)
+        self._updates.clear()
