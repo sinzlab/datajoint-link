@@ -6,11 +6,9 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 from link.domain.custom_types import Identifier
-from link.domain.link import process as process_domain_service
-from link.domain.link import start_delete, start_pull
 from link.domain.state import InvalidOperation, Operations, Update, states
 
-from .gateway import LinkGateway
+from .uow import UnitOfWork
 
 
 class Request:
@@ -125,12 +123,13 @@ class StartPullProcessRequest(Request):
 def start_pull_process(
     request: StartPullProcessRequest,
     *,
-    link_gateway: LinkGateway,
+    uow: UnitOfWork,
     output_port: Callable[[OperationResponse], None],
 ) -> None:
     """Start the pull process for the requested entities."""
-    result = start_pull(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
+    with uow:
+        result = uow.link.apply(Operations.START_PULL, requested=request.requested).operation_results[0]
+        uow.commit()
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
@@ -144,12 +143,13 @@ class StartDeleteProcessRequest(Request):
 def start_delete_process(
     request: StartDeleteProcessRequest,
     *,
-    link_gateway: LinkGateway,
+    uow: UnitOfWork,
     output_port: Callable[[OperationResponse], None],
 ) -> None:
     """Start the delete process for the requested entities."""
-    result = start_delete(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
+    with uow:
+        result = uow.link.apply(Operations.START_DELETE, requested=request.requested).operation_results[0]
+        uow.commit()
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
@@ -160,12 +160,11 @@ class ProcessRequest(Request):
     requested: frozenset[Identifier]
 
 
-def process(
-    request: ProcessRequest, *, link_gateway: LinkGateway, output_port: Callable[[OperationResponse], None]
-) -> None:
+def process(request: ProcessRequest, *, uow: UnitOfWork, output_port: Callable[[OperationResponse], None]) -> None:
     """Process entities."""
-    result = process_domain_service(link_gateway.create_link(), requested=request.requested)
-    link_gateway.apply(result.updates)
+    with uow:
+        result = uow.link.apply(Operations.PROCESS, requested=request.requested).operation_results[0]
+        uow.commit()
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
 
@@ -184,15 +183,14 @@ class ListIdleEntitiesResponse(Response):
 def list_idle_entities(
     request: ListIdleEntitiesRequest,
     *,
-    link_gateway: LinkGateway,
+    uow: UnitOfWork,
     output_port: Callable[[ListIdleEntitiesResponse], None],
 ) -> None:
     """List all idle entities."""
-    output_port(
-        ListIdleEntitiesResponse(
-            frozenset(entity.identifier for entity in link_gateway.create_link() if entity.state is states.Idle)
+    with uow:
+        output_port(
+            ListIdleEntitiesResponse(frozenset(entity.identifier for entity in uow.link if entity.state is states.Idle))
         )
-    )
 
 
 class Services(Enum):
