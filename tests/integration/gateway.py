@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Iterable
 
+from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.link import Link, create_link
-from link.domain.state import Commands, Components, Processes, Update
+from link.domain.state import Commands, Components, Processes
 from link.service.gateway import LinkGateway
 
 
@@ -27,7 +28,7 @@ class FakeLinkGateway(LinkGateway):
     def create_link(self) -> Link:
         return create_link(self.assignments, tainted_identifiers=self.tainted_identifiers, processes=self.processes)
 
-    def apply(self, updates: Iterable[Update]) -> None:
+    def apply(self, updates: Iterable[events.Update]) -> None:
         for update in updates:
             if update.command is Commands.START_PULL_PROCESS:
                 self.processes[Processes.PULL].add(update.identifier)

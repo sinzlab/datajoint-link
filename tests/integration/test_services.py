@@ -6,7 +6,8 @@ from typing import Generic, TypedDict, TypeVar
 
 import pytest
 
-from link.domain.state import Components, InvalidOperation, Operations, Processes, State, states
+from link.domain import events
+from link.domain.state import Components, Operations, Processes, State, states
 from link.service.io import Service, make_responsive
 from link.service.services import (
     DeleteRequest,
@@ -230,7 +231,7 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
 def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityConfig, produces_error: bool) -> None:
     if produces_error:
         errors = {
-            InvalidOperation(
+            events.InvalidOperation(
                 operation=Operations.START_PULL, identifier=create_identifier("1"), state=states.Deprecated
             )
         }

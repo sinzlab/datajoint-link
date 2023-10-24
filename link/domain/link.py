@@ -4,17 +4,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, Iterator, Mapping, Optional, Set, Tuple, TypeVar
 
+from . import events
 from .custom_types import Identifier
 from .state import (
     STATE_MAP,
     Components,
     Entity,
-    EntityOperationResult,
-    InvalidOperation,
     Operations,
     PersistentState,
     Processes,
-    Update,
 )
 
 
@@ -114,14 +112,14 @@ class Link(Set[Entity]):
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
 
-        def create_operation_result(results: Iterable[EntityOperationResult]) -> LinkOperationResult:
+        def create_operation_result(results: Iterable[events.Event]) -> LinkOperationResult:
             """Create the result of an operation on a link from results of individual entities."""
             results = set(results)
             operation = next(iter(results)).operation
             return LinkOperationResult(
                 operation,
-                updates=frozenset(result for result in results if isinstance(result, Update)),
-                errors=frozenset(result for result in results if isinstance(result, InvalidOperation)),
+                updates=frozenset(result for result in results if isinstance(result, events.Update)),
+                errors=frozenset(result for result in results if isinstance(result, events.InvalidOperation)),
             )
 
         assert requested, "No identifiers requested."
@@ -151,8 +149,8 @@ class LinkOperationResult:
     """Represents the result of an operation on all entities of a link."""
 
     operation: Operations
-    updates: frozenset[Update]
-    errors: frozenset[InvalidOperation]
+    updates: frozenset[events.Update]
+    errors: frozenset[events.InvalidOperation]
 
     def __post_init__(self) -> None:
         """Validate the result."""

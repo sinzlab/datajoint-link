@@ -4,9 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from enum import Enum, auto
 from functools import partial
-from typing import Union
 
 from .custom_types import Identifier
+from .events import Event, InvalidOperation, Update
 
 
 class State:
@@ -191,28 +191,6 @@ class Operations(Enum):
     PROCESS = auto()
 
 
-@dataclass(frozen=True)
-class Update:
-    """Represents the persistent update needed to transition an entity."""
-
-    operation: Operations
-    identifier: Identifier
-    transition: Transition
-    command: Commands
-
-
-@dataclass(frozen=True)
-class InvalidOperation:
-    """Represents the result of attempting an operation that is invalid in the entity's current state."""
-
-    operation: Operations
-    identifier: Identifier
-    state: type[State]
-
-
-EntityOperationResult = Union[Update, InvalidOperation]
-
-
 class Processes(Enum):
     """Names for processes that pull/delete entities into/from the local side."""
 
@@ -290,7 +268,7 @@ class Entity:
     state: type[State]
     current_process: Processes
     is_tainted: bool
-    operation_results: tuple[EntityOperationResult, ...]
+    operation_results: tuple[Event, ...]
 
     def apply(self, operation: Operations) -> Entity:
         """Apply an operation to the entity."""

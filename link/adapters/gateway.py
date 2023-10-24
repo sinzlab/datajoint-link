@@ -5,9 +5,10 @@ from collections import defaultdict
 from itertools import groupby
 from typing import Iterable
 
+from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.link import Link, create_link
-from link.domain.state import Commands, Components, Processes, Update
+from link.domain.state import Commands, Components, Processes
 from link.service.gateway import LinkGateway
 
 from .custom_types import PrimaryKey
@@ -51,10 +52,10 @@ class DJLinkGateway(LinkGateway):
             tainted_identifiers=translate_tainted_primary_keys(self.facade.get_tainted_primary_keys()),
         )
 
-    def apply(self, updates: Iterable[Update]) -> None:
+    def apply(self, updates: Iterable[events.Update]) -> None:
         """Apply updates to the persistent data representing the link."""
 
-        def keyfunc(update: Update) -> int:
+        def keyfunc(update: events.Update) -> int:
             assert update.command is not None
             return update.command.value
 

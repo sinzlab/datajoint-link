@@ -6,9 +6,10 @@ from collections import defaultdict, deque
 from types import TracebackType
 from typing import Callable, Iterable, Protocol
 
+from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.link import Link
-from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition, Update
+from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition
 
 from .gateway import LinkGateway
 
@@ -27,7 +28,7 @@ class UnitOfWork(ABC):
         """Initialize the unit of work."""
         self._gateway = gateway
         self._link: Link | None = None
-        self._updates: dict[Identifier, deque[Update]] = defaultdict(deque)
+        self._updates: dict[Identifier, deque[events.Update]] = defaultdict(deque)
 
     def __enter__(self) -> UnitOfWork:
         """Enter the context in which updates to entities can be made."""
@@ -77,7 +78,7 @@ class UnitOfWork(ABC):
                 return
             transition = Transition(current.state, new.state)
             self._updates[current.identifier].append(
-                Update(operation, current.identifier, transition, TRANSITION_MAP[transition])
+                events.Update(operation, current.identifier, transition, TRANSITION_MAP[transition])
             )
 
         self._link = self._gateway.create_link()

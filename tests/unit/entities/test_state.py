@@ -5,17 +5,16 @@ from typing import Iterable
 
 import pytest
 
+from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.link import create_link
 from link.domain.state import (
     Commands,
     Components,
-    InvalidOperation,
     Operations,
     Processes,
     State,
     Transition,
-    Update,
     states,
 )
 from tests.assignments import create_assignments, create_identifier, create_identifiers
@@ -52,7 +51,7 @@ def test_invalid_transitions_returns_unchanged_entity(
     )
     entity = next(entity for entity in link if entity.identifier == identifier)
     for operation in operations:
-        result = InvalidOperation(operation, identifier, state)
+        result = events.InvalidOperation(operation, identifier, state)
         assert entity.apply(operation) == replace(entity, operation_results=(result,))
 
 
@@ -64,7 +63,7 @@ def test_start_pulling_idle_entity_returns_correct_entity() -> None:
         state=states.Activated,
         current_process=Processes.PULL,
         operation_results=(
-            Update(
+            events.Update(
                 Operations.START_PULL,
                 entity.identifier,
                 Transition(states.Idle, states.Activated),
@@ -97,7 +96,7 @@ def test_processing_activated_entity_returns_correct_entity(
     )
     entity = next(iter(link))
     updated_results = entity.operation_results + (
-        Update(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
+        events.Update(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
     )
     assert entity.apply(Operations.PROCESS) == replace(
         entity, state=new_state, current_process=new_process, operation_results=updated_results
@@ -126,7 +125,9 @@ def test_processing_received_entity_returns_correct_entity(
         tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link))
-    operation_results = (Update(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),)
+    operation_results = (
+        events.Update(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
+    )
     assert entity.apply(Operations.PROCESS) == replace(
         entity, state=new_state, current_process=new_process, operation_results=operation_results
     )
@@ -139,7 +140,7 @@ def test_starting_delete_on_pulled_entity_returns_correct_entity() -> None:
     entity = next(iter(link))
     transition = Transition(states.Pulled, states.Received)
     operation_results = (
-        Update(
+        events.Update(
             Operations.START_DELETE,
             entity.identifier,
             transition,
@@ -158,7 +159,9 @@ def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
     )
     entity = next(iter(link))
     transition = Transition(states.Tainted, states.Received)
-    operation_results = (Update(Operations.START_DELETE, entity.identifier, transition, Commands.START_DELETE_PROCESS),)
+    operation_results = (
+        events.Update(Operations.START_DELETE, entity.identifier, transition, Commands.START_DELETE_PROCESS),
+    )
     assert entity.apply(Operations.START_DELETE) == replace(
         entity, state=transition.new, current_process=Processes.DELETE, operation_results=operation_results
     )

@@ -5,8 +5,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
+from link.domain import events
 from link.domain.custom_types import Identifier
-from link.domain.state import InvalidOperation, Operations, Update, states
+from link.domain.state import Operations, states
 
 from .uow import UnitOfWork
 
@@ -31,7 +32,7 @@ class PullResponse(Response):
     """Response model for the pull use-case."""
 
     requested: frozenset[Identifier]
-    errors: frozenset[InvalidOperation]
+    errors: frozenset[events.InvalidOperation]
 
 
 def pull(
@@ -109,8 +110,8 @@ class OperationResponse(Response):
 
     operation: Operations
     requested: frozenset[Identifier]
-    updates: frozenset[Update]
-    errors: frozenset[InvalidOperation]
+    updates: frozenset[events.Update]
+    errors: frozenset[events.InvalidOperation]
 
 
 @dataclass(frozen=True)
