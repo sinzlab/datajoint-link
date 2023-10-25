@@ -9,7 +9,7 @@ from typing import Callable, Iterable, Protocol
 from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.link import Link
-from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition
+from link.domain.state import Entity, Operations
 
 from .gateway import LinkGateway
 
@@ -65,21 +65,17 @@ class UnitOfWork(ABC):
                 if current._is_expired is True:
                     raise RuntimeError("Can not apply operation to expired entity")
                 new = original(operation)
-                store_update(operation, current, new)
+                store_update(new)
                 augment_entity(new)
                 object.__setattr__(current, "_is_expired", True)
                 return new
 
             return augmented
 
-        def store_update(operation: Operations, current: Entity, new: Entity) -> None:
-            assert current.identifier == new.identifier
-            if current.state is new.state:
+        def store_update(new: Entity) -> None:
+            if not isinstance(new.operation_results[-1], events.Update):
                 return
-            transition = Transition(current.state, new.state)
-            self._updates[current.identifier].append(
-                events.Update(operation, current.identifier, transition, TRANSITION_MAP[transition])
-            )
+            self._updates[new.identifier].append(new.operation_results[-1])
 
         self._link = self._gateway.create_link()
         augment_link(self._link)
