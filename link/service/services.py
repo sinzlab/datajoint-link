@@ -114,6 +114,7 @@ def start_pull_process(
     with uow:
         result = uow.link.apply(Operations.START_PULL, requested=command.requested).events[0]
         uow.commit()
+    assert isinstance(result, events.LinkStateChanged)
     output_port(result)
 
 
@@ -127,6 +128,7 @@ def start_delete_process(
     with uow:
         result = uow.link.apply(Operations.START_DELETE, requested=command.requested).events[0]
         uow.commit()
+    assert isinstance(result, events.LinkStateChanged)
     output_port(result)
 
 
@@ -137,32 +139,22 @@ def process(
     with uow:
         result = uow.link.apply(Operations.PROCESS, requested=command.requested).events[0]
         uow.commit()
+    assert isinstance(result, events.LinkStateChanged)
     output_port(result)
 
 
-@dataclass(frozen=True)
-class ListIdleEntitiesRequest(Request):
-    """Request model for the use-case that lists idle entities."""
-
-
-@dataclass(frozen=True)
-class ListIdleEntitiesResponse(Response):
-    """Response model for the use-case that lists idle entities."""
-
-    identifiers: frozenset[Identifier]
-
-
 def list_idle_entities(
-    request: ListIdleEntitiesRequest,
+    command: commands.ListIdleEntities,
     *,
     uow: UnitOfWork,
-    output_port: Callable[[ListIdleEntitiesResponse], None],
+    output_port: Callable[[events.IdleEntitiesListed], None],
 ) -> None:
     """List all idle entities."""
     with uow:
-        output_port(
-            ListIdleEntitiesResponse(frozenset(entity.identifier for entity in uow.link if entity.state is states.Idle))
-        )
+        uow.link.list_idle_entities()
+        event = uow.link.events[-1]
+        assert isinstance(event, events.IdleEntitiesListed)
+        output_port(event)
 
 
 class Services(Enum):

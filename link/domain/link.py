@@ -9,6 +9,7 @@ from .state import (
     STATE_MAP,
     Components,
     Entity,
+    Idle,
     Operations,
     PersistentState,
     Processes,
@@ -91,7 +92,7 @@ def create_link(
 class Link(Set[Entity]):
     """The state of a link between two databases."""
 
-    def __init__(self, entities: Iterable[Entity], events: Iterable[events.LinkStateChanged] | None = None) -> None:
+    def __init__(self, entities: Iterable[Entity], events: Iterable[events.Event] | None = None) -> None:
         """Initialize the link."""
         self._entities = set(entities)
         self._events = list(events) if events is not None else []
@@ -102,7 +103,7 @@ class Link(Set[Entity]):
         return frozenset(entity.identifier for entity in self)
 
     @property
-    def events(self) -> Tuple[events.LinkStateChanged, ...]:
+    def events(self) -> Tuple[events.Event, ...]:
         """Return the events that happened to the link."""
         return tuple(self._events)
 
@@ -130,6 +131,12 @@ class Link(Set[Entity]):
             create_operation_result((entity.events[-1] for entity in changed), requested),
         )
         return Link(changed | unchanged, operation_results)
+
+    def list_idle_entities(self) -> None:
+        """List the identifiers of all idle entities in the link."""
+        self._events.append(
+            events.IdleEntitiesListed(frozenset(entity.identifier for entity in self._entities if entity.state is Idle))
+        )
 
     def __contains__(self, entity: object) -> bool:
         """Check if the link contains the given entity."""

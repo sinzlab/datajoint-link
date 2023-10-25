@@ -12,8 +12,6 @@ from link.service.io import Service, make_responsive
 from link.service.services import (
     DeleteRequest,
     DeleteResponse,
-    ListIdleEntitiesRequest,
-    ListIdleEntitiesResponse,
     ProcessToCompletionRequest,
     PullRequest,
     PullResponse,
@@ -285,6 +283,6 @@ def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() 
             create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
         )
     )
-    output_port = FakeOutputPort[ListIdleEntitiesResponse]()
-    list_idle_entities(ListIdleEntitiesRequest(), uow=uow, output_port=output_port)
+    output_port = FakeOutputPort[events.IdleEntitiesListed]()
+    list_idle_entities(commands.ListIdleEntities(), uow=uow, output_port=output_port)
     assert set(output_port.response.identifiers) == create_identifiers("1")

@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Callable, Iterable
 
 from link.domain import events
-from link.service.services import ListIdleEntitiesResponse
 
 from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
@@ -96,10 +95,10 @@ def create_operation_response_presenter(
 
 def create_idle_entities_updater(
     translator: IdentificationTranslator, update: Callable[[Iterable[PrimaryKey]], None]
-) -> Callable[[ListIdleEntitiesResponse], None]:
+) -> Callable[[events.IdleEntitiesListed], None]:
     """Create a callable that when called updates the list of idle entities."""
 
-    def update_idle_entities(response: ListIdleEntitiesResponse) -> None:
+    def update_idle_entities(response: events.IdleEntitiesListed) -> None:
         update(translator.to_primary_key(identifier) for identifier in response.identifiers)
 
     return update_idle_entities

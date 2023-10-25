@@ -17,6 +17,7 @@ import pytest
 from link.adapters import PrimaryKey
 from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
+from link.domain import events
 from link.domain.link import create_link
 from link.domain.state import Components, Operations, Processes
 from link.infrastructure.facade import DJLinkFacade, Table
@@ -340,6 +341,16 @@ def test_link_creation() -> None:
     )
 
 
+def apply_update(gateway: DJLinkGateway, operation: Operations, requested: Iterable[PrimaryKey]) -> None:
+    event = (
+        gateway.create_link()
+        .apply(operation, requested={gateway.translator.to_identifier(key) for key in requested})
+        .events[0]
+    )
+    assert isinstance(event, events.LinkStateChanged)
+    gateway.apply(event.updates)
+
+
 def test_add_to_local_command() -> None:
     tables = create_tables(
         "link",
@@ -370,12 +381,7 @@ def test_add_to_local_command() -> None:
         ),
     )
 
-    gateway.apply(
-        gateway.create_link()
-        .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-        .events[0]
-        .updates
-    )
+    apply_update(gateway, Operations.PROCESS, [{"a": 0}])
 
     assert has_state(
         tables,
@@ -413,12 +419,7 @@ def test_add_to_local_command_with_error() -> None:
 
     tables["local"].children(as_objects=True)[0].error_on_insert = RuntimeError
     try:
-        gateway.apply(
-            gateway.create_link()
-            .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-            .events[0]
-            .updates
-        )
+        apply_update(gateway, Operations.PROCESS, [{"a": 0}])
     except RuntimeError:
         pass
 
@@ -435,12 +436,7 @@ def test_add_to_local_command_with_external_file(tmpdir: Path) -> None:
     tables["source"].insert([{"a": 0, "external": insert_filepath}])
     os.remove(insert_filepath)
     tables["outbound"].insert([{"a": 0, "process": "PULL", "is_flagged": "FALSE", "is_deprecated": "FALSE"}])
-    gateway.apply(
-        gateway.create_link()
-        .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-        .events[0]
-        .updates
-    )
+    apply_update(gateway, Operations.PROCESS, [{"a": 0}])
     fetch_filepath = Path(tables["local"].fetch(as_dict=True, download_path=str(tmpdir))[0]["external"])
     with fetch_filepath.open(mode="rb") as file:
         assert file.read() == data
@@ -459,12 +455,7 @@ def test_remove_from_local_command() -> None:
     )
 
     with as_stdin(StringIO("y")):
-        gateway.apply(
-            gateway.create_link()
-            .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-            .events[0]
-            .updates
-        )
+        apply_update(gateway, Operations.PROCESS, [{"a": 0}])
 
     assert has_state(
         tables,
@@ -480,12 +471,7 @@ def test_start_pull_process() -> None:
         "link", primary={"a"}, non_primary={"b"}, initial=State(source=TableState([{"a": 0, "b": 1}]))
     )
 
-    gateway.apply(
-        gateway.create_link()
-        .apply(Operations.START_PULL, requested={gateway.translator.to_identifier({"a": 0})})
-        .events[0]
-        .updates
-    )
+    apply_update(gateway, Operations.START_PULL, [{"a": 0}])
 
     assert has_state(
         tables,
@@ -510,12 +496,7 @@ class TestFinishPullProcessCommand:
     def test_state_after_command(initial_state: State) -> None:
         tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-        gateway.apply(
-            gateway.create_link()
-            .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-            .events[0]
-            .updates
-        )
+        apply_update(gateway, Operations.PROCESS, [{"a": 0}])
 
         assert has_state(
             tables,
@@ -532,12 +513,7 @@ class TestFinishPullProcessCommand:
 
         tables["outbound"].error_on_insert = RuntimeError
         try:
-            gateway.apply(
-                gateway.create_link()
-                .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-                .events[0]
-                .updates
-            )
+            apply_update(gateway, Operations.PROCESS, [{"a": 0}])
         except RuntimeError:
             pass
 
@@ -558,12 +534,7 @@ class TestStartDeleteProcessCommand:
     def test_state_after_command(initial_state: State) -> None:
         tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-        gateway.apply(
-            gateway.create_link()
-            .apply(Operations.START_DELETE, requested={gateway.translator.to_identifier({"a": 0})})
-            .events[0]
-            .updates
-        )
+        apply_update(gateway, Operations.START_DELETE, [{"a": 0}])
 
         assert has_state(
             tables,
@@ -580,12 +551,7 @@ class TestStartDeleteProcessCommand:
 
         tables["outbound"].error_on_insert = RuntimeError
         try:
-            gateway.apply(
-                gateway.create_link()
-                .apply(Operations.START_DELETE, requested={gateway.translator.to_identifier({"a": 0})})
-                .events[0]
-                .updates
-            )
+            apply_update(gateway, Operations.START_DELETE, [{"a": 0}])
         except RuntimeError:
             pass
 
@@ -603,12 +569,7 @@ def test_finish_delete_process_command() -> None:
         ),
     )
 
-    gateway.apply(
-        gateway.create_link()
-        .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-        .events[0]
-        .updates
-    )
+    apply_update(gateway, Operations.PROCESS, [{"a": 0}])
 
     assert has_state(tables, State(source=TableState([{"a": 0, "b": 1}])))
 
@@ -626,12 +587,7 @@ class TestDeprecateProcessCommand:
     def test_state_after_command(initial_state: State) -> None:
         tables, gateway = initialize("link", primary={"a"}, non_primary={"b"}, initial=initial_state)
 
-        gateway.apply(
-            gateway.create_link()
-            .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-            .events[0]
-            .updates
-        )
+        apply_update(gateway, Operations.PROCESS, [{"a": 0}])
 
         assert has_state(
             tables,
@@ -647,12 +603,7 @@ class TestDeprecateProcessCommand:
 
         tables["outbound"].error_on_insert = RuntimeError
         try:
-            gateway.apply(
-                gateway.create_link()
-                .apply(Operations.PROCESS, requested={gateway.translator.to_identifier({"a": 0})})
-                .events[0]
-                .updates
-            )
+            apply_update(gateway, Operations.PROCESS, [{"a": 0}])
         except RuntimeError:
             pass
 
@@ -677,12 +628,7 @@ def test_applying_multiple_commands() -> None:
     )
 
     with as_stdin(StringIO("y")):
-        gateway.apply(
-            gateway.create_link()
-            .apply(Operations.PROCESS, requested=gateway.translator.to_identifiers([{"a": 0}, {"a": 1}]))
-            .events[0]
-            .updates
-        )
+        apply_update(gateway, Operations.PROCESS, [{"a": 0}, {"a": 1}])
 
     assert has_state(
         tables,

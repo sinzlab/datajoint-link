@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Callable, Iterable, Mapping
 
+from link.domain import commands
 from link.service.services import (
     DeleteRequest,
-    ListIdleEntitiesRequest,
     PullRequest,
     Request,
     Services,
@@ -20,7 +20,7 @@ class DJController:
 
     def __init__(
         self,
-        handlers: Mapping[Services, Callable[[Request], None]],
+        handlers: Mapping[Services, Callable[[Request | commands.Command], None]],
         translator: IdentificationTranslator,
     ) -> None:
         """Initialize the translator."""
@@ -37,4 +37,4 @@ class DJController:
 
     def list_idle_entities(self) -> None:
         """Execute the use-case that lists idle entities."""
-        self.__handlers[Services.LIST_IDLE_ENTITIES](ListIdleEntitiesRequest())
+        self.__handlers[Services.LIST_IDLE_ENTITIES](commands.ListIdleEntities())
