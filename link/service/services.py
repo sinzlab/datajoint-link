@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from link.domain import events
+from link.domain import commands, events
 from link.domain.custom_types import Identifier
 from link.domain.state import Operations, states
 
@@ -95,11 +95,11 @@ class ProcessToCompletionResponse(Response):
 def process_to_completion(
     request: ProcessToCompletionRequest,
     *,
-    process_service: Callable[[ProcessRequest], events.LinkStateChanged],
+    process_service: Callable[[commands.ProcessLink], events.LinkStateChanged],
     output_port: Callable[[ProcessToCompletionResponse], None],
 ) -> None:
     """Process entities until their processes are complete."""
-    while process_service(ProcessRequest(request.requested)).updates:
+    while process_service(commands.ProcessLink(request.requested)).updates:
         pass
     output_port(ProcessToCompletionResponse(request.requested))
 
@@ -144,19 +144,12 @@ def start_delete_process(
     output_port(result)
 
 
-@dataclass(frozen=True)
-class ProcessRequest(Request):
-    """Request model for the process use-case."""
-
-    requested: frozenset[Identifier]
-
-
 def process(
-    request: ProcessRequest, *, uow: UnitOfWork, output_port: Callable[[events.LinkStateChanged], None]
+    command: commands.ProcessLink, *, uow: UnitOfWork, output_port: Callable[[events.LinkStateChanged], None]
 ) -> None:
     """Process entities."""
     with uow:
-        result = uow.link.apply(Operations.PROCESS, requested=request.requested).events[0]
+        result = uow.link.apply(Operations.PROCESS, requested=command.requested).events[0]
         uow.commit()
     output_port(result)
 

@@ -6,7 +6,7 @@ from typing import Generic, TypedDict, TypeVar, Union
 
 import pytest
 
-from link.domain import events
+from link.domain import commands, events
 from link.domain.state import Components, Operations, Processes, State, states
 from link.service.io import Service, make_responsive
 from link.service.services import (
@@ -14,7 +14,6 @@ from link.service.services import (
     DeleteResponse,
     ListIdleEntitiesRequest,
     ListIdleEntitiesResponse,
-    ProcessRequest,
     ProcessToCompletionRequest,
     PullRequest,
     PullResponse,
@@ -254,7 +253,7 @@ def test_entity_undergoing_process_gets_processed() -> None:
         )
     )
     process(
-        ProcessRequest(frozenset(create_identifiers("1"))),
+        commands.ProcessLink(frozenset(create_identifiers("1"))),
         uow=uow,
         output_port=FakeOutputPort[events.LinkStateChanged](),
     )
@@ -272,7 +271,7 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
     )
     output_port = FakeOutputPort[events.LinkStateChanged]()
     process(
-        ProcessRequest(frozenset(create_identifiers("1"))),
+        commands.ProcessLink(frozenset(create_identifiers("1"))),
         uow=uow,
         output_port=output_port,
     )
