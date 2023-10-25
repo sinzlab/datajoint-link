@@ -26,8 +26,8 @@ class InvalidOperationRequested(Event):
 
 
 @dataclass(frozen=True)
-class Update(Event):
-    """Represents the persistent update needed to transition an entity."""
+class EntityStateChanged(Event):
+    """The state of an entity changed during the application of an operation."""
 
     transition: Transition
     command: Commands

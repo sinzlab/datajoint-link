@@ -6,7 +6,7 @@ from enum import Enum, auto
 from functools import partial
 
 from .custom_types import Identifier
-from .events import Event, InvalidOperationRequested, Update
+from .events import EntityStateChanged, Event, InvalidOperationRequested
 
 
 class State:
@@ -40,7 +40,7 @@ class State:
             new_process = entity.current_process
         transition = Transition(cls, new_state)
         updated_results = entity.operation_results + (
-            Update(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
+            EntityStateChanged(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
         )
         return replace(entity, state=transition.new, current_process=new_process, operation_results=updated_results)
 

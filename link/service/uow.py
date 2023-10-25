@@ -7,7 +7,7 @@ from types import TracebackType
 from typing import Callable, Iterable, Protocol
 
 from link.domain.custom_types import Identifier
-from link.domain.events import Update
+from link.domain.events import EntityStateChanged
 from link.domain.link import Link
 from link.domain.state import Entity, Operations
 
@@ -97,7 +97,7 @@ class UnitOfWork(ABC):
         if self._link is None:
             raise RuntimeError("Not available outside of context")
         for entity in self._seen.values():
-            updates = deque(event for event in entity.operation_results if isinstance(event, Update))
+            updates = deque(event for event in entity.operation_results if isinstance(event, EntityStateChanged))
             while updates:
                 self._gateway.apply([updates.popleft()])
         self.rollback()

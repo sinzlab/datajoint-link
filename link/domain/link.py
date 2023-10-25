@@ -118,7 +118,7 @@ class Link(Set[Entity]):
             operation = next(iter(results)).operation
             return LinkOperationResult(
                 operation,
-                updates=frozenset(result for result in results if isinstance(result, events.Update)),
+                updates=frozenset(result for result in results if isinstance(result, events.EntityStateChanged)),
                 errors=frozenset(result for result in results if isinstance(result, events.InvalidOperationRequested)),
             )
 
@@ -149,7 +149,7 @@ class LinkOperationResult:
     """Represents the result of an operation on all entities of a link."""
 
     operation: Operations
-    updates: frozenset[events.Update]
+    updates: frozenset[events.EntityStateChanged]
     errors: frozenset[events.InvalidOperationRequested]
 
     def __post_init__(self) -> None:

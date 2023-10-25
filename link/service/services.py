@@ -110,7 +110,7 @@ class OperationResponse(Response):
 
     operation: Operations
     requested: frozenset[Identifier]
-    updates: frozenset[events.Update]
+    updates: frozenset[events.EntityStateChanged]
     errors: frozenset[events.InvalidOperationRequested]
 
 
