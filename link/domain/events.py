@@ -11,7 +11,12 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class EntityOperationApplied:
+class Event:
+    """Base class for all events."""
+
+
+@dataclass(frozen=True)
+class EntityOperationApplied(Event):
     """An operation was applied to an entity."""
 
     operation: Operations
