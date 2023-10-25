@@ -1,7 +1,6 @@
 """Contains the link class."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Iterable, Iterator, Mapping, Optional, Set, Tuple, TypeVar
 
 from . import events
@@ -93,7 +92,7 @@ class Link(Set[Entity]):
     """The state of a link between two databases."""
 
     def __init__(
-        self, entities: Iterable[Entity], operation_results: Tuple[LinkOperationResult, ...] = tuple()
+        self, entities: Iterable[Entity], operation_results: Tuple[events.LinkStateChanged, ...] = tuple()
     ) -> None:
         """Initialize the link."""
         self._entities = set(entities)
@@ -105,19 +104,22 @@ class Link(Set[Entity]):
         return frozenset(entity.identifier for entity in self)
 
     @property
-    def operation_results(self) -> Tuple[LinkOperationResult, ...]:
+    def operation_results(self) -> Tuple[events.LinkStateChanged, ...]:
         """Return the results of operations performed on this link."""
         return self._operation_results
 
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
 
-        def create_operation_result(results: Iterable[events.EntityOperationApplied]) -> LinkOperationResult:
+        def create_operation_result(
+            results: Iterable[events.EntityOperationApplied], requested: Iterable[Identifier]
+        ) -> events.LinkStateChanged:
             """Create the result of an operation on a link from results of individual entities."""
             results = set(results)
             operation = next(iter(results)).operation
-            return LinkOperationResult(
+            return events.LinkStateChanged(
                 operation,
+                requested=frozenset(requested),
                 updates=frozenset(result for result in results if isinstance(result, events.EntityStateChanged)),
                 errors=frozenset(result for result in results if isinstance(result, events.InvalidOperationRequested)),
             )
@@ -127,7 +129,7 @@ class Link(Set[Entity]):
         changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
         unchanged = {entity for entity in self if entity.identifier not in requested}
         operation_results = self.operation_results + (
-            create_operation_result(entity.operation_results[-1] for entity in changed),
+            create_operation_result((entity.operation_results[-1] for entity in changed), requested),
         )
         return Link(changed | unchanged, operation_results)
 
@@ -142,18 +144,3 @@ class Link(Set[Entity]):
     def __len__(self) -> int:
         """Return the number of entities in the link."""
         return len(self._entities)
-
-
-@dataclass(frozen=True)
-class LinkOperationResult:
-    """Represents the result of an operation on all entities of a link."""
-
-    operation: Operations
-    updates: frozenset[events.EntityStateChanged]
-    errors: frozenset[events.InvalidOperationRequested]
-
-    def __post_init__(self) -> None:
-        """Validate the result."""
-        assert all(
-            result.operation is self.operation for result in (self.updates | self.errors)
-        ), "Not all results have same operation."
