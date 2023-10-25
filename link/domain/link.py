@@ -91,10 +91,10 @@ def create_link(
 class Link(Set[Entity]):
     """The state of a link between two databases."""
 
-    def __init__(self, entities: Iterable[Entity], events: Tuple[events.LinkStateChanged, ...] = tuple()) -> None:
+    def __init__(self, entities: Iterable[Entity], events: Iterable[events.LinkStateChanged] | None = None) -> None:
         """Initialize the link."""
         self._entities = set(entities)
-        self._events = events
+        self._events = list(events) if events is not None else []
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
@@ -104,7 +104,7 @@ class Link(Set[Entity]):
     @property
     def events(self) -> Tuple[events.LinkStateChanged, ...]:
         """Return the events that happened to the link."""
-        return self._events
+        return tuple(self._events)
 
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
