@@ -12,7 +12,6 @@ from link.service.io import Service, make_responsive
 from link.service.services import (
     DeleteRequest,
     DeleteResponse,
-    ProcessToCompletionRequest,
     PullRequest,
     PullResponse,
     Response,
@@ -83,7 +82,7 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
     )
 
 
-def create_process_to_completion_service(uow: UnitOfWork) -> Callable[[ProcessToCompletionRequest], None]:
+def create_process_to_completion_service(uow: UnitOfWork) -> Callable[[commands.FullyProcessLink], None]:
     process_service = partial(make_responsive(partial(process, uow=uow)), output_port=lambda x: None)
     return partial(
         make_responsive(

@@ -12,6 +12,13 @@ class Command:
 
 
 @dataclass(frozen=True)
+class FullyProcessLink(Command):
+    """Process the requested entities in the link until their processes are completed."""
+
+    requested: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
 class ProcessLink(Command):
     """Process the requested entities in the link."""
 

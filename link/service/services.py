@@ -38,15 +38,15 @@ class PullResponse(Response):
 def pull(
     request: PullRequest,
     *,
-    process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
+    process_to_completion_service: Callable[[commands.FullyProcessLink], ProcessToCompletionResponse],
     start_pull_process_service: Callable[[commands.StartPullProcess], events.LinkStateChanged],
     output_port: Callable[[PullResponse], None],
 ) -> None:
     """Pull entities across the link."""
-    process_to_completion_service(ProcessToCompletionRequest(request.requested))
+    process_to_completion_service(commands.FullyProcessLink(request.requested))
     response = start_pull_process_service(commands.StartPullProcess(request.requested))
     errors = (error for error in response.errors if error.state is states.Deprecated)
-    process_to_completion_service(ProcessToCompletionRequest(request.requested))
+    process_to_completion_service(commands.FullyProcessLink(request.requested))
     output_port(PullResponse(request.requested, errors=frozenset(errors)))
 
 
@@ -67,22 +67,15 @@ class DeleteResponse(Response):
 def delete(
     request: DeleteRequest,
     *,
-    process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
+    process_to_completion_service: Callable[[commands.FullyProcessLink], ProcessToCompletionResponse],
     start_delete_process_service: Callable[[commands.StartDeleteProcess], events.LinkStateChanged],
     output_port: Callable[[DeleteResponse], None],
 ) -> None:
     """Delete pulled entities."""
-    process_to_completion_service(ProcessToCompletionRequest(request.requested))
+    process_to_completion_service(commands.FullyProcessLink(request.requested))
     start_delete_process_service(commands.StartDeleteProcess(request.requested))
-    process_to_completion_service(ProcessToCompletionRequest(request.requested))
+    process_to_completion_service(commands.FullyProcessLink(request.requested))
     output_port(DeleteResponse(request.requested))
-
-
-@dataclass(frozen=True)
-class ProcessToCompletionRequest(Request):
-    """Request model for the process to completion use-case."""
-
-    requested: frozenset[Identifier]
 
 
 @dataclass(frozen=True)
@@ -93,15 +86,15 @@ class ProcessToCompletionResponse(Response):
 
 
 def process_to_completion(
-    request: ProcessToCompletionRequest,
+    command: commands.FullyProcessLink,
     *,
     process_service: Callable[[commands.ProcessLink], events.LinkStateChanged],
     output_port: Callable[[ProcessToCompletionResponse], None],
 ) -> None:
     """Process entities until their processes are complete."""
-    while process_service(commands.ProcessLink(request.requested)).updates:
+    while process_service(commands.ProcessLink(command.requested)).updates:
         pass
-    output_port(ProcessToCompletionResponse(request.requested))
+    output_port(ProcessToCompletionResponse(command.requested))
 
 
 def start_pull_process(
