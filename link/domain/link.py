@@ -91,12 +91,10 @@ def create_link(
 class Link(Set[Entity]):
     """The state of a link between two databases."""
 
-    def __init__(
-        self, entities: Iterable[Entity], operation_results: Tuple[events.LinkStateChanged, ...] = tuple()
-    ) -> None:
+    def __init__(self, entities: Iterable[Entity], events: Tuple[events.LinkStateChanged, ...] = tuple()) -> None:
         """Initialize the link."""
         self._entities = set(entities)
-        self._operation_results = operation_results
+        self._events = events
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
@@ -104,9 +102,9 @@ class Link(Set[Entity]):
         return frozenset(entity.identifier for entity in self)
 
     @property
-    def operation_results(self) -> Tuple[events.LinkStateChanged, ...]:
-        """Return the results of operations performed on this link."""
-        return self._operation_results
+    def events(self) -> Tuple[events.LinkStateChanged, ...]:
+        """Return the events that happened to the link."""
+        return self._events
 
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
@@ -128,7 +126,7 @@ class Link(Set[Entity]):
         assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
         changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
         unchanged = {entity for entity in self if entity.identifier not in requested}
-        operation_results = self.operation_results + (
+        operation_results = self.events + (
             create_operation_result((entity.operation_results[-1] for entity in changed), requested),
         )
         return Link(changed | unchanged, operation_results)

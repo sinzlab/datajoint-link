@@ -129,7 +129,7 @@ def start_pull_process(
 ) -> None:
     """Start the pull process for the requested entities."""
     with uow:
-        result = uow.link.apply(Operations.START_PULL, requested=request.requested).operation_results[0]
+        result = uow.link.apply(Operations.START_PULL, requested=request.requested).events[0]
         uow.commit()
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
@@ -149,7 +149,7 @@ def start_delete_process(
 ) -> None:
     """Start the delete process for the requested entities."""
     with uow:
-        result = uow.link.apply(Operations.START_DELETE, requested=request.requested).operation_results[0]
+        result = uow.link.apply(Operations.START_DELETE, requested=request.requested).events[0]
         uow.commit()
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
@@ -164,7 +164,7 @@ class ProcessRequest(Request):
 def process(request: ProcessRequest, *, uow: UnitOfWork, output_port: Callable[[OperationResponse], None]) -> None:
     """Process entities."""
     with uow:
-        result = uow.link.apply(Operations.PROCESS, requested=request.requested).operation_results[0]
+        result = uow.link.apply(Operations.PROCESS, requested=request.requested).events[0]
         uow.commit()
     output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
 
