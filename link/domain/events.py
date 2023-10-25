@@ -19,8 +19,8 @@ class Event:
 
 
 @dataclass(frozen=True)
-class InvalidOperation(Event):
-    """Represents the result of attempting an operation that is invalid in the entity's current state."""
+class InvalidOperationRequested(Event):
+    """An operation that is invalid given the entities current state was requested."""
 
     state: type[State]
 

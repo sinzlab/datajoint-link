@@ -119,7 +119,7 @@ class Link(Set[Entity]):
             return LinkOperationResult(
                 operation,
                 updates=frozenset(result for result in results if isinstance(result, events.Update)),
-                errors=frozenset(result for result in results if isinstance(result, events.InvalidOperation)),
+                errors=frozenset(result for result in results if isinstance(result, events.InvalidOperationRequested)),
             )
 
         assert requested, "No identifiers requested."
@@ -150,7 +150,7 @@ class LinkOperationResult:
 
     operation: Operations
     updates: frozenset[events.Update]
-    errors: frozenset[events.InvalidOperation]
+    errors: frozenset[events.InvalidOperationRequested]
 
     def __post_init__(self) -> None:
         """Validate the result."""

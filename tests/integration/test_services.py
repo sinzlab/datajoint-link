@@ -231,7 +231,7 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
 def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityConfig, produces_error: bool) -> None:
     if produces_error:
         errors = {
-            events.InvalidOperation(
+            events.InvalidOperationRequested(
                 operation=Operations.START_PULL, identifier=create_identifier("1"), state=states.Deprecated
             )
         }

@@ -51,7 +51,7 @@ def test_invalid_transitions_returns_unchanged_entity(
     )
     entity = next(entity for entity in link if entity.identifier == identifier)
     for operation in operations:
-        result = events.InvalidOperation(operation, identifier, state)
+        result = events.InvalidOperationRequested(operation, identifier, state)
         assert entity.apply(operation) == replace(entity, operation_results=(result,))
 
 

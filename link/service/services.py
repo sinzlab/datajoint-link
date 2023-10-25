@@ -32,7 +32,7 @@ class PullResponse(Response):
     """Response model for the pull use-case."""
 
     requested: frozenset[Identifier]
-    errors: frozenset[events.InvalidOperation]
+    errors: frozenset[events.InvalidOperationRequested]
 
 
 def pull(
@@ -111,7 +111,7 @@ class OperationResponse(Response):
     operation: Operations
     requested: frozenset[Identifier]
     updates: frozenset[events.Update]
-    errors: frozenset[events.InvalidOperation]
+    errors: frozenset[events.InvalidOperationRequested]
 
 
 @dataclass(frozen=True)

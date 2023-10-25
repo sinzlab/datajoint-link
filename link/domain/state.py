@@ -6,7 +6,7 @@ from enum import Enum, auto
 from functools import partial
 
 from .custom_types import Identifier
-from .events import Event, InvalidOperation, Update
+from .events import Event, InvalidOperationRequested, Update
 
 
 class State:
@@ -29,7 +29,7 @@ class State:
 
     @staticmethod
     def _create_invalid_operation(entity: Entity, operation: Operations) -> Entity:
-        updated = entity.operation_results + (InvalidOperation(operation, entity.identifier, entity.state),)
+        updated = entity.operation_results + (InvalidOperationRequested(operation, entity.identifier, entity.state),)
         return replace(entity, operation_results=updated)
 
     @classmethod
