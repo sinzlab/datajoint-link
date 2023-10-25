@@ -11,22 +11,22 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class Event:
-    """Base class for all events."""
+class EntityOperationApplied:
+    """An operation was applied to an entity."""
 
     operation: Operations
     identifier: Identifier
 
 
 @dataclass(frozen=True)
-class InvalidOperationRequested(Event):
+class InvalidOperationRequested(EntityOperationApplied):
     """An operation that is invalid given the entities current state was requested."""
 
     state: type[State]
 
 
 @dataclass(frozen=True)
-class EntityStateChanged(Event):
+class EntityStateChanged(EntityOperationApplied):
     """The state of an entity changed during the application of an operation."""
 
     transition: Transition

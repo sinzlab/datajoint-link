@@ -112,7 +112,7 @@ class Link(Set[Entity]):
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
 
-        def create_operation_result(results: Iterable[events.Event]) -> LinkOperationResult:
+        def create_operation_result(results: Iterable[events.EntityOperationApplied]) -> LinkOperationResult:
             """Create the result of an operation on a link from results of individual entities."""
             results = set(results)
             operation = next(iter(results)).operation

@@ -6,7 +6,7 @@ from enum import Enum, auto
 from functools import partial
 
 from .custom_types import Identifier
-from .events import EntityStateChanged, Event, InvalidOperationRequested
+from .events import EntityOperationApplied, EntityStateChanged, InvalidOperationRequested
 
 
 class State:
@@ -268,7 +268,7 @@ class Entity:
     state: type[State]
     current_process: Processes
     is_tainted: bool
-    operation_results: tuple[Event, ...]
+    operation_results: tuple[EntityOperationApplied, ...]
 
     def apply(self, operation: Operations) -> Entity:
         """Apply an operation to the entity."""
