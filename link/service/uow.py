@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections import defaultdict, deque
+from collections import deque
 from types import TracebackType
 from typing import Callable, Iterable, Protocol
 
-from link.domain import events
 from link.domain.custom_types import Identifier
+from link.domain.events import Update
 from link.domain.link import Link
 from link.domain.state import Entity, Operations
 
@@ -28,7 +28,7 @@ class UnitOfWork(ABC):
         """Initialize the unit of work."""
         self._gateway = gateway
         self._link: Link | None = None
-        self._updates: dict[Identifier, deque[events.Update]] = defaultdict(deque)
+        self._seen: dict[Identifier, Entity] = {}
 
     def __enter__(self) -> UnitOfWork:
         """Enter the context in which updates to entities can be made."""
@@ -56,6 +56,7 @@ class UnitOfWork(ABC):
             augmented = augment_entity_apply(entity, original)
             object.__setattr__(entity, "apply", augmented)
             object.__setattr__(entity, "_is_expired", False)
+            self._seen[entity.identifier] = entity
 
         def augment_entity_apply(
             current: Entity, original: Callable[[Operations], Entity]
@@ -65,17 +66,11 @@ class UnitOfWork(ABC):
                 if current._is_expired is True:
                     raise RuntimeError("Can not apply operation to expired entity")
                 new = original(operation)
-                store_update(new)
                 augment_entity(new)
                 object.__setattr__(current, "_is_expired", True)
                 return new
 
             return augmented
-
-        def store_update(new: Entity) -> None:
-            if not isinstance(new.operation_results[-1], events.Update):
-                return
-            self._updates[new.identifier].append(new.operation_results[-1])
 
         self._link = self._gateway.create_link()
         augment_link(self._link)
@@ -101,8 +96,8 @@ class UnitOfWork(ABC):
         """Persist updates made to the link."""
         if self._link is None:
             raise RuntimeError("Not available outside of context")
-        while self._updates:
-            identifier, updates = self._updates.popitem()
+        for entity in self._seen.values():
+            updates = deque(event for event in entity.operation_results if isinstance(event, Update))
             while updates:
                 self._gateway.apply([updates.popleft()])
         self.rollback()
@@ -114,4 +109,4 @@ class UnitOfWork(ABC):
         object.__setattr__(self._link, "_is_expired", True)
         for entity in self._link:
             object.__setattr__(entity, "_is_expired", True)
-        self._updates.clear()
+        self._seen.clear()
