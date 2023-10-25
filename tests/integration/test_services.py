@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import partial
-from typing import Generic, TypedDict, TypeVar
+from typing import Generic, TypedDict, TypeVar, Union
 
 import pytest
 
@@ -14,7 +14,6 @@ from link.service.services import (
     DeleteResponse,
     ListIdleEntitiesRequest,
     ListIdleEntitiesResponse,
-    OperationResponse,
     ProcessRequest,
     ProcessToCompletionRequest,
     PullRequest,
@@ -33,7 +32,7 @@ from tests.assignments import create_assignments, create_identifier, create_iden
 
 from .gateway import FakeLinkGateway
 
-T = TypeVar("T", bound=Response)
+T = TypeVar("T", bound=Union[Response, events.Event])
 
 
 class FakeOutputPort(Generic[T]):
@@ -257,7 +256,7 @@ def test_entity_undergoing_process_gets_processed() -> None:
     process(
         ProcessRequest(frozenset(create_identifiers("1"))),
         uow=uow,
-        output_port=FakeOutputPort[OperationResponse](),
+        output_port=FakeOutputPort[events.LinkStateChanged](),
     )
     with uow:
         entity = next(entity for entity in uow.link if entity.identifier == create_identifier("1"))
@@ -271,7 +270,7 @@ def test_correct_response_model_gets_passed_to_process_output_port() -> None:
             processes={Processes.PULL: create_identifiers("1")},
         )
     )
-    output_port = FakeOutputPort[OperationResponse]()
+    output_port = FakeOutputPort[events.LinkStateChanged]()
     process(
         ProcessRequest(frozenset(create_identifiers("1"))),
         uow=uow,

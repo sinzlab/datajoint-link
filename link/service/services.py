@@ -39,7 +39,7 @@ def pull(
     request: PullRequest,
     *,
     process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
-    start_pull_process_service: Callable[[StartPullProcessRequest], OperationResponse],
+    start_pull_process_service: Callable[[StartPullProcessRequest], events.LinkStateChanged],
     output_port: Callable[[PullResponse], None],
 ) -> None:
     """Pull entities across the link."""
@@ -68,7 +68,7 @@ def delete(
     request: DeleteRequest,
     *,
     process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
-    start_delete_process_service: Callable[[StartDeleteProcessRequest], OperationResponse],
+    start_delete_process_service: Callable[[StartDeleteProcessRequest], events.LinkStateChanged],
     output_port: Callable[[DeleteResponse], None],
 ) -> None:
     """Delete pulled entities."""
@@ -95,23 +95,13 @@ class ProcessToCompletionResponse(Response):
 def process_to_completion(
     request: ProcessToCompletionRequest,
     *,
-    process_service: Callable[[ProcessRequest], OperationResponse],
+    process_service: Callable[[ProcessRequest], events.LinkStateChanged],
     output_port: Callable[[ProcessToCompletionResponse], None],
 ) -> None:
     """Process entities until their processes are complete."""
     while process_service(ProcessRequest(request.requested)).updates:
         pass
     output_port(ProcessToCompletionResponse(request.requested))
-
-
-@dataclass(frozen=True)
-class OperationResponse(Response):
-    """Response model for all use-cases that operate on entities."""
-
-    operation: Operations
-    requested: frozenset[Identifier]
-    updates: frozenset[events.EntityStateChanged]
-    errors: frozenset[events.InvalidOperationRequested]
 
 
 @dataclass(frozen=True)
@@ -125,13 +115,13 @@ def start_pull_process(
     request: StartPullProcessRequest,
     *,
     uow: UnitOfWork,
-    output_port: Callable[[OperationResponse], None],
+    output_port: Callable[[events.LinkStateChanged], None],
 ) -> None:
     """Start the pull process for the requested entities."""
     with uow:
         result = uow.link.apply(Operations.START_PULL, requested=request.requested).events[0]
         uow.commit()
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+    output_port(result)
 
 
 @dataclass(frozen=True)
@@ -145,13 +135,13 @@ def start_delete_process(
     request: StartDeleteProcessRequest,
     *,
     uow: UnitOfWork,
-    output_port: Callable[[OperationResponse], None],
+    output_port: Callable[[events.LinkStateChanged], None],
 ) -> None:
     """Start the delete process for the requested entities."""
     with uow:
         result = uow.link.apply(Operations.START_DELETE, requested=request.requested).events[0]
         uow.commit()
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+    output_port(result)
 
 
 @dataclass(frozen=True)
@@ -161,12 +151,14 @@ class ProcessRequest(Request):
     requested: frozenset[Identifier]
 
 
-def process(request: ProcessRequest, *, uow: UnitOfWork, output_port: Callable[[OperationResponse], None]) -> None:
+def process(
+    request: ProcessRequest, *, uow: UnitOfWork, output_port: Callable[[events.LinkStateChanged], None]
+) -> None:
     """Process entities."""
     with uow:
         result = uow.link.apply(Operations.PROCESS, requested=request.requested).events[0]
         uow.commit()
-    output_port(OperationResponse(result.operation, request.requested, result.updates, result.errors))
+    output_port(result)
 
 
 @dataclass(frozen=True)

@@ -4,10 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Iterable
 
-from link.service.services import (
-    ListIdleEntitiesResponse,
-    OperationResponse,
-)
+from link.domain import events
+from link.service.services import ListIdleEntitiesResponse
 
 from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
@@ -58,13 +56,13 @@ class Failure:
 
 def create_operation_response_presenter(
     translator: IdentificationTranslator, show: Callable[[OperationRecord], None]
-) -> Callable[[OperationResponse], None]:
+) -> Callable[[events.LinkStateChanged], None]:
     """Create a callable that when called presents information about a finished operation."""
 
     def get_class_name(obj: type) -> str:
         return obj.__name__
 
-    def present_operation_response(response: OperationResponse) -> None:
+    def present_operation_response(response: events.LinkStateChanged) -> None:
         show(
             OperationRecord(
                 [
