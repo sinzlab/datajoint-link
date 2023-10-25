@@ -29,8 +29,8 @@ class State:
 
     @staticmethod
     def _create_invalid_operation(entity: Entity, operation: Operations) -> Entity:
-        updated = entity.operation_results + (InvalidOperationRequested(operation, entity.identifier, entity.state),)
-        return replace(entity, operation_results=updated)
+        updated = entity.events + (InvalidOperationRequested(operation, entity.identifier, entity.state),)
+        return replace(entity, events=updated)
 
     @classmethod
     def _transition_entity(
@@ -39,10 +39,10 @@ class State:
         if new_process is None:
             new_process = entity.current_process
         transition = Transition(cls, new_state)
-        updated_results = entity.operation_results + (
+        updated_events = entity.events + (
             EntityStateChanged(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
         )
-        return replace(entity, state=transition.new, current_process=new_process, operation_results=updated_results)
+        return replace(entity, state=transition.new, current_process=new_process, events=updated_events)
 
 
 class States:
@@ -268,7 +268,7 @@ class Entity:
     state: type[State]
     current_process: Processes
     is_tainted: bool
-    operation_results: tuple[EntityOperationApplied, ...]
+    events: tuple[EntityOperationApplied, ...]
 
     def apply(self, operation: Operations) -> Entity:
         """Apply an operation to the entity."""

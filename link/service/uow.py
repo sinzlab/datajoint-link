@@ -97,7 +97,7 @@ class UnitOfWork(ABC):
         if self._link is None:
             raise RuntimeError("Not available outside of context")
         for entity in self._seen.values():
-            updates = deque(event for event in entity.operation_results if isinstance(event, EntityStateChanged))
+            updates = deque(event for event in entity.events if isinstance(event, EntityStateChanged))
             while updates:
                 self._gateway.apply([updates.popleft()])
         self.rollback()

@@ -67,7 +67,7 @@ def create_link(
                 state=state,
                 current_process=processes_map.get(identifier, Processes.NONE),
                 is_tainted=is_tainted(identifier),
-                operation_results=tuple(),
+                events=tuple(),
             )
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
@@ -127,7 +127,7 @@ class Link(Set[Entity]):
         changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
         unchanged = {entity for entity in self if entity.identifier not in requested}
         operation_results = self.events + (
-            create_operation_result((entity.operation_results[-1] for entity in changed), requested),
+            create_operation_result((entity.events[-1] for entity in changed), requested),
         )
         return Link(changed | unchanged, operation_results)
 
