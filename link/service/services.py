@@ -39,12 +39,12 @@ def pull(
     request: PullRequest,
     *,
     process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
-    start_pull_process_service: Callable[[StartPullProcessRequest], events.LinkStateChanged],
+    start_pull_process_service: Callable[[commands.StartPullProcess], events.LinkStateChanged],
     output_port: Callable[[PullResponse], None],
 ) -> None:
     """Pull entities across the link."""
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
-    response = start_pull_process_service(StartPullProcessRequest(request.requested))
+    response = start_pull_process_service(commands.StartPullProcess(request.requested))
     errors = (error for error in response.errors if error.state is states.Deprecated)
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
     output_port(PullResponse(request.requested, errors=frozenset(errors)))
@@ -68,12 +68,12 @@ def delete(
     request: DeleteRequest,
     *,
     process_to_completion_service: Callable[[ProcessToCompletionRequest], ProcessToCompletionResponse],
-    start_delete_process_service: Callable[[StartDeleteProcessRequest], events.LinkStateChanged],
+    start_delete_process_service: Callable[[commands.StartDeleteProcess], events.LinkStateChanged],
     output_port: Callable[[DeleteResponse], None],
 ) -> None:
     """Delete pulled entities."""
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
-    start_delete_process_service(StartDeleteProcessRequest(request.requested))
+    start_delete_process_service(commands.StartDeleteProcess(request.requested))
     process_to_completion_service(ProcessToCompletionRequest(request.requested))
     output_port(DeleteResponse(request.requested))
 
@@ -104,42 +104,28 @@ def process_to_completion(
     output_port(ProcessToCompletionResponse(request.requested))
 
 
-@dataclass(frozen=True)
-class StartPullProcessRequest(Request):
-    """Request model for the start-pull-process service."""
-
-    requested: frozenset[Identifier]
-
-
 def start_pull_process(
-    request: StartPullProcessRequest,
+    command: commands.StartPullProcess,
     *,
     uow: UnitOfWork,
     output_port: Callable[[events.LinkStateChanged], None],
 ) -> None:
     """Start the pull process for the requested entities."""
     with uow:
-        result = uow.link.apply(Operations.START_PULL, requested=request.requested).events[0]
+        result = uow.link.apply(Operations.START_PULL, requested=command.requested).events[0]
         uow.commit()
     output_port(result)
 
 
-@dataclass(frozen=True)
-class StartDeleteProcessRequest(Request):
-    """Request model for the start-delete-process service."""
-
-    requested: frozenset[Identifier]
-
-
 def start_delete_process(
-    request: StartDeleteProcessRequest,
+    command: commands.StartDeleteProcess,
     *,
     uow: UnitOfWork,
     output_port: Callable[[events.LinkStateChanged], None],
 ) -> None:
     """Start the delete process for the requested entities."""
     with uow:
-        result = uow.link.apply(Operations.START_DELETE, requested=request.requested).events[0]
+        result = uow.link.apply(Operations.START_DELETE, requested=command.requested).events[0]
         uow.commit()
     output_port(result)
 
