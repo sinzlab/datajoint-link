@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable, Generic, Protocol, TypedDict, TypeVar, Union
+from typing import Any, Callable, Generic, Protocol, TypedDict, TypeVar
 
 import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Operations, Processes, State, states
-from link.service.services import DeleteResponse, Response, delete, list_idle_entities, pull
+from link.service.services import delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 from .gateway import FakeLinkGateway
 
-T = TypeVar("T", bound=Union[Response, events.Event])
+T = TypeVar("T", bound=events.Event)
 
 
 class FakeOutputPort(Generic[T]):
@@ -67,15 +67,15 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
     )
 
 
-_Response_co = TypeVar("_Response_co", bound=Union[Response, events.Event], covariant=True)
+_Event_co = TypeVar("_Event_co", bound=events.Event, covariant=True)
 
-_Request_contra = TypeVar("_Request_contra", bound=commands.Command, contravariant=True)
+_Command_contra = TypeVar("_Command_contra", bound=commands.Command, contravariant=True)
 
 
-class Service(Protocol[_Request_contra, _Response_co]):
+class Service(Protocol[_Command_contra, _Event_co]):
     """Protocol for services."""
 
-    def __call__(self, request: _Request_contra, *, output_port: Callable[[_Response_co], None], **kwargs: Any) -> None:
+    def __call__(self, command: _Command_contra, *, output_port: Callable[[_Event_co], None], **kwargs: Any) -> None:
         """Execute the service."""
 
 
@@ -83,7 +83,7 @@ def create_pull_service(uow: UnitOfWork) -> Service[commands.PullEntities, event
     return partial(pull, uow=uow)
 
 
-def create_delete_service(uow: UnitOfWork) -> Service[commands.DeleteEntities, DeleteResponse]:
+def create_delete_service(uow: UnitOfWork) -> Service[commands.DeleteEntities, events.EntitiesDeleted]:
     return partial(delete, uow=uow)
 
 
@@ -140,7 +140,7 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
             create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
         )
     )
-    output_port = FakeOutputPort[DeleteResponse]()
+    output_port = FakeOutputPort[events.EntitiesDeleted]()
     delete_service = create_delete_service(uow)
     delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))), output_port=output_port)
     assert output_port.response.requested == create_identifiers("1")

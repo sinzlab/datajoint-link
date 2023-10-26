@@ -2,17 +2,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from enum import Enum, auto
 
 from link.domain import commands, events
-from link.domain.custom_types import Identifier
 
 from .uow import UnitOfWork
-
-
-class Response:
-    """Base class for all response models."""
 
 
 def pull(
@@ -27,19 +21,16 @@ def pull(
     output_port(event)
 
 
-@dataclass(frozen=True)
-class DeleteResponse(Response):
-    """Response model for the delete use-case."""
-
-    requested: frozenset[Identifier]
-
-
-def delete(command: commands.DeleteEntities, *, uow: UnitOfWork, output_port: Callable[[DeleteResponse], None]) -> None:
+def delete(
+    command: commands.DeleteEntities, *, uow: UnitOfWork, output_port: Callable[[events.EntitiesDeleted], None]
+) -> None:
     """Delete pulled entities."""
     with uow:
-        uow.link.delete(command.requested)
+        link = uow.link.delete(command.requested)
         uow.commit()
-    output_port(DeleteResponse(command.requested))
+    event = link.events[-1]
+    assert isinstance(event, events.EntitiesDeleted)
+    output_port(event)
 
 
 def list_idle_entities(

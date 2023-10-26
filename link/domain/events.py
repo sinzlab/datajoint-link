@@ -67,3 +67,10 @@ class EntitiesPulled(Event):
 
     requested: frozenset[Identifier]
     errors: frozenset[InvalidOperationRequested]
+
+
+@dataclass(frozen=True)
+class EntitiesDeleted(Event):
+    """The requested entities have been deleted."""
+
+    requested: frozenset[Identifier]
