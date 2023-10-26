@@ -4,12 +4,7 @@ from __future__ import annotations
 from typing import Callable, Iterable, Mapping
 
 from link.domain import commands
-from link.service.services import (
-    DeleteRequest,
-    PullRequest,
-    Request,
-    Services,
-)
+from link.service.services import Services
 
 from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
@@ -20,7 +15,7 @@ class DJController:
 
     def __init__(
         self,
-        handlers: Mapping[Services, Callable[[Request | commands.Command], None]],
+        handlers: Mapping[Services, Callable[[commands.Command], None]],
         translator: IdentificationTranslator,
     ) -> None:
         """Initialize the translator."""
@@ -29,11 +24,13 @@ class DJController:
 
     def pull(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the pull use-case."""
-        self.__handlers[Services.PULL](PullRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
+        self.__handlers[Services.PULL](commands.PullEntities(frozenset(self.__translator.to_identifiers(primary_keys))))
 
     def delete(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the delete use-case."""
-        self.__handlers[Services.DELETE](DeleteRequest(frozenset(self.__translator.to_identifiers(primary_keys))))
+        self.__handlers[Services.DELETE](
+            commands.DeleteEntities(frozenset(self.__translator.to_identifiers(primary_keys)))
+        )
 
     def list_idle_entities(self) -> None:
         """Execute the use-case that lists idle entities."""

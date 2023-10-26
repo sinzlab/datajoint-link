@@ -12,19 +12,8 @@ from link.domain.state import Operations, states
 from .uow import UnitOfWork
 
 
-class Request:
-    """Base class for all request models."""
-
-
 class Response:
     """Base class for all response models."""
-
-
-@dataclass(frozen=True)
-class PullRequest(Request):
-    """Request model for the pull use-case."""
-
-    requested: frozenset[Identifier]
 
 
 @dataclass(frozen=True)
@@ -35,22 +24,15 @@ class PullResponse(Response):
     errors: frozenset[events.InvalidOperationRequested]
 
 
-def pull(request: PullRequest, *, uow: UnitOfWork, output_port: Callable[[PullResponse], None]) -> None:
+def pull(command: commands.PullEntities, *, uow: UnitOfWork, output_port: Callable[[PullResponse], None]) -> None:
     """Pull entities across the link."""
     with uow:
-        link = uow.link.pull(request.requested)
+        link = uow.link.pull(command.requested)
         uow.commit()
     state_changed_events = (event for event in link.events if isinstance(event, events.LinkStateChanged))
     start_pull_event = next(event for event in state_changed_events if event.operation is Operations.START_PULL)
     errors = (error for error in start_pull_event.errors if error.state is states.Deprecated)
-    output_port(PullResponse(request.requested, frozenset(errors)))
-
-
-@dataclass(frozen=True)
-class DeleteRequest(Request):
-    """Request model for the delete use-case."""
-
-    requested: frozenset[Identifier]
+    output_port(PullResponse(command.requested, frozenset(errors)))
 
 
 @dataclass(frozen=True)
@@ -60,12 +42,12 @@ class DeleteResponse(Response):
     requested: frozenset[Identifier]
 
 
-def delete(request: DeleteRequest, *, uow: UnitOfWork, output_port: Callable[[DeleteResponse], None]) -> None:
+def delete(command: commands.DeleteEntities, *, uow: UnitOfWork, output_port: Callable[[DeleteResponse], None]) -> None:
     """Delete pulled entities."""
     with uow:
-        uow.link.delete(request.requested)
+        uow.link.delete(command.requested)
         uow.commit()
-    output_port(DeleteResponse(request.requested))
+    output_port(DeleteResponse(command.requested))
 
 
 def list_idle_entities(

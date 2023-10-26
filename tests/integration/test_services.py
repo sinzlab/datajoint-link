@@ -8,11 +8,8 @@ import pytest
 from link.domain import commands, events
 from link.domain.state import Components, Operations, Processes, State, states
 from link.service.services import (
-    DeleteRequest,
     DeleteResponse,
-    PullRequest,
     PullResponse,
-    Request,
     Response,
     delete,
     list_idle_entities,
@@ -79,7 +76,7 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
 
 _Response_co = TypeVar("_Response_co", bound=Response, covariant=True)
 
-_Request_contra = TypeVar("_Request_contra", bound=Request, contravariant=True)
+_Request_contra = TypeVar("_Request_contra", bound=commands.Command, contravariant=True)
 
 
 class Service(Protocol[_Request_contra, _Response_co]):
@@ -89,11 +86,11 @@ class Service(Protocol[_Request_contra, _Response_co]):
         """Execute the service."""
 
 
-def create_pull_service(uow: UnitOfWork) -> Service[PullRequest, PullResponse]:
+def create_pull_service(uow: UnitOfWork) -> Service[commands.PullEntities, PullResponse]:
     return partial(pull, uow=uow)
 
 
-def create_delete_service(uow: UnitOfWork) -> Service[DeleteRequest, DeleteResponse]:
+def create_delete_service(uow: UnitOfWork) -> Service[commands.DeleteEntities, DeleteResponse]:
     return partial(delete, uow=uow)
 
 
@@ -139,7 +136,7 @@ STATES: list[EntityConfig] = [
 def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     uow = create_uow(**state)
     delete_service = create_delete_service(uow)
-    delete_service(DeleteRequest(frozenset(create_identifiers("1"))), output_port=lambda x: None)
+    delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))), output_port=lambda x: None)
     with uow:
         assert next(iter(uow.link)).state is expected
 
@@ -152,7 +149,7 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
     )
     output_port = FakeOutputPort[DeleteResponse]()
     delete_service = create_delete_service(uow)
-    delete_service(DeleteRequest(frozenset(create_identifiers("1"))), output_port=output_port)
+    delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))), output_port=output_port)
     assert output_port.response.requested == create_identifiers("1")
 
 
@@ -177,7 +174,7 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
     uow = create_uow(**state)
     pull_service = create_pull_service(uow)
     pull_service(
-        PullRequest(frozenset(create_identifiers("1"))),
+        commands.PullEntities(frozenset(create_identifiers("1"))),
         output_port=lambda x: None,
     )
     with uow:
@@ -214,7 +211,7 @@ def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityCon
     output_port = FakeOutputPort[PullResponse]()
     pull_service = create_pull_service(gateway)
     pull_service(
-        PullRequest(frozenset(create_identifiers("1"))),
+        commands.PullEntities(frozenset(create_identifiers("1"))),
         output_port=output_port,
     )
     assert output_port.response == PullResponse(requested=frozenset(create_identifiers("1")), errors=frozenset(errors))
