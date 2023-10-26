@@ -68,64 +68,6 @@ def delete(request: DeleteRequest, *, uow: UnitOfWork, output_port: Callable[[De
     output_port(DeleteResponse(request.requested))
 
 
-@dataclass(frozen=True)
-class ProcessToCompletionResponse(Response):
-    """Response model for the process to completion use-case."""
-
-    requested: frozenset[Identifier]
-
-
-def process_to_completion(
-    command: commands.FullyProcessLink,
-    *,
-    process_service: Callable[[commands.ProcessLink], events.LinkStateChanged],
-    output_port: Callable[[ProcessToCompletionResponse], None],
-) -> None:
-    """Process entities until their processes are complete."""
-    while process_service(commands.ProcessLink(command.requested)).updates:
-        pass
-    output_port(ProcessToCompletionResponse(command.requested))
-
-
-def start_pull_process(
-    command: commands.StartPullProcess,
-    *,
-    uow: UnitOfWork,
-    output_port: Callable[[events.LinkStateChanged], None],
-) -> None:
-    """Start the pull process for the requested entities."""
-    with uow:
-        result = uow.link.apply(Operations.START_PULL, requested=command.requested).events[0]
-        uow.commit()
-    assert isinstance(result, events.LinkStateChanged)
-    output_port(result)
-
-
-def start_delete_process(
-    command: commands.StartDeleteProcess,
-    *,
-    uow: UnitOfWork,
-    output_port: Callable[[events.LinkStateChanged], None],
-) -> None:
-    """Start the delete process for the requested entities."""
-    with uow:
-        result = uow.link.apply(Operations.START_DELETE, requested=command.requested).events[0]
-        uow.commit()
-    assert isinstance(result, events.LinkStateChanged)
-    output_port(result)
-
-
-def process(
-    command: commands.ProcessLink, *, uow: UnitOfWork, output_port: Callable[[events.LinkStateChanged], None]
-) -> None:
-    """Process entities."""
-    with uow:
-        result = uow.link.apply(Operations.PROCESS, requested=command.requested).events[0]
-        uow.commit()
-    assert isinstance(result, events.LinkStateChanged)
-    output_port(result)
-
-
 def list_idle_entities(
     command: commands.ListIdleEntities,
     *,

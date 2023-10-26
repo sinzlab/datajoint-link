@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from functools import partial
 from typing import Generic, TypedDict, TypeVar, Union
 
@@ -8,7 +7,7 @@ import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Operations, Processes, State, states
-from link.service.io import Service, make_responsive
+from link.service.io import Service
 from link.service.services import (
     DeleteRequest,
     DeleteResponse,
@@ -17,8 +16,6 @@ from link.service.services import (
     Response,
     delete,
     list_idle_entities,
-    process,
-    process_to_completion,
     pull,
 )
 from link.service.uow import UnitOfWork
@@ -77,19 +74,6 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
     assignments[Components.LOCAL] = {"1"}
     return UnitOfWork(
         FakeLinkGateway(create_assignments(assignments), tainted_identifiers=tainted_identifiers, processes=processes)
-    )
-
-
-def create_process_to_completion_service(uow: UnitOfWork) -> Callable[[commands.FullyProcessLink], None]:
-    process_service = partial(make_responsive(partial(process, uow=uow)), output_port=lambda x: None)
-    return partial(
-        make_responsive(
-            partial(
-                process_to_completion,
-                process_service=process_service,
-            ),
-        ),
-        output_port=lambda x: None,
     )
 
 
@@ -222,40 +206,6 @@ def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityCon
         output_port=output_port,
     )
     assert output_port.response == PullResponse(requested=frozenset(create_identifiers("1")), errors=frozenset(errors))
-
-
-def test_entity_undergoing_process_gets_processed() -> None:
-    uow = UnitOfWork(
-        FakeLinkGateway(
-            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
-            processes={Processes.PULL: create_identifiers("1")},
-        )
-    )
-    process(
-        commands.ProcessLink(frozenset(create_identifiers("1"))),
-        uow=uow,
-        output_port=FakeOutputPort[events.LinkStateChanged](),
-    )
-    with uow:
-        entity = next(entity for entity in uow.link if entity.identifier == create_identifier("1"))
-        assert entity.state is states.Received
-
-
-def test_correct_response_model_gets_passed_to_process_output_port() -> None:
-    uow = UnitOfWork(
-        FakeLinkGateway(
-            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
-            processes={Processes.PULL: create_identifiers("1")},
-        )
-    )
-    output_port = FakeOutputPort[events.LinkStateChanged]()
-    process(
-        commands.ProcessLink(frozenset(create_identifiers("1"))),
-        uow=uow,
-        output_port=output_port,
-    )
-    assert output_port.response.requested == create_identifiers("1")
-    assert output_port.response.operation is Operations.PROCESS
 
 
 def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() -> None:
