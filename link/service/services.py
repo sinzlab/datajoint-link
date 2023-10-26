@@ -7,7 +7,6 @@ from enum import Enum, auto
 
 from link.domain import commands, events
 from link.domain.custom_types import Identifier
-from link.domain.state import Operations, states
 
 from .uow import UnitOfWork
 
@@ -16,23 +15,16 @@ class Response:
     """Base class for all response models."""
 
 
-@dataclass(frozen=True)
-class PullResponse(Response):
-    """Response model for the pull use-case."""
-
-    requested: frozenset[Identifier]
-    errors: frozenset[events.InvalidOperationRequested]
-
-
-def pull(command: commands.PullEntities, *, uow: UnitOfWork, output_port: Callable[[PullResponse], None]) -> None:
+def pull(
+    command: commands.PullEntities, *, uow: UnitOfWork, output_port: Callable[[events.EntitiesPulled], None]
+) -> None:
     """Pull entities across the link."""
     with uow:
         link = uow.link.pull(command.requested)
         uow.commit()
-    state_changed_events = (event for event in link.events if isinstance(event, events.LinkStateChanged))
-    start_pull_event = next(event for event in state_changed_events if event.operation is Operations.START_PULL)
-    errors = (error for error in start_pull_event.errors if error.state is states.Deprecated)
-    output_port(PullResponse(command.requested, frozenset(errors)))
+    event = link.events[-1]
+    assert isinstance(event, events.EntitiesPulled)
+    output_port(event)
 
 
 @dataclass(frozen=True)

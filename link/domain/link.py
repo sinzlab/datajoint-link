@@ -14,6 +14,7 @@ from .state import (
     PersistentState,
     Processes,
     State,
+    states,
 )
 
 
@@ -135,9 +136,15 @@ class Link(Set[Entity]):
 
     def pull(self, requested: Iterable[Identifier]) -> Link:
         """Pull the requested entities."""
+        requested = frozenset(requested)
         link = _complete_all_processes(self, requested)
         link = link.apply(Operations.START_PULL, requested=requested)
-        return _complete_all_processes(link, requested)
+        start_pull_event = link.events[-1]
+        assert isinstance(start_pull_event, events.LinkStateChanged)
+        link = _complete_all_processes(link, requested)
+        errors = frozenset(error for error in start_pull_event.errors if error.state is states.Deprecated)
+        link._events.append(events.EntitiesPulled(requested, errors))
+        return link
 
     def delete(self, requested: Iterable[Identifier]) -> Link:
         """Delete the requested entities."""

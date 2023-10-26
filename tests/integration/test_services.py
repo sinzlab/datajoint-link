@@ -7,14 +7,7 @@ import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Operations, Processes, State, states
-from link.service.services import (
-    DeleteResponse,
-    PullResponse,
-    Response,
-    delete,
-    list_idle_entities,
-    pull,
-)
+from link.service.services import DeleteResponse, Response, delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
@@ -74,7 +67,7 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
     )
 
 
-_Response_co = TypeVar("_Response_co", bound=Response, covariant=True)
+_Response_co = TypeVar("_Response_co", bound=Union[Response, events.Event], covariant=True)
 
 _Request_contra = TypeVar("_Request_contra", bound=commands.Command, contravariant=True)
 
@@ -86,7 +79,7 @@ class Service(Protocol[_Request_contra, _Response_co]):
         """Execute the service."""
 
 
-def create_pull_service(uow: UnitOfWork) -> Service[commands.PullEntities, PullResponse]:
+def create_pull_service(uow: UnitOfWork) -> Service[commands.PullEntities, events.EntitiesPulled]:
     return partial(pull, uow=uow)
 
 
@@ -208,13 +201,15 @@ def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityCon
     else:
         errors = set()
     gateway = create_uow(**state)
-    output_port = FakeOutputPort[PullResponse]()
+    output_port = FakeOutputPort[events.EntitiesPulled]()
     pull_service = create_pull_service(gateway)
     pull_service(
         commands.PullEntities(frozenset(create_identifiers("1"))),
         output_port=output_port,
     )
-    assert output_port.response == PullResponse(requested=frozenset(create_identifiers("1")), errors=frozenset(errors))
+    assert output_port.response == events.EntitiesPulled(
+        requested=frozenset(create_identifiers("1")), errors=frozenset(errors)
+    )
 
 
 def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() -> None:
