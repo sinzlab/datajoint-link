@@ -21,7 +21,6 @@ from link.service.services import (
     process_to_completion,
     pull,
     start_delete_process,
-    start_pull_process,
 )
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifier, create_identifiers
@@ -96,15 +95,7 @@ def create_process_to_completion_service(uow: UnitOfWork) -> Callable[[commands.
 
 
 def create_pull_service(uow: UnitOfWork) -> Service[PullRequest, PullResponse]:
-    process_to_completion_service = create_process_to_completion_service(uow)
-    start_pull_process_service = partial(
-        make_responsive(partial(start_pull_process, uow=uow)), output_port=lambda x: None
-    )
-    return partial(
-        pull,
-        process_to_completion_service=process_to_completion_service,
-        start_pull_process_service=start_pull_process_service,
-    )
+    return partial(pull, uow=uow)
 
 
 def create_delete_service(uow: UnitOfWork) -> Service[DeleteRequest, DeleteResponse]:

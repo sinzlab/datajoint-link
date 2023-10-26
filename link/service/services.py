@@ -35,19 +35,15 @@ class PullResponse(Response):
     errors: frozenset[events.InvalidOperationRequested]
 
 
-def pull(
-    request: PullRequest,
-    *,
-    process_to_completion_service: Callable[[commands.FullyProcessLink], ProcessToCompletionResponse],
-    start_pull_process_service: Callable[[commands.StartPullProcess], events.LinkStateChanged],
-    output_port: Callable[[PullResponse], None],
-) -> None:
+def pull(request: PullRequest, *, uow: UnitOfWork, output_port: Callable[[PullResponse], None]) -> None:
     """Pull entities across the link."""
-    process_to_completion_service(commands.FullyProcessLink(request.requested))
-    response = start_pull_process_service(commands.StartPullProcess(request.requested))
-    errors = (error for error in response.errors if error.state is states.Deprecated)
-    process_to_completion_service(commands.FullyProcessLink(request.requested))
-    output_port(PullResponse(request.requested, errors=frozenset(errors)))
+    with uow:
+        link = uow.link.pull(request.requested)
+        uow.commit()
+    state_changed_events = (event for event in link.events if isinstance(event, events.LinkStateChanged))
+    start_pull_event = next(event for event in state_changed_events if event.operation is Operations.START_PULL)
+    errors = (error for error in start_pull_event.errors if error.state is states.Deprecated)
+    output_port(PullResponse(request.requested, frozenset(errors)))
 
 
 @dataclass(frozen=True)

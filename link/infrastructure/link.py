@@ -60,9 +60,7 @@ def create_link(  # noqa: PLR0913
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         operation_presenter = create_operation_response_presenter(translator, create_operation_logger())
         process_service = partial(make_responsive(partial(process, uow=uow)), output_port=operation_presenter)
-        start_pull_process_service = partial(
-            make_responsive(partial(start_pull_process, uow=uow)), output_port=operation_presenter
-        )
+        partial(make_responsive(partial(start_pull_process, uow=uow)), output_port=operation_presenter)
         start_delete_process_service = partial(
             make_responsive(partial(start_delete_process, uow=uow)), output_port=operation_presenter
         )
@@ -70,12 +68,7 @@ def create_link(  # noqa: PLR0913
             make_responsive(partial(process_to_completion, process_service=process_service)), output_port=lambda x: None
         )
         handlers = {
-            Services.PULL: partial(
-                pull,
-                process_to_completion_service=process_to_completion_service,
-                start_pull_process_service=start_pull_process_service,
-                output_port=lambda x: None,
-            ),
+            Services.PULL: partial(pull, uow=uow, output_port=lambda x: None),
             Services.DELETE: partial(
                 delete,
                 process_to_completion_service=process_to_completion_service,
