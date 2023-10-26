@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Generic, TypedDict, TypeVar, Union
+from typing import Any, Callable, Generic, Protocol, TypedDict, TypeVar, Union
 
 import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Operations, Processes, State, states
-from link.service.io import Service
 from link.service.services import (
     DeleteRequest,
     DeleteResponse,
     PullRequest,
     PullResponse,
+    Request,
     Response,
     delete,
     list_idle_entities,
@@ -75,6 +75,18 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
     return UnitOfWork(
         FakeLinkGateway(create_assignments(assignments), tainted_identifiers=tainted_identifiers, processes=processes)
     )
+
+
+_Response_co = TypeVar("_Response_co", bound=Response, covariant=True)
+
+_Request_contra = TypeVar("_Request_contra", bound=Request, contravariant=True)
+
+
+class Service(Protocol[_Request_contra, _Response_co]):
+    """Protocol for services."""
+
+    def __call__(self, request: _Request_contra, *, output_port: Callable[[_Response_co], None], **kwargs: Any) -> None:
+        """Execute the service."""
 
 
 def create_pull_service(uow: UnitOfWork) -> Service[PullRequest, PullResponse]:
