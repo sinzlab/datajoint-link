@@ -60,17 +60,11 @@ class DeleteResponse(Response):
     requested: frozenset[Identifier]
 
 
-def delete(
-    request: DeleteRequest,
-    *,
-    process_to_completion_service: Callable[[commands.FullyProcessLink], ProcessToCompletionResponse],
-    start_delete_process_service: Callable[[commands.StartDeleteProcess], events.LinkStateChanged],
-    output_port: Callable[[DeleteResponse], None],
-) -> None:
+def delete(request: DeleteRequest, *, uow: UnitOfWork, output_port: Callable[[DeleteResponse], None]) -> None:
     """Delete pulled entities."""
-    process_to_completion_service(commands.FullyProcessLink(request.requested))
-    start_delete_process_service(commands.StartDeleteProcess(request.requested))
-    process_to_completion_service(commands.FullyProcessLink(request.requested))
+    with uow:
+        uow.link.delete(request.requested)
+        uow.commit()
     output_port(DeleteResponse(request.requested))
 
 

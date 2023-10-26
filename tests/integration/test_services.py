@@ -20,7 +20,6 @@ from link.service.services import (
     process,
     process_to_completion,
     pull,
-    start_delete_process,
 )
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifier, create_identifiers
@@ -99,15 +98,7 @@ def create_pull_service(uow: UnitOfWork) -> Service[PullRequest, PullResponse]:
 
 
 def create_delete_service(uow: UnitOfWork) -> Service[DeleteRequest, DeleteResponse]:
-    process_to_completion_service = create_process_to_completion_service(uow)
-    start_delete_process_service = partial(
-        make_responsive(partial(start_delete_process, uow=uow)), output_port=lambda x: None
-    )
-    return partial(
-        delete,
-        process_to_completion_service=process_to_completion_service,
-        start_delete_process_service=start_delete_process_service,
-    )
+    return partial(delete, uow=uow)
 
 
 class EntityConfig(TypedDict):

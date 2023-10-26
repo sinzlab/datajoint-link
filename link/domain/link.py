@@ -134,19 +134,15 @@ class Link(Set[Entity]):
 
     def pull(self, requested: Iterable[Identifier]) -> Link:
         """Pull the requested entities."""
-
-        def complete_all_processes(link: Link) -> Link:
-            while True:
-                link = link.apply(Operations.PROCESS, requested=requested)
-                latest_event = link.events[-1]
-                assert hasattr(latest_event, "updates")
-                if not latest_event.updates:
-                    break
-            return link
-
-        link = complete_all_processes(self)
+        link = _complete_all_processes(self, requested)
         link = link.apply(Operations.START_PULL, requested=requested)
-        return complete_all_processes(link)
+        return _complete_all_processes(link, requested)
+
+    def delete(self, requested: Iterable[Identifier]) -> Link:
+        """Delete the requested entities."""
+        link = _complete_all_processes(self, requested)
+        link = link.apply(Operations.START_DELETE, requested=requested)
+        return _complete_all_processes(link, requested)
 
     def list_idle_entities(self) -> None:
         """List the identifiers of all idle entities in the link."""
@@ -165,3 +161,13 @@ class Link(Set[Entity]):
     def __len__(self) -> int:
         """Return the number of entities in the link."""
         return len(self._entities)
+
+
+def _complete_all_processes(link: Link, requested: Iterable[Identifier]) -> Link:
+    while True:
+        link = link.apply(Operations.PROCESS, requested=requested)
+        latest_event = link.events[-1]
+        assert hasattr(latest_event, "updates")
+        if not latest_event.updates:
+            break
+    return link

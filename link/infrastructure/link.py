@@ -9,26 +9,12 @@ from link.adapters.controller import DJController
 from link.adapters.custom_types import PrimaryKey
 from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
-from link.adapters.present import (
-    create_idle_entities_updater,
-    create_operation_response_presenter,
-)
-from link.service.io import make_responsive
-from link.service.services import (
-    Services,
-    delete,
-    list_idle_entities,
-    process,
-    process_to_completion,
-    pull,
-    start_delete_process,
-    start_pull_process,
-)
+from link.adapters.present import create_idle_entities_updater
+from link.service.services import Services, delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
-from .log import create_operation_logger
 from .mixin import create_local_endpoint
 from .sequence import IterationCallbackList, create_content_replacer
 
@@ -58,24 +44,9 @@ def create_link(  # noqa: PLR0913
         uow = UnitOfWork(gateway)
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
-        operation_presenter = create_operation_response_presenter(translator, create_operation_logger())
-        process_service = partial(make_responsive(partial(process, uow=uow)), output_port=operation_presenter)
-        partial(make_responsive(partial(start_pull_process, uow=uow)), output_port=operation_presenter)
-        start_delete_process_service = partial(
-            make_responsive(partial(start_delete_process, uow=uow)), output_port=operation_presenter
-        )
-        process_to_completion_service = partial(
-            make_responsive(partial(process_to_completion, process_service=process_service)), output_port=lambda x: None
-        )
         handlers = {
             Services.PULL: partial(pull, uow=uow, output_port=lambda x: None),
-            Services.DELETE: partial(
-                delete,
-                process_to_completion_service=process_to_completion_service,
-                start_delete_process_service=start_delete_process_service,
-                output_port=lambda x: None,
-            ),
-            Services.PROCESS: partial(process, uow=uow, output_port=operation_presenter),
+            Services.DELETE: partial(delete, uow=uow, output_port=lambda x: None),
             Services.LIST_IDLE_ENTITIES: partial(list_idle_entities, uow=uow, output_port=idle_entities_updater),
         }
         controller = DJController(handlers, translator)
