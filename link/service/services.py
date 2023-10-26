@@ -52,5 +52,4 @@ class Services(Enum):
 
     PULL = auto()
     DELETE = auto()
-    PROCESS = auto()
     LIST_IDLE_ENTITIES = auto()
