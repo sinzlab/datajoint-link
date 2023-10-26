@@ -13,6 +13,7 @@ from .state import (
     Operations,
     PersistentState,
     Processes,
+    State,
 )
 
 
@@ -162,12 +163,19 @@ class Link(Set[Entity]):
         """Return the number of entities in the link."""
         return len(self._entities)
 
+    def __eq__(self, other: object) -> bool:
+        """Return True if both links have entities with the same identifiers and states."""
+        if not isinstance(other, type(self)):
+            raise NotImplementedError
 
-def _complete_all_processes(link: Link, requested: Iterable[Identifier]) -> Link:
-    while True:
-        link = link.apply(Operations.PROCESS, requested=requested)
-        latest_event = link.events[-1]
-        assert hasattr(latest_event, "updates")
-        if not latest_event.updates:
-            break
-    return link
+        def create_identifier_state_pairs(link: Link) -> set[tuple[Identifier, type[State]]]:
+            return {(entity.identifier, entity.state) for entity in link}
+
+        return create_identifier_state_pairs(self) == create_identifier_state_pairs(other)
+
+
+def _complete_all_processes(current: Link, requested: Iterable[Identifier]) -> Link:
+    new = current.apply(Operations.PROCESS, requested=requested)
+    if new == current:
+        return new
+    return _complete_all_processes(new, requested)
