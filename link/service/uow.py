@@ -36,8 +36,8 @@ class UnitOfWork(ABC):
         def augment_link(link: Link) -> None:
             original = getattr(link, "apply")
             augmented = augment_link_apply(link, original)
-            object.__setattr__(link, "apply", augmented)
-            object.__setattr__(link, "_is_expired", False)
+            setattr(link, "apply", augmented)
+            setattr(link, "_is_expired", False)
 
         def augment_link_apply(current: Link, original: SupportsLinkApply) -> SupportsLinkApply:
             def augmented(operation: Operations, *, requested: Iterable[Identifier]) -> Link:
@@ -46,7 +46,7 @@ class UnitOfWork(ABC):
                     raise RuntimeError("Can not apply operation to expired link")
                 self._link = original(operation, requested=requested)
                 augment_link(self._link)
-                object.__setattr__(current, "_is_expired", True)
+                setattr(current, "_is_expired", True)
                 return self._link
 
             return augmented
@@ -106,7 +106,7 @@ class UnitOfWork(ABC):
         """Throw away any not yet persisted updates."""
         if self._link is None:
             raise RuntimeError("Not available outside of context")
-        object.__setattr__(self._link, "_is_expired", True)
+        setattr(self._link, "_is_expired", True)
         for entity in self._link:
             object.__setattr__(entity, "_is_expired", True)
         self._seen.clear()
