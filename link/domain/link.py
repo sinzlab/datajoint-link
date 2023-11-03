@@ -121,11 +121,11 @@ class Link(Set[Entity]):
 
     def delete(self, requested: Iterable[Identifier]) -> Link:
         """Delete the requested entities."""
-        requested = frozenset(requested)
-        link = _complete_all_processes(self, requested)
-        link = link.apply(Operations.START_DELETE, requested=requested)
-        link = _complete_all_processes(link, requested)
-        return link
+        changed = set()
+        for entity in (entity for entity in self if entity.identifier in requested):
+            changed.add(entity.delete())
+        unchanged = self - changed
+        return type(self)(changed | unchanged)
 
     def list_idle_entities(self) -> frozenset[Identifier]:
         """List the identifiers of all idle entities in the link."""

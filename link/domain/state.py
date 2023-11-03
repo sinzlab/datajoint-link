@@ -277,6 +277,12 @@ class Entity:
         entity = entity.apply(Operations.START_PULL)
         return self._finish_process(entity)
 
+    def delete(self) -> Entity:
+        """Delete the entity."""
+        entity = self._finish_process(self)
+        entity = entity.apply(Operations.START_DELETE)
+        return self._finish_process(entity)
+
     def apply(self, operation: Operations) -> Entity:
         """Apply an operation to the entity."""
         if operation is Operations.START_PULL:
