@@ -342,13 +342,15 @@ def test_link_creation() -> None:
 
 
 def apply_update(gateway: DJLinkGateway, operation: Operations, requested: Iterable[PrimaryKey]) -> None:
-    event = (
-        gateway.create_link()
-        .apply(operation, requested={gateway.translator.to_identifier(key) for key in requested})
-        .events[0]
+    link = gateway.create_link().apply(
+        operation, requested={gateway.translator.to_identifier(key) for key in requested}
     )
-    assert isinstance(event, events.LinkStateChanged)
-    gateway.apply(event.updates)
+    for entity in link:
+        while entity.events:
+            event = entity.events.popleft()
+            if not isinstance(event, events.EntityStateChanged):
+                continue
+            gateway.apply([event])
 
 
 def test_add_to_local_command() -> None:

@@ -111,28 +111,11 @@ class Link(Set[Entity]):
 
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
-
-        def create_operation_result(
-            results: Iterable[events.EntityOperationApplied], requested: Iterable[Identifier]
-        ) -> events.LinkStateChanged:
-            """Create the result of an operation on a link from results of individual entities."""
-            results = set(results)
-            operation = next(iter(results)).operation
-            return events.LinkStateChanged(
-                operation,
-                requested=frozenset(requested),
-                updates=frozenset(result for result in results if isinstance(result, events.EntityStateChanged)),
-                errors=frozenset(result for result in results if isinstance(result, events.InvalidOperationRequested)),
-            )
-
         assert requested, "No identifiers requested."
         assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
         changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
         unchanged = {entity for entity in self if entity.identifier not in requested}
-        operation_results = self.events + (
-            create_operation_result((entity.events[-1] for entity in changed), requested),
-        )
-        return Link(changed | unchanged, operation_results)
+        return Link(changed | unchanged)
 
     def pull(self, requested: Iterable[Identifier]) -> Link:
         """Pull the requested entities."""
