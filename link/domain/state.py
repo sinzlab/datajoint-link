@@ -290,3 +290,13 @@ class Entity:
     def _process(self) -> Entity:
         """Process the entity."""
         return self.state.process(self)
+
+    def __hash__(self) -> int:
+        """Return the hash of this entity."""
+        return hash(self.identifier)
+
+    def __eq__(self, other: object) -> bool:
+        """Return True if both entities are equal."""
+        if not isinstance(other, type(self)):
+            raise NotImplementedError
+        return hash(self) == hash(other)
