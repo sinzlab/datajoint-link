@@ -35,7 +35,7 @@ class EventHandlers(Protocol):
         """Get the appropriate handlers for the given event."""
 
 
-class Messagebus:
+class MessageBus:
     """A message bus that dispatches domain messages to their appropriate handlers."""
 
     def __init__(self, uow: UnitOfWork, command_handlers: CommandHandlers, event_handlers: EventHandlers) -> None:
@@ -52,7 +52,7 @@ class Messagebus:
             message = self._queue.popleft()
             if isinstance(message, Command):
                 self._handle_command(message)
-            if isinstance(message, Event):
+            elif isinstance(message, Event):
                 self._handle_event(message)
             else:
                 raise TypeError(f"Unknown message type {type(message)!r}")
