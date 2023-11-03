@@ -22,7 +22,10 @@ class CommandHandlers(Protocol):
     """A mapping of command types to handlers."""
 
     def __getitem__(self, command_type: type[T]) -> Callable[[T], None]:
-        """Get the appropriate handler for the given command."""
+        """Get the appropriate handler for the given type of command."""
+
+    def __setitem__(self, command_type: type[T], handler: Callable[[T], None]) -> None:
+        """Set the appropriate handler for the given type of command."""
 
 
 V = TypeVar("V", bound=Event)
@@ -32,7 +35,10 @@ class EventHandlers(Protocol):
     """A mapping of event types to handlers."""
 
     def __getitem__(self, event_type: type[V]) -> Iterable[Callable[[V], None]]:
-        """Get the appropriate handlers for the given event."""
+        """Get the appropriate handlers for the given type of event."""
+
+    def __setitem__(selG, event_type: type[V], handlers: Iterable[Callable[[V], None]]) -> None:
+        """Set the appropriate handlers for the given type of event."""
 
 
 class MessageBus:
