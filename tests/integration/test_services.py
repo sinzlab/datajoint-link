@@ -6,10 +6,10 @@ from typing import Any, Callable, Generic, Protocol, TypedDict, TypeVar
 import pytest
 
 from link.domain import commands, events
-from link.domain.state import Components, Operations, Processes, State, states
+from link.domain.state import Components, Processes, State, states
 from link.service.services import delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
-from tests.assignments import create_assignments, create_identifier, create_identifiers
+from tests.assignments import create_assignments, create_identifiers
 
 from .gateway import FakeLinkGateway
 
@@ -79,7 +79,7 @@ class Service(Protocol[_Command_contra, _Event_co]):
         """Execute the service."""
 
 
-def create_pull_service(uow: UnitOfWork) -> Service[commands.PullEntities, events.EntitiesPulled]:
+def create_pull_service(uow: UnitOfWork) -> Callable[[commands.PullEntities], None]:
     return partial(pull, uow=uow)
 
 
@@ -166,50 +166,9 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
 def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     uow = create_uow(**state)
     pull_service = create_pull_service(uow)
-    pull_service(
-        commands.PullEntities(frozenset(create_identifiers("1"))),
-        output_port=lambda x: None,
-    )
+    pull_service(commands.PullEntities(frozenset(create_identifiers("1"))))
     with uow:
         assert next(iter(uow.link)).state is expected
-
-
-@pytest.mark.parametrize(
-    ("state", "produces_error"),
-    [
-        (STATES[0], False),
-        (STATES[1], False),
-        (STATES[2], False),
-        (STATES[3], True),
-        (STATES[4], True),
-        (STATES[5], False),
-        (STATES[6], False),
-        (STATES[7], False),
-        (STATES[8], True),
-        (STATES[9], False),
-        (STATES[10], False),
-        (STATES[11], True),
-    ],
-)
-def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityConfig, produces_error: bool) -> None:
-    if produces_error:
-        errors = {
-            events.InvalidOperationRequested(
-                operation=Operations.START_PULL, identifier=create_identifier("1"), state=states.Deprecated
-            )
-        }
-    else:
-        errors = set()
-    gateway = create_uow(**state)
-    output_port = FakeOutputPort[events.EntitiesPulled]()
-    pull_service = create_pull_service(gateway)
-    pull_service(
-        commands.PullEntities(frozenset(create_identifiers("1"))),
-        output_port=output_port,
-    )
-    assert output_port.response == events.EntitiesPulled(
-        requested=frozenset(create_identifiers("1")), errors=frozenset(errors)
-    )
 
 
 def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() -> None:

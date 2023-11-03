@@ -9,16 +9,11 @@ from link.domain import commands, events
 from .uow import UnitOfWork
 
 
-def pull(
-    command: commands.PullEntities, *, uow: UnitOfWork, output_port: Callable[[events.EntitiesPulled], None]
-) -> None:
+def pull(command: commands.PullEntities, *, uow: UnitOfWork) -> None:
     """Pull entities across the link."""
     with uow:
-        link = uow.link.pull(command.requested)
+        uow.link.pull(command.requested)
         uow.commit()
-    event = link.events[-1]
-    assert isinstance(event, events.EntitiesPulled)
-    output_port(event)
 
 
 def delete(

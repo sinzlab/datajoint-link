@@ -62,14 +62,6 @@ class IdleEntitiesListed(Event):
 
 
 @dataclass(frozen=True)
-class EntitiesPulled(Event):
-    """The requested entities have been pulled."""
-
-    requested: frozenset[Identifier]
-    errors: frozenset[InvalidOperationRequested]
-
-
-@dataclass(frozen=True)
 class EntitiesDeleted(Event):
     """The requested entities have been deleted."""
 

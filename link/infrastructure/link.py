@@ -45,7 +45,7 @@ def create_link(  # noqa: PLR0913
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         handlers = {
-            Services.PULL: partial(pull, uow=uow, output_port=lambda x: None),
+            Services.PULL: partial(pull, uow=uow),
             Services.DELETE: partial(delete, uow=uow, output_port=lambda x: None),
             Services.LIST_IDLE_ENTITIES: partial(list_idle_entities, uow=uow, output_port=idle_entities_updater),
         }
