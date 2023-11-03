@@ -271,6 +271,12 @@ class Entity:
     is_tainted: bool
     events: deque[EntityOperationApplied]
 
+    def pull(self) -> Entity:
+        """Pull the entity."""
+        entity = self._finish_process(self)
+        entity = entity.apply(Operations.START_PULL)
+        return self._finish_process(entity)
+
     def apply(self, operation: Operations) -> Entity:
         """Apply an operation to the entity."""
         if operation is Operations.START_PULL:
@@ -291,6 +297,12 @@ class Entity:
     def _process(self) -> Entity:
         """Process the entity."""
         return self.state.process(self)
+
+    @staticmethod
+    def _finish_process(entity: Entity) -> Entity:
+        while entity.current_process is not Processes.NONE:
+            entity = entity.apply(Operations.PROCESS)
+        return entity
 
     def __hash__(self) -> int:
         """Return the hash of this entity."""

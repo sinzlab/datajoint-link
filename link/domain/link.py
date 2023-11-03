@@ -113,11 +113,11 @@ class Link(Set[Entity]):
 
     def pull(self, requested: Iterable[Identifier]) -> Link:
         """Pull the requested entities."""
-        requested = frozenset(requested)
-        link = _complete_all_processes(self, requested)
-        link = link.apply(Operations.START_PULL, requested=requested)
-        link = _complete_all_processes(link, requested)
-        return link
+        changed = set()
+        for entity in (entity for entity in self if entity.identifier in requested):
+            changed.add(entity.pull())
+        unchanged = self - changed
+        return type(self)(changed | unchanged)
 
     def delete(self, requested: Iterable[Identifier]) -> Link:
         """Delete the requested entities."""
