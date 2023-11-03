@@ -260,7 +260,7 @@ STATE_MAP = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass
 class Entity:
     """An entity in a link."""
 
