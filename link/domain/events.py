@@ -59,10 +59,3 @@ class IdleEntitiesListed(Event):
     """Idle entities in a link have been listed."""
 
     identifiers: frozenset[Identifier]
-
-
-@dataclass(frozen=True)
-class EntitiesDeleted(Event):
-    """The requested entities have been deleted."""
-
-    requested: frozenset[Identifier]

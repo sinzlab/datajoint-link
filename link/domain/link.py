@@ -148,7 +148,6 @@ class Link(Set[Entity]):
         link = _complete_all_processes(self, requested)
         link = link.apply(Operations.START_DELETE, requested=requested)
         link = _complete_all_processes(link, requested)
-        link._events.append(events.EntitiesDeleted(requested))
         return link
 
     def list_idle_entities(self) -> None:

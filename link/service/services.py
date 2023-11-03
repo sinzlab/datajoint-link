@@ -16,16 +16,11 @@ def pull(command: commands.PullEntities, *, uow: UnitOfWork) -> None:
         uow.commit()
 
 
-def delete(
-    command: commands.DeleteEntities, *, uow: UnitOfWork, output_port: Callable[[events.EntitiesDeleted], None]
-) -> None:
+def delete(command: commands.DeleteEntities, *, uow: UnitOfWork) -> None:
     """Delete pulled entities."""
     with uow:
-        link = uow.link.delete(command.requested)
+        uow.link.delete(command.requested)
         uow.commit()
-    event = link.events[-1]
-    assert isinstance(event, events.EntitiesDeleted)
-    output_port(event)
 
 
 def list_idle_entities(

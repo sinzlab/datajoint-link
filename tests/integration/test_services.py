@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable, Generic, Protocol, TypedDict, TypeVar
+from typing import Callable, Generic, TypedDict, TypeVar
 
 import pytest
 
@@ -72,18 +72,11 @@ _Event_co = TypeVar("_Event_co", bound=events.Event, covariant=True)
 _Command_contra = TypeVar("_Command_contra", bound=commands.Command, contravariant=True)
 
 
-class Service(Protocol[_Command_contra, _Event_co]):
-    """Protocol for services."""
-
-    def __call__(self, command: _Command_contra, *, output_port: Callable[[_Event_co], None], **kwargs: Any) -> None:
-        """Execute the service."""
-
-
 def create_pull_service(uow: UnitOfWork) -> Callable[[commands.PullEntities], None]:
     return partial(pull, uow=uow)
 
 
-def create_delete_service(uow: UnitOfWork) -> Service[commands.DeleteEntities, events.EntitiesDeleted]:
+def create_delete_service(uow: UnitOfWork) -> Callable[[commands.DeleteEntities], None]:
     return partial(delete, uow=uow)
 
 
@@ -129,21 +122,9 @@ STATES: list[EntityConfig] = [
 def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     uow = create_uow(**state)
     delete_service = create_delete_service(uow)
-    delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))), output_port=lambda x: None)
+    delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))))
     with uow:
         assert next(iter(uow.link)).state is expected
-
-
-def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
-    uow = UnitOfWork(
-        FakeLinkGateway(
-            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
-        )
-    )
-    output_port = FakeOutputPort[events.EntitiesDeleted]()
-    delete_service = create_delete_service(uow)
-    delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))), output_port=output_port)
-    assert output_port.response.requested == create_identifiers("1")
 
 
 @pytest.mark.parametrize(
