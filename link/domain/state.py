@@ -1,6 +1,7 @@
 """Contains everything state related."""
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, replace
 from enum import Enum, auto
 from functools import partial
@@ -29,8 +30,8 @@ class State:
 
     @staticmethod
     def _create_invalid_operation(entity: Entity, operation: Operations) -> Entity:
-        updated = entity.events + (InvalidOperationRequested(operation, entity.identifier, entity.state),)
-        return replace(entity, events=updated)
+        entity.events.append(InvalidOperationRequested(operation, entity.identifier, entity.state))
+        return replace(entity)
 
     @classmethod
     def _transition_entity(
@@ -39,10 +40,10 @@ class State:
         if new_process is None:
             new_process = entity.current_process
         transition = Transition(cls, new_state)
-        updated_events = entity.events + (
+        entity.events.append(
             EntityStateChanged(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
         )
-        return replace(entity, state=transition.new, current_process=new_process, events=updated_events)
+        return replace(entity, state=transition.new, current_process=new_process)
 
 
 class States:
@@ -268,7 +269,7 @@ class Entity:
     state: type[State]
     current_process: Processes
     is_tainted: bool
-    events: tuple[EntityOperationApplied, ...]
+    events: deque[EntityOperationApplied]
 
     def apply(self, operation: Operations) -> Entity:
         """Apply an operation to the entity."""

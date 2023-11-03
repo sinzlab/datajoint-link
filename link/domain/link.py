@@ -1,6 +1,7 @@
 """Contains the link class."""
 from __future__ import annotations
 
+from collections import deque
 from typing import Any, Iterable, Iterator, Mapping, Optional, Set, Tuple, TypeVar
 
 from . import events
@@ -70,7 +71,7 @@ def create_link(
                 state=state,
                 current_process=processes_map.get(identifier, Processes.NONE),
                 is_tainted=is_tainted(identifier),
-                events=tuple(),
+                events=deque(),
             )
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}

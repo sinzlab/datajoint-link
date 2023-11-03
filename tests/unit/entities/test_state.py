@@ -95,12 +95,10 @@ def test_processing_activated_entity_returns_correct_entity(
         tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link))
-    updated_results = entity.events + (
+    entity.events.append(
         events.EntityStateChanged(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
     )
-    assert entity.apply(Operations.PROCESS) == replace(
-        entity, state=new_state, current_process=new_process, events=updated_results
-    )
+    assert entity.apply(Operations.PROCESS) == replace(entity, state=new_state, current_process=new_process)
 
 
 @pytest.mark.parametrize(
