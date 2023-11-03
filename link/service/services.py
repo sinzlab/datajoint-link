@@ -31,10 +31,8 @@ def list_idle_entities(
 ) -> None:
     """List all idle entities."""
     with uow:
-        uow.link.list_idle_entities()
-        event = uow.link.events[-1]
-        assert isinstance(event, events.IdleEntitiesListed)
-        output_port(event)
+        idle = uow.link.list_idle_entities()
+        output_port(events.IdleEntitiesListed(idle))
 
 
 class Services(Enum):

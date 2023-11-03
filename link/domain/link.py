@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Any, Iterable, Iterator, Mapping, Optional, Set, Tuple, TypeVar
+from typing import Any, Iterable, Iterator, Mapping, Optional, Set, TypeVar
 
 from . import events
 from .custom_types import Identifier
@@ -97,17 +97,11 @@ class Link(Set[Entity]):
     def __init__(self, entities: Iterable[Entity], events: Iterable[events.Event] | None = None) -> None:
         """Initialize the link."""
         self._entities = set(entities)
-        self._events = list(events) if events is not None else []
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
         """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
-
-    @property
-    def events(self) -> Tuple[events.Event, ...]:
-        """Return the events that happened to the link."""
-        return tuple(self._events)
 
     def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
         """Apply an operation to the requested entities."""
@@ -133,11 +127,9 @@ class Link(Set[Entity]):
         link = _complete_all_processes(link, requested)
         return link
 
-    def list_idle_entities(self) -> None:
+    def list_idle_entities(self) -> frozenset[Identifier]:
         """List the identifiers of all idle entities in the link."""
-        self._events.append(
-            events.IdleEntitiesListed(frozenset(entity.identifier for entity in self._entities if entity.state is Idle))
-        )
+        return frozenset(entity.identifier for entity in self if entity.state is Idle)
 
     def __contains__(self, entity: object) -> bool:
         """Check if the link contains the given entity."""
