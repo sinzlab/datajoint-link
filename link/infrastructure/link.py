@@ -10,7 +10,9 @@ from link.adapters.custom_types import PrimaryKey
 from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
 from link.adapters.present import create_idle_entities_updater
-from link.service.services import Services, delete, list_idle_entities, pull
+from link.domain import commands, events
+from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
+from link.service.services import delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
 
 from . import DJConfiguration, create_tables
@@ -44,12 +46,17 @@ def create_link(  # noqa: PLR0913
         uow = UnitOfWork(gateway)
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
-        handlers = {
-            Services.PULL: partial(pull, uow=uow),
-            Services.DELETE: partial(delete, uow=uow),
-            Services.LIST_IDLE_ENTITIES: partial(list_idle_entities, uow=uow, output_port=idle_entities_updater),
-        }
-        controller = DJController(handlers, translator)
+        command_handlers: CommandHandlers = {}
+        command_handlers[commands.PullEntities] = partial(pull, uow=uow)
+        command_handlers[commands.DeleteEntities] = partial(delete, uow=uow)
+        command_handlers[commands.ListIdleEntities] = partial(
+            list_idle_entities, uow=uow, output_port=idle_entities_updater
+        )
+        event_handlers: EventHandlers = {}
+        event_handlers[events.EntityStateChanged] = [lambda event: None]
+        event_handlers[events.InvalidOperationRequested] = [lambda event: None]
+        bus = MessageBus(uow, command_handlers, event_handlers)
+        controller = DJController(bus, translator)
         source_restriction.callback = controller.list_idle_entities
 
         return create_local_endpoint(controller, tables, source_restriction)

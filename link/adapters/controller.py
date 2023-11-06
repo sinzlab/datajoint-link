@@ -1,10 +1,10 @@
 """Contains code controlling the execution of use-cases."""
 from __future__ import annotations
 
-from typing import Callable, Iterable, Mapping
+from typing import Iterable
 
 from link.domain import commands
-from link.service.services import Services
+from link.service.messagebus import MessageBus
 
 from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
@@ -15,23 +15,21 @@ class DJController:
 
     def __init__(
         self,
-        handlers: Mapping[Services, Callable[[commands.Command], None]],
+        message_bus: MessageBus,
         translator: IdentificationTranslator,
     ) -> None:
         """Initialize the translator."""
-        self.__handlers = handlers
-        self.__translator = translator
+        self._message_bus = message_bus
+        self._translator = translator
 
     def pull(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the pull use-case."""
-        self.__handlers[Services.PULL](commands.PullEntities(frozenset(self.__translator.to_identifiers(primary_keys))))
+        self._message_bus.handle(commands.PullEntities(frozenset(self._translator.to_identifiers(primary_keys))))
 
     def delete(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the delete use-case."""
-        self.__handlers[Services.DELETE](
-            commands.DeleteEntities(frozenset(self.__translator.to_identifiers(primary_keys)))
-        )
+        self._message_bus.handle(commands.DeleteEntities(frozenset(self._translator.to_identifiers(primary_keys))))
 
     def list_idle_entities(self) -> None:
         """Execute the use-case that lists idle entities."""
-        self.__handlers[Services.LIST_IDLE_ENTITIES](commands.ListIdleEntities())
+        self._message_bus.handle(commands.ListIdleEntities())

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from enum import Enum, auto
 
 from link.domain import commands, events
 
@@ -33,11 +32,3 @@ def list_idle_entities(
     with uow:
         idle = uow.link.list_idle_entities()
         output_port(events.IdleEntitiesListed(idle))
-
-
-class Services(Enum):
-    """Names for all available services."""
-
-    PULL = auto()
-    DELETE = auto()
-    LIST_IDLE_ENTITIES = auto()
