@@ -8,7 +8,6 @@ from typing import Callable, Iterable, Iterator, Protocol
 
 from link.domain import events
 from link.domain.custom_types import Identifier
-from link.domain.events import EntityStateChanged
 from link.domain.link import Link
 from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition
 
@@ -29,7 +28,7 @@ class UnitOfWork(ABC):
         """Initialize the unit of work."""
         self._gateway = gateway
         self._link: Link | None = None
-        self._updates: deque[EntityStateChanged] = deque()
+        self._updates: deque[events.EntityStateChanged] = deque()
         self._events: deque[events.Event] = deque()
         self._seen: list[Entity] = []
 
