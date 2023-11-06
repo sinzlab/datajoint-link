@@ -342,10 +342,11 @@ def test_link_creation() -> None:
 
 
 def apply_update(gateway: DJLinkGateway, operation: Operations, requested: Iterable[PrimaryKey]) -> None:
-    link = gateway.create_link().apply(
-        operation, requested={gateway.translator.to_identifier(key) for key in requested}
-    )
+    link = gateway.create_link()
     for entity in link:
+        if entity.identifier not in {gateway.translator.to_identifier(key) for key in requested}:
+            continue
+        entity.apply(operation)
         while entity.events:
             event = entity.events.popleft()
             if not isinstance(event, events.EntityStateChanged):
