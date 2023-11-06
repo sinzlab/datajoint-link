@@ -32,3 +32,8 @@ def list_idle_entities(
     with uow:
         idle = uow.link.list_idle_entities()
         output_port(events.IdleEntitiesListed(idle))
+
+
+def log_state_change(event: events.StateChanged, log: Callable[[events.StateChanged], None]) -> None:
+    """Log the state change of an entity."""
+    log(event)

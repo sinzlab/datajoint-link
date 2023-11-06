@@ -1,6 +1,7 @@
 """Contains the link decorator that is used by the user to establish a link."""
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from functools import partial
 from typing import Any, Mapping, Optional
@@ -9,9 +10,9 @@ from link.adapters.controller import DJController
 from link.adapters.custom_types import PrimaryKey
 from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
-from link.adapters.present import create_idle_entities_updater
+from link.adapters.present import create_idle_entities_updater, create_state_change_logger
 from link.domain import commands, events
-from link.service.handlers import delete, list_idle_entities, pull
+from link.service.handlers import delete, list_idle_entities, log_state_change, pull
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
 
@@ -46,6 +47,7 @@ def create_link(  # noqa: PLR0913
         uow = UnitOfWork(gateway)
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
+        logger = logging.getLogger(obj.__name__)
         command_handlers: CommandHandlers = {}
         command_handlers[commands.PullEntities] = partial(pull, uow=uow)
         command_handlers[commands.DeleteEntities] = partial(delete, uow=uow)
@@ -53,7 +55,9 @@ def create_link(  # noqa: PLR0913
             list_idle_entities, uow=uow, output_port=idle_entities_updater
         )
         event_handlers: EventHandlers = {}
-        event_handlers[events.StateChanged] = [lambda event: None]
+        event_handlers[events.StateChanged] = [
+            partial(log_state_change, log=create_state_change_logger(translator, logger.info))
+        ]
         event_handlers[events.InvalidOperationRequested] = [lambda event: None]
         bus = MessageBus(uow, command_handlers, event_handlers)
         controller = DJController(bus, translator)
