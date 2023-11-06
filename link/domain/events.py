@@ -39,22 +39,6 @@ class EntityStateChanged(EntityOperationApplied):
 
 
 @dataclass(frozen=True)
-class LinkStateChanged(Event):
-    """The state of a link changed during the application of an operation."""
-
-    operation: Operations
-    requested: frozenset[Identifier]
-    updates: frozenset[EntityStateChanged]
-    errors: frozenset[InvalidOperationRequested]
-
-    def __post_init__(self) -> None:
-        """Validate the event."""
-        assert all(
-            result.operation is self.operation for result in (self.updates | self.errors)
-        ), "Not all events have same operation."
-
-
-@dataclass(frozen=True)
 class IdleEntitiesListed(Event):
     """Idle entities in a link have been listed."""
 
