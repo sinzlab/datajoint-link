@@ -1,48 +1,49 @@
 """Contains everything state related."""
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from collections import deque
+from dataclasses import dataclass
 from enum import Enum, auto
 from functools import partial
-from typing import Union
 
 from .custom_types import Identifier
+from .events import InvalidOperationRequested, OperationApplied, StateChanged
 
 
 class State:
     """An entity's state."""
 
     @classmethod
-    def start_pull(cls, entity: Entity) -> Entity:
+    def start_pull(cls, entity: Entity) -> None:
         """Return the command needed to start the pull process for the entity."""
         return cls._create_invalid_operation(entity, Operations.START_PULL)
 
     @classmethod
-    def start_delete(cls, entity: Entity) -> Entity:
+    def start_delete(cls, entity: Entity) -> None:
         """Return the commands needed to start the delete process for the entity."""
         return cls._create_invalid_operation(entity, Operations.START_DELETE)
 
     @classmethod
-    def process(cls, entity: Entity) -> Entity:
+    def process(cls, entity: Entity) -> None:
         """Return the commands needed to process the entity."""
         return cls._create_invalid_operation(entity, Operations.PROCESS)
 
     @staticmethod
-    def _create_invalid_operation(entity: Entity, operation: Operations) -> Entity:
-        updated = entity.operation_results + (InvalidOperation(operation, entity.identifier, entity.state),)
-        return replace(entity, operation_results=updated)
+    def _create_invalid_operation(entity: Entity, operation: Operations) -> None:
+        entity.events.append(InvalidOperationRequested(operation, entity.identifier, entity.state))
 
     @classmethod
     def _transition_entity(
         cls, entity: Entity, operation: Operations, new_state: type[State], *, new_process: Processes | None = None
-    ) -> Entity:
+    ) -> None:
         if new_process is None:
             new_process = entity.current_process
         transition = Transition(cls, new_state)
-        updated_results = entity.operation_results + (
-            Update(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
+        entity.state = transition.new
+        entity.current_process = new_process
+        entity.events.append(
+            StateChanged(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
         )
-        return replace(entity, state=transition.new, current_process=new_process, operation_results=updated_results)
 
 
 class States:
@@ -68,7 +69,7 @@ class Idle(State):
     """The default state of an entity."""
 
     @classmethod
-    def start_pull(cls, entity: Entity) -> Entity:
+    def start_pull(cls, entity: Entity) -> None:
         """Return the command needed to start the pull process for an entity."""
         return cls._transition_entity(entity, Operations.START_PULL, Activated, new_process=Processes.PULL)
 
@@ -80,7 +81,7 @@ class Activated(State):
     """The state of an activated entity."""
 
     @classmethod
-    def process(cls, entity: Entity) -> Entity:
+    def process(cls, entity: Entity) -> None:
         """Return the commands needed to process an activated entity."""
         transition_entity = partial(cls._transition_entity, entity, Operations.PROCESS)
         if entity.is_tainted:
@@ -99,7 +100,7 @@ class Received(State):
     """The state of an received entity."""
 
     @classmethod
-    def process(cls, entity: Entity) -> Entity:
+    def process(cls, entity: Entity) -> None:
         """Return the commands needed to process a received entity."""
         transition_entity = partial(cls._transition_entity, entity, Operations.PROCESS)
         if entity.current_process is Processes.PULL:
@@ -119,7 +120,7 @@ class Pulled(State):
     """The state of an entity that has been copied to the local side."""
 
     @classmethod
-    def start_delete(cls, entity: Entity) -> Entity:
+    def start_delete(cls, entity: Entity) -> None:
         """Return the commands needed to start the delete process for the entity."""
         return cls._transition_entity(entity, Operations.START_DELETE, Received, new_process=Processes.DELETE)
 
@@ -131,7 +132,7 @@ class Tainted(State):
     """The state of an entity that has been flagged as faulty by the source side."""
 
     @classmethod
-    def start_delete(cls, entity: Entity) -> Entity:
+    def start_delete(cls, entity: Entity) -> None:
         """Return the commands needed to start the delete process for the entity."""
         return cls._transition_entity(entity, Operations.START_DELETE, Received, new_process=Processes.DELETE)
 
@@ -189,28 +190,6 @@ class Operations(Enum):
     START_PULL = auto()
     START_DELETE = auto()
     PROCESS = auto()
-
-
-@dataclass(frozen=True)
-class Update:
-    """Represents the persistent update needed to transition an entity."""
-
-    operation: Operations
-    identifier: Identifier
-    transition: Transition
-    command: Commands
-
-
-@dataclass(frozen=True)
-class InvalidOperation:
-    """Represents the result of attempting an operation that is invalid in the entity's current state."""
-
-    operation: Operations
-    identifier: Identifier
-    state: type[State]
-
-
-EntityOperationResult = Union[Update, InvalidOperation]
 
 
 class Processes(Enum):
@@ -282,7 +261,7 @@ STATE_MAP = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass
 class Entity:
     """An entity in a link."""
 
@@ -290,9 +269,21 @@ class Entity:
     state: type[State]
     current_process: Processes
     is_tainted: bool
-    operation_results: tuple[EntityOperationResult, ...]
+    events: deque[OperationApplied]
 
-    def apply(self, operation: Operations) -> Entity:
+    def pull(self) -> None:
+        """Pull the entity."""
+        self._finish_process()
+        self.apply(Operations.START_PULL)
+        self._finish_process()
+
+    def delete(self) -> None:
+        """Delete the entity."""
+        self._finish_process()
+        self.apply(Operations.START_DELETE)
+        self._finish_process()
+
+    def apply(self, operation: Operations) -> None:
         """Apply an operation to the entity."""
         if operation is Operations.START_PULL:
             return self._start_pull()
@@ -301,14 +292,28 @@ class Entity:
         if operation is Operations.PROCESS:
             return self._process()
 
-    def _start_pull(self) -> Entity:
+    def _start_pull(self) -> None:
         """Start the pull process for the entity."""
         return self.state.start_pull(self)
 
-    def _start_delete(self) -> Entity:
+    def _start_delete(self) -> None:
         """Start the delete process for the entity."""
         return self.state.start_delete(self)
 
-    def _process(self) -> Entity:
+    def _process(self) -> None:
         """Process the entity."""
         return self.state.process(self)
+
+    def _finish_process(self) -> None:
+        while self.current_process is not Processes.NONE:
+            self.apply(Operations.PROCESS)
+
+    def __hash__(self) -> int:
+        """Return the hash of this entity."""
+        return hash(self.identifier)
+
+    def __eq__(self, other: object) -> bool:
+        """Return True if both entities are equal."""
+        if not isinstance(other, type(self)):
+            raise NotImplementedError
+        return hash(self) == hash(other)

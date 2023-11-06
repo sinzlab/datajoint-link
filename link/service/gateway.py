@@ -4,8 +4,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from link.domain import events
 from link.domain.link import Link
-from link.domain.state import Update
 
 
 class LinkGateway(ABC):
@@ -16,5 +16,5 @@ class LinkGateway(ABC):
         """Create a link from the persistent data."""
 
     @abstractmethod
-    def apply(self, updates: Iterable[Update]) -> None:
+    def apply(self, updates: Iterable[events.StateChanged]) -> None:
         """Apply updates to the link's persistent data."""

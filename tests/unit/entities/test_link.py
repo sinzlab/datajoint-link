@@ -6,8 +6,8 @@ from typing import ContextManager, Iterable, Mapping
 import pytest
 
 from link.domain.custom_types import Identifier
-from link.domain.link import Link, create_link
-from link.domain.state import Components, Operations, Processes, State, states
+from link.domain.link import create_link
+from link.domain.state import Components, Processes, State, states
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 
@@ -166,80 +166,16 @@ class TestLink:
         link = create_link(assignments)
         assert set(link.identifiers) == create_identifiers("1", "2")
 
-
-def test_link_is_processed_correctly() -> None:
-    link = create_link(
-        create_assignments(
-            {
-                Components.SOURCE: {"1", "2", "3", "4", "5"},
-                Components.OUTBOUND: {"1", "2", "3", "4", "5"},
-                Components.LOCAL: {"2", "4", "5"},
-            }
-        ),
-        processes={
-            Processes.PULL: create_identifiers("1", "2"),
-            Processes.DELETE: create_identifiers("3", "4", "5"),
-        },
-    )
-    actual = {
-        (entity.identifier, entity.state)
-        for entity in link.apply(Operations.PROCESS, requested=create_identifiers("1", "2", "3", "4"))
-    }
-    expected = {
-        (create_identifier("1"), states.Received),
-        (create_identifier("2"), states.Pulled),
-        (create_identifier("3"), states.Idle),
-        (create_identifier("4"), states.Activated),
-        (create_identifier("5"), states.Received),
-    }
-    assert actual == expected
-
-
-class TestStartPull:
     @staticmethod
-    @pytest.fixture()
-    def link() -> Link:
-        return create_link(create_assignments({Components.SOURCE: {"1"}}))
-
-    @staticmethod
-    def test_idle_entity_becomes_activated(link: Link) -> None:
-        link = link.apply(Operations.START_PULL, requested=create_identifiers("1"))
-        entity = next(iter(link))
-        assert entity.identifier == create_identifier("1")
-        assert entity.state is states.Activated
-
-    @staticmethod
-    def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers requested."):
-            link.apply(Operations.START_PULL, requested={})
-
-    @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
+    def test_specifying_identifiers_not_present_in_link_raises_error_when_pulling() -> None:
+        link = create_link(create_assignments({Components.SOURCE: {"1"}}))
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            link.apply(Operations.START_PULL, requested=create_identifiers("2"))
-
-
-@pytest.fixture()
-def link() -> Link:
-    return create_link(
-        create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
-    )
-
-
-class TestStartDelete:
-    @staticmethod
-    def test_pulled_entity_becomes_received(link: Link) -> None:
-        link = link.apply(Operations.START_DELETE, requested=create_identifiers("1"))
-        entity = next(iter(link))
-        assert entity.identifier == create_identifier("1")
-        assert entity.state is states.Received
+            link.pull(create_identifiers("2"))
 
     @staticmethod
-    def test_not_specifying_requested_identifiers_raises_error(link: Link) -> None:
-        with pytest.raises(AssertionError, match="No identifiers requested."):
-            link.apply(Operations.START_DELETE, requested={})
-
-    @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error(link: Link) -> None:
+    def test_specifying_identifiers_not_present_in_link_raises_error_when_deleting() -> None:
+        link = create_link(
+            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
+        )
         with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            link.apply(Operations.START_DELETE, requested=create_identifiers("2"))
+            link.delete(create_identifiers("2"))

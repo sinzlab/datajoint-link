@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections import defaultdict, deque
+from collections import deque
 from types import TracebackType
-from typing import Callable, Iterable, Protocol
+from typing import Callable, Iterable, Iterator, Protocol
 
+from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.link import Link
-from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition, Update
+from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition
 
 from .gateway import LinkGateway
 
@@ -27,61 +28,40 @@ class UnitOfWork(ABC):
         """Initialize the unit of work."""
         self._gateway = gateway
         self._link: Link | None = None
-        self._updates: dict[Identifier, deque[Update]] = defaultdict(deque)
+        self._updates: deque[events.StateChanged] = deque()
+        self._events: deque[events.Event] = deque()
+        self._seen: list[Entity] = []
 
     def __enter__(self) -> UnitOfWork:
         """Enter the context in which updates to entities can be made."""
 
-        def augment_link(link: Link) -> None:
-            original = getattr(link, "apply")
-            augmented = augment_link_apply(link, original)
-            object.__setattr__(link, "apply", augmented)
-            object.__setattr__(link, "_is_expired", False)
-
-        def augment_link_apply(current: Link, original: SupportsLinkApply) -> SupportsLinkApply:
-            def augmented(operation: Operations, *, requested: Iterable[Identifier]) -> Link:
-                assert hasattr(current, "_is_expired")
-                if current._is_expired:
-                    raise RuntimeError("Can not apply operation to expired link")
-                self._link = original(operation, requested=requested)
-                augment_link(self._link)
-                object.__setattr__(current, "_is_expired", True)
-                return self._link
-
-            return augmented
-
         def augment_entity(entity: Entity) -> None:
             original = getattr(entity, "apply")
             augmented = augment_entity_apply(entity, original)
-            object.__setattr__(entity, "apply", augmented)
-            object.__setattr__(entity, "_is_expired", False)
+            setattr(entity, "apply", augmented)
+            setattr(entity, "_is_expired", False)
 
         def augment_entity_apply(
-            current: Entity, original: Callable[[Operations], Entity]
-        ) -> Callable[[Operations], Entity]:
-            def augmented(operation: Operations) -> Entity:
-                assert hasattr(current, "_is_expired")
-                if current._is_expired is True:
-                    raise RuntimeError("Can not apply operation to expired entity")
-                new = original(operation)
-                store_update(operation, current, new)
-                augment_entity(new)
-                object.__setattr__(current, "_is_expired", True)
-                return new
+            entity: Entity, original: Callable[[Operations], None]
+        ) -> Callable[[Operations], None]:
+            def augmented(operation: Operations) -> None:
+                assert hasattr(entity, "_is_expired")
+                if entity._is_expired:
+                    raise RuntimeError("Can not apply operation to expired entity.")
+                if entity not in self._seen:
+                    self._seen.append(entity)
+                current_state = entity.state
+                original(operation)
+                new_state = entity.state
+                if current_state is new_state:
+                    return
+                transition = Transition(current_state, new_state)
+                command = TRANSITION_MAP[transition]
+                self._updates.append(events.StateChanged(operation, entity.identifier, transition, command))
 
             return augmented
 
-        def store_update(operation: Operations, current: Entity, new: Entity) -> None:
-            assert current.identifier == new.identifier
-            if current.state is new.state:
-                return
-            transition = Transition(current.state, new.state)
-            self._updates[current.identifier].append(
-                Update(operation, current.identifier, transition, TRANSITION_MAP[transition])
-            )
-
         self._link = self._gateway.create_link()
-        augment_link(self._link)
         for entity in self._link:
             augment_entity(entity)
         return self
@@ -105,16 +85,24 @@ class UnitOfWork(ABC):
         if self._link is None:
             raise RuntimeError("Not available outside of context")
         while self._updates:
-            identifier, updates = self._updates.popitem()
-            while updates:
-                self._gateway.apply([updates.popleft()])
+            self._gateway.apply([self._updates.popleft()])
+        for entity in self._seen:
+            while entity.events:
+                self._events.append(entity.events.popleft())
         self.rollback()
 
     def rollback(self) -> None:
         """Throw away any not yet persisted updates."""
         if self._link is None:
             raise RuntimeError("Not available outside of context")
-        object.__setattr__(self._link, "_is_expired", True)
         for entity in self._link:
-            object.__setattr__(entity, "_is_expired", True)
+            setattr(entity, "_is_expired", True)
         self._updates.clear()
+        self._seen.clear()
+
+    def collect_new_events(self) -> Iterator[events.Event]:
+        """Collect new events from entities."""
+        if self._link is not None:
+            raise RuntimeError("New events can not be collected when inside context")
+        while self._events:
+            yield self._events.popleft()

@@ -1,21 +1,11 @@
 """Contains the link class."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Iterable, Iterator, Mapping, Optional, Set, Tuple, TypeVar
+from collections import deque
+from typing import Any, Iterable, Iterator, Mapping, Optional, Set, TypeVar
 
 from .custom_types import Identifier
-from .state import (
-    STATE_MAP,
-    Components,
-    Entity,
-    EntityOperationResult,
-    InvalidOperation,
-    Operations,
-    PersistentState,
-    Processes,
-    Update,
-)
+from .state import STATE_MAP, Components, Entity, Idle, PersistentState, Processes, State
 
 
 def create_link(
@@ -70,7 +60,7 @@ def create_link(
                 state=state,
                 current_process=processes_map.get(identifier, Processes.NONE),
                 is_tainted=is_tainted(identifier),
-                operation_results=tuple(),
+                events=deque(),
             )
 
         return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
@@ -94,44 +84,35 @@ def create_link(
 class Link(Set[Entity]):
     """The state of a link between two databases."""
 
-    def __init__(
-        self, entities: Iterable[Entity], operation_results: Tuple[LinkOperationResult, ...] = tuple()
-    ) -> None:
+    def __init__(self, entities: Iterable[Entity]) -> None:
         """Initialize the link."""
         self._entities = set(entities)
-        self._operation_results = operation_results
 
     @property
     def identifiers(self) -> frozenset[Identifier]:
         """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
 
-    @property
-    def operation_results(self) -> Tuple[LinkOperationResult, ...]:
-        """Return the results of operations performed on this link."""
-        return self._operation_results
+    def pull(self, requested: Iterable[Identifier]) -> None:
+        """Pull the requested entities."""
+        requested = set(requested)
+        self._validate_requested(requested)
+        for entity in (entity for entity in self if entity.identifier in requested):
+            entity.pull()
 
-    def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
-        """Apply an operation to the requested entities."""
+    def delete(self, requested: Iterable[Identifier]) -> None:
+        """Delete the requested entities."""
+        requested = set(requested)
+        self._validate_requested(requested)
+        for entity in (entity for entity in self if entity.identifier in requested):
+            entity.delete()
 
-        def create_operation_result(results: Iterable[EntityOperationResult]) -> LinkOperationResult:
-            """Create the result of an operation on a link from results of individual entities."""
-            results = set(results)
-            operation = next(iter(results)).operation
-            return LinkOperationResult(
-                operation,
-                updates=frozenset(result for result in results if isinstance(result, Update)),
-                errors=frozenset(result for result in results if isinstance(result, InvalidOperation)),
-            )
+    def list_idle_entities(self) -> frozenset[Identifier]:
+        """List the identifiers of all idle entities in the link."""
+        return frozenset(entity.identifier for entity in self if entity.state is Idle)
 
-        assert requested, "No identifiers requested."
+    def _validate_requested(self, requested: Iterable[Identifier]) -> None:
         assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
-        changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
-        unchanged = {entity for entity in self if entity.identifier not in requested}
-        operation_results = self.operation_results + (
-            create_operation_result(entity.operation_results[-1] for entity in changed),
-        )
-        return Link(changed | unchanged, operation_results)
 
     def __contains__(self, entity: object) -> bool:
         """Check if the link contains the given entity."""
@@ -145,17 +126,12 @@ class Link(Set[Entity]):
         """Return the number of entities in the link."""
         return len(self._entities)
 
+    def __eq__(self, other: object) -> bool:
+        """Return True if both links have entities with the same identifiers and states."""
+        if not isinstance(other, type(self)):
+            raise NotImplementedError
 
-@dataclass(frozen=True)
-class LinkOperationResult:
-    """Represents the result of an operation on all entities of a link."""
+        def create_identifier_state_pairs(link: Link) -> set[tuple[Identifier, type[State]]]:
+            return {(entity.identifier, entity.state) for entity in link}
 
-    operation: Operations
-    updates: frozenset[Update]
-    errors: frozenset[InvalidOperation]
-
-    def __post_init__(self) -> None:
-        """Validate the result."""
-        assert all(
-            result.operation is self.operation for result in (self.updates | self.errors)
-        ), "Not all results have same operation."
+        return create_identifier_state_pairs(self) == create_identifier_state_pairs(other)

@@ -1,38 +1,19 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from functools import partial
-from typing import Generic, TypedDict, TypeVar
+from typing import Callable, Generic, TypedDict, TypeVar
 
 import pytest
 
-from link.domain.state import Components, InvalidOperation, Operations, Processes, State, states
-from link.service.io import Service, make_responsive
-from link.service.services import (
-    DeleteRequest,
-    DeleteResponse,
-    ListIdleEntitiesRequest,
-    ListIdleEntitiesResponse,
-    OperationResponse,
-    ProcessRequest,
-    ProcessToCompletionRequest,
-    PullRequest,
-    PullResponse,
-    Response,
-    delete,
-    list_idle_entities,
-    process,
-    process_to_completion,
-    pull,
-    start_delete_process,
-    start_pull_process,
-)
+from link.domain import commands, events
+from link.domain.state import Components, Processes, State, states
+from link.service.handlers import delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
-from tests.assignments import create_assignments, create_identifier, create_identifiers
+from tests.assignments import create_assignments, create_identifiers
 
 from .gateway import FakeLinkGateway
 
-T = TypeVar("T", bound=Response)
+T = TypeVar("T", bound=events.Event)
 
 
 class FakeOutputPort(Generic[T]):
@@ -86,41 +67,17 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
     )
 
 
-def create_process_to_completion_service(uow: UnitOfWork) -> Callable[[ProcessToCompletionRequest], None]:
-    process_service = partial(make_responsive(partial(process, uow=uow)), output_port=lambda x: None)
-    return partial(
-        make_responsive(
-            partial(
-                process_to_completion,
-                process_service=process_service,
-            ),
-        ),
-        output_port=lambda x: None,
-    )
+_Event_co = TypeVar("_Event_co", bound=events.Event, covariant=True)
+
+_Command_contra = TypeVar("_Command_contra", bound=commands.Command, contravariant=True)
 
 
-def create_pull_service(uow: UnitOfWork) -> Service[PullRequest, PullResponse]:
-    process_to_completion_service = create_process_to_completion_service(uow)
-    start_pull_process_service = partial(
-        make_responsive(partial(start_pull_process, uow=uow)), output_port=lambda x: None
-    )
-    return partial(
-        pull,
-        process_to_completion_service=process_to_completion_service,
-        start_pull_process_service=start_pull_process_service,
-    )
+def create_pull_service(uow: UnitOfWork) -> Callable[[commands.PullEntities], None]:
+    return partial(pull, uow=uow)
 
 
-def create_delete_service(uow: UnitOfWork) -> Service[DeleteRequest, DeleteResponse]:
-    process_to_completion_service = create_process_to_completion_service(uow)
-    start_delete_process_service = partial(
-        make_responsive(partial(start_delete_process, uow=uow)), output_port=lambda x: None
-    )
-    return partial(
-        delete,
-        process_to_completion_service=process_to_completion_service,
-        start_delete_process_service=start_delete_process_service,
-    )
+def create_delete_service(uow: UnitOfWork) -> Callable[[commands.DeleteEntities], None]:
+    return partial(delete, uow=uow)
 
 
 class EntityConfig(TypedDict):
@@ -165,21 +122,9 @@ STATES: list[EntityConfig] = [
 def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     uow = create_uow(**state)
     delete_service = create_delete_service(uow)
-    delete_service(DeleteRequest(frozenset(create_identifiers("1"))), output_port=lambda x: None)
+    delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))))
     with uow:
         assert next(iter(uow.link)).state is expected
-
-
-def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
-    uow = UnitOfWork(
-        FakeLinkGateway(
-            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
-        )
-    )
-    output_port = FakeOutputPort[DeleteResponse]()
-    delete_service = create_delete_service(uow)
-    delete_service(DeleteRequest(frozenset(create_identifiers("1"))), output_port=output_port)
-    assert output_port.response.requested == create_identifiers("1")
 
 
 @pytest.mark.parametrize(
@@ -202,82 +147,9 @@ def test_correct_response_model_gets_passed_to_delete_output_port() -> None:
 def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type[State]) -> None:
     uow = create_uow(**state)
     pull_service = create_pull_service(uow)
-    pull_service(
-        PullRequest(frozenset(create_identifiers("1"))),
-        output_port=lambda x: None,
-    )
+    pull_service(commands.PullEntities(frozenset(create_identifiers("1"))))
     with uow:
         assert next(iter(uow.link)).state is expected
-
-
-@pytest.mark.parametrize(
-    ("state", "produces_error"),
-    [
-        (STATES[0], False),
-        (STATES[1], False),
-        (STATES[2], False),
-        (STATES[3], True),
-        (STATES[4], True),
-        (STATES[5], False),
-        (STATES[6], False),
-        (STATES[7], False),
-        (STATES[8], True),
-        (STATES[9], False),
-        (STATES[10], False),
-        (STATES[11], True),
-    ],
-)
-def test_correct_response_model_gets_passed_to_pull_output_port(state: EntityConfig, produces_error: bool) -> None:
-    if produces_error:
-        errors = {
-            InvalidOperation(
-                operation=Operations.START_PULL, identifier=create_identifier("1"), state=states.Deprecated
-            )
-        }
-    else:
-        errors = set()
-    gateway = create_uow(**state)
-    output_port = FakeOutputPort[PullResponse]()
-    pull_service = create_pull_service(gateway)
-    pull_service(
-        PullRequest(frozenset(create_identifiers("1"))),
-        output_port=output_port,
-    )
-    assert output_port.response == PullResponse(requested=frozenset(create_identifiers("1")), errors=frozenset(errors))
-
-
-def test_entity_undergoing_process_gets_processed() -> None:
-    uow = UnitOfWork(
-        FakeLinkGateway(
-            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
-            processes={Processes.PULL: create_identifiers("1")},
-        )
-    )
-    process(
-        ProcessRequest(frozenset(create_identifiers("1"))),
-        uow=uow,
-        output_port=FakeOutputPort[OperationResponse](),
-    )
-    with uow:
-        entity = next(entity for entity in uow.link if entity.identifier == create_identifier("1"))
-        assert entity.state is states.Received
-
-
-def test_correct_response_model_gets_passed_to_process_output_port() -> None:
-    uow = UnitOfWork(
-        FakeLinkGateway(
-            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}}),
-            processes={Processes.PULL: create_identifiers("1")},
-        )
-    )
-    output_port = FakeOutputPort[OperationResponse]()
-    process(
-        ProcessRequest(frozenset(create_identifiers("1"))),
-        uow=uow,
-        output_port=output_port,
-    )
-    assert output_port.response.requested == create_identifiers("1")
-    assert output_port.response.operation is Operations.PROCESS
 
 
 def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() -> None:
@@ -286,6 +158,6 @@ def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() 
             create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
         )
     )
-    output_port = FakeOutputPort[ListIdleEntitiesResponse]()
-    list_idle_entities(ListIdleEntitiesRequest(), uow=uow, output_port=output_port)
+    output_port = FakeOutputPort[events.IdleEntitiesListed]()
+    list_idle_entities(commands.ListIdleEntities(), uow=uow, output_port=output_port)
     assert set(output_port.response.identifiers) == create_identifiers("1")
