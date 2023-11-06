@@ -19,10 +19,8 @@ def initialize(assignments: Mapping[Components, Iterable[str]]) -> tuple[FakeLin
 def test_updates_are_applied_to_gateway_on_commit() -> None:
     gateway, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
-        uow.link.apply(Operations.START_PULL, requested=create_identifiers("1"))
-        uow.link.apply(Operations.START_DELETE, requested=create_identifiers("2"))
-        uow.link.apply(Operations.PROCESS, requested=create_identifiers("1", "2"))
-        uow.link.apply(Operations.PROCESS, requested=create_identifiers("1", "2"))
+        uow.link.pull(create_identifiers("1"))
+        uow.link.delete(create_identifiers("2"))
         uow.commit()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
     expected = {(create_identifier("1"), states.Pulled), (create_identifier("2"), states.Idle)}
@@ -32,10 +30,8 @@ def test_updates_are_applied_to_gateway_on_commit() -> None:
 def test_updates_are_discarded_on_context_exit() -> None:
     gateway, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
-        uow.link.apply(Operations.START_PULL, requested=create_identifiers("1"))
-        uow.link.apply(Operations.START_DELETE, requested=create_identifiers("2"))
-        uow.link.apply(Operations.PROCESS, requested=create_identifiers("1", "2"))
-        uow.link.apply(Operations.PROCESS, requested=create_identifiers("1", "2"))
+        uow.link.pull(create_identifiers("1"))
+        uow.link.delete(create_identifiers("2"))
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
     expected = {(create_identifier("1"), states.Idle), (create_identifier("2"), states.Pulled)}
     assert actual == expected
@@ -44,10 +40,8 @@ def test_updates_are_discarded_on_context_exit() -> None:
 def test_updates_are_discarded_on_rollback() -> None:
     gateway, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
-        uow.link.apply(Operations.START_PULL, requested=create_identifiers("1"))
-        uow.link.apply(Operations.START_DELETE, requested=create_identifiers("2"))
-        uow.link.apply(Operations.PROCESS, requested=create_identifiers("1", "2"))
-        uow.link.apply(Operations.PROCESS, requested=create_identifiers("1", "2"))
+        uow.link.pull(create_identifiers("1"))
+        uow.link.delete(create_identifiers("2"))
         uow.rollback()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
     expected = {(create_identifier("1"), states.Idle), (create_identifier("2"), states.Pulled)}
@@ -114,8 +108,8 @@ def test_link_expires_when_committing() -> None:
     with uow:
         link = uow.link
         uow.commit()
-        with pytest.raises(RuntimeError, match="expired link"):
-            link.apply(Operations.START_PULL, requested=create_identifiers("1"))
+        with pytest.raises(RuntimeError, match="expired entity"):
+            link.pull(create_identifiers("1"))
 
 
 def test_link_expires_when_rolling_back() -> None:
@@ -123,22 +117,22 @@ def test_link_expires_when_rolling_back() -> None:
     with uow:
         link = uow.link
         uow.rollback()
-        with pytest.raises(RuntimeError, match="expired link"):
-            link.apply(Operations.START_PULL, requested=create_identifiers("1"))
+        with pytest.raises(RuntimeError, match="expired entity"):
+            link.pull(create_identifiers("1"))
 
 
 def test_link_expires_when_exiting_context() -> None:
     _, uow = initialize({Components.SOURCE: {"1"}})
     with uow:
         link = uow.link
-    with pytest.raises(RuntimeError, match="expired link"):
-        link.apply(Operations.START_PULL, requested=create_identifiers("1"))
+    with pytest.raises(RuntimeError, match="expired entity"):
+        link.pull(create_identifiers("1"))
 
 
 def test_link_expires_when_applying_operation() -> None:
     _, uow = initialize({Components.SOURCE: {"1"}})
     with uow:
         link = uow.link
-        link.apply(Operations.START_PULL, requested=create_identifiers("1"))
-        with pytest.raises(RuntimeError, match="expired link"):
-            link.apply(Operations.PROCESS, requested=create_identifiers("1"))
+        link.pull(create_identifiers("1"))
+        with pytest.raises(RuntimeError, match="expired entity"):
+            link.pull(create_identifiers("1"))
