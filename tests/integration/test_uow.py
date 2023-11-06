@@ -4,7 +4,8 @@ from typing import Iterable, Mapping
 
 import pytest
 
-from link.domain.state import Components, Operations, states
+from link.domain import events
+from link.domain.state import Commands, Components, Operations, Transition, states
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
@@ -118,3 +119,76 @@ def test_link_expires_when_exiting_context() -> None:
         link = uow.link
     with pytest.raises(RuntimeError, match="expired entity"):
         link.pull(create_identifiers("1"))
+
+
+def test_correct_events_are_collected() -> None:
+    _, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
+    with uow:
+        uow.link.pull(create_identifiers("1"))
+        uow.link.delete(create_identifiers("2"))
+        uow.commit()
+    expected = [
+        events.EntityStateChanged(
+            Operations.START_PULL,
+            create_identifier("1"),
+            Transition(states.Idle, states.Activated),
+            Commands.START_PULL_PROCESS,
+        ),
+        events.EntityStateChanged(
+            Operations.PROCESS,
+            create_identifier("1"),
+            Transition(states.Activated, states.Received),
+            Commands.ADD_TO_LOCAL,
+        ),
+        events.EntityStateChanged(
+            Operations.PROCESS,
+            create_identifier("1"),
+            Transition(states.Received, states.Pulled),
+            Commands.FINISH_PULL_PROCESS,
+        ),
+        events.EntityStateChanged(
+            Operations.START_DELETE,
+            create_identifier("2"),
+            Transition(states.Pulled, states.Received),
+            Commands.START_DELETE_PROCESS,
+        ),
+        events.EntityStateChanged(
+            Operations.PROCESS,
+            create_identifier("2"),
+            Transition(states.Received, states.Activated),
+            Commands.REMOVE_FROM_LOCAL,
+        ),
+        events.EntityStateChanged(
+            Operations.PROCESS,
+            create_identifier("2"),
+            Transition(states.Activated, states.Idle),
+            Commands.FINISH_DELETE_PROCESS,
+        ),
+    ]
+    actual = list(uow.collect_new_events())
+    assert actual == expected
+
+
+def test_unit_must_be_committed_to_collect_events() -> None:
+    _, uow = initialize({Components.SOURCE: {"1"}})
+    with uow:
+        uow.link.pull(create_identifiers("1"))
+    assert list(uow.collect_new_events()) == []
+
+
+def test_events_can_only_be_collected_once() -> None:
+    _, uow = initialize({Components.SOURCE: {"1"}})
+    with uow:
+        uow.link.pull(create_identifiers("1"))
+        uow.commit()
+    list(uow.collect_new_events())
+    assert list(uow.collect_new_events()) == []
+
+
+def test_events_can_only_be_collected_outside_of_context() -> None:
+    _, uow = initialize({Components.SOURCE: {"1"}})
+    with uow:
+        uow.link.pull(create_identifiers("1"))
+        uow.commit()
+        with pytest.raises(RuntimeError, match="inside context"):
+            list(uow.collect_new_events())
