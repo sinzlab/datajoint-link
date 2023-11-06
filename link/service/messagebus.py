@@ -62,6 +62,7 @@ class MessageBus:
                 self._handle_event(message)
             else:
                 raise TypeError(f"Unknown message type {type(message)!r}")
+            self._queue.extend(self._uow.collect_new_events())
 
     def _handle_command(self, command: Command) -> None:
         handler = self._command_handlers[type(command)]
