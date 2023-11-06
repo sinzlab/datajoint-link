@@ -128,37 +128,37 @@ def test_correct_events_are_collected() -> None:
         uow.link.delete(create_identifiers("2"))
         uow.commit()
     expected = [
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.START_PULL,
             create_identifier("1"),
             Transition(states.Idle, states.Activated),
             Commands.START_PULL_PROCESS,
         ),
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.PROCESS,
             create_identifier("1"),
             Transition(states.Activated, states.Received),
             Commands.ADD_TO_LOCAL,
         ),
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.PROCESS,
             create_identifier("1"),
             Transition(states.Received, states.Pulled),
             Commands.FINISH_PULL_PROCESS,
         ),
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.START_DELETE,
             create_identifier("2"),
             Transition(states.Pulled, states.Received),
             Commands.START_DELETE_PROCESS,
         ),
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.PROCESS,
             create_identifier("2"),
             Transition(states.Received, states.Activated),
             Commands.REMOVE_FROM_LOCAL,
         ),
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.PROCESS,
             create_identifier("2"),
             Transition(states.Activated, states.Idle),

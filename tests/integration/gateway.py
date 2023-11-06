@@ -28,7 +28,7 @@ class FakeLinkGateway(LinkGateway):
     def create_link(self) -> Link:
         return create_link(self.assignments, tainted_identifiers=self.tainted_identifiers, processes=self.processes)
 
-    def apply(self, updates: Iterable[events.EntityStateChanged]) -> None:
+    def apply(self, updates: Iterable[events.StateChanged]) -> None:
         for update in updates:
             if update.command is Commands.START_PULL_PROCESS:
                 self.processes[Processes.PULL].add(update.identifier)

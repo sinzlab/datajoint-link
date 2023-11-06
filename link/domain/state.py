@@ -7,7 +7,7 @@ from enum import Enum, auto
 from functools import partial
 
 from .custom_types import Identifier
-from .events import EntityOperationApplied, EntityStateChanged, InvalidOperationRequested
+from .events import InvalidOperationRequested, OperationApplied, StateChanged
 
 
 class State:
@@ -42,7 +42,7 @@ class State:
         entity.state = transition.new
         entity.current_process = new_process
         entity.events.append(
-            EntityStateChanged(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
+            StateChanged(operation, entity.identifier, transition, TRANSITION_MAP[transition]),
         )
 
 
@@ -269,7 +269,7 @@ class Entity:
     state: type[State]
     current_process: Processes
     is_tainted: bool
-    events: deque[EntityOperationApplied]
+    events: deque[OperationApplied]
 
     def pull(self) -> None:
         """Pull the entity."""

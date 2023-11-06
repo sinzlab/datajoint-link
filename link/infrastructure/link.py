@@ -53,7 +53,7 @@ def create_link(  # noqa: PLR0913
             list_idle_entities, uow=uow, output_port=idle_entities_updater
         )
         event_handlers: EventHandlers = {}
-        event_handlers[events.EntityStateChanged] = [lambda event: None]
+        event_handlers[events.StateChanged] = [lambda event: None]
         event_handlers[events.InvalidOperationRequested] = [lambda event: None]
         bus = MessageBus(uow, command_handlers, event_handlers)
         controller = DJController(bus, translator)

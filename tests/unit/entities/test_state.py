@@ -62,7 +62,7 @@ def test_start_pulling_idle_entity_returns_correct_entity() -> None:
     assert entity.state is states.Activated
     assert entity.current_process is Processes.PULL
     assert list(entity.events) == [
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.START_PULL,
             entity.identifier,
             Transition(states.Idle, states.Activated),
@@ -94,7 +94,7 @@ def test_processing_activated_entity_returns_correct_entity(
     )
     entity = next(iter(link))
     entity.events.append(
-        events.EntityStateChanged(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
+        events.StateChanged(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
     )
     entity.apply(Operations.PROCESS)
     assert entity.state == new_state
@@ -124,7 +124,7 @@ def test_processing_received_entity_returns_correct_entity(
     )
     entity = next(iter(link))
     expected_events = [
-        events.EntityStateChanged(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
+        events.StateChanged(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
     ]
     entity.apply(Operations.PROCESS)
     assert entity.state == new_state
@@ -139,7 +139,7 @@ def test_starting_delete_on_pulled_entity_returns_correct_entity() -> None:
     entity = next(iter(link))
     transition = Transition(states.Pulled, states.Received)
     expected_events = [
-        events.EntityStateChanged(
+        events.StateChanged(
             Operations.START_DELETE,
             entity.identifier,
             transition,
@@ -160,9 +160,7 @@ def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
     entity = next(iter(link))
     transition = Transition(states.Tainted, states.Received)
     expected_events = [
-        events.EntityStateChanged(
-            Operations.START_DELETE, entity.identifier, transition, Commands.START_DELETE_PROCESS
-        ),
+        events.StateChanged(Operations.START_DELETE, entity.identifier, transition, Commands.START_DELETE_PROCESS),
     ]
     entity.apply(Operations.START_DELETE)
     assert entity.state == transition.new

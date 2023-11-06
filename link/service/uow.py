@@ -28,7 +28,7 @@ class UnitOfWork(ABC):
         """Initialize the unit of work."""
         self._gateway = gateway
         self._link: Link | None = None
-        self._updates: deque[events.EntityStateChanged] = deque()
+        self._updates: deque[events.StateChanged] = deque()
         self._events: deque[events.Event] = deque()
         self._seen: list[Entity] = []
 
@@ -57,7 +57,7 @@ class UnitOfWork(ABC):
                     return
                 transition = Transition(current_state, new_state)
                 command = TRANSITION_MAP[transition]
-                self._updates.append(events.EntityStateChanged(operation, entity.identifier, transition, command))
+                self._updates.append(events.StateChanged(operation, entity.identifier, transition, command))
 
             return augmented
 

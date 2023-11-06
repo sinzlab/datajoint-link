@@ -16,5 +16,5 @@ class LinkGateway(ABC):
         """Create a link from the persistent data."""
 
     @abstractmethod
-    def apply(self, updates: Iterable[events.EntityStateChanged]) -> None:
+    def apply(self, updates: Iterable[events.StateChanged]) -> None:
         """Apply updates to the link's persistent data."""

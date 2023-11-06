@@ -52,10 +52,10 @@ class DJLinkGateway(LinkGateway):
             tainted_identifiers=translate_tainted_primary_keys(self.facade.get_tainted_primary_keys()),
         )
 
-    def apply(self, updates: Iterable[events.EntityStateChanged]) -> None:
+    def apply(self, updates: Iterable[events.StateChanged]) -> None:
         """Apply updates to the persistent data representing the link."""
 
-        def keyfunc(update: events.EntityStateChanged) -> int:
+        def keyfunc(update: events.StateChanged) -> int:
             assert update.command is not None
             return update.command.value
 

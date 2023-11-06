@@ -349,7 +349,7 @@ def apply_update(gateway: DJLinkGateway, operation: Operations, requested: Itera
         entity.apply(operation)
         while entity.events:
             event = entity.events.popleft()
-            if not isinstance(event, events.EntityStateChanged):
+            if not isinstance(event, events.StateChanged):
                 continue
             gateway.apply([event])
 

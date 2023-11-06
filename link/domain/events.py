@@ -16,7 +16,7 @@ class Event:
 
 
 @dataclass(frozen=True)
-class EntityOperationApplied(Event):
+class OperationApplied(Event):
     """An operation was applied to an entity."""
 
     operation: Operations
@@ -24,14 +24,14 @@ class EntityOperationApplied(Event):
 
 
 @dataclass(frozen=True)
-class InvalidOperationRequested(EntityOperationApplied):
+class InvalidOperationRequested(OperationApplied):
     """An operation that is invalid given the entities current state was requested."""
 
     state: type[State]
 
 
 @dataclass(frozen=True)
-class EntityStateChanged(EntityOperationApplied):
+class StateChanged(OperationApplied):
     """The state of an entity changed during the application of an operation."""
 
     transition: Transition
