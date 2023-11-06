@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Iterable
 
 import pytest
@@ -52,25 +51,24 @@ def test_invalid_transitions_returns_unchanged_entity(
     entity = next(entity for entity in link if entity.identifier == identifier)
     for operation in operations:
         result = events.InvalidOperationRequested(operation, identifier, state)
-        assert entity.apply(operation) == replace(entity, events=(result,))
+        entity.apply(operation)
+        assert entity.events.pop() == result
 
 
 def test_start_pulling_idle_entity_returns_correct_entity() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link))
-    assert entity.apply(Operations.START_PULL) == replace(
-        entity,
-        state=states.Activated,
-        current_process=Processes.PULL,
-        events=(
-            events.EntityStateChanged(
-                Operations.START_PULL,
-                entity.identifier,
-                Transition(states.Idle, states.Activated),
-                Commands.START_PULL_PROCESS,
-            ),
-        ),
-    )
+    entity.apply(Operations.START_PULL)
+    assert entity.state is states.Activated
+    assert entity.current_process is Processes.PULL
+    assert list(entity.events) == [
+        events.EntityStateChanged(
+            Operations.START_PULL,
+            entity.identifier,
+            Transition(states.Idle, states.Activated),
+            Commands.START_PULL_PROCESS,
+        )
+    ]
 
 
 @pytest.mark.parametrize(
@@ -98,7 +96,9 @@ def test_processing_activated_entity_returns_correct_entity(
     entity.events.append(
         events.EntityStateChanged(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
     )
-    assert entity.apply(Operations.PROCESS) == replace(entity, state=new_state, current_process=new_process)
+    entity.apply(Operations.PROCESS)
+    assert entity.state == new_state
+    assert entity.current_process == new_process
 
 
 @pytest.mark.parametrize(
@@ -123,12 +123,13 @@ def test_processing_received_entity_returns_correct_entity(
         tainted_identifiers=tainted_identifiers,
     )
     entity = next(iter(link))
-    expected_events = (
+    expected_events = [
         events.EntityStateChanged(Operations.PROCESS, entity.identifier, Transition(entity.state, new_state), command),
-    )
-    assert entity.apply(Operations.PROCESS) == replace(
-        entity, state=new_state, current_process=new_process, events=expected_events
-    )
+    ]
+    entity.apply(Operations.PROCESS)
+    assert entity.state == new_state
+    assert entity.current_process == new_process
+    assert list(entity.events) == expected_events
 
 
 def test_starting_delete_on_pulled_entity_returns_correct_entity() -> None:
@@ -137,17 +138,18 @@ def test_starting_delete_on_pulled_entity_returns_correct_entity() -> None:
     )
     entity = next(iter(link))
     transition = Transition(states.Pulled, states.Received)
-    expected_events = (
+    expected_events = [
         events.EntityStateChanged(
             Operations.START_DELETE,
             entity.identifier,
             transition,
             Commands.START_DELETE_PROCESS,
         ),
-    )
-    assert entity.apply(Operations.START_DELETE) == replace(
-        entity, state=transition.new, current_process=Processes.DELETE, events=expected_events
-    )
+    ]
+    entity.apply(Operations.START_DELETE)
+    assert entity.state == transition.new
+    assert entity.current_process == Processes.DELETE
+    assert list(entity.events) == expected_events
 
 
 def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
@@ -157,11 +159,12 @@ def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
     )
     entity = next(iter(link))
     transition = Transition(states.Tainted, states.Received)
-    expected_events = (
+    expected_events = [
         events.EntityStateChanged(
             Operations.START_DELETE, entity.identifier, transition, Commands.START_DELETE_PROCESS
         ),
-    )
-    assert entity.apply(Operations.START_DELETE) == replace(
-        entity, state=transition.new, current_process=Processes.DELETE, events=expected_events
-    )
+    ]
+    entity.apply(Operations.START_DELETE)
+    assert entity.state == transition.new
+    assert entity.current_process == Processes.DELETE
+    assert list(entity.events) == expected_events

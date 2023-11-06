@@ -94,15 +94,6 @@ def test_entity_expires_when_leaving_context() -> None:
         entity.apply(Operations.START_PULL)
 
 
-def test_entity_expires_when_applying_operation() -> None:
-    _, uow = initialize({Components.SOURCE: {"1"}})
-    with uow:
-        entity = next(entity for entity in uow.link if entity.identifier == create_identifier("1"))
-        entity.apply(Operations.START_PULL)
-        with pytest.raises(RuntimeError, match="expired entity"):
-            entity.apply(Operations.PROCESS)
-
-
 def test_link_expires_when_committing() -> None:
     _, uow = initialize({Components.SOURCE: {"1"}})
     with uow:
@@ -127,12 +118,3 @@ def test_link_expires_when_exiting_context() -> None:
         link = uow.link
     with pytest.raises(RuntimeError, match="expired entity"):
         link.pull(create_identifiers("1"))
-
-
-def test_link_expires_when_applying_operation() -> None:
-    _, uow = initialize({Components.SOURCE: {"1"}})
-    with uow:
-        link = uow.link
-        link.pull(create_identifiers("1"))
-        with pytest.raises(RuntimeError, match="expired entity"):
-            link.pull(create_identifiers("1"))

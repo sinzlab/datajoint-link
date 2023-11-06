@@ -6,10 +6,11 @@ from collections import deque
 from types import TracebackType
 from typing import Callable, Iterable, Protocol
 
+from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.events import EntityStateChanged
 from link.domain.link import Link
-from link.domain.state import Entity, Operations
+from link.domain.state import TRANSITION_MAP, Entity, Operations, Transition
 
 from .gateway import LinkGateway
 
@@ -28,7 +29,7 @@ class UnitOfWork(ABC):
         """Initialize the unit of work."""
         self._gateway = gateway
         self._link: Link | None = None
-        self._seen: dict[Identifier, Entity] = {}
+        self._updates: deque[EntityStateChanged] = deque()
 
     def __enter__(self) -> UnitOfWork:
         """Enter the context in which updates to entities can be made."""
@@ -36,21 +37,24 @@ class UnitOfWork(ABC):
         def augment_entity(entity: Entity) -> None:
             original = getattr(entity, "apply")
             augmented = augment_entity_apply(entity, original)
-            object.__setattr__(entity, "apply", augmented)
-            object.__setattr__(entity, "_is_expired", False)
-            self._seen[entity.identifier] = entity
+            setattr(entity, "apply", augmented)
+            setattr(entity, "_is_expired", False)
 
         def augment_entity_apply(
-            current: Entity, original: Callable[[Operations], Entity]
-        ) -> Callable[[Operations], Entity]:
-            def augmented(operation: Operations) -> Entity:
-                assert hasattr(current, "_is_expired")
-                if current._is_expired is True:
-                    raise RuntimeError("Can not apply operation to expired entity")
-                new = original(operation)
-                augment_entity(new)
-                object.__setattr__(current, "_is_expired", True)
-                return new
+            entity: Entity, original: Callable[[Operations], None]
+        ) -> Callable[[Operations], None]:
+            def augmented(operation: Operations) -> None:
+                assert hasattr(entity, "_is_expired")
+                if entity._is_expired:
+                    raise RuntimeError("Can not apply operation to expired entity.")
+                current_state = entity.state
+                original(operation)
+                new_state = entity.state
+                if current_state is new_state:
+                    return
+                transition = Transition(current_state, new_state)
+                command = TRANSITION_MAP[transition]
+                self._updates.append(events.EntityStateChanged(operation, entity.identifier, transition, command))
 
             return augmented
 
@@ -77,10 +81,8 @@ class UnitOfWork(ABC):
         """Persist updates made to the link."""
         if self._link is None:
             raise RuntimeError("Not available outside of context")
-        for entity in self._seen.values():
-            updates = deque(event for event in entity.events if isinstance(event, EntityStateChanged))
-            while updates:
-                self._gateway.apply([updates.popleft()])
+        while self._updates:
+            self._gateway.apply([self._updates.popleft()])
         self.rollback()
 
     def rollback(self) -> None:
@@ -88,5 +90,5 @@ class UnitOfWork(ABC):
         if self._link is None:
             raise RuntimeError("Not available outside of context")
         for entity in self._link:
-            object.__setattr__(entity, "_is_expired", True)
-        self._seen.clear()
+            setattr(entity, "_is_expired", True)
+        self._updates.clear()

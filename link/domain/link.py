@@ -93,25 +93,19 @@ class Link(Set[Entity]):
         """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
 
-    def pull(self, requested: Iterable[Identifier]) -> Link:
+    def pull(self, requested: Iterable[Identifier]) -> None:
         """Pull the requested entities."""
         requested = set(requested)
         self._validate_requested(requested)
-        changed = set()
         for entity in (entity for entity in self if entity.identifier in requested):
-            changed.add(entity.pull())
-        unchanged = self - changed
-        return type(self)(changed | unchanged)
+            entity.pull()
 
-    def delete(self, requested: Iterable[Identifier]) -> Link:
+    def delete(self, requested: Iterable[Identifier]) -> None:
         """Delete the requested entities."""
         requested = set(requested)
         self._validate_requested(requested)
-        changed = set()
         for entity in (entity for entity in self if entity.identifier in requested):
-            changed.add(entity.delete())
-        unchanged = self - changed
-        return type(self)(changed | unchanged)
+            entity.delete()
 
     def list_idle_entities(self) -> frozenset[Identifier]:
         """List the identifiers of all idle entities in the link."""
