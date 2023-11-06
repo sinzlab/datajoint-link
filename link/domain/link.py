@@ -151,10 +151,3 @@ class Link(Set[Entity]):
             return {(entity.identifier, entity.state) for entity in link}
 
         return create_identifier_state_pairs(self) == create_identifier_state_pairs(other)
-
-
-def _complete_all_processes(current: Link, requested: Iterable[Identifier]) -> Link:
-    new = current.apply(Operations.PROCESS, requested=requested)
-    if new == current:
-        return new
-    return _complete_all_processes(new, requested)
