@@ -7,7 +7,7 @@ import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Processes, State, states
-from link.service.services import delete, list_idle_entities, pull
+from link.service.handlers import delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifiers
 

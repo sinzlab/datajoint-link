@@ -1,4 +1,4 @@
-"""Contains all the services."""
+"""Contains code handling domain commands and events."""
 from __future__ import annotations
 
 from collections.abc import Callable

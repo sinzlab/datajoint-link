@@ -11,8 +11,8 @@ from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
 from link.adapters.present import create_idle_entities_updater
 from link.domain import commands, events
+from link.service.handlers import delete, list_idle_entities, pull
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
-from link.service.services import delete, list_idle_entities, pull
 from link.service.uow import UnitOfWork
 
 from . import DJConfiguration, create_tables
