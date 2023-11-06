@@ -33,24 +33,6 @@ class UnitOfWork(ABC):
     def __enter__(self) -> UnitOfWork:
         """Enter the context in which updates to entities can be made."""
 
-        def augment_link(link: Link) -> None:
-            original = getattr(link, "apply")
-            augmented = augment_link_apply(link, original)
-            setattr(link, "apply", augmented)
-            setattr(link, "_is_expired", False)
-
-        def augment_link_apply(current: Link, original: SupportsLinkApply) -> SupportsLinkApply:
-            def augmented(operation: Operations, *, requested: Iterable[Identifier]) -> Link:
-                assert hasattr(current, "_is_expired")
-                if current._is_expired:
-                    raise RuntimeError("Can not apply operation to expired link")
-                self._link = original(operation, requested=requested)
-                augment_link(self._link)
-                setattr(current, "_is_expired", True)
-                return self._link
-
-            return augmented
-
         def augment_entity(entity: Entity) -> None:
             original = getattr(entity, "apply")
             augmented = augment_entity_apply(entity, original)
@@ -73,7 +55,6 @@ class UnitOfWork(ABC):
             return augmented
 
         self._link = self._gateway.create_link()
-        augment_link(self._link)
         for entity in self._link:
             augment_entity(entity)
         return self
@@ -106,7 +87,6 @@ class UnitOfWork(ABC):
         """Throw away any not yet persisted updates."""
         if self._link is None:
             raise RuntimeError("Not available outside of context")
-        setattr(self._link, "_is_expired", True)
         for entity in self._link:
             object.__setattr__(entity, "_is_expired", True)
         self._seen.clear()

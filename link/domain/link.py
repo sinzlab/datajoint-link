@@ -5,16 +5,7 @@ from collections import deque
 from typing import Any, Iterable, Iterator, Mapping, Optional, Set, TypeVar
 
 from .custom_types import Identifier
-from .state import (
-    STATE_MAP,
-    Components,
-    Entity,
-    Idle,
-    Operations,
-    PersistentState,
-    Processes,
-    State,
-)
+from .state import STATE_MAP, Components, Entity, Idle, PersistentState, Processes, State
 
 
 def create_link(
@@ -101,14 +92,6 @@ class Link(Set[Entity]):
     def identifiers(self) -> frozenset[Identifier]:
         """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
-
-    def apply(self, operation: Operations, *, requested: Iterable[Identifier]) -> Link:
-        """Apply an operation to the requested entities."""
-        assert requested, "No identifiers requested."
-        assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
-        changed = {entity.apply(operation) for entity in self if entity.identifier in requested}
-        unchanged = {entity for entity in self if entity.identifier not in requested}
-        return Link(changed | unchanged)
 
     def pull(self, requested: Iterable[Identifier]) -> Link:
         """Pull the requested entities."""
