@@ -20,7 +20,7 @@ from tests.docker.runner import ContainerRunner
 SCOPE = os.environ.get("SCOPE", "session")
 REMOVE = True
 DATABASE_IMAGE = "cblessing24/mariadb:11.1"
-MINIO_IMAGE = "minio/minio:latest"
+MINIO_IMAGE = "minio/minio:RELEASE.2023-11-01T18-37-25Z"
 DATABASE_ROOT_PASSWORD = "root"
 
 
@@ -172,10 +172,10 @@ def get_runner_kwargs(docker_client, spec):
         )
     elif isinstance(spec, MinIOSpec):
         processed_container_config = dict(
-            environment=dict(MINIO_ACCESS_KEY=spec.config.access_key, MINIO_SECRET_KEY=spec.config.secret_key),
+            environment=dict(MINIO_ROOT_USER=spec.config.access_key, MINIO_ROOT_PASSWORD=spec.config.secret_key),
             command=["server", "/data"],
             healthcheck=dict(
-                test=["CMD", "curl", "-f", "127.0.0.1:9000/minio/health/ready"],
+                test=["CMD", "mc", "ready", "local"],
                 start_period=int(spec.container.health_check.start_period_seconds * 1e9),  # nanoseconds
                 interval=int(spec.container.health_check.interval_seconds * 1e9),  # nanoseconds
                 retries=spec.container.health_check.max_retries,
