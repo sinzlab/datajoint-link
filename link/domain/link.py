@@ -4,7 +4,6 @@ from __future__ import annotations
 from collections import deque
 from typing import Any, Iterable, Iterator, Mapping, Optional, Set, TypeVar
 
-from . import events
 from .custom_types import Identifier
 from .state import (
     STATE_MAP,
@@ -94,7 +93,7 @@ def create_link(
 class Link(Set[Entity]):
     """The state of a link between two databases."""
 
-    def __init__(self, entities: Iterable[Entity], events: Iterable[events.Event] | None = None) -> None:
+    def __init__(self, entities: Iterable[Entity]) -> None:
         """Initialize the link."""
         self._entities = set(entities)
 
