@@ -7,7 +7,8 @@ import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Processes, State, states
-from link.service.handlers import delete, list_idle_entities, pull
+from link.service.handlers import delete, delete_entity, list_idle_entities, pull, pull_entity
+from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifiers
 
@@ -73,11 +74,23 @@ _Command_contra = TypeVar("_Command_contra", bound=commands.Command, contravaria
 
 
 def create_pull_service(uow: UnitOfWork) -> Callable[[commands.PullEntities], None]:
-    return partial(pull, uow=uow)
+    command_handlers: CommandHandlers = {}
+    command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow)
+    event_handlers: EventHandlers = {}
+    event_handlers[events.InvalidOperationRequested] = [lambda event: None]
+    event_handlers[events.StateChanged] = [lambda event: None]
+    bus = MessageBus(uow, command_handlers, event_handlers)
+    return partial(pull, message_bus=bus)
 
 
 def create_delete_service(uow: UnitOfWork) -> Callable[[commands.DeleteEntities], None]:
-    return partial(delete, uow=uow)
+    command_handlers: CommandHandlers = {}
+    command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow)
+    event_handlers: EventHandlers = {}
+    event_handlers[events.InvalidOperationRequested] = [lambda event: None]
+    event_handlers[events.StateChanged] = [lambda event: None]
+    bus = MessageBus(uow, command_handlers, event_handlers)
+    return partial(delete, message_bus=bus)
 
 
 class EntityConfig(TypedDict):

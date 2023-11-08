@@ -5,23 +5,34 @@ from collections.abc import Callable
 
 from link.domain import commands, events
 
+from .messagebus import MessageBus
 from .uow import UnitOfWork
 
 
-def pull(command: commands.PullEntities, *, uow: UnitOfWork) -> None:
+def pull_entity(command: commands.PullEntity, *, uow: UnitOfWork) -> None:
+    """Pull an entity across the link."""
+    with uow:
+        uow.link[command.requested].pull()
+        uow.commit()
+
+
+def delete_entity(command: commands.DeleteEntity, *, uow: UnitOfWork) -> None:
+    """Delete a pulled entity."""
+    with uow:
+        uow.link[command.requested].delete()
+        uow.commit()
+
+
+def pull(command: commands.PullEntities, *, message_bus: MessageBus) -> None:
     """Pull entities across the link."""
-    with uow:
-        for identifier in command.requested:
-            uow.link[identifier].pull()
-        uow.commit()
+    for identifier in command.requested:
+        message_bus.handle(commands.PullEntity(identifier))
 
 
-def delete(command: commands.DeleteEntities, *, uow: UnitOfWork) -> None:
+def delete(command: commands.DeleteEntities, *, message_bus: MessageBus) -> None:
     """Delete pulled entities."""
-    with uow:
-        for identifier in command.requested:
-            uow.link[identifier].delete()
-        uow.commit()
+    for identifier in command.requested:
+        message_bus.handle(commands.DeleteEntity(identifier))
 
 
 def list_idle_entities(

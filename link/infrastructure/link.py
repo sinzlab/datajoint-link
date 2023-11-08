@@ -12,7 +12,7 @@ from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
 from link.adapters.present import create_idle_entities_updater, create_state_change_logger
 from link.domain import commands, events
-from link.service.handlers import delete, list_idle_entities, log_state_change, pull
+from link.service.handlers import delete, delete_entity, list_idle_entities, log_state_change, pull, pull_entity
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
 
@@ -48,18 +48,22 @@ def create_link(  # noqa: PLR0913
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
         idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
         logger = logging.getLogger(obj.__name__)
+
         command_handlers: CommandHandlers = {}
-        command_handlers[commands.PullEntities] = partial(pull, uow=uow)
-        command_handlers[commands.DeleteEntities] = partial(delete, uow=uow)
+        event_handlers: EventHandlers = {}
+        bus = MessageBus(uow, command_handlers, event_handlers)
+        command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow)
+        command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow)
+        command_handlers[commands.PullEntities] = partial(pull, message_bus=bus)
+        command_handlers[commands.DeleteEntities] = partial(delete, message_bus=bus)
         command_handlers[commands.ListIdleEntities] = partial(
             list_idle_entities, uow=uow, output_port=idle_entities_updater
         )
-        event_handlers: EventHandlers = {}
         event_handlers[events.StateChanged] = [
             partial(log_state_change, log=create_state_change_logger(translator, logger.info))
         ]
         event_handlers[events.InvalidOperationRequested] = [lambda event: None]
-        bus = MessageBus(uow, command_handlers, event_handlers)
+
         controller = DJController(bus, translator)
         source_restriction.callback = controller.list_idle_entities
 

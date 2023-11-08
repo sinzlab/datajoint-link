@@ -12,6 +12,20 @@ class Command:
 
 
 @dataclass(frozen=True)
+class PullEntity(Command):
+    """Pull the requested entity."""
+
+    requested: Identifier
+
+
+@dataclass(frozen=True)
+class DeleteEntity(Command):
+    """Delete the requested entity."""
+
+    requested: Identifier
+
+
+@dataclass(frozen=True)
 class PullEntities(Command):
     """Pull the requested entities."""
 
