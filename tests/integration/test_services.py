@@ -75,21 +75,29 @@ _Command_contra = TypeVar("_Command_contra", bound=commands.Command, contravaria
 
 def create_pull_service(uow: UnitOfWork) -> Callable[[commands.PullEntities], None]:
     command_handlers: CommandHandlers = {}
-    command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow)
     event_handlers: EventHandlers = {}
+    bus = MessageBus(uow, command_handlers, event_handlers)
+    command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow, message_bus=bus)
     event_handlers[events.InvalidOperationRequested] = [lambda event: None]
     event_handlers[events.StateChanged] = [lambda event: None]
-    bus = MessageBus(uow, command_handlers, event_handlers)
+    event_handlers[events.ProcessStarted] = [lambda event: None]
+    event_handlers[events.ProcessFinished] = [lambda event: None]
+    event_handlers[events.ProcessesStarted] = [lambda event: None]
+    event_handlers[events.ProcessesFinished] = [lambda event: None]
     return partial(pull, message_bus=bus)
 
 
 def create_delete_service(uow: UnitOfWork) -> Callable[[commands.DeleteEntities], None]:
     command_handlers: CommandHandlers = {}
-    command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow)
     event_handlers: EventHandlers = {}
+    bus = MessageBus(uow, command_handlers, event_handlers)
+    command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow, message_bus=bus)
     event_handlers[events.InvalidOperationRequested] = [lambda event: None]
     event_handlers[events.StateChanged] = [lambda event: None]
-    bus = MessageBus(uow, command_handlers, event_handlers)
+    event_handlers[events.ProcessStarted] = [lambda event: None]
+    event_handlers[events.ProcessFinished] = [lambda event: None]
+    event_handlers[events.ProcessesStarted] = [lambda event: None]
+    event_handlers[events.ProcessesFinished] = [lambda event: None]
     return partial(delete, message_bus=bus)
 
 

@@ -52,13 +52,17 @@ def create_link(  # noqa: PLR0913
         command_handlers: CommandHandlers = {}
         event_handlers: EventHandlers = {}
         bus = MessageBus(uow, command_handlers, event_handlers)
-        command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow)
-        command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow)
+        command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow, message_bus=bus)
+        command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow, message_bus=bus)
         command_handlers[commands.PullEntities] = partial(pull, message_bus=bus)
         command_handlers[commands.DeleteEntities] = partial(delete, message_bus=bus)
         command_handlers[commands.ListIdleEntities] = partial(
             list_idle_entities, uow=uow, output_port=idle_entities_updater
         )
+        event_handlers[events.ProcessStarted] = [lambda event: None]
+        event_handlers[events.ProcessFinished] = [lambda event: None]
+        event_handlers[events.ProcessesStarted] = [lambda event: None]
+        event_handlers[events.ProcessesFinished] = [lambda event: None]
         event_handlers[events.StateChanged] = [
             partial(log_state_change, log=create_state_change_logger(translator, logger.info))
         ]

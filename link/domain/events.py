@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from .custom_types import Identifier
 
 if TYPE_CHECKING:
-    from .state import Commands, Operations, State, Transition
+    from .state import Commands, Operations, Processes, State, Transition
 
 
 @dataclass(frozen=True)
@@ -42,4 +42,36 @@ class StateChanged(OperationApplied):
 class IdleEntitiesListed(Event):
     """Idle entities in a link have been listed."""
 
+    identifiers: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
+class ProcessStarted(Event):
+    """A process for an entity was started."""
+
+    process: Processes
+    identifier: Identifier
+
+
+@dataclass(frozen=True)
+class ProcessFinished(Event):
+    """A process for an entity was finished."""
+
+    process: Processes
+    identifier: Identifier
+
+
+@dataclass(frozen=True)
+class ProcessesStarted(Event):
+    """The same process has been started for multiple entities."""
+
+    process: Processes
+    identifiers: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
+class ProcessesFinished(Event):
+    """The same process has been finished for multiple entities."""
+
+    process: Processes
     identifiers: frozenset[Identifier]
