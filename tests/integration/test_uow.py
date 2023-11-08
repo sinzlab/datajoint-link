@@ -7,7 +7,7 @@ import pytest
 from link.domain import events
 from link.domain.state import Commands, Components, Operations, Transition, states
 from link.service.uow import UnitOfWork
-from tests.assignments import create_assignments, create_identifier, create_identifiers
+from tests.assignments import create_assignments, create_identifier
 
 from .gateway import FakeLinkGateway
 
@@ -20,8 +20,8 @@ def initialize(assignments: Mapping[Components, Iterable[str]]) -> tuple[FakeLin
 def test_updates_are_applied_to_gateway_on_commit() -> None:
     gateway, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
-        uow.link.pull(create_identifiers("1"))
-        uow.link.delete(create_identifiers("2"))
+        uow.link[create_identifier("1")].pull()
+        uow.link[create_identifier("2")].delete()
         uow.commit()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
     expected = {(create_identifier("1"), states.Pulled), (create_identifier("2"), states.Idle)}
@@ -31,8 +31,8 @@ def test_updates_are_applied_to_gateway_on_commit() -> None:
 def test_updates_are_discarded_on_context_exit() -> None:
     gateway, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
-        uow.link.pull(create_identifiers("1"))
-        uow.link.delete(create_identifiers("2"))
+        uow.link[create_identifier("1")].pull()
+        uow.link[create_identifier("2")].delete()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
     expected = {(create_identifier("1"), states.Idle), (create_identifier("2"), states.Pulled)}
     assert actual == expected
@@ -41,8 +41,8 @@ def test_updates_are_discarded_on_context_exit() -> None:
 def test_updates_are_discarded_on_rollback() -> None:
     gateway, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
-        uow.link.pull(create_identifiers("1"))
-        uow.link.delete(create_identifiers("2"))
+        uow.link[create_identifier("1")].pull()
+        uow.link[create_identifier("2")].delete()
         uow.rollback()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
     expected = {(create_identifier("1"), states.Idle), (create_identifier("2"), states.Pulled)}
@@ -101,7 +101,7 @@ def test_link_expires_when_committing() -> None:
         link = uow.link
         uow.commit()
         with pytest.raises(RuntimeError, match="expired entity"):
-            link.pull(create_identifiers("1"))
+            link[create_identifier("1")].pull()
 
 
 def test_link_expires_when_rolling_back() -> None:
@@ -110,7 +110,7 @@ def test_link_expires_when_rolling_back() -> None:
         link = uow.link
         uow.rollback()
         with pytest.raises(RuntimeError, match="expired entity"):
-            link.pull(create_identifiers("1"))
+            link[create_identifier("1")].pull()
 
 
 def test_link_expires_when_exiting_context() -> None:
@@ -118,14 +118,14 @@ def test_link_expires_when_exiting_context() -> None:
     with uow:
         link = uow.link
     with pytest.raises(RuntimeError, match="expired entity"):
-        link.pull(create_identifiers("1"))
+        link[create_identifier("1")].pull()
 
 
 def test_correct_events_are_collected() -> None:
     _, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
-        uow.link.pull(create_identifiers("1"))
-        uow.link.delete(create_identifiers("2"))
+        uow.link[create_identifier("1")].pull()
+        uow.link[create_identifier("2")].delete()
         uow.commit()
     expected = [
         events.StateChanged(
@@ -172,14 +172,14 @@ def test_correct_events_are_collected() -> None:
 def test_unit_must_be_committed_to_collect_events() -> None:
     _, uow = initialize({Components.SOURCE: {"1"}})
     with uow:
-        uow.link.pull(create_identifiers("1"))
+        uow.link[create_identifier("1")].pull()
     assert list(uow.collect_new_events()) == []
 
 
 def test_events_can_only_be_collected_once() -> None:
     _, uow = initialize({Components.SOURCE: {"1"}})
     with uow:
-        uow.link.pull(create_identifiers("1"))
+        uow.link[create_identifier("1")].pull()
         uow.commit()
     list(uow.collect_new_events())
     assert list(uow.collect_new_events()) == []
@@ -188,7 +188,7 @@ def test_events_can_only_be_collected_once() -> None:
 def test_events_can_only_be_collected_outside_of_context() -> None:
     _, uow = initialize({Components.SOURCE: {"1"}})
     with uow:
-        uow.link.pull(create_identifiers("1"))
+        uow.link[create_identifier("1")].pull()
         uow.commit()
         with pytest.raises(RuntimeError, match="inside context"):
             list(uow.collect_new_events())

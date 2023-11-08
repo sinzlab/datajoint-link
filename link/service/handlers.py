@@ -11,14 +11,16 @@ from .uow import UnitOfWork
 def pull(command: commands.PullEntities, *, uow: UnitOfWork) -> None:
     """Pull entities across the link."""
     with uow:
-        uow.link.pull(command.requested)
+        for identifier in command.requested:
+            uow.link[identifier].pull()
         uow.commit()
 
 
 def delete(command: commands.DeleteEntities, *, uow: UnitOfWork) -> None:
     """Delete pulled entities."""
     with uow:
-        uow.link.delete(command.requested)
+        for identifier in command.requested:
+            uow.link[identifier].delete()
         uow.commit()
 
 

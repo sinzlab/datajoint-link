@@ -93,26 +93,16 @@ class Link(Set[Entity]):
         """Return the identifiers of all entities in the link."""
         return frozenset(entity.identifier for entity in self)
 
-    def pull(self, requested: Iterable[Identifier]) -> None:
-        """Pull the requested entities."""
-        requested = set(requested)
-        self._validate_requested(requested)
-        for entity in (entity for entity in self if entity.identifier in requested):
-            entity.pull()
-
-    def delete(self, requested: Iterable[Identifier]) -> None:
-        """Delete the requested entities."""
-        requested = set(requested)
-        self._validate_requested(requested)
-        for entity in (entity for entity in self if entity.identifier in requested):
-            entity.delete()
+    def __getitem__(self, identifier: Identifier) -> Entity:
+        """Return the entity with the given identifier."""
+        try:
+            return next(entity for entity in self if entity.identifier == identifier)
+        except StopIteration as error:
+            raise KeyError("Requested entity not present in link") from error
 
     def list_idle_entities(self) -> frozenset[Identifier]:
         """List the identifiers of all idle entities in the link."""
         return frozenset(entity.identifier for entity in self if entity.state is Idle)
-
-    def _validate_requested(self, requested: Iterable[Identifier]) -> None:
-        assert set(requested) <= self.identifiers, "Requested identifiers not present in link."
 
     def __contains__(self, entity: object) -> bool:
         """Check if the link contains the given entity."""

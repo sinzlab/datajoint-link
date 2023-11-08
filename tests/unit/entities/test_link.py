@@ -167,15 +167,7 @@ class TestLink:
         assert set(link.identifiers) == create_identifiers("1", "2")
 
     @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error_when_pulling() -> None:
+    def test_accessing_entity_not_present_in_link_raises_error() -> None:
         link = create_link(create_assignments({Components.SOURCE: {"1"}}))
-        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            link.pull(create_identifiers("2"))
-
-    @staticmethod
-    def test_specifying_identifiers_not_present_in_link_raises_error_when_deleting() -> None:
-        link = create_link(
-            create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
-        )
-        with pytest.raises(AssertionError, match="Requested identifiers not present in link."):
-            link.delete(create_identifiers("2"))
+        with pytest.raises(KeyError, match="Requested entity not present in link."):
+            link[create_identifier("2")]
