@@ -76,8 +76,8 @@ def create_link(  # noqa: PLR0913
         display = DJProgressDisplayAdapter(translator, progress_view)
         event_handlers[events.ProcessStarted] = [partial(inform_of_started_process, display=display)]
         event_handlers[events.ProcessFinished] = [partial(inform_of_finished_process, display=display)]
-        event_handlers[events.ProcessesStarted] = [partial(start_displaying_progress, display=display)]
-        event_handlers[events.ProcessesFinished] = [partial(stop_displaying_progress, display=display)]
+        event_handlers[events.BatchProcessingStarted] = [partial(start_displaying_progress, display=display)]
+        event_handlers[events.BatchProcessingFinished] = [partial(stop_displaying_progress, display=display)]
         event_handlers[events.StateChanged] = [
             partial(log_state_change, log=create_state_change_logger(translator, logger.info))
         ]

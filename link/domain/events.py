@@ -62,16 +62,16 @@ class ProcessFinished(Event):
 
 
 @dataclass(frozen=True)
-class ProcessesStarted(Event):
-    """The same process has been started for multiple entities."""
+class BatchProcessingStarted(Event):
+    """The processing of a batch of entities started."""
 
     process: Processes
     identifiers: frozenset[Identifier]
 
 
 @dataclass(frozen=True)
-class ProcessesFinished(Event):
-    """The same process has been finished for multiple entities."""
+class BatchProcessingFinished(Event):
+    """The processing of a batch of entities finished."""
 
     process: Processes
     identifiers: frozenset[Identifier]
