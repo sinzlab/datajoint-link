@@ -62,21 +62,21 @@ def log_state_change(event: events.StateChanged, log: Callable[[events.StateChan
     log(event)
 
 
-def start_displaying_progress(event: events.BatchProcessingStarted, *, display: ProgessDisplay) -> None:
-    """Start displaying progress to the user."""
+def inform_batch_processing_started(event: events.BatchProcessingStarted, *, display: ProgessDisplay) -> None:
+    """Inform the user that batch processing started."""
     display.start(event.process, event.identifiers)
 
 
-def inform_of_started_process(event: events.ProcessStarted, *, display: ProgessDisplay) -> None:
-    """Update the display with the entity whose process started."""
+def inform_next_process_started(event: events.ProcessStarted, *, display: ProgessDisplay) -> None:
+    """Inform the user that the next entity started processing."""
     display.update_current(event.identifier)
 
 
-def inform_of_finished_process(event: events.ProcessFinished, *, display: ProgessDisplay) -> None:
-    """Inform the user of an entity finishing its process."""
+def inform_current_process_finished(event: events.ProcessFinished, *, display: ProgessDisplay) -> None:
+    """Inform the user that the current entity finished processing."""
     display.finish_current()
 
 
-def stop_displaying_progress(event: events.BatchProcessingFinished, *, display: ProgessDisplay) -> None:
-    """Stop displaying progress to the user."""
+def inform_batch_processing_finished(event: events.BatchProcessingFinished, *, display: ProgessDisplay) -> None:
+    """Inform the user that batch processing finished."""
     display.stop()

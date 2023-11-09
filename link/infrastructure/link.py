@@ -16,14 +16,14 @@ from link.domain import commands, events
 from link.service.handlers import (
     delete,
     delete_entity,
-    inform_of_finished_process,
-    inform_of_started_process,
+    inform_batch_processing_finished,
+    inform_batch_processing_started,
+    inform_current_process_finished,
+    inform_next_process_started,
     list_idle_entities,
     log_state_change,
     pull,
     pull_entity,
-    start_displaying_progress,
-    stop_displaying_progress,
 )
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
@@ -74,10 +74,10 @@ def create_link(  # noqa: PLR0913
         )
         progress_view = TQDMProgressView()
         display = DJProgressDisplayAdapter(translator, progress_view)
-        event_handlers[events.ProcessStarted] = [partial(inform_of_started_process, display=display)]
-        event_handlers[events.ProcessFinished] = [partial(inform_of_finished_process, display=display)]
-        event_handlers[events.BatchProcessingStarted] = [partial(start_displaying_progress, display=display)]
-        event_handlers[events.BatchProcessingFinished] = [partial(stop_displaying_progress, display=display)]
+        event_handlers[events.ProcessStarted] = [partial(inform_next_process_started, display=display)]
+        event_handlers[events.ProcessFinished] = [partial(inform_current_process_finished, display=display)]
+        event_handlers[events.BatchProcessingStarted] = [partial(inform_batch_processing_started, display=display)]
+        event_handlers[events.BatchProcessingFinished] = [partial(inform_batch_processing_finished, display=display)]
         event_handlers[events.StateChanged] = [
             partial(log_state_change, log=create_state_change_logger(translator, logger.info))
         ]
