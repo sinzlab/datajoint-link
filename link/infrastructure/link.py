@@ -11,14 +11,27 @@ from link.adapters.custom_types import PrimaryKey
 from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
 from link.adapters.present import create_idle_entities_updater, create_state_change_logger
+from link.adapters.progress import DJProgressDisplayAdapter
 from link.domain import commands, events
-from link.service.handlers import delete, delete_entity, list_idle_entities, log_state_change, pull, pull_entity
+from link.service.handlers import (
+    delete,
+    delete_entity,
+    inform_of_finished_process,
+    inform_of_started_process,
+    list_idle_entities,
+    log_state_change,
+    pull,
+    pull_entity,
+    start_displaying_progress,
+    stop_displaying_progress,
+)
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
 
 from . import DJConfiguration, create_tables
 from .facade import DJLinkFacade
 from .mixin import create_local_endpoint
+from .progress import TQDMProgressView
 from .sequence import IterationCallbackList, create_content_replacer
 
 
@@ -59,10 +72,12 @@ def create_link(  # noqa: PLR0913
         command_handlers[commands.ListIdleEntities] = partial(
             list_idle_entities, uow=uow, output_port=idle_entities_updater
         )
-        event_handlers[events.ProcessStarted] = [lambda event: None]
-        event_handlers[events.ProcessFinished] = [lambda event: None]
-        event_handlers[events.ProcessesStarted] = [lambda event: None]
-        event_handlers[events.ProcessesFinished] = [lambda event: None]
+        progress_view = TQDMProgressView()
+        display = DJProgressDisplayAdapter(translator, progress_view)
+        event_handlers[events.ProcessStarted] = [partial(inform_of_started_process, display=display)]
+        event_handlers[events.ProcessFinished] = [partial(inform_of_finished_process, display=display)]
+        event_handlers[events.ProcessesStarted] = [partial(start_displaying_progress, display=display)]
+        event_handlers[events.ProcessesFinished] = [partial(stop_displaying_progress, display=display)]
         event_handlers[events.StateChanged] = [
             partial(log_state_change, log=create_state_change_logger(translator, logger.info))
         ]
@@ -71,6 +86,6 @@ def create_link(  # noqa: PLR0913
         controller = DJController(bus, translator)
         source_restriction.callback = controller.list_idle_entities
 
-        return create_local_endpoint(controller, tables, source_restriction)
+        return create_local_endpoint(controller, tables, source_restriction, progress_view)
 
     return inner
