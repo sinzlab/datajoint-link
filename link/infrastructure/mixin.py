@@ -8,6 +8,7 @@ from datajoint import Table
 
 from link.adapters.controller import DJController
 from link.adapters.custom_types import PrimaryKey
+from link.adapters.progress import ProgressView
 
 from . import DJTables
 
@@ -17,11 +18,15 @@ class SourceEndpoint(Table):
 
     _controller: DJController
     _outbound_table: Callable[[], Table]
+    _progress_view: ProgressView
 
-    def pull(self) -> None:
+    def pull(self, *, display_progress: bool = False) -> None:
         """Pull idle entities from the source table into the local table."""
+        if display_progress:
+            self._progress_view.enable()
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.pull(primary_keys)
+        self._progress_view.disable()
 
     @property
     def flagged(self) -> Sequence[PrimaryKey]:
@@ -34,6 +39,7 @@ def create_source_endpoint_factory(
     source_table: Callable[[], Table],
     outbound_table: Callable[[], Table],
     restriction: Iterable[PrimaryKey],
+    progress_view: ProgressView,
 ) -> Callable[[], SourceEndpoint]:
     """Create a callable that returns the source endpoint when called."""
 
@@ -47,6 +53,7 @@ def create_source_endpoint_factory(
                 {
                     "_controller": controller,
                     "_outbound_table": staticmethod(outbound_table),
+                    "_progress_view": progress_view,
                 },
             )()
             & restriction,
@@ -60,11 +67,15 @@ class LocalEndpoint(Table):
 
     _controller: DJController
     _source: Callable[[], SourceEndpoint]
+    _progress_view: ProgressView
 
-    def delete(self) -> None:
+    def delete(self, *, display_progress: bool = False) -> None:
         """Delete pulled entities from the local table."""
+        if display_progress:
+            self._progress_view.enable()
         primary_keys = self.proj().fetch(as_dict=True)
         self._controller.delete(primary_keys)
+        self._progress_view.disable()
 
     @property
     def source(self) -> SourceEndpoint:
@@ -73,7 +84,7 @@ class LocalEndpoint(Table):
 
 
 def create_local_endpoint(
-    controller: DJController, tables: DJTables, source_restriction: Iterable[PrimaryKey]
+    controller: DJController, tables: DJTables, source_restriction: Iterable[PrimaryKey], progress_view: ProgressView
 ) -> type[LocalEndpoint]:
     """Create the local endpoint."""
     return cast(
@@ -87,8 +98,11 @@ def create_local_endpoint(
             {
                 "_controller": controller,
                 "_source": staticmethod(
-                    create_source_endpoint_factory(controller, tables.source, tables.outbound, source_restriction)
+                    create_source_endpoint_factory(
+                        controller, tables.source, tables.outbound, source_restriction, progress_view
+                    ),
                 ),
+                "_progress_view": progress_view,
             },
         ),
     )

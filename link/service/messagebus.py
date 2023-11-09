@@ -66,6 +66,7 @@ class MessageBus:
 
     def _handle_command(self, command: Command) -> None:
         handler = self._command_handlers[type(command)]
+        logger.debug(f"Handling command {command!r} with handler {handler!r}")
         try:
             handler(command)
         except Exception:
@@ -74,6 +75,7 @@ class MessageBus:
 
     def _handle_event(self, event: Event) -> None:
         for handler in self._event_handlers[type(event)]:
+            logger.debug(f"Handling event {event!r} with handler {handler!r}")
             try:
                 handler(event)
             except Exception:

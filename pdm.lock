@@ -3,10 +3,9 @@
 
 [metadata]
 groups = ["default", "dev", "profiling"]
-cross_platform = true
-static_urls = false
-lock_version = "4.3"
-content_hash = "sha256:4f2ecbc5c197ae91efb9bee8ce350321344adca3dc82106b8c7c7434b6d84c0e"
+strategy = ["cross_platform"]
+lock_version = "4.4"
+content_hash = "sha256:f35ecee06be8d287838d23789019d83c6e11942373a33af153f4a2e0fd692244"
 
 [[package]]
 name = "appdirs"
@@ -1693,15 +1692,15 @@ files = [
 
 [[package]]
 name = "tqdm"
-version = "4.65.0"
+version = "4.66.1"
 requires_python = ">=3.7"
 summary = "Fast, Extensible Progress Meter"
 dependencies = [
     "colorama; platform_system == \"Windows\"",
 ]
 files = [
-    {file = "tqdm-4.65.0-py3-none-any.whl", hash = "sha256:c4f53a17fe37e132815abceec022631be8ffe1b9381c2e6e30aa70edc99e9671"},
-    {file = "tqdm-4.65.0.tar.gz", hash = "sha256:1871fb68a86b8fb3b59ca4cdd3dcccbc7e6d613eeed31f4c332531977b89beb5"},
+    {file = "tqdm-4.66.1-py3-none-any.whl", hash = "sha256:d302b3c5b53d47bce91fea46679d9c3c6508cf6332229aa1e7d8653723793386"},
+    {file = "tqdm-4.66.1.tar.gz", hash = "sha256:d88e651f9db8d8551a62556d3cff9e3034274ca5d66e93197cf2490e2dcb69c7"},
 ]
 
 [[package]]
@@ -1712,6 +1711,16 @@ summary = "Traitlets Python configuration system"
 files = [
     {file = "traitlets-5.9.0-py3-none-any.whl", hash = "sha256:9e6ec080259b9a5940c797d58b613b5e31441c2257b87c2e795c5228ae80d2d8"},
     {file = "traitlets-5.9.0.tar.gz", hash = "sha256:f6cde21a9c68cf756af02035f72d5a723bf607e862e7be33ece505abf4a3bad9"},
+]
+
+[[package]]
+name = "types-tqdm"
+version = "4.66.0.4"
+requires_python = ">=3.7"
+summary = "Typing stubs for tqdm"
+files = [
+    {file = "types-tqdm-4.66.0.4.tar.gz", hash = "sha256:a2f0ebd4cfd48f4914395819a176d7947387e1b98f9228fca38f8cac1b59891c"},
+    {file = "types_tqdm-4.66.0.4-py3-none-any.whl", hash = "sha256:8eda4c5123dd66985a4cb44268705cfa18beb32d66772271ae185e92b8b10c40"},
 ]
 
 [[package]]
