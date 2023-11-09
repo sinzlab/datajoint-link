@@ -81,7 +81,7 @@ Table().source
 All the rows can be pulled like so:
 
 ```python
-Table().source.pull()
+Table().source.pull()  # Hint: Pass display_progress=True to get a progress bar
 ```
 
 That said usually we only want to pull rows that match a certain criteria:
