@@ -32,7 +32,7 @@ def test_deleting(prepare_link, prepare_table, act_as, create_table):
         outbound_table_cls().insert1(row)
 
     with act_as(actors["local"]):
-        (local_table_cls() & local_table_cls().source.flagged).delete()
+        (local_table_cls() & local_table_cls().source.flagged).delete(display_progress=True)
         assert local_table_cls().fetch(as_dict=True) == expected
 
     assert (outbound_table_cls() & {"foo": 1}).fetch1("is_deprecated") == "TRUE"
