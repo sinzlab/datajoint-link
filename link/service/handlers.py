@@ -7,6 +7,7 @@ from link.domain import commands, events
 from link.domain.state import Processes
 
 from .messagebus import MessageBus
+from .progress import ProgessDisplay
 from .uow import UnitOfWork
 
 
@@ -59,3 +60,23 @@ def list_idle_entities(
 def log_state_change(event: events.StateChanged, log: Callable[[events.StateChanged], None]) -> None:
     """Log the state change of an entity."""
     log(event)
+
+
+def start_displaying_progress(event: events.ProcessesStarted, *, display: ProgessDisplay) -> None:
+    """Start displaying progress to the user."""
+    display.start(event.process, event.identifiers)
+
+
+def inform_of_started_process(event: events.ProcessStarted, *, display: ProgessDisplay) -> None:
+    """Update the display with the entity whose process started."""
+    display.update_current(event.identifier)
+
+
+def inform_of_finished_process(event: events.ProcessFinished, *, display: ProgessDisplay) -> None:
+    """Inform the user of an entity finishing its process."""
+    display.finish_current()
+
+
+def stop_displaying_progress(event: events.ProcessesFinished, *, display: ProgessDisplay) -> None:
+    """Stop displaying progress to the user."""
+    display.stop()
