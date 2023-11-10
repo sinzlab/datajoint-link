@@ -24,7 +24,7 @@ def test_updates_are_applied_to_gateway_on_commit() -> None:
         uow.link[create_identifier("2")].delete()
         uow.commit()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
-    expected = {(create_identifier("1"), states.Pulled), (create_identifier("2"), states.Unshared)}
+    expected = {(create_identifier("1"), states.Shared), (create_identifier("2"), states.Unshared)}
     assert actual == expected
 
 
@@ -34,7 +34,7 @@ def test_updates_are_discarded_on_context_exit() -> None:
         uow.link[create_identifier("1")].pull()
         uow.link[create_identifier("2")].delete()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
-    expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Pulled)}
+    expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Shared)}
     assert actual == expected
 
 
@@ -45,7 +45,7 @@ def test_updates_are_discarded_on_rollback() -> None:
         uow.link[create_identifier("2")].delete()
         uow.rollback()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
-    expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Pulled)}
+    expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Shared)}
     assert actual == expected
 
 
@@ -143,13 +143,13 @@ def test_correct_events_are_collected() -> None:
         events.StateChanged(
             Operations.PROCESS,
             create_identifier("1"),
-            Transition(states.Received, states.Pulled),
+            Transition(states.Received, states.Shared),
             Commands.FINISH_PULL_PROCESS,
         ),
         events.StateChanged(
             Operations.START_DELETE,
             create_identifier("2"),
-            Transition(states.Pulled, states.Received),
+            Transition(states.Shared, states.Received),
             Commands.START_DELETE_PROCESS,
         ),
         events.StateChanged(

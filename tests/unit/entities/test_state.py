@@ -25,7 +25,7 @@ from tests.assignments import create_assignments, create_identifier, create_iden
         (create_identifier("1"), states.Unshared, [Operations.START_DELETE, Operations.PROCESS]),
         (create_identifier("2"), states.Activated, [Operations.START_PULL, Operations.START_DELETE]),
         (create_identifier("3"), states.Received, [Operations.START_PULL, Operations.START_DELETE]),
-        (create_identifier("4"), states.Pulled, [Operations.START_PULL, Operations.PROCESS]),
+        (create_identifier("4"), states.Shared, [Operations.START_PULL, Operations.PROCESS]),
         (create_identifier("5"), states.Tainted, [Operations.START_PULL, Operations.PROCESS]),
         (
             create_identifier("6"),
@@ -104,7 +104,7 @@ def test_processing_activated_entity_returns_correct_entity(
 @pytest.mark.parametrize(
     ("process", "tainted_identifiers", "new_state", "new_process", "command"),
     [
-        (Processes.PULL, set(), states.Pulled, Processes.NONE, Commands.FINISH_PULL_PROCESS),
+        (Processes.PULL, set(), states.Shared, Processes.NONE, Commands.FINISH_PULL_PROCESS),
         (Processes.PULL, create_identifiers("1"), states.Tainted, Processes.NONE, Commands.FINISH_PULL_PROCESS),
         (Processes.DELETE, set(), states.Activated, Processes.DELETE, Commands.REMOVE_FROM_LOCAL),
         (Processes.DELETE, create_identifiers("1"), states.Activated, Processes.DELETE, Commands.REMOVE_FROM_LOCAL),
@@ -132,12 +132,12 @@ def test_processing_received_entity_returns_correct_entity(
     assert list(entity.events) == expected_events
 
 
-def test_starting_delete_on_pulled_entity_returns_correct_entity() -> None:
+def test_starting_delete_on_shared_entity_returns_correct_entity() -> None:
     link = create_link(
         create_assignments({Components.SOURCE: {"1"}, Components.OUTBOUND: {"1"}, Components.LOCAL: {"1"}})
     )
     entity = next(iter(link))
-    transition = Transition(states.Pulled, states.Received)
+    transition = Transition(states.Shared, states.Received)
     expected_events = [
         events.StateChanged(
             Operations.START_DELETE,

@@ -21,7 +21,7 @@ def pull_entity(command: commands.PullEntity, *, uow: UnitOfWork, message_bus: M
 
 
 def delete_entity(command: commands.DeleteEntity, *, uow: UnitOfWork, message_bus: MessageBus) -> None:
-    """Delete a pulled entity."""
+    """Delete a shared entity."""
     message_bus.handle(events.ProcessStarted(Processes.DELETE, command.requested))
     with uow:
         uow.link[command.requested].delete()
@@ -38,7 +38,7 @@ def pull(command: commands.PullEntities, *, message_bus: MessageBus) -> None:
 
 
 def delete(command: commands.DeleteEntities, *, message_bus: MessageBus) -> None:
-    """Delete pulled entities."""
+    """Delete shared entities."""
     message_bus.handle(events.BatchProcessingStarted(Processes.DELETE, command.requested))
     for identifier in command.requested:
         message_bus.handle(commands.DeleteEntity(identifier))

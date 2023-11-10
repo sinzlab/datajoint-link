@@ -70,7 +70,7 @@ class LocalEndpoint(Table):
     _progress_view: ProgressView
 
     def delete(self, *, display_progress: bool = False) -> None:
-        """Delete pulled entities from the local table."""
+        """Delete shared entities from the local table."""
         if display_progress:
             self._progress_view.enable()
         primary_keys = self.proj().fetch(as_dict=True)
