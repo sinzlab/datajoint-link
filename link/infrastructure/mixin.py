@@ -21,7 +21,7 @@ class SourceEndpoint(Table):
     _progress_view: ProgressView
 
     def pull(self, *, display_progress: bool = False) -> None:
-        """Pull idle entities from the source table into the local table."""
+        """Pull unshared entities from the source table into the local table."""
         if display_progress:
             self._progress_view.enable()
         primary_keys = self.proj().fetch(as_dict=True)

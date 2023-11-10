@@ -10,7 +10,7 @@ from link.adapters.controller import DJController
 from link.adapters.custom_types import PrimaryKey
 from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
-from link.adapters.present import create_idle_entities_updater, create_state_change_logger
+from link.adapters.present import create_state_change_logger, create_unshared_entities_updater
 from link.adapters.progress import DJProgressDisplayAdapter
 from link.domain import commands, events
 from link.service.handlers import (
@@ -20,7 +20,7 @@ from link.service.handlers import (
     inform_batch_processing_started,
     inform_current_process_finished,
     inform_next_process_started,
-    list_idle_entities,
+    list_unshared_entities,
     log_state_change,
     pull,
     pull_entity,
@@ -59,7 +59,9 @@ def create_link(  # noqa: PLR0913
         gateway = DJLinkGateway(facade, translator)
         uow = UnitOfWork(gateway)
         source_restriction: IterationCallbackList[PrimaryKey] = IterationCallbackList()
-        idle_entities_updater = create_idle_entities_updater(translator, create_content_replacer(source_restriction))
+        unshared_entities_updater = create_unshared_entities_updater(
+            translator, create_content_replacer(source_restriction)
+        )
         logger = logging.getLogger(obj.__name__)
 
         command_handlers: CommandHandlers = {}
@@ -69,8 +71,8 @@ def create_link(  # noqa: PLR0913
         command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow, message_bus=bus)
         command_handlers[commands.PullEntities] = partial(pull, message_bus=bus)
         command_handlers[commands.DeleteEntities] = partial(delete, message_bus=bus)
-        command_handlers[commands.ListIdleEntities] = partial(
-            list_idle_entities, uow=uow, output_port=idle_entities_updater
+        command_handlers[commands.ListUnsharedEntities] = partial(
+            list_unshared_entities, uow=uow, output_port=unshared_entities_updater
         )
         progress_view = TQDMProgressView()
         display = DJProgressDisplayAdapter(translator, progress_view)
@@ -84,7 +86,7 @@ def create_link(  # noqa: PLR0913
         event_handlers[events.InvalidOperationRequested] = [lambda event: None]
 
         controller = DJController(bus, translator)
-        source_restriction.callback = controller.list_idle_entities
+        source_restriction.callback = controller.list_unshared_entities
 
         return create_local_endpoint(controller, tables, source_restriction, progress_view)
 

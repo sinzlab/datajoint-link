@@ -24,7 +24,7 @@ def test_updates_are_applied_to_gateway_on_commit() -> None:
         uow.link[create_identifier("2")].delete()
         uow.commit()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
-    expected = {(create_identifier("1"), states.Pulled), (create_identifier("2"), states.Idle)}
+    expected = {(create_identifier("1"), states.Pulled), (create_identifier("2"), states.Unshared)}
     assert actual == expected
 
 
@@ -34,7 +34,7 @@ def test_updates_are_discarded_on_context_exit() -> None:
         uow.link[create_identifier("1")].pull()
         uow.link[create_identifier("2")].delete()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
-    expected = {(create_identifier("1"), states.Idle), (create_identifier("2"), states.Pulled)}
+    expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Pulled)}
     assert actual == expected
 
 
@@ -45,7 +45,7 @@ def test_updates_are_discarded_on_rollback() -> None:
         uow.link[create_identifier("2")].delete()
         uow.rollback()
     actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
-    expected = {(create_identifier("1"), states.Idle), (create_identifier("2"), states.Pulled)}
+    expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Pulled)}
     assert actual == expected
 
 
@@ -131,7 +131,7 @@ def test_correct_events_are_collected() -> None:
         events.StateChanged(
             Operations.START_PULL,
             create_identifier("1"),
-            Transition(states.Idle, states.Activated),
+            Transition(states.Unshared, states.Activated),
             Commands.START_PULL_PROCESS,
         ),
         events.StateChanged(
@@ -161,7 +161,7 @@ def test_correct_events_are_collected() -> None:
         events.StateChanged(
             Operations.PROCESS,
             create_identifier("2"),
-            Transition(states.Activated, states.Idle),
+            Transition(states.Activated, states.Unshared),
             Commands.FINISH_DELETE_PROCESS,
         ),
     ]

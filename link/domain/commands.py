@@ -40,5 +40,5 @@ class DeleteEntities(Command):
 
 
 @dataclass(frozen=True)
-class ListIdleEntities(Command):
+class ListUnsharedEntities(Command):
     """Start the delete process for the requested entities."""

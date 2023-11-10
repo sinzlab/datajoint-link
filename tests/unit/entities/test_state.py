@@ -22,7 +22,7 @@ from tests.assignments import create_assignments, create_identifier, create_iden
 @pytest.mark.parametrize(
     ("identifier", "state", "operations"),
     [
-        (create_identifier("1"), states.Idle, [Operations.START_DELETE, Operations.PROCESS]),
+        (create_identifier("1"), states.Unshared, [Operations.START_DELETE, Operations.PROCESS]),
         (create_identifier("2"), states.Activated, [Operations.START_PULL, Operations.START_DELETE]),
         (create_identifier("3"), states.Received, [Operations.START_PULL, Operations.START_DELETE]),
         (create_identifier("4"), states.Pulled, [Operations.START_PULL, Operations.PROCESS]),
@@ -55,7 +55,7 @@ def test_invalid_transitions_returns_unchanged_entity(
         assert entity.events.pop() == result
 
 
-def test_start_pulling_idle_entity_returns_correct_entity() -> None:
+def test_start_pulling_unshared_entity_returns_correct_entity() -> None:
     link = create_link(create_assignments({Components.SOURCE: {"1"}}))
     entity = next(iter(link))
     entity.apply(Operations.START_PULL)
@@ -65,7 +65,7 @@ def test_start_pulling_idle_entity_returns_correct_entity() -> None:
         events.StateChanged(
             Operations.START_PULL,
             entity.identifier,
-            Transition(states.Idle, states.Activated),
+            Transition(states.Unshared, states.Activated),
             Commands.START_PULL_PROCESS,
         )
     ]
@@ -76,7 +76,7 @@ def test_start_pulling_idle_entity_returns_correct_entity() -> None:
     [
         (Processes.PULL, set(), states.Received, Processes.PULL, Commands.ADD_TO_LOCAL),
         (Processes.PULL, create_identifiers("1"), states.Deprecated, Processes.NONE, Commands.DEPRECATE),
-        (Processes.DELETE, set(), states.Idle, Processes.NONE, Commands.FINISH_DELETE_PROCESS),
+        (Processes.DELETE, set(), states.Unshared, Processes.NONE, Commands.FINISH_DELETE_PROCESS),
         (Processes.DELETE, create_identifiers("1"), states.Deprecated, Processes.NONE, Commands.DEPRECATE),
     ],
 )
