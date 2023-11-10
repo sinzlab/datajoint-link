@@ -16,10 +16,10 @@ class TestCreateLink:
     @pytest.mark.parametrize(
         ("state", "expected"),
         [
-            (states.Idle, create_identifiers("1")),
+            (states.Unshared, create_identifiers("1")),
             (states.Activated, create_identifiers("2", "7")),
             (states.Received, create_identifiers("3", "8")),
-            (states.Pulled, create_identifiers("4")),
+            (states.Shared, create_identifiers("4")),
             (states.Tainted, create_identifiers("5")),
             (states.Deprecated, create_identifiers("6")),
         ],

@@ -30,6 +30,6 @@ class DJController:
         """Execute the delete use-case."""
         self._message_bus.handle(commands.DeleteEntities(frozenset(self._translator.to_identifiers(primary_keys))))
 
-    def list_idle_entities(self) -> None:
-        """Execute the use-case that lists idle entities."""
-        self._message_bus.handle(commands.ListIdleEntities())
+    def list_unshared_entities(self) -> None:
+        """Execute the use-case that lists unshared entities."""
+        self._message_bus.handle(commands.ListUnsharedEntities())

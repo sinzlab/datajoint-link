@@ -9,15 +9,15 @@ from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
 
 
-def create_idle_entities_updater(
+def create_unshared_entities_updater(
     translator: IdentificationTranslator, update: Callable[[Iterable[PrimaryKey]], None]
-) -> Callable[[events.IdleEntitiesListed], None]:
-    """Create a callable that when called updates the list of idle entities."""
+) -> Callable[[events.UnsharedEntitiesListed], None]:
+    """Create a callable that when called updates the list of unshared entities."""
 
-    def update_idle_entities(response: events.IdleEntitiesListed) -> None:
+    def update_unshared_entities(response: events.UnsharedEntitiesListed) -> None:
         update(translator.to_primary_key(identifier) for identifier in response.identifiers)
 
-    return update_idle_entities
+    return update_unshared_entities
 
 
 def create_state_change_logger(

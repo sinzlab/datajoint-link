@@ -7,7 +7,7 @@ import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Processes, State, states
-from link.service.handlers import delete, delete_entity, list_idle_entities, pull, pull_entity
+from link.service.handlers import delete, delete_entity, list_unshared_entities, pull, pull_entity
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifiers
@@ -37,7 +37,7 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
         assert process is None
     if state in (states.Tainted, states.Deprecated):
         assert is_tainted
-    elif state in (states.Idle, states.Pulled):
+    elif state in (states.Unshared, states.Shared):
         assert not is_tainted
 
     if is_tainted:
@@ -49,7 +49,7 @@ def create_uow(state: type[State], process: Processes | None = None, is_tainted:
     else:
         processes = {}
     assignments = {Components.SOURCE: {"1"}}
-    if state is states.Idle:
+    if state is states.Unshared:
         return UnitOfWork(
             FakeLinkGateway(
                 create_assignments(assignments), tainted_identifiers=tainted_identifiers, processes=processes
@@ -108,7 +108,7 @@ class EntityConfig(TypedDict):
 
 
 STATES: list[EntityConfig] = [
-    {"state": states.Idle, "is_tainted": False, "process": None},
+    {"state": states.Unshared, "is_tainted": False, "process": None},
     {"state": states.Activated, "is_tainted": False, "process": Processes.PULL},
     {"state": states.Activated, "is_tainted": False, "process": Processes.DELETE},
     {"state": states.Activated, "is_tainted": True, "process": Processes.PULL},
@@ -117,7 +117,7 @@ STATES: list[EntityConfig] = [
     {"state": states.Received, "is_tainted": False, "process": Processes.DELETE},
     {"state": states.Received, "is_tainted": True, "process": Processes.PULL},
     {"state": states.Received, "is_tainted": True, "process": Processes.DELETE},
-    {"state": states.Pulled, "is_tainted": False, "process": None},
+    {"state": states.Shared, "is_tainted": False, "process": None},
     {"state": states.Tainted, "is_tainted": True, "process": None},
     {"state": states.Deprecated, "is_tainted": True, "process": None},
 ]
@@ -126,16 +126,16 @@ STATES: list[EntityConfig] = [
 @pytest.mark.parametrize(
     ("state", "expected"),
     [
-        (STATES[0], states.Idle),
-        (STATES[1], states.Idle),
-        (STATES[2], states.Idle),
+        (STATES[0], states.Unshared),
+        (STATES[1], states.Unshared),
+        (STATES[2], states.Unshared),
         (STATES[3], states.Deprecated),
         (STATES[4], states.Deprecated),
-        (STATES[5], states.Idle),
-        (STATES[6], states.Idle),
+        (STATES[5], states.Unshared),
+        (STATES[6], states.Unshared),
         (STATES[7], states.Deprecated),
         (STATES[8], states.Deprecated),
-        (STATES[9], states.Idle),
+        (STATES[9], states.Unshared),
         (STATES[10], states.Deprecated),
         (STATES[11], states.Deprecated),
     ],
@@ -151,16 +151,16 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
 @pytest.mark.parametrize(
     ("state", "expected"),
     [
-        (STATES[0], states.Pulled),
-        (STATES[1], states.Pulled),
-        (STATES[2], states.Pulled),
+        (STATES[0], states.Shared),
+        (STATES[1], states.Shared),
+        (STATES[2], states.Shared),
         (STATES[3], states.Deprecated),
         (STATES[4], states.Deprecated),
-        (STATES[5], states.Pulled),
-        (STATES[6], states.Pulled),
+        (STATES[5], states.Shared),
+        (STATES[6], states.Shared),
         (STATES[7], states.Tainted),
         (STATES[8], states.Deprecated),
-        (STATES[9], states.Pulled),
+        (STATES[9], states.Shared),
         (STATES[10], states.Tainted),
         (STATES[11], states.Deprecated),
     ],
@@ -173,12 +173,12 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
         assert next(iter(uow.link)).state is expected
 
 
-def test_correct_response_model_gets_passed_to_list_idle_entities_output_port() -> None:
+def test_correct_response_model_gets_passed_to_list_unshared_entities_output_port() -> None:
     uow = UnitOfWork(
         FakeLinkGateway(
             create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
         )
     )
-    output_port = FakeOutputPort[events.IdleEntitiesListed]()
-    list_idle_entities(commands.ListIdleEntities(), uow=uow, output_port=output_port)
+    output_port = FakeOutputPort[events.UnsharedEntitiesListed]()
+    list_unshared_entities(commands.ListUnsharedEntities(), uow=uow, output_port=output_port)
     assert set(output_port.response.identifiers) == create_identifiers("1")

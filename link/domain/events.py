@@ -39,8 +39,8 @@ class StateChanged(OperationApplied):
 
 
 @dataclass(frozen=True)
-class IdleEntitiesListed(Event):
-    """Idle entities in a link have been listed."""
+class UnsharedEntitiesListed(Event):
+    """Unshared entities in a link have been listed."""
 
     identifiers: frozenset[Identifier]
 

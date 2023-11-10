@@ -3,10 +3,10 @@ Links contain and operate on entities. A specific entity is unique within a link
 
 ## States
 Each entity is in one of the following states at any given time:
-* Idle: This is the default state that entities start in.
+* Unshared: This is the default state that entities start in.
 * Activated: The entity is in the process of being pulled/deleted to/from the local side. It is only present in the source side of the link.
 * Received: The entity is in the process of being pulled/deleted to/from the local side. It is present in both sides of the link.
-* Pulled: The entity has been copied from the source to the local side.
+* Shared: The entity has been copied from the source to the local side.
 * Tainted: The entity was flagged by the source side indicating to the local side to delete it.
 * Deprecated: The entity was flagged by the source side and subsequently deleted by the local side.
 
@@ -15,19 +15,19 @@ The following state diagram shows the different states that entities can be in a
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Idle
-    Idle --> Activated: pulled / start pull process
+    [*] --> Unshared
+    Unshared --> Activated: pulled / start pull process
     Activated --> Received: processed [in pull process and not flagged] / add to local
-    Received --> Pulled: processed [in pull process and not flagged] / finish pull process
+    Received --> Shared: processed [in pull process and not flagged] / finish pull process
     Received --> Tainted: processed [in pull process and flagged] / finish pull process
-    Pulled --> Received: deleted / start delete process
+    Shared --> Received: deleted / start delete process
     Received --> Activated: processed [in delete process] / remove from local
-    Activated --> Idle: processed [in delete process and not flagged] / finish delete process
-    Pulled --> Tainted: flagged
-    Tainted --> Pulled: unflagged
+    Activated --> Unshared: processed [in delete process and not flagged] / finish delete process
+    Shared --> Tainted: flagged
+    Tainted --> Shared: unflagged
     Tainted --> Received: deleted / start delete process
     Activated --> Deprecated: processed [flagged] / deprecate
-    Deprecated --> Idle: unflagged
+    Deprecated --> Unshared: unflagged
 ```
 
 The diagram adheres to the following rule to avoid entities with invalid states due to interruptions (e.g. connection losses):
@@ -39,7 +39,7 @@ Not following this rule can lead to entities in invalid states due to modifying 
 The `pulled`, `processed` and `deleted` events are triggered by the application, whereas the `flagged` and `unflagged` events are triggered by the source side directly by modifying the persistent data. The `flagged` and `unflagged` events are also not associated with activities for the same reason.
 
 ## Processes
-Idle entities can be pulled from the source side into the local side and once they are pulled they can be deleted from the local side. Activated and received entities are currently undergoing one of these two processes. The name of the specific process is associated with entities that are in the aforementioned states. This allows us to correctly transition these entities. For example without associating the process with the entity we would not be able to determine whether an activated entity should become a received one (pull) or an idle one (delete).
+Unshared entities can be pulled from the source side into the local side and once they are shared they can be deleted from the local side. Activated and received entities are currently undergoing one of these two processes. The name of the specific process is associated with entities that are in the aforementioned states. This allows us to correctly transition these entities. For example without associating the process with the entity we would not be able to determine whether an activated entity should become a received one (pull) or an unshared one (delete).
 
 ## Persistence
 
@@ -50,10 +50,10 @@ The following table illustrates the chosen mapping:
 
 | In source          | In outbound        | In local           | Has process        | Is flagged               | State      |
 |--------------------|--------------------|--------------------|--------------------|--------------------------|------------|
-| :white_check_mark: | :x:                | :x:                | :x:                | :x:                      | Idle       |
+| :white_check_mark: | :x:                | :x:                | :x:                | :x:                      | Unshared   |
 | :white_check_mark: | :white_check_mark: | :x:                | :white_check_mark: | :white_check_mark: / :x: | Activated  |
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: / :x: | Received   |
-| :white_check_mark: | :white_check_mark: | :white_check_mark: | :x:                | :x:                      | Pulled     |
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :x:                | :x:                      | Shared     |
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x:                | :white_check_mark:       | Tainted    |
 | :white_check_mark: | :white_check_mark: | :x:                | :x:                | :white_check_mark:       | Deprecated |
 

@@ -65,7 +65,7 @@ class States:
 states = States()
 
 
-class Idle(State):
+class Unshared(State):
     """The default state of an entity."""
 
     @classmethod
@@ -74,7 +74,7 @@ class Idle(State):
         return cls._transition_entity(entity, Operations.START_PULL, Activated, new_process=Processes.PULL)
 
 
-states.register(Idle)
+states.register(Unshared)
 
 
 class Activated(State):
@@ -89,7 +89,7 @@ class Activated(State):
         elif entity.current_process is Processes.PULL:
             return transition_entity(Received)
         elif entity.current_process is Processes.DELETE:
-            return transition_entity(Idle, new_process=Processes.NONE)
+            return transition_entity(Unshared, new_process=Processes.NONE)
         raise RuntimeError
 
 
@@ -107,7 +107,7 @@ class Received(State):
             if entity.is_tainted:
                 return transition_entity(Tainted, new_process=Processes.NONE)
             else:
-                return transition_entity(Pulled, new_process=Processes.NONE)
+                return transition_entity(Shared, new_process=Processes.NONE)
         elif entity.current_process is Processes.DELETE:
             return transition_entity(Activated)
         raise RuntimeError
@@ -116,7 +116,7 @@ class Received(State):
 states.register(Received)
 
 
-class Pulled(State):
+class Shared(State):
     """The state of an entity that has been copied to the local side."""
 
     @classmethod
@@ -125,7 +125,7 @@ class Pulled(State):
         return cls._transition_entity(entity, Operations.START_DELETE, Received, new_process=Processes.DELETE)
 
 
-states.register(Pulled)
+states.register(Shared)
 
 
 class Tainted(State):
@@ -172,14 +172,14 @@ class Commands(Enum):
 
 
 TRANSITION_MAP: dict[Transition, Commands] = {
-    Transition(Idle, Activated): Commands.START_PULL_PROCESS,
+    Transition(Unshared, Activated): Commands.START_PULL_PROCESS,
     Transition(Activated, Received): Commands.ADD_TO_LOCAL,
-    Transition(Activated, Idle): Commands.FINISH_DELETE_PROCESS,
+    Transition(Activated, Unshared): Commands.FINISH_DELETE_PROCESS,
     Transition(Activated, Deprecated): Commands.DEPRECATE,
-    Transition(Received, Pulled): Commands.FINISH_PULL_PROCESS,
+    Transition(Received, Shared): Commands.FINISH_PULL_PROCESS,
     Transition(Received, Tainted): Commands.FINISH_PULL_PROCESS,
     Transition(Received, Activated): Commands.REMOVE_FROM_LOCAL,
-    Transition(Pulled, Received): Commands.START_DELETE_PROCESS,
+    Transition(Shared, Received): Commands.START_DELETE_PROCESS,
     Transition(Tainted, Received): Commands.START_DELETE_PROCESS,
 }
 
@@ -222,7 +222,7 @@ STATE_MAP = {
         frozenset({Components.SOURCE}),
         is_tainted=False,
         has_process=False,
-    ): Idle,
+    ): Unshared,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND}),
         is_tainted=False,
@@ -247,7 +247,7 @@ STATE_MAP = {
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=False,
         has_process=False,
-    ): Pulled,
+    ): Shared,
     PersistentState(
         frozenset({Components.SOURCE, Components.OUTBOUND, Components.LOCAL}),
         is_tainted=True,
