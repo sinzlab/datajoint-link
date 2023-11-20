@@ -17,7 +17,7 @@ class TQDMProgressView(ProgressView):
     def __init__(self) -> None:
         """Initialize the view."""
         self.__progress_bar: tqdm[NoReturn] | None = None
-        self._is_disabled: bool = False
+        self._is_disabled: bool = True
 
     @property
     def _progress_bar(self) -> tqdm[NoReturn]:
