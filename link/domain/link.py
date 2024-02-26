@@ -9,7 +9,7 @@ from .state import STATE_MAP, Components, Entity, PersistentState, Processes, St
 
 
 def create_entity(
-    identifier: Identifier, components: Iterable[Components], is_tainted: bool, process: Processes
+    identifier: Identifier, *, components: Iterable[Components], is_tainted: bool, process: Processes
 ) -> Entity:
     """Create an entity."""
     presence = frozenset(components)
@@ -63,23 +63,19 @@ def create_link(
     def create_entities(
         assignments: Mapping[Components, Iterable[Identifier]],
     ) -> set[Entity]:
-        def create_entity(identifier: Identifier) -> Entity:
-            presence = frozenset(
-                component for component, identifiers in assignments.items() if identifier in identifiers
+        entities = []
+        for identifier in assignments[Components.SOURCE]:
+            entities.append(
+                create_entity(
+                    identifier,
+                    components=(
+                        component for component, identifiers in assignments.items() if identifier in identifiers
+                    ),
+                    is_tainted=is_tainted(identifier),
+                    process=processes_map.get(identifier, Processes.NONE),
+                )
             )
-            persistent_state = PersistentState(
-                presence, is_tainted=is_tainted(identifier), has_process=identifier in processes_map
-            )
-            state = STATE_MAP[persistent_state]
-            return Entity(
-                identifier,
-                state=state,
-                current_process=processes_map.get(identifier, Processes.NONE),
-                is_tainted=is_tainted(identifier),
-                events=deque(),
-            )
-
-        return {create_entity(identifier) for identifier in assignments[Components.SOURCE]}
+        return set(entities)
 
     def assign_entities(entities: Iterable[Entity]) -> dict[Components, set[Entity]]:
         def assign_to_component(component: Components) -> set[Entity]:
