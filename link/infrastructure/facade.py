@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from typing import Any, ContextManager, Iterable, Literal, Mapping, Protocol, Sequence, Union, cast
 
 from link.adapters import PrimaryKey
-from link.adapters.facade import DJAssignments, DJProcess
+from link.adapters.facade import DJAssignment, DJAssignments, DJCondition, DJProcess, ProcessType
 from link.adapters.facade import DJLinkFacade as AbstractDJLinkFacade
 
 
@@ -27,6 +27,9 @@ class Table(Protocol):
     def fetch(self, *, as_dict: Literal[True], download_path: str = ...) -> list[dict[str, Any]]:
         """Fetch rows from the table."""
 
+    def fetch1(self, attrs: str) -> Any:
+        """Fetch a single row from the table."""
+
     def delete(self) -> None:
         """Delete rows from the table."""
 
@@ -41,6 +44,9 @@ class Table(Protocol):
 
     def children(self, *, as_objects: Literal[True]) -> Sequence[Table]:
         """Return the children of this table."""
+
+    def __contains__(self, primary_key: PrimaryKey) -> bool:
+        """Check if the table contains a row with the given primary key."""
 
     @property
     def table_name(self) -> str:
@@ -81,6 +87,29 @@ class DJLinkFacade(AbstractDJLinkFacade):
         """Get the flagged (i.e. tainted) primary keys from the outbound table."""
         rows = (self.outbound() & 'is_flagged = "TRUE"').proj().fetch(as_dict=True)
         return cast("list[PrimaryKey]", rows)
+
+    def get_assignment(self, primary_key: PrimaryKey) -> DJAssignment:
+        """Get the assignment of the entity with the given primary key."""
+        return DJAssignment(
+            primary_key, primary_key in self.source(), primary_key in self.outbound(), primary_key in self.local()
+        )
+
+    def get_condition(self, primary_key: PrimaryKey) -> DJCondition:
+        """Get the condition of the entity with the given primary key."""
+        if primary_key not in self.outbound():
+            is_flagged = False
+        else:
+            is_flagged = (self.outbound() & primary_key).fetch1("is_flagged") == "TRUE"
+        return DJCondition(primary_key, is_flagged)
+
+    def get_process(self, primary_key: PrimaryKey) -> DJProcess:
+        """Get the process of the entity with the given primary key."""
+        process: ProcessType
+        if primary_key not in self.outbound():
+            process = "NONE"
+        else:
+            process = (self.outbound() & primary_key).fetch1("process")
+        return DJProcess(primary_key, process)
 
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Add the entities corresponding to the given primary keys to the local table."""

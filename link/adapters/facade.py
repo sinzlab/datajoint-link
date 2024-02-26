@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Literal, Union
+from typing import Literal
 
 from .custom_types import PrimaryKey
 
@@ -24,6 +24,18 @@ class DJLinkFacade(ABC):
     @abstractmethod
     def get_processes(self) -> list[DJProcess]:
         """Get all processes associated with entities."""
+
+    @abstractmethod
+    def get_assignment(self, primary_key: PrimaryKey) -> DJAssignment:
+        """Get the assignment of the entity with the given primary key to components."""
+
+    @abstractmethod
+    def get_condition(self, primary_key: PrimaryKey) -> DJCondition:
+        """Get the condition of the entity with the given primary key."""
+
+    @abstractmethod
+    def get_process(self, primary_key: PrimaryKey) -> DJProcess:
+        """Get the process of the entity with the given primary key."""
 
     @abstractmethod
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
@@ -54,12 +66,15 @@ class DJLinkFacade(ABC):
         """Deprecate the entity identified by the given primary key."""
 
 
+ProcessType = Literal["PULL", "DELETE", "NONE"]
+
+
 @dataclass(frozen=True)
 class DJProcess:
     """An association between an entity's primary key and its process."""
 
     primary_key: PrimaryKey
-    current_process: Union[Literal["PULL"], Literal["DELETE"], Literal["NONE"]]
+    current_process: ProcessType
 
 
 @dataclass(frozen=True)
@@ -69,3 +84,21 @@ class DJAssignments:
     source: list[PrimaryKey]
     outbound: list[PrimaryKey]
     local: list[PrimaryKey]
+
+
+@dataclass(frozen=True)
+class DJAssignment:
+    """The presence of a specific entity in the three different tables that make up its link."""
+
+    primary_key: PrimaryKey
+    source: bool
+    outbound: bool
+    local: bool
+
+
+@dataclass(frozen=True)
+class DJCondition:
+    """The condition of a specific entity."""
+
+    primary_key: PrimaryKey
+    is_flagged: bool

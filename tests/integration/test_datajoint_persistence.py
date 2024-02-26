@@ -98,6 +98,27 @@ class FakeTable:
 
         return convert_external_attrs(project_rows(self.__rows_in_restriction()))
 
+    def fetch1(self, *attrs: str, download_path: str = ".") -> tuple[Any, ...]:
+        def project_row(row: Mapping[str, Any]) -> dict[str, Any]:
+            return {attr: value for attr, value in row.items() if attr in self.__projected_attrs}
+
+        def convert_external_attrs(row: Mapping[str, Any]) -> dict[str, Any]:
+            row = dict(row)
+            external_attrs = self.__external_attrs & self.__projected_attrs
+            for attr in external_attrs:
+                row[attr] = convert_external_attr(*row[attr])
+            return row
+
+        def convert_external_attr(filename: str, data: bytes) -> str:
+            filepath = download_path / Path(filename)
+            with filepath.open(mode="wb") as file:
+                file.write(data)
+            return str(filepath)
+
+        rows = list(self.proj(*attrs).__rows_in_restriction())
+        assert len(rows) == 1
+        return tuple(convert_external_attrs(project_row(rows[0])))
+
     def delete(self) -> None:
         def is_confirmed() -> bool:
             answer = None
@@ -134,6 +155,9 @@ class FakeTable:
         table = self.__create_copy()
         table.__restriction = condition
         return table
+
+    def __contains__(self, primary_key: PrimaryKey) -> bool:
+        return bool((self & primary_key).__rows_in_restriction())
 
     def children(self, *, as_objects: Literal[True]) -> Sequence[FakeTable]:
         return list(self.__children)
