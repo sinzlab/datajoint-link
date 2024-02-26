@@ -5,8 +5,8 @@ from typing import Iterable
 
 from link.domain import events
 from link.domain.custom_types import Identifier
-from link.domain.link import Link, create_link
-from link.domain.state import Commands, Components, Processes
+from link.domain.link import Link, create_entity, create_link
+from link.domain.state import Commands, Components, Entity, Processes
 from link.service.gateway import LinkGateway
 
 
@@ -27,6 +27,15 @@ class FakeLinkGateway(LinkGateway):
 
     def create_link(self) -> Link:
         return create_link(self.assignments, tainted_identifiers=self.tainted_identifiers, processes=self.processes)
+
+    def __getitem__(self, identifier: Identifier) -> Entity:
+        assignment = (component for component in self.assignments if identifier in self.assignments[component])
+        return create_entity(
+            identifier,
+            components=assignment,
+            is_tainted=identifier in self.tainted_identifiers,
+            process=next(process for process in self.processes if identifier in self.processes[process]),
+        )
 
     def apply(self, updates: Iterable[events.StateChanged]) -> None:
         for update in updates:

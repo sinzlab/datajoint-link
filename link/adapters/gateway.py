@@ -7,8 +7,8 @@ from typing import Iterable
 
 from link.domain import events
 from link.domain.custom_types import Identifier
-from link.domain.link import Link, create_link
-from link.domain.state import Commands, Components, Processes
+from link.domain.link import Link, create_entity, create_link
+from link.domain.state import Commands, Components, Entity, Processes
 from link.service.gateway import LinkGateway
 
 from .custom_types import PrimaryKey
@@ -50,6 +50,26 @@ class DJLinkGateway(LinkGateway):
             translate_assignments(self.facade.get_assignments()),
             processes=translate_processes(self.facade.get_processes()),
             tainted_identifiers=translate_tainted_primary_keys(self.facade.get_tainted_primary_keys()),
+        )
+
+    def __getitem__(self, identifier: Identifier) -> Entity:
+        """Create a entity instance from persistent data."""
+        dj_assignment = self.facade.get_assignment(self.translator.to_primary_key(identifier))
+        components = []
+        if dj_assignment.source:
+            components.append(Components.SOURCE)
+        if dj_assignment.outbound:
+            components.append(Components.OUTBOUND)
+        if dj_assignment.local:
+            components.append(Components.LOCAL)
+        dj_condition = self.facade.get_condition(self.translator.to_primary_key(identifier))
+        persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE, "NONE": Processes.NONE}
+        dj_process = self.facade.get_process(self.translator.to_primary_key(identifier))
+        return create_entity(
+            identifier,
+            components=components,
+            is_tainted=dj_condition.is_flagged,
+            process=persisted_to_domain_process_map[dj_process.current_process],
         )
 
     def apply(self, updates: Iterable[events.StateChanged]) -> None:
