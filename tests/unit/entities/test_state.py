@@ -7,15 +7,7 @@ import pytest
 from link.domain import events
 from link.domain.custom_types import Identifier
 from link.domain.link import create_link
-from link.domain.state import (
-    Commands,
-    Components,
-    Operations,
-    Processes,
-    State,
-    Transition,
-    states,
-)
+from link.domain.state import Commands, Components, Operations, Processes, State, Transition, states
 from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 

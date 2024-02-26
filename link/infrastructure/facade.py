@@ -3,17 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from tempfile import TemporaryDirectory
-from typing import (
-    Any,
-    ContextManager,
-    Iterable,
-    Literal,
-    Mapping,
-    Protocol,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import Any, ContextManager, Iterable, Literal, Mapping, Protocol, Sequence, Union, cast
 
 from link.adapters import PrimaryKey
 from link.adapters.facade import DJAssignments, DJProcess
