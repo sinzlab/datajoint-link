@@ -5,7 +5,7 @@ from collections import deque
 from typing import Any, Iterable, Iterator, Mapping, Optional, Set, TypeVar
 
 from .custom_types import Identifier
-from .state import STATE_MAP, Components, Entity, PersistentState, Processes, State, Unshared
+from .state import STATE_MAP, Components, Entity, PersistentState, Processes, State
 
 
 def create_entity(
@@ -111,10 +111,6 @@ class Link(Set[Entity]):
             return next(entity for entity in self if entity.identifier == identifier)
         except StopIteration as error:
             raise KeyError("Requested entity not present in link") from error
-
-    def list_unshared_entities(self) -> frozenset[Identifier]:
-        """List the identifiers of all unshared entities in the link."""
-        return frozenset(entity.identifier for entity in self if entity.state is Unshared)
 
     def __contains__(self, entity: object) -> bool:
         """Check if the link contains the given entity."""

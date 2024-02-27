@@ -45,18 +45,6 @@ def delete(command: commands.DeleteEntities, *, message_bus: MessageBus) -> None
     message_bus.handle(events.BatchProcessingFinished(Processes.DELETE, command.requested))
 
 
-def list_unshared_entities(
-    command: commands.ListUnsharedEntities,
-    *,
-    uow: UnitOfWork,
-    output_port: Callable[[events.UnsharedEntitiesListed], None],
-) -> None:
-    """List all unshared entities."""
-    with uow:
-        unshared = uow.link.list_unshared_entities()
-        output_port(events.UnsharedEntitiesListed(unshared))
-
-
 def log_state_change(event: events.StateChanged, log: Callable[[events.StateChanged], None]) -> None:
     """Log the state change of an entity."""
     log(event)

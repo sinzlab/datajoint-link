@@ -1,23 +1,11 @@
 """Logic associated with presenting information about finished use-cases."""
 from __future__ import annotations
 
-from typing import Callable, Iterable
+from typing import Callable
 
 from link.domain import events
 
-from .custom_types import PrimaryKey
 from .identification import IdentificationTranslator
-
-
-def create_unshared_entities_updater(
-    translator: IdentificationTranslator, update: Callable[[Iterable[PrimaryKey]], None]
-) -> Callable[[events.UnsharedEntitiesListed], None]:
-    """Create a callable that when called updates the list of unshared entities."""
-
-    def update_unshared_entities(response: events.UnsharedEntitiesListed) -> None:
-        update(translator.to_primary_key(identifier) for identifier in response.identifiers)
-
-    return update_unshared_entities
 
 
 def create_state_change_logger(

@@ -7,7 +7,7 @@ import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Processes, State, states
-from link.service.handlers import delete, delete_entity, list_unshared_entities, pull, pull_entity
+from link.service.handlers import delete, delete_entity, pull, pull_entity
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
 from tests.assignments import create_assignments, create_identifiers
@@ -171,14 +171,3 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
     pull_service(commands.PullEntities(frozenset(create_identifiers("1"))))
     with uow:
         assert next(iter(uow.link)).state is expected
-
-
-def test_correct_response_model_gets_passed_to_list_unshared_entities_output_port() -> None:
-    uow = UnitOfWork(
-        FakeLinkGateway(
-            create_assignments({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
-        )
-    )
-    output_port = FakeOutputPort[events.UnsharedEntitiesListed]()
-    list_unshared_entities(commands.ListUnsharedEntities(), uow=uow, output_port=output_port)
-    assert set(output_port.response.identifiers) == create_identifiers("1")
