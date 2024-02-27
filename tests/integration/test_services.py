@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Callable, Generic, TypedDict, TypeVar
+from typing import Callable, Generic, TypedDict, TypeVar, cast
 
 import pytest
 
@@ -74,8 +74,8 @@ _Command_contra = TypeVar("_Command_contra", bound=commands.Command, contravaria
 
 
 def create_pull_service(uow: UnitOfWork) -> Callable[[commands.PullEntities], None]:
-    command_handlers: CommandHandlers = {}
-    event_handlers: EventHandlers = {}
+    command_handlers = cast(CommandHandlers, {})
+    event_handlers = cast(EventHandlers, {})
     bus = MessageBus(uow, command_handlers, event_handlers)
     command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow, message_bus=bus)
     event_handlers[events.InvalidOperationRequested] = [lambda event: None]
@@ -88,8 +88,8 @@ def create_pull_service(uow: UnitOfWork) -> Callable[[commands.PullEntities], No
 
 
 def create_delete_service(uow: UnitOfWork) -> Callable[[commands.DeleteEntities], None]:
-    command_handlers: CommandHandlers = {}
-    event_handlers: EventHandlers = {}
+    command_handlers = cast(CommandHandlers, {})
+    event_handlers = cast(EventHandlers, {})
     bus = MessageBus(uow, command_handlers, event_handlers)
     command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow, message_bus=bus)
     event_handlers[events.InvalidOperationRequested] = [lambda event: None]

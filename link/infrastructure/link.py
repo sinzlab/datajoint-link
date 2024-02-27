@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from functools import partial
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, cast
 
 from link.adapters.controller import DJController
 from link.adapters.gateway import DJLinkGateway
@@ -57,8 +57,8 @@ def create_link(  # noqa: PLR0913
         uow = UnitOfWork(gateway)
         logger = logging.getLogger(obj.__name__)
 
-        command_handlers: CommandHandlers = {}
-        event_handlers: EventHandlers = {}
+        command_handlers = cast(CommandHandlers, {})
+        event_handlers = cast(EventHandlers, {})
         bus = MessageBus(uow, command_handlers, event_handlers)
         command_handlers[commands.PullEntity] = partial(pull_entity, uow=uow, message_bus=bus)
         command_handlers[commands.DeleteEntity] = partial(delete_entity, uow=uow, message_bus=bus)
