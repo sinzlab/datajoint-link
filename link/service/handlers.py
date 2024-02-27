@@ -15,7 +15,7 @@ def pull_entity(command: commands.PullEntity, *, uow: UnitOfWork, message_bus: M
     """Pull an entity across the link."""
     message_bus.handle(events.ProcessStarted(Processes.PULL, command.requested))
     with uow:
-        uow.link[command.requested].pull()
+        uow.entities.create_entity(command.requested).pull()
         uow.commit()
     message_bus.handle(events.ProcessFinished(Processes.PULL, command.requested))
 
@@ -24,7 +24,7 @@ def delete_entity(command: commands.DeleteEntity, *, uow: UnitOfWork, message_bu
     """Delete a shared entity."""
     message_bus.handle(events.ProcessStarted(Processes.DELETE, command.requested))
     with uow:
-        uow.link[command.requested].delete()
+        uow.entities.create_entity(command.requested).delete()
         uow.commit()
     message_bus.handle(events.ProcessFinished(Processes.DELETE, command.requested))
 

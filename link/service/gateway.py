@@ -18,7 +18,7 @@ class LinkGateway(ABC):
         """Create a link from the persistent data."""
 
     @abstractmethod
-    def __getitem__(self, identifier: Identifier) -> Entity:
+    def create_entity(self, identifier: Identifier) -> Entity:
         """Create a entity instance from persistent data."""
 
     @abstractmethod

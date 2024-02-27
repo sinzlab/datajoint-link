@@ -52,7 +52,7 @@ class DJLinkGateway(LinkGateway):
             tainted_identifiers=translate_tainted_primary_keys(self.facade.get_tainted_primary_keys()),
         )
 
-    def __getitem__(self, identifier: Identifier) -> Entity:
+    def create_entity(self, identifier: Identifier) -> Entity:
         """Create a entity instance from persistent data."""
         dj_assignment = self.facade.get_assignment(self.translator.to_primary_key(identifier))
         components = []

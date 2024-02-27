@@ -10,7 +10,7 @@ from link.domain.state import Components, Processes, State, states
 from link.service.handlers import delete, delete_entity, pull, pull_entity
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
-from tests.assignments import create_assignments, create_identifiers
+from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 from .gateway import FakeLinkGateway
 
@@ -145,7 +145,7 @@ def test_deleted_entity_ends_in_correct_state(state: EntityConfig, expected: typ
     delete_service = create_delete_service(uow)
     delete_service(commands.DeleteEntities(frozenset(create_identifiers("1"))))
     with uow:
-        assert next(iter(uow.link)).state is expected
+        assert uow.entities.create_entity(create_identifier("1")).state is expected
 
 
 @pytest.mark.parametrize(
@@ -170,4 +170,4 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
     pull_service = create_pull_service(uow)
     pull_service(commands.PullEntities(frozenset(create_identifiers("1"))))
     with uow:
-        assert next(iter(uow.link)).state is expected
+        assert uow.entities.create_entity(create_identifier("1")).state is expected
