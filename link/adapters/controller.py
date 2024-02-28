@@ -29,7 +29,3 @@ class DJController:
     def delete(self, primary_keys: Iterable[PrimaryKey]) -> None:
         """Execute the delete use-case."""
         self._message_bus.handle(commands.DeleteEntities(frozenset(self._translator.to_identifiers(primary_keys))))
-
-    def list_unshared_entities(self) -> None:
-        """Execute the use-case that lists unshared entities."""
-        self._message_bus.handle(commands.ListUnsharedEntities())

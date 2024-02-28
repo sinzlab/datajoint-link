@@ -18,7 +18,7 @@ from link.adapters import PrimaryKey
 from link.adapters.gateway import DJLinkGateway
 from link.adapters.identification import IdentificationTranslator
 from link.domain import events
-from link.domain.link import create_link
+from link.domain.link import create_entity
 from link.domain.state import Components, Operations, Processes
 from link.infrastructure.facade import DJLinkFacade, Table
 
@@ -98,6 +98,31 @@ class FakeTable:
 
         return convert_external_attrs(project_rows(self.__rows_in_restriction()))
 
+    def fetch1(self, *attrs: str, download_path: str = ".") -> Any | tuple[Any, ...]:
+        def project_row(row: Mapping[str, Any]) -> dict[str, Any]:
+            return {attr: value for attr, value in row.items() if attr in attrs}
+
+        def convert_external_attrs(row: Mapping[str, Any]) -> dict[str, Any]:
+            row = dict(row)
+            external_attrs = self.__external_attrs & self.__projected_attrs
+            for attr in external_attrs:
+                row[attr] = convert_external_attr(*row[attr])
+            return row
+
+        def convert_external_attr(filename: str, data: bytes) -> str:
+            filepath = download_path / Path(filename)
+            with filepath.open(mode="wb") as file:
+                file.write(data)
+            return str(filepath)
+
+        rows = list(self.proj(*attrs).__rows_in_restriction())
+        assert len(rows) == 1
+        row = tuple(convert_external_attrs(project_row(rows[0])).values())
+        if len(row) == 1:
+            return row[0]
+        else:
+            return row
+
     def delete(self) -> None:
         def is_confirmed() -> bool:
             answer = None
@@ -134,6 +159,9 @@ class FakeTable:
         table = self.__create_copy()
         table.__restriction = condition
         return table
+
+    def __contains__(self, primary_key: PrimaryKey) -> bool:
+        return bool(list((self & primary_key).__rows_in_restriction()))
 
     def children(self, *, as_objects: Literal[True]) -> Sequence[FakeTable]:
         return list(self.__children)
@@ -301,7 +329,7 @@ class as_stdin:
         sys.stdin = self.original_stdin
 
 
-def test_link_creation() -> None:
+def test_entity_creation() -> None:
     tables = create_tables("link", primary={"a"}, non_primary={"b"})
     gateway = create_gateway(tables)
     set_state(
@@ -330,22 +358,35 @@ def test_link_creation() -> None:
         ),
     )
 
-    assert gateway.create_link() == create_link(
-        {
-            Components.SOURCE: gateway.translator.to_identifiers([{"a": 0}, {"a": 1}, {"a": 2}]),
-            Components.OUTBOUND: gateway.translator.to_identifiers([{"a": 0}, {"a": 1}, {"a": 2}]),
-            Components.LOCAL: gateway.translator.to_identifiers([{"a": 0}, {"a": 2}]),
-        },
-        processes={Processes.PULL: {gateway.translator.to_identifier({"a": 1})}},
-        tainted_identifiers={gateway.translator.to_identifier({"a": 2})},
-    )
+    identifiers = [gateway.translator.to_identifier(primary_key) for primary_key in [{"a": 0}, {"a": 1}, {"a": 2}]]
+    actual = {gateway.create_entity(identifier) for identifier in identifiers}
+    expected = {
+        create_entity(
+            gateway.translator.to_identifier({"a": 0}),
+            components=[Components.SOURCE, Components.OUTBOUND, Components.LOCAL],
+            is_tainted=False,
+            process=Processes.NONE,
+        ),
+        create_entity(
+            gateway.translator.to_identifier({"a": 1}),
+            components=[Components.SOURCE, Components.OUTBOUND],
+            is_tainted=False,
+            process=Processes.PULL,
+        ),
+        create_entity(
+            gateway.translator.to_identifier({"a": 2}),
+            components=[Components.SOURCE, Components.OUTBOUND, Components.LOCAL],
+            is_tainted=True,
+            process=Processes.NONE,
+        ),
+    }
+    assert actual == expected
 
 
 def apply_update(gateway: DJLinkGateway, operation: Operations, requested: Iterable[PrimaryKey]) -> None:
-    link = gateway.create_link()
-    for entity in link:
-        if entity.identifier not in {gateway.translator.to_identifier(key) for key in requested}:
-            continue
+    for primary_key in requested:
+        identifier = gateway.translator.to_identifier(primary_key)
+        entity = gateway.create_entity(identifier)
         entity.apply(operation)
         while entity.events:
             event = entity.events.popleft()

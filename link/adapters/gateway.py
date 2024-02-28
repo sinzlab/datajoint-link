@@ -1,18 +1,16 @@
 """Contains the DataJoint gateway class and related classes/functions."""
 from __future__ import annotations
 
-from collections import defaultdict
 from itertools import groupby
 from typing import Iterable
 
 from link.domain import events
 from link.domain.custom_types import Identifier
-from link.domain.link import Link, create_link
-from link.domain.state import Commands, Components, Processes
+from link.domain.link import create_entity
+from link.domain.state import Commands, Components, Entity, Processes
 from link.service.gateway import LinkGateway
 
-from .custom_types import PrimaryKey
-from .facade import DJAssignments, DJLinkFacade, DJProcess
+from .facade import DJLinkFacade
 from .identification import IdentificationTranslator
 
 
@@ -24,32 +22,24 @@ class DJLinkGateway(LinkGateway):
         self.facade = facade
         self.translator = translator
 
-    def create_link(self) -> Link:
-        """Create a link instance from persistent data."""
-
-        def translate_assignments(dj_assignments: DJAssignments) -> dict[Components, set[Identifier]]:
-            return {
-                Components.SOURCE: self.translator.to_identifiers(dj_assignments.source),
-                Components.OUTBOUND: self.translator.to_identifiers(dj_assignments.outbound),
-                Components.LOCAL: self.translator.to_identifiers(dj_assignments.local),
-            }
-
-        def translate_processes(dj_processes: Iterable[DJProcess]) -> dict[Processes, set[Identifier]]:
-            persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE}
-            domain_processes: dict[Processes, set[Identifier]] = defaultdict(set)
-            active_processes = [process for process in dj_processes if process.current_process != "NONE"]
-            for persisted_process in active_processes:
-                domain_process = persisted_to_domain_process_map[persisted_process.current_process]
-                domain_processes[domain_process].add(self.translator.to_identifier(persisted_process.primary_key))
-            return domain_processes
-
-        def translate_tainted_primary_keys(primary_keys: Iterable[PrimaryKey]) -> set[Identifier]:
-            return {self.translator.to_identifier(key) for key in primary_keys}
-
-        return create_link(
-            translate_assignments(self.facade.get_assignments()),
-            processes=translate_processes(self.facade.get_processes()),
-            tainted_identifiers=translate_tainted_primary_keys(self.facade.get_tainted_primary_keys()),
+    def create_entity(self, identifier: Identifier) -> Entity:
+        """Create a entity instance from persistent data."""
+        dj_assignment = self.facade.get_assignment(self.translator.to_primary_key(identifier))
+        components = []
+        if dj_assignment.source:
+            components.append(Components.SOURCE)
+        if dj_assignment.outbound:
+            components.append(Components.OUTBOUND)
+        if dj_assignment.local:
+            components.append(Components.LOCAL)
+        dj_condition = self.facade.get_condition(self.translator.to_primary_key(identifier))
+        persisted_to_domain_process_map = {"PULL": Processes.PULL, "DELETE": Processes.DELETE, "NONE": Processes.NONE}
+        dj_process = self.facade.get_process(self.translator.to_primary_key(identifier))
+        return create_entity(
+            identifier,
+            components=components,
+            is_tainted=dj_condition.is_flagged,
+            process=persisted_to_domain_process_map[dj_process.current_process],
         )
 
     def apply(self, updates: Iterable[events.StateChanged]) -> None:

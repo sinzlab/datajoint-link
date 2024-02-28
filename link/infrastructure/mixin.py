@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Iterable, Sequence, cast
+from typing import Sequence, cast
 
 from datajoint import Table
 
@@ -38,7 +38,6 @@ def create_source_endpoint_factory(
     controller: DJController,
     source_table: Callable[[], Table],
     outbound_table: Callable[[], Table],
-    restriction: Iterable[PrimaryKey],
     progress_view: ProgressView,
 ) -> Callable[[], SourceEndpoint]:
     """Create a callable that returns the source endpoint when called."""
@@ -55,8 +54,7 @@ def create_source_endpoint_factory(
                     "_outbound_table": staticmethod(outbound_table),
                     "_progress_view": progress_view,
                 },
-            )()
-            & restriction,
+            )(),
         )
 
     return create_source_endpoint
@@ -84,7 +82,7 @@ class LocalEndpoint(Table):
 
 
 def create_local_endpoint(
-    controller: DJController, tables: DJTables, source_restriction: Iterable[PrimaryKey], progress_view: ProgressView
+    controller: DJController, tables: DJTables, progress_view: ProgressView
 ) -> type[LocalEndpoint]:
     """Create the local endpoint."""
     return cast(
@@ -98,9 +96,7 @@ def create_local_endpoint(
             {
                 "_controller": controller,
                 "_source": staticmethod(
-                    create_source_endpoint_factory(
-                        controller, tables.source, tables.outbound, source_restriction, progress_view
-                    ),
+                    create_source_endpoint_factory(controller, tables.source, tables.outbound, progress_view),
                 ),
                 "_progress_view": progress_view,
             },
