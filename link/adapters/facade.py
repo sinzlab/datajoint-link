@@ -51,7 +51,7 @@ class DJLinkFacade(ABC):
 
     @abstractmethod
     def deprecate(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Deprecate the entities identified by the given primary keys."""
+        """Deprecate the entities identified by the given primary key."""
 
 
 ProcessType = Literal["PULL", "DELETE", "NONE"]

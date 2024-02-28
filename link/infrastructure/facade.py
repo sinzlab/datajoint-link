@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from tempfile import TemporaryDirectory
-from typing import Any, ContextManager, Iterable, Literal, Mapping, Protocol, Sequence, Union, cast
+from typing import Any, ContextManager, Iterable, Literal, Mapping, Protocol, Sequence, Union
 
 from link.adapters import PrimaryKey
-from link.adapters.facade import DJAssignment, DJAssignments, DJCondition, DJProcess, ProcessType
+from link.adapters.facade import DJAssignment, DJCondition, DJProcess, ProcessType
 from link.adapters.facade import DJLinkFacade as AbstractDJLinkFacade
 
 
@@ -65,28 +65,6 @@ class DJLinkFacade(AbstractDJLinkFacade):
         self.source = source
         self.outbound = outbound
         self.local = local
-
-    def get_assignments(self) -> DJAssignments:
-        """Get the assignments of primary keys to tables."""
-        return DJAssignments(
-            cast("list[PrimaryKey]", self.source().proj().fetch(as_dict=True)),
-            cast("list[PrimaryKey]", self.outbound().proj().fetch(as_dict=True)),
-            cast("list[PrimaryKey]", self.local().proj().fetch(as_dict=True)),
-        )
-
-    def get_processes(self) -> list[DJProcess]:
-        """Get the current process (if any) from each entity in the outbound table."""
-        rows = self.outbound().proj("process").fetch(as_dict=True)
-        processes: list[DJProcess] = []
-        for row in rows:
-            process = row.pop("process")
-            processes.append(DJProcess(row, process))
-        return processes
-
-    def get_tainted_primary_keys(self) -> list[PrimaryKey]:
-        """Get the flagged (i.e. tainted) primary keys from the outbound table."""
-        rows = (self.outbound() & 'is_flagged = "TRUE"').proj().fetch(as_dict=True)
-        return cast("list[PrimaryKey]", rows)
 
     def get_assignment(self, primary_key: PrimaryKey) -> DJAssignment:
         """Get the assignment of the entity with the given primary key."""
