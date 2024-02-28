@@ -14,18 +14,6 @@ class DJLinkFacade(ABC):
     """A facade around a link that is persisted using DataJoint."""
 
     @abstractmethod
-    def get_assignments(self) -> DJAssignments:
-        """Get the assignments of primary keys to the different components."""
-
-    @abstractmethod
-    def get_tainted_primary_keys(self) -> list[PrimaryKey]:
-        """Get all tainted primary keys."""
-
-    @abstractmethod
-    def get_processes(self) -> list[DJProcess]:
-        """Get all processes associated with entities."""
-
-    @abstractmethod
     def get_assignment(self, primary_key: PrimaryKey) -> DJAssignment:
         """Get the assignment of the entity with the given primary key to components."""
 
@@ -39,31 +27,31 @@ class DJLinkFacade(ABC):
 
     @abstractmethod
     def add_to_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Add the entity identified by the given primary key to the local component."""
+        """Add the entities identified by the given primary keys to the local component."""
 
     @abstractmethod
     def remove_from_local(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Remove the entity identified by the given primary key from the local component."""
+        """Remove the entities identified by the given primary keys from the local component."""
 
     @abstractmethod
     def start_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Start the pull process for the entity identified by the given primary key."""
+        """Start the pull process for the entities identified by the given primary keys."""
 
     @abstractmethod
     def finish_pull_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Finish the pull process for the entity identified by the given primary key."""
+        """Finish the pull process for the entities identified by the given primary keys."""
 
     @abstractmethod
     def start_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Start the delete process for the entity identified by the given primary key."""
+        """Start the delete process for the entities identified by the given primary keys."""
 
     @abstractmethod
     def finish_delete_process(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Finish the delete process for the entity identified by the given primary key."""
+        """Finish the delete process for the entities identified by the given primary keys."""
 
     @abstractmethod
     def deprecate(self, primary_keys: Iterable[PrimaryKey]) -> None:
-        """Deprecate the entity identified by the given primary key."""
+        """Deprecate the entities identified by the given primary keys."""
 
 
 ProcessType = Literal["PULL", "DELETE", "NONE"]
