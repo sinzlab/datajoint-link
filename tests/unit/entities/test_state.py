@@ -206,7 +206,7 @@ def test_starting_delete_on_shared_entity() -> None:
     assert (entity.state, entity.current_process, entity.events.pop()) == expected
 
 
-def test_starting_delete_on_tainted_entity_returns_correct_commands() -> None:
+def test_starting_delete_on_tainted_entity() -> None:
     entity = create_entity(
         create_identifier("1"),
         components=[Components.SOURCE, Components.OUTBOUND, Components.LOCAL],
