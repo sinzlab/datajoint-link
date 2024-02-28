@@ -5,9 +5,11 @@ from typing import Iterable, Mapping
 import pytest
 
 from link.domain import events
-from link.domain.state import Commands, Components, Operations, Transition, states
+from link.domain.custom_types import Identifier
+from link.domain.state import Commands, Components, Operations, State, Transition, states
+from link.service.gateway import LinkGateway
 from link.service.uow import UnitOfWork
-from tests.assignments import create_assignments, create_identifier
+from tests.assignments import create_assignments, create_identifier, create_identifiers
 
 from .gateway import FakeLinkGateway
 
@@ -17,13 +19,21 @@ def initialize(assignments: Mapping[Components, Iterable[str]]) -> tuple[FakeLin
     return gateway, UnitOfWork(gateway)
 
 
+def get_entity_states(gateway: LinkGateway, identifiers: Iterable[Identifier]) -> set[tuple[Identifier, type[State]]]:
+    entity_states = set()
+    for identifier in identifiers:
+        entity = gateway.create_entity(identifier)
+        entity_states.add((entity.identifier, entity.state))
+    return entity_states
+
+
 def test_updates_are_applied_to_gateway_on_commit() -> None:
     gateway, uow = initialize({Components.SOURCE: {"1", "2"}, Components.OUTBOUND: {"2"}, Components.LOCAL: {"2"}})
     with uow:
         uow.entities.create_entity(create_identifier("1")).pull()
         uow.entities.create_entity(create_identifier("2")).delete()
         uow.commit()
-    actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
+    actual = get_entity_states(gateway, create_identifiers("1", "2"))
     expected = {(create_identifier("1"), states.Shared), (create_identifier("2"), states.Unshared)}
     assert actual == expected
 
@@ -33,7 +43,7 @@ def test_updates_are_discarded_on_context_exit() -> None:
     with uow:
         uow.entities.create_entity(create_identifier("1")).pull()
         uow.entities.create_entity(create_identifier("2")).delete()
-    actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
+    actual = get_entity_states(gateway, create_identifiers("1", "2"))
     expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Shared)}
     assert actual == expected
 
@@ -44,7 +54,7 @@ def test_updates_are_discarded_on_rollback() -> None:
         uow.entities.create_entity(create_identifier("1")).pull()
         uow.entities.create_entity(create_identifier("2")).delete()
         uow.rollback()
-    actual = {(entity.identifier, entity.state) for entity in gateway.create_link()}
+    actual = get_entity_states(gateway, create_identifiers("1", "2"))
     expected = {(create_identifier("1"), states.Unshared), (create_identifier("2"), states.Shared)}
     assert actual == expected
 
