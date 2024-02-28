@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TypedDict
-
 import pytest
 
 from link.domain import events
@@ -9,11 +7,7 @@ from link.domain.link import create_entity
 from link.domain.state import Commands, Components, Operations, Processes, State, Transition, states
 from tests.assignments import create_identifier
 
-
-class EntityConfig(TypedDict):
-    components: list[Components]
-    is_tainted: bool
-    process: Processes
+from .types import EntityConfig
 
 
 @pytest.mark.parametrize(
