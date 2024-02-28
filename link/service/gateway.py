@@ -6,16 +6,11 @@ from collections.abc import Iterable
 
 from link.domain import events
 from link.domain.custom_types import Identifier
-from link.domain.link import Link
 from link.domain.state import Entity
 
 
 class LinkGateway(ABC):
     """Responsible for interacting with a link's persistent data."""
-
-    @abstractmethod
-    def create_link(self) -> Link:
-        """Create a link from the persistent data."""
 
     @abstractmethod
     def create_entity(self, identifier: Identifier) -> Entity:
