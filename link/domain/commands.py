@@ -37,8 +37,3 @@ class DeleteEntities(Command):
     """Delete the requested entities."""
 
     requested: frozenset[Identifier]
-
-
-@dataclass(frozen=True)
-class ListUnsharedEntities(Command):
-    """Start the delete process for the requested entities."""
