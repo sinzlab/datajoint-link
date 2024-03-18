@@ -7,6 +7,7 @@ import pytest
 
 from link.domain import commands, events
 from link.domain.state import Components, Processes, State, states
+from link.service.ensure import NoEntitiesRequested
 from link.service.handlers import delete, delete_entity, pull, pull_entity
 from link.service.messagebus import CommandHandlers, EventHandlers, MessageBus
 from link.service.uow import UnitOfWork
@@ -171,3 +172,17 @@ def test_pulled_entity_ends_in_correct_state(state: EntityConfig, expected: type
     pull_service(commands.PullEntities(frozenset(create_identifiers("1"))))
     with uow:
         assert uow.entities.create_entity(create_identifier("1")).state is expected
+
+
+@pytest.mark.parametrize(
+    ("create_service", "command_cls"),
+    [(create_pull_service, commands.PullEntities), (create_delete_service, commands.DeleteEntities)],
+)
+def test_requesting_no_entities_raises_error(
+    create_service: Callable[[UnitOfWork], Callable[[commands.BatchCommand], None]],
+    command_cls: type[commands.BatchCommand],
+) -> None:
+    uow = create_uow(**STATES[0])
+    service = create_service(uow)
+    with pytest.raises(NoEntitiesRequested):
+        service(command_cls(frozenset()))

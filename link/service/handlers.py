@@ -6,6 +6,7 @@ from collections.abc import Callable
 from link.domain import commands, events
 from link.domain.state import Processes
 
+from . import ensure
 from .messagebus import MessageBus
 from .progress import ProgessDisplay
 from .uow import UnitOfWork
@@ -31,6 +32,7 @@ def delete_entity(command: commands.DeleteEntity, *, uow: UnitOfWork, message_bu
 
 def pull(command: commands.PullEntities, *, message_bus: MessageBus) -> None:
     """Pull entities across the link."""
+    ensure.requests_entities(command)
     message_bus.handle(events.BatchProcessingStarted(Processes.PULL, command.requested))
     for identifier in command.requested:
         message_bus.handle(commands.PullEntity(identifier))
@@ -39,6 +41,7 @@ def pull(command: commands.PullEntities, *, message_bus: MessageBus) -> None:
 
 def delete(command: commands.DeleteEntities, *, message_bus: MessageBus) -> None:
     """Delete shared entities."""
+    ensure.requests_entities(command)
     message_bus.handle(events.BatchProcessingStarted(Processes.DELETE, command.requested))
     for identifier in command.requested:
         message_bus.handle(commands.DeleteEntity(identifier))

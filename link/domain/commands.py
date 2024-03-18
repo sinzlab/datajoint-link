@@ -12,6 +12,13 @@ class Command:
 
 
 @dataclass(frozen=True)
+class BatchCommand(Command):
+    """Base class for all commands dealing with a batch of entities."""
+
+    requested: frozenset[Identifier]
+
+
+@dataclass(frozen=True)
 class PullEntity(Command):
     """Pull the requested entity."""
 
@@ -26,19 +33,10 @@ class DeleteEntity(Command):
 
 
 @dataclass(frozen=True)
-class PullEntities(Command):
+class PullEntities(BatchCommand):
     """Pull the requested entities."""
 
-    requested: frozenset[Identifier]
-
 
 @dataclass(frozen=True)
-class DeleteEntities(Command):
+class DeleteEntities(BatchCommand):
     """Delete the requested entities."""
-
-    requested: frozenset[Identifier]
-
-
-@dataclass(frozen=True)
-class ListUnsharedEntities(Command):
-    """Start the delete process for the requested entities."""
